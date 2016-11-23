@@ -172,6 +172,7 @@ void Parser::run () {
                 break;
             }
             this->label = 0;
+            this->toks.clear();
         } else {
             this->label = this->lib.create_label(token);
             assert(this->label != 0);
