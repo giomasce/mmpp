@@ -4,6 +4,7 @@
 #include <istream>
 #include <iostream>
 #include <algorithm>
+#include <iterator>
 
 #include "parser.h"
 #include "statics.h"
@@ -192,7 +193,7 @@ void Parser::parse_c()
     assert(this->stack.size() == 1);
     for (auto stok : this->toks) {
         SymTok tok = this->lib.create_symbol(stok);
-        assert(this->consts.find(tok) == this->consts.end());
+        assert(!this->check_const(tok));
         assert(!this->check_var(tok));
         this->consts.insert(tok);
     }
@@ -203,7 +204,7 @@ void Parser::parse_v()
     assert(this->label == 0);
     for (auto stok : this->toks) {
         SymTok tok = this->lib.create_symbol(stok);
-        assert(this->consts.find(tok) == this->consts.end());
+        assert(!this->check_const(tok));
         assert(!this->check_var(tok));
         this->stack.back().vars.insert(tok);
     }
@@ -217,9 +218,10 @@ void Parser::parse_f()
     SymTok var_tok = this->lib.get_symbol(this->toks[1]);
     assert(const_tok != 0);
     assert(var_tok != 0);
-    assert(this->consts.find(const_tok) != this->consts.end());
+    assert(this->check_const(const_tok));
     assert(this->check_var(var_tok));
-    this->stack.back().types.insert(make_pair(this->label, make_pair(const_tok, var_tok)));
+    this->lib.add_sentence(this->label, { const_tok, var_tok });
+    this->stack.back().types.push_back(this->label);
 }
 
 void Parser::parse_e()
@@ -230,11 +232,12 @@ void Parser::parse_e()
     for (auto &stok : this->toks) {
         SymTok tok = this->lib.get_symbol(stok);
         assert(tok != 0);
-        assert(this->consts.find(tok) != this->consts.end() || this->check_var(tok));
+        assert(this->check_const(tok) || this->check_var(tok));
         tmp.push_back(tok);
     }
-    assert(this->consts.find(tmp[0]) != this->consts.end());
-    this->stack.back().hyps.insert(make_pair(this->label, tmp));
+    assert(this->check_const(tmp[0]));
+    this->lib.add_sentence(this->label, tmp);
+    this->stack.back().hyps.push_back(this->label);
 }
 
 void Parser::parse_d()
@@ -252,14 +255,141 @@ void Parser::parse_d()
     }
 }
 
+void Parser::collect_vars(set< SymTok > &vars, vector< SymTok > sent) {
+    for (auto &tok : sent) {
+        if (this->check_var(tok)) {
+            vars.insert(tok);
+        }
+    }
+}
+
+set< SymTok > Parser::collect_mand_vars(vector< SymTok > sent) {
+    set< SymTok > vars;
+    this->collect_vars(vars, sent);
+    for (auto &frame : this->stack) {
+        for (auto &hyp : frame.hyps) {
+            this->collect_vars(vars, this->lib.get_sentence(hyp));
+        }
+    }
+    return vars;
+}
+
+// Here order matters! Be careful!
+vector< LabTok > Parser::collect_mand_hyps(set< SymTok > vars) {
+    vector< LabTok > hyps;
+
+    // Type hypotheses
+    for (auto &frame : this->stack) {
+        for (auto &type : frame.types) {
+            auto sent = this->lib.get_sentence(type);
+            if (vars.find(sent[1]) != vars.end()) {
+                hyps.push_back(type);
+            }
+        }
+    }
+
+    // Essential hypotheses
+    for (auto &frame : this->stack) {
+        for (auto &hyp : frame.hyps) {
+            hyps.push_back(hyp);
+        }
+    }
+
+    return hyps;
+}
+
+set< pair< SymTok, SymTok > > Parser::collect_mand_dists(set< SymTok > vars) {
+    set< pair< SymTok, SymTok > > dists;
+    for (auto &frame : this->stack) {
+        for (auto &dist : frame.dists) {
+            if (vars.find(dist.first) != vars.end() && vars.find(dist.second) != vars.end()) {
+                dists.insert(dist);
+            }
+        }
+    }
+    return dists;
+}
+
 void Parser::parse_a()
 {
+    // Usual sanity checks and symbol conversion
     assert(this->label != 0);
+    assert(this->toks.size() >= 1);
+    vector< SymTok > tmp;
+    for (auto &stok : this->toks) {
+        SymTok tok = this->lib.get_symbol(stok);
+        assert(tok != 0);
+        assert(this->check_const(tok) || this->check_var(tok));
+        tmp.push_back(tok);
+    }
+    assert(this->check_const(tmp[0]));
+    this->lib.add_sentence(this->label, tmp);
+
+    // Collect mandatory things
+    set< SymTok > mand_vars = this->collect_mand_vars(tmp);
+    vector< LabTok > mand_hyps = this->collect_mand_hyps(mand_vars);
+    set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
+
+    // Finally build assertion
+    Assertion ass(false, mand_dists, mand_hyps, this->label);
+    this->lib.add_assertion(this->label, ass);
 }
 
 void Parser::parse_p()
 {
+    // Usual sanity checks and symbol conversion
     assert(this->label != 0);
+    assert(this->toks.size() >= 1);
+    vector< SymTok > tmp;
+    vector< LabTok > proof;
+    vector< LabTok > proof_ref;
+    bool in_proof = false;
+    bool compressed_proof = false;
+    for (auto &stok : this->toks) {
+        if (!in_proof) {
+            if (stok == "$=") {
+                in_proof = true;
+                continue;
+            }
+            SymTok tok = this->lib.get_symbol(stok);
+            assert(tok != 0);
+            assert(this->check_const(tok) || this->check_var(tok));
+            tmp.push_back(tok);
+        } else {
+            if (!compressed_proof && stok == "(") {
+                compressed_proof = true;
+                continue;
+            }
+            if (compressed_proof && stok == ")") {
+                // TODO finish implementation
+                break;
+            }
+            LabTok tok = this->lib.get_label(stok);
+            assert(tok != 0);
+            if (compressed_proof) {
+                proof_ref.push_back(tok);
+            } else {
+                proof.push_back(tok);
+            }
+        }
+    }
+    assert(this->check_const(tmp[0]));
+    this->lib.add_sentence(this->label, tmp);
+
+    // Collect mandatory things
+    set< SymTok > mand_vars = this->collect_mand_vars(tmp);
+    vector< LabTok > mand_hyps = this->collect_mand_hyps(mand_vars);
+    set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
+
+    // Check that the proof is syntactically valid
+    set< LabTok > mand_hyps_set(mand_hyps.begin(), mand_hyps.end());
+    for (auto &tok : proof) {
+        assert(this->get_library().get_assertion(tok).is_valid() || mand_hyps_set.find(tok) != mand_hyps_set.end());
+    }
+
+    // Finally build assertion
+    Assertion ass(true, mand_dists, mand_hyps, this->label, proof);
+    this->lib.add_assertion(this->label, ass);
 }
 
 bool Parser::check_var(SymTok tok)
@@ -270,4 +400,9 @@ bool Parser::check_var(SymTok tok)
         }
     }
     return false;
+}
+
+bool Parser::check_const(SymTok tok)
+{
+    return this->consts.find(tok) != this->consts.end();
 }

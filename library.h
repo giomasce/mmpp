@@ -6,12 +6,13 @@
 #include <utility>
 #include <tuple>
 #include <limits>
+#include <set>
 #include <type_traits>
 
 #include <cassert>
 
 typedef uint16_t SymTok;
-typedef uint16_t LabTok;
+typedef uint32_t LabTok;
 
 static_assert(std::is_integral< SymTok >::value);
 static_assert(std::is_unsigned< SymTok >::value);
@@ -20,18 +21,20 @@ static_assert(std::is_unsigned< LabTok >::value);
 
 class Assertion {
 public:
+    Assertion();
     Assertion(bool theorem,
-              std::vector< std::pair< SymTok, SymTok > > types,
-              std::vector< std::pair< SymTok, SymTok > > dists,
-              std::vector< std::vector< SymTok > > hyps,
-              std::vector< LabTok > thesis,
+              std::set< std::pair< SymTok, SymTok > > dists,
+              std::vector< LabTok > hyps,
+              LabTok thesis,
               std::vector< LabTok > proof = {});
+    bool is_valid();
+
 private:
+    bool valid;
     bool theorem;
-    std::vector< std::pair< SymTok, SymTok > > types;
-    std::vector< std::pair< SymTok, SymTok > > dists;
-    std::vector< std::vector< SymTok > > hyps;
-    std::vector< LabTok > thesis;
+    std::set< std::pair< SymTok, SymTok > > dists;
+    std::vector< LabTok > hyps;
+    LabTok thesis;
     std::vector< LabTok > proof;
 };
 
@@ -73,6 +76,9 @@ public:
         }
         return tok;
     }
+    std::size_t size() {
+        return this->dir.size();
+    }
 private:
     Tok next_id = 1;
     std::unordered_map< std::string, Tok > dir;
@@ -87,9 +93,21 @@ public:
     LabTok create_label(std::string s);
     SymTok get_symbol(std::string s);
     LabTok get_label(std::string s);
+    std::size_t get_symbol_num();
+    std::size_t get_label_num();
+    void add_sentence(LabTok label, std::vector< SymTok > content);
+    std::vector<SymTok> get_sentence(LabTok label);
+    void add_assertion(LabTok label, const Assertion &ass);
+    Assertion get_assertion(LabTok label);
+
 private:
     StringCache< SymTok > syms;
     StringCache< LabTok > labels;
+
+    // Vector is more efficient if labels are known to be contiguous and starting from 1; in the general case the unordered_map might be better
+    //std::unordered_map< LabTok, std::vector< SymTok > > sentences;
+    std::vector< std::vector< SymTok > > sentences;
+    std::vector< Assertion > assertions;
 };
 
 #endif // LIBRARY_H

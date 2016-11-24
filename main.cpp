@@ -22,15 +22,14 @@ int main() {
   cout << w2->to_string() << endl;
   cout << w2->imp_not_form()->to_string() << endl;*/
 
-    /*fstream in("/home/giovanni/progetti/metamath/demo0.mm");
-    FileTokenizer ft(in);
-    Parser p(ft);
-    p.run();*/
-
+    //fstream in("/home/giovanni/progetti/metamath/demo0.mm");
     fstream in("/home/giovanni/progetti/metamath/set.mm/set.mm");
     FileTokenizer ft(in);
     Parser p(ft);
     p.run();
+
+    Library lib = p.get_library();
+    cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
 
     return 0;
 
