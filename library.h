@@ -19,6 +19,10 @@ static_assert(std::is_unsigned< SymTok >::value);
 static_assert(std::is_integral< LabTok >::value);
 static_assert(std::is_unsigned< LabTok >::value);
 
+class Proof {
+
+};
+
 class Assertion {
 public:
     Assertion();

@@ -67,4 +67,11 @@ private:
     std::set< SymTok > consts;
 };
 
+class CompressedDecoder {
+public:
+    int push_char(char c);
+private:
+    int current = 0;
+};
+
 #endif // PARSER_H

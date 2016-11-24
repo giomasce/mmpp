@@ -1,5 +1,5 @@
-#ifndef CONSTANTS_H
-#define CONSTANTS_H
+#ifndef STATICS_H
+#define STATICS_H
 
 #include <set>
 #include <string>
@@ -42,4 +42,4 @@ inline static bool is_symbol(std::string s) {
     return true;
 }
 
-#endif // CONSTANTS_H
+#endif // STATICS_H

@@ -343,8 +343,10 @@ void Parser::parse_p()
     vector< SymTok > tmp;
     vector< LabTok > proof;
     vector< LabTok > proof_ref;
+    vector< int > proof_codes;
+    CompressedDecoder cd;
     bool in_proof = false;
-    bool compressed_proof = false;
+    int8_t compressed_proof = 0;
     for (auto &stok : this->toks) {
         if (!in_proof) {
             if (stok == "$=") {
@@ -356,24 +358,42 @@ void Parser::parse_p()
             assert(this->check_const(tok) || this->check_var(tok));
             tmp.push_back(tok);
         } else {
-            if (!compressed_proof && stok == "(") {
-                compressed_proof = true;
-                continue;
+            if (compressed_proof == 0) {
+                if (stok == "(") {
+                    compressed_proof = 1;
+                    continue;
+                } else {
+                    // The proof is not in compressed form, processing continues below
+                    compressed_proof = -1;
+                }
             }
-            if (compressed_proof && stok == ")") {
-                // TODO finish implementation
-                break;
+            if (compressed_proof == 1) {
+                if (stok == ")") {
+                    compressed_proof = 2;
+                    continue;
+                } else {
+                    LabTok tok = this->lib.get_label(stok);
+                    assert(tok != 0);
+                    proof_ref.push_back(tok);
+                }
             }
-            LabTok tok = this->lib.get_label(stok);
-            assert(tok != 0);
-            if (compressed_proof) {
-                proof_ref.push_back(tok);
-            } else {
+            if (compressed_proof == 2) {
+                for (auto c : stok) {
+                    int res = cd.push_char(c);
+                    if (res > 0) {
+                        proof_codes.push_back(res);
+                    }
+                }
+            }
+            if (compressed_proof == -1) {
+                LabTok tok = this->lib.get_label(stok);
+                assert(tok != 0);
                 proof.push_back(tok);
             }
         }
     }
     assert(this->check_const(tmp[0]));
+    assert(compressed_proof == -1 || compressed_proof == 2);
     this->lib.add_sentence(this->label, tmp);
 
     // Collect mandatory things
@@ -405,4 +425,23 @@ bool Parser::check_var(SymTok tok)
 bool Parser::check_const(SymTok tok)
 {
     return this->consts.find(tok) != this->consts.end();
+}
+
+int CompressedDecoder::push_char(char c)
+{
+    if (is_whitespace(c)) {
+        return -1;
+    }
+    assert('A' <= c && c <= 'Z');
+    if (c == 'Z') {
+        assert(this->current == 0);
+        return 0;
+    } else if ('A' <= c && c <= 'T') {
+        int res = this->current * 20 + (c - 'A' + 1);
+        this->current = 0;
+        return res;
+    } else {
+        this->current = this->current * 5 + (c - 'U' + 1);
+        return -1;
+    }
 }
