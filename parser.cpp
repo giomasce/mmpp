@@ -3,6 +3,7 @@
 #include <cassert>
 #include <istream>
 #include <iostream>
+#include <algorithm>
 
 #include "parser.h"
 #include "statics.h"
@@ -35,7 +36,7 @@ vector< string > tokenize(string in) {
 }
 
 FileTokenizer::FileTokenizer(istream &in) :
-    in(in), white(true), comment(false)
+    in(in), white(true)
 {
 }
 
@@ -70,6 +71,9 @@ string FileTokenizer::next()
             }
             if (c == '[' || c == '(') {
                 // Here the comment begin
+                // real_comment is just a trick to work around problems arising from
+                // not implementing corretly file inclusion
+                bool real_comment = c == '(';
                 bool found_dollar = false;
                 while (true) {
                     this->in.get(c);
@@ -77,9 +81,9 @@ string FileTokenizer::next()
                         assert("File ended in a comment" == NULL);
                     }
                     if (found_dollar) {
-                        if (c == '[' || c == '(') {
+                        if (c == '(') {
                             assert("Comment opening forbidden in comment" == NULL);
-                        } else if (c == ']' || c == ')') {
+                        } else if ((real_comment && c == ')') || (!real_comment && c == ']')) {
                             break;
                         }
                         found_dollar = false;
@@ -185,36 +189,67 @@ void Parser::run () {
 void Parser::parse_c()
 {
     assert(this->label == 0);
-    for (auto tok : this->toks) {
-        Tok res = this->lib.create_symbol(tok);
-        assert(res != 0);
-        this->consts.insert(res);
+    assert(this->stack.size() == 1);
+    for (auto stok : this->toks) {
+        Tok tok = this->lib.create_symbol(stok);
+        assert(this->consts.find(tok) == this->consts.end());
+        assert(!this->check_var(tok));
+        this->consts.insert(tok);
     }
 }
 
 void Parser::parse_v()
 {
     assert(this->label == 0);
-    for (auto tok : this->toks) {
-        Tok res = this->lib.create_symbol(tok);
-        assert(res != 0);
-        this->stack.back().vars.insert(res);
+    for (auto stok : this->toks) {
+        Tok tok = this->lib.create_symbol(stok);
+        assert(this->consts.find(tok) == this->consts.end());
+        assert(!this->check_var(tok));
+        this->stack.back().vars.insert(tok);
     }
 }
 
 void Parser::parse_f()
 {
     assert(this->label != 0);
+    assert(this->toks.size() == 2);
+    Tok const_tok = this->lib.get_symbol(this->toks[0]);
+    Tok var_tok = this->lib.get_symbol(this->toks[1]);
+    assert(const_tok != 0);
+    assert(var_tok != 0);
+    assert(this->consts.find(const_tok) != this->consts.end());
+    assert(this->check_var(var_tok));
+    this->stack.back().types.insert(make_pair(this->label, make_pair(const_tok, var_tok)));
 }
 
 void Parser::parse_e()
 {
     assert(this->label != 0);
+    assert(this->toks.size() >= 1);
+    vector< Tok > tmp;
+    for (auto &stok : this->toks) {
+        Tok tok = this->lib.get_symbol(stok);
+        assert(tok != 0);
+        assert(this->consts.find(tok) != this->consts.end() || this->check_var(tok));
+        tmp.push_back(tok);
+    }
+    assert(this->consts.find(tmp[0]) != this->consts.end());
+    this->stack.back().hyps.insert(make_pair(this->label, tmp));
 }
 
 void Parser::parse_d()
 {
     assert(this->label == 0);
+    for (auto it = this->toks.begin(); it != this->toks.end(); it++) {
+        Tok tok1 = this->lib.get_symbol(*it);
+        assert(this->check_var(tok1));
+        for (auto it2 = it+1; it2 != this->toks.end(); it2++) {
+            Tok tok2 = this->lib.get_symbol(*it2);
+            assert(this->check_var(tok2));
+            assert(tok1 != tok2);
+            this->stack.back().dists.insert(minmax(tok1, tok2));
+        }
+    }
 }
 
 void Parser::parse_a()
@@ -225,4 +260,14 @@ void Parser::parse_a()
 void Parser::parse_p()
 {
     assert(this->label != 0);
+}
+
+bool Parser::check_var(Tok tok)
+{
+    for (auto &frame : this->stack) {
+        if (frame.vars.find(tok) != frame.vars.end()) {
+            return true;
+        }
+    }
+    return false;
 }

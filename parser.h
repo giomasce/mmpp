@@ -11,13 +11,10 @@
 /*
  * Some notes on this Metamath parser:
  *  + At the moment it does not support file inclusion. File inclusions
- *    are treated like comments.
+ *    are treated (more or less) like comments.
  *  + It does not require that label tokens do not match any math token.
  *  + It does not support compressed proofs.
- *  + It assumes that there are no duplicate variables.
  */
-
-std::vector< std::string > tokenize(std::string in);
 
 class FileTokenizer {
 public:
@@ -26,7 +23,6 @@ public:
 private:
     std::istream &in;
     bool white;
-    bool comment;
     std::vector< char > buf;
     std::string finalize_token();
 };
@@ -50,6 +46,8 @@ private:
     void parse_d();
     void parse_a();
     void parse_p();
+
+    bool check_var(Tok tok);
 
     FileTokenizer &ft;
     Library lib;
