@@ -191,7 +191,7 @@ void Parser::parse_c()
     assert(this->label == 0);
     assert(this->stack.size() == 1);
     for (auto stok : this->toks) {
-        Tok tok = this->lib.create_symbol(stok);
+        SymTok tok = this->lib.create_symbol(stok);
         assert(this->consts.find(tok) == this->consts.end());
         assert(!this->check_var(tok));
         this->consts.insert(tok);
@@ -202,7 +202,7 @@ void Parser::parse_v()
 {
     assert(this->label == 0);
     for (auto stok : this->toks) {
-        Tok tok = this->lib.create_symbol(stok);
+        SymTok tok = this->lib.create_symbol(stok);
         assert(this->consts.find(tok) == this->consts.end());
         assert(!this->check_var(tok));
         this->stack.back().vars.insert(tok);
@@ -213,8 +213,8 @@ void Parser::parse_f()
 {
     assert(this->label != 0);
     assert(this->toks.size() == 2);
-    Tok const_tok = this->lib.get_symbol(this->toks[0]);
-    Tok var_tok = this->lib.get_symbol(this->toks[1]);
+    SymTok const_tok = this->lib.get_symbol(this->toks[0]);
+    SymTok var_tok = this->lib.get_symbol(this->toks[1]);
     assert(const_tok != 0);
     assert(var_tok != 0);
     assert(this->consts.find(const_tok) != this->consts.end());
@@ -226,9 +226,9 @@ void Parser::parse_e()
 {
     assert(this->label != 0);
     assert(this->toks.size() >= 1);
-    vector< Tok > tmp;
+    vector< SymTok > tmp;
     for (auto &stok : this->toks) {
-        Tok tok = this->lib.get_symbol(stok);
+        SymTok tok = this->lib.get_symbol(stok);
         assert(tok != 0);
         assert(this->consts.find(tok) != this->consts.end() || this->check_var(tok));
         tmp.push_back(tok);
@@ -241,10 +241,10 @@ void Parser::parse_d()
 {
     assert(this->label == 0);
     for (auto it = this->toks.begin(); it != this->toks.end(); it++) {
-        Tok tok1 = this->lib.get_symbol(*it);
+        SymTok tok1 = this->lib.get_symbol(*it);
         assert(this->check_var(tok1));
         for (auto it2 = it+1; it2 != this->toks.end(); it2++) {
-            Tok tok2 = this->lib.get_symbol(*it2);
+            SymTok tok2 = this->lib.get_symbol(*it2);
             assert(this->check_var(tok2));
             assert(tok1 != tok2);
             this->stack.back().dists.insert(minmax(tok1, tok2));
@@ -262,7 +262,7 @@ void Parser::parse_p()
     assert(this->label != 0);
 }
 
-bool Parser::check_var(Tok tok)
+bool Parser::check_var(SymTok tok)
 {
     for (auto &frame : this->stack) {
         if (frame.vars.find(tok) != frame.vars.end()) {

@@ -28,10 +28,10 @@ private:
 };
 
 struct ParserStackFrame {
-    std::set< Tok > vars;
-    std::set< std::pair< Tok, Tok > > dists;                 // Must be stored ordered, for example using minmax()
-    std::unordered_map< Tok, std::pair< Tok, Tok > > types;  // (constant, variable)
-    std::unordered_map< Tok, std::vector< Tok > > hyps;
+    std::set< SymTok > vars;
+    std::set< std::pair< SymTok, SymTok > > dists;                 // Must be stored ordered, for example using minmax()
+    std::unordered_map< LabTok, std::pair< SymTok, SymTok > > types;  // (constant, variable)
+    std::unordered_map< LabTok, std::vector< SymTok > > hyps;
 };
 
 class Parser {
@@ -47,17 +47,15 @@ private:
     void parse_a();
     void parse_p();
 
-    bool check_var(Tok tok);
+    bool check_var(SymTok tok);
 
     FileTokenizer &ft;
     Library lib;
-    Tok label;
+    LabTok label;
     std::vector< std::string > toks;
 
     std::vector< ParserStackFrame > stack;
-    std::set< Tok > consts;
-    std::unordered_map< Tok, std::vector< Tok > > axioms;
-    std::unordered_map< Tok, std::pair< std::vector< Tok >, std::vector< Tok > > > theos;
+    std::set< SymTok > consts;
 };
 
 #endif // PARSER_H

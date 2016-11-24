@@ -3,27 +3,76 @@
 
 #include <unordered_map>
 #include <vector>
+#include <utility>
+#include <tuple>
+#include <limits>
+#include <type_traits>
 
-typedef uint32_t Tok;
+#include <cassert>
+
+typedef uint16_t SymTok;
+typedef uint16_t LabTok;
+
+static_assert(std::is_integral< SymTok >::value);
+static_assert(std::is_unsigned< SymTok >::value);
+static_assert(std::is_integral< LabTok >::value);
+static_assert(std::is_unsigned< LabTok >::value);
 
 class Assertion {
 public:
-    Assertion(bool theorem, std::vector< std::pair< Tok, Tok > > types, std::vector< std::pair< Tok, Tok > > dists, std::vector< std::vector< Tok > > hyps, std::vector< Tok > thesis, std::vector< Tok > proof = {});
+    Assertion(bool theorem,
+              std::vector< std::pair< SymTok, SymTok > > types,
+              std::vector< std::pair< SymTok, SymTok > > dists,
+              std::vector< std::vector< SymTok > > hyps,
+              std::vector< LabTok > thesis,
+              std::vector< LabTok > proof = {});
 private:
     bool theorem;
-    std::vector< std::pair< Tok, Tok > > types;
-    std::vector< std::pair< Tok, Tok > > dists;
-    std::vector< std::vector< Tok > > hyps;
-    std::vector< Tok > thesis;
-    std::vector< Tok > proof;
+    std::vector< std::pair< SymTok, SymTok > > types;
+    std::vector< std::pair< SymTok, SymTok > > dists;
+    std::vector< std::vector< SymTok > > hyps;
+    std::vector< LabTok > thesis;
+    std::vector< LabTok > proof;
 };
 
+template< typename Tok >
 class StringCache {
 public:
-    Tok get(std::string s);
-    Tok create(std::string s);
-    std::string resolve(Tok id);
-    Tok get_or_create(std::string s);
+    Tok get(std::string s) {
+        auto it = this->dir.find(s);
+        if (it == this->dir.end()) {
+            return 0;
+        } else {
+            return it->second;
+        }
+    }
+    Tok create(std::string s)
+    {
+        auto it = this->dir.find(s);
+        if (it == this->dir.end()) {
+            bool res;
+            assert(this->next_id != std::numeric_limits< Tok >::max());
+            tie(it, res) = this->dir.insert(make_pair(s, this->next_id));
+            assert(res);
+            std::tie(std::ignore, res) = this->inv.insert(make_pair(this->next_id, s));
+            assert(res);
+            this->next_id++;
+            return it->second;
+        } else {
+            return 0;
+        }
+    }
+    std::string resolve(Tok id)
+    {
+        return this->inv.at(id);
+    }
+    Tok get_or_create(std::string s) {
+        Tok tok = this->get(s);
+        if (tok == 0) {
+            tok = this->create(s);
+        }
+        return tok;
+    }
 private:
     Tok next_id = 1;
     std::unordered_map< std::string, Tok > dir;
@@ -34,13 +83,13 @@ class Library
 {
 public:
     Library();
-    Tok create_symbol(std::string s);
-    Tok create_label(std::string s);
-    Tok get_symbol(std::string s);
-    Tok get_label(std::string s);
+    SymTok create_symbol(std::string s);
+    LabTok create_label(std::string s);
+    SymTok get_symbol(std::string s);
+    LabTok get_label(std::string s);
 private:
-    StringCache syms;
-    StringCache labels;
+    StringCache< SymTok > syms;
+    StringCache< LabTok > labels;
 };
 
 #endif // LIBRARY_H
