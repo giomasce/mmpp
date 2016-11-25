@@ -77,7 +77,7 @@ void Library::add_constant(SymTok c)
     this->consts.insert(c);
 }
 
-bool Library::is_constant(SymTok c)
+bool Library::is_constant(SymTok c) const
 {
     return this->consts.find(c) != this->consts.end();
 }

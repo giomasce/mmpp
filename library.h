@@ -123,7 +123,7 @@ public:
     void add_assertion(LabTok label, const Assertion &ass);
     const Assertion &get_assertion(LabTok label) const;
     void add_constant(SymTok c);
-    bool is_constant(SymTok c);
+    bool is_constant(SymTok c) const;
 
 private:
     StringCache< SymTok > syms;
