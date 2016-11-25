@@ -13,7 +13,7 @@
  *  + At the moment it does not support file inclusion. File inclusions
  *    are treated (more or less) like comments.
  *  + It does not require that label tokens do not match any math token.
- *  + It does not support compressed proofs.
+ *  + It does not support unknown points in proofs.
  */
 
 class FileTokenizer {
@@ -69,12 +69,12 @@ private:
 
 class CompressedEncoder {
 public:
-    std::string push_int(int x);
+    std::string push_code(CodeTok x);
 };
 
 class CompressedDecoder {
 public:
-    int push_char(char c);
+    CodeTok push_char(char c);
 private:
     int current = 0;
 };

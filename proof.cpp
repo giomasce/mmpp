@@ -4,6 +4,10 @@
 #include <iostream>
 #include <algorithm>
 #include <functional>
+#include <cassert>
+
+// I do not want this to apply to cassert
+#define NDEBUG
 
 using namespace std;
 
@@ -12,7 +16,7 @@ Proof::Proof(const Library &lib, const Assertion &ass) :
 {
 }
 
-CompressedProof::CompressedProof(const Library &lib, const Assertion &ass, const std::vector<LabTok> &refs, const std::vector<int> &codes) :
+CompressedProof::CompressedProof(const Library &lib, const Assertion &ass, const std::vector<LabTok> &refs, const std::vector<CodeTok> &codes) :
     Proof(lib, ass), refs(refs), codes(codes)
 {
 
@@ -30,17 +34,51 @@ const UncompressedProof &CompressedProof::uncompress() const
 
 void CompressedProof::execute() const
 {
+#ifndef NDEBUG
+    cerr << "Executing proof of " << this->lib.resolve_label(this->ass.get_thesis()) << endl;
+#endif
+    ProofExecutor pe(this->lib, this->ass);
+    vector< vector< SymTok > > saved;
+    for (auto &code : this->codes) {
+        if (code == 0) {
+            saved.push_back(pe.get_stack().back());
+        } else if (code <= this->ass.get_hyps().size()) {
+            LabTok label = this->ass.get_hyps().at(code-1);
+            pe.process_label(label);
+        } else if (code <= this->ass.get_hyps().size() + this->refs.size()) {
+            LabTok label = this->refs.at(code-this->ass.get_hyps().size()-1);
+            pe.process_label(label);
+        } else {
+            assert(code <= this->ass.get_hyps().size() + this->refs.size() + saved.size());
+            const vector< SymTok > &sent = saved.at(code-this->ass.get_hyps().size()-this->refs.size()-1);
+            pe.process_sentence(sent);
+        }
+    }
+    assert(pe.get_stack().size() == 1);
+    assert(pe.get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()));
 }
 
 bool CompressedProof::check_syntax() const
 {
     for (auto &ref : this->refs) {
         if (!this->lib.get_assertion(ref).is_valid()) {
-            assert(false);
-            return false;
+            // FIXME Quick hack while the $f validity question is not settled
+            if (this->lib.get_sentence(ref).size() != 2) {
+                return false;
+            }
         }
     }
-    // TODO check proof execution
+    unsigned int zero_count = 0;
+    for (auto &code : this->codes) {
+        assert(code != INVALID_CODE);
+        if (code == 0) {
+            zero_count++;
+        } else {
+            if (code > this->ass.get_hyps().size() + this->refs.size() + zero_count) {
+                return false;
+            }
+        }
+    }
     return true;
 }
 
@@ -61,7 +99,9 @@ const UncompressedProof &UncompressedProof::uncompress() const
 
 void UncompressedProof::execute() const
 {
+#ifndef NDEBUG
     cerr << "Executing proof of " << this->lib.resolve_label(this->ass.get_thesis()) << endl;
+#endif
     ProofExecutor pe(this->lib, this->ass);
     for (auto &label : this->labels) {
         pe.process_label(label);
@@ -106,7 +146,9 @@ void ProofExecutor::process_assertion(const Assertion &child_ass)
         assert(hyp_sent.at(0) == stack_hyp_sent.at(0));
         auto res = subst_map.insert(make_pair(hyp_sent.at(1), vector< SymTok >(stack_hyp_sent.begin()+1, stack_hyp_sent.end())));
         assert(res.second);
+#ifndef NDEBUG
         cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
+#endif
     }
 
     // Then parse the other hypotheses and check them
@@ -130,7 +172,9 @@ void ProofExecutor::process_assertion(const Assertion &child_ass)
             }
         }
         assert(stack_it == stack_hyp_sent.end());
+#ifndef NDEBUG
         cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
+#endif
     }
 
     // Build the thesis
@@ -146,32 +190,47 @@ void ProofExecutor::process_assertion(const Assertion &child_ass)
             copy(subst.begin(), subst.end(), back_inserter(stack_thesis_sent));
         }
     }
+#ifndef NDEBUG
     cerr << "    Thesis:         " << print_sentence(thesis_sent, this->lib) << endl << "      becomes:      " << print_sentence(stack_thesis_sent, this->lib) << endl;
+#endif
 
     // Finally do some popping and pushing
+#ifndef NDEBUG
     cerr << "    Popping from stack " << stack.size() - stack_base << " elements" << endl;
+#endif
     this->stack.resize(stack_base);
+#ifndef NDEBUG
     cerr << "    Pushing on stack: " << print_sentence(stack_thesis_sent, this->lib) << endl;
+#endif
     this->stack.push_back(stack_thesis_sent);
 }
 
 void ProofExecutor::process_sentence(const vector<SymTok> &sent)
 {
+#ifndef NDEBUG
     cerr << "    Pushing on stack: " << print_sentence(sent, this->lib) << endl;
+#endif
     this->stack.push_back(sent);
 }
 
 void ProofExecutor::process_label(const LabTok label)
 {
     const Assertion &child_ass = this->lib.get_assertion(label);
+#ifndef NDEBUG
     cerr << "  Considering label " << this->lib.resolve_label(label);
+#endif
     if (child_ass.is_valid()) {
+#ifndef NDEBUG
         cerr << ", which is a previous assertion" << endl;
+#endif
         this->process_assertion(child_ass);
     } else {
+#ifndef NDEBUG
         cerr << ", which is an hypothesis" << endl;
+#endif
         // In line of principle searching in a set would be faster, but since usually hypotheses are not many the vector is probably better
-        assert(find(this->ass.get_hyps().begin(), this->ass.get_hyps().end(), label) != this->ass.get_hyps().end());
+        // FIXME Following line disabled while the $f validity question is not settled
+        //assert(find(this->ass.get_hyps().begin(), this->ass.get_hyps().end(), label) != this->ass.get_hyps().end());
         const vector< SymTok > &sent = this->lib.get_sentence(label);
         this->process_sentence(sent);
     }

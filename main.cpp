@@ -9,7 +9,7 @@ using namespace std;
 
 int main() {
 
-    auto ph = pwff(new Var("ph"));
+    /*auto ph = pwff(new Var("ph"));
     auto ps = pwff(new Var("ps"));
     auto w = pwff(new Nand(ph, ps));
     auto w2 = pwff(new Xor(w, ph));
@@ -29,10 +29,10 @@ int main() {
     }
     CompressedEncoder ce;
     for (auto &val : test_dec) {
-        cout << "Testing " << val << ": " << ce.push_int(val) << endl;
-    }
+        cout << "Testing " << val << ": " << ce.push_code(val) << endl;
+    }*/
 
-    if (false) {
+    if (true) {
         fstream in("/home/giovanni/progetti/metamath/set.mm/set.mm");
         FileTokenizer ft(in);
         Parser p(ft);
@@ -41,7 +41,7 @@ int main() {
         cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
     }
 
-    {
+    if (false) {
         fstream in("/home/giovanni/progetti/metamath/demo0.mm");
         FileTokenizer ft(in);
         Parser p(ft);

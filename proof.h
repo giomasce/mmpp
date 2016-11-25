@@ -3,10 +3,18 @@
 
 #include <vector>
 #include <functional>
+#include <limits>
+#include <type_traits>
 
 class Proof;
 class CompressedProof;
 class UncompressedProof;
+
+typedef uint16_t CodeTok;
+
+static_assert(std::is_integral< CodeTok >::value);
+static_assert(std::is_unsigned< CodeTok >::value);
+const CodeTok INVALID_CODE = std::numeric_limits< CodeTok >::max();
 
 #include "library.h"
 
@@ -37,14 +45,14 @@ protected:
 
 class CompressedProof : public Proof {
 public:
-    CompressedProof(const Library &lib, const Assertion &ass, const std::vector< LabTok > &refs, const std::vector< int > &codes);
+    CompressedProof(const Library &lib, const Assertion &ass, const std::vector< LabTok > &refs, const std::vector< CodeTok > &codes);
     const CompressedProof &compress() const;
     const UncompressedProof &uncompress() const;
     void execute() const;
     bool check_syntax() const;
 private:
     const std::vector< LabTok > &refs;
-    const std::vector< int > &codes;
+    const std::vector< CodeTok > &codes;
 };
 
 class UncompressedProof : public Proof {

@@ -124,6 +124,7 @@ LabTok Assertion::get_thesis() const {
 
 void Assertion::add_proof(Proof *proof)
 {
+    assert(this->theorem);
     assert(this->proof == NULL);
     assert(proof->check_syntax());
     this->proof = proof;

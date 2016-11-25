@@ -224,6 +224,10 @@ void Parser::parse_f()
     assert(this->check_var(var_tok));
     this->lib.add_sentence(this->label, { const_tok, var_tok });
     this->stack.back().types.push_back(this->label);
+
+    // FIXME This does not appear to be mentioned in the specs, but it seems necessary anyway
+    //Assertion ass(false, 0, {}, {}, this->label);
+    //this->lib.add_assertion(this->label, ass);
 }
 
 void Parser::parse_e()
@@ -349,7 +353,7 @@ void Parser::parse_p()
     vector< SymTok > tmp;
     vector< LabTok > proof_labels;
     vector< LabTok > proof_ref;
-    vector< int > proof_codes;
+    vector< CodeTok > proof_codes;
     CompressedDecoder cd;
     bool in_proof = false;
     int8_t compressed_proof = 0;
@@ -385,8 +389,8 @@ void Parser::parse_p()
             }
             if (compressed_proof == 2) {
                 for (auto c : stok) {
-                    int res = cd.push_char(c);
-                    if (res > 0) {
+                    CodeTok res = cd.push_char(c);
+                    if (res != INVALID_CODE) {
                         proof_codes.push_back(res);
                     }
                 }
@@ -437,7 +441,7 @@ bool Parser::check_const(SymTok tok)
     return this->lib.is_constant(tok);
 }
 
-int CompressedDecoder::push_char(char c)
+CodeTok CompressedDecoder::push_char(char c)
 {
     if (is_whitespace(c)) {
         return -1;
@@ -449,16 +453,17 @@ int CompressedDecoder::push_char(char c)
     } else if ('A' <= c && c <= 'T') {
         int res = this->current * 20 + (c - 'A' + 1);
         this->current = 0;
+        assert(res != INVALID_CODE);
         return res;
     } else {
         this->current = this->current * 5 + (c - 'U' + 1);
-        return -1;
+        return INVALID_CODE;
     }
 }
 
-string CompressedEncoder::push_int(int x)
+string CompressedEncoder::push_code(CodeTok x)
 {
-    assert(x >= 0);
+    assert(x != INVALID_CODE);
     if (x == 0) {
         return "Z";
     }
