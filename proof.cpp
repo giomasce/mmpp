@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <functional>
 
 using namespace std;
 
@@ -11,23 +12,23 @@ Proof::Proof(Library &lib, Assertion &ass) :
 {
 }
 
-CompressedProof::CompressedProof(Library &lib, Assertion &ass, std::vector<LabTok> refs, std::vector<int> codes) :
+CompressedProof::CompressedProof(Library &lib, Assertion &ass, const std::vector<LabTok> &refs, const std::vector<int> &codes) :
     Proof(lib, ass), refs(refs), codes(codes)
 {
 
 }
 
-CompressedProof &CompressedProof::compress()
+const CompressedProof &CompressedProof::compress() const
 {
     return *this;
 }
 
-UncompressedProof &CompressedProof::uncompress()
+const UncompressedProof &CompressedProof::uncompress() const
 {
 
 }
 
-void CompressedProof::execute()
+void CompressedProof::execute() const
 {
     vector< vector< SymTok > > temps;
     vector< vector< SymTok > > stack;
@@ -45,35 +46,39 @@ bool CompressedProof::check_syntax() const
     return true;
 }
 
-UncompressedProof::UncompressedProof(Library &lib, Assertion &ass, std::vector<LabTok> labels) :
+UncompressedProof::UncompressedProof(Library &lib, Assertion &ass, const std::vector<LabTok> &labels) :
     Proof(lib, ass), labels(labels)
 {
 }
 
-CompressedProof &UncompressedProof::compress()
+const CompressedProof &UncompressedProof::compress() const
 {
 
 }
 
-UncompressedProof &UncompressedProof::uncompress()
+const UncompressedProof &UncompressedProof::uncompress() const
 {
     return *this;
 }
 
-// Taken from http://stackoverflow.com/a/5405434/807307
-template <class InputIterator1, class InputIterator2>
-bool safe_equal( InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2 )
+void UncompressedProof::execute() const
 {
-  return ( std::distance( first1, last1 ) == std::distance( first2, last2 ) )
-     && std::equal( first1, last1, first2 );
+    auto it = this->labels.begin();
+    this->execute_internal([this,&it]()->SymTok{
+        if (it == this->labels.end()) {
+            return 0;
+        } else {
+            return *(it++);
+        }
+    });
 }
 
-void UncompressedProof::execute()
-{
+void Proof::execute_internal(function< SymTok() > label_gen) const {
     // FIXME check distinct variables
     vector< vector< SymTok > > stack;
     cerr << "Executing proof of " << this->lib.resolve_label(this->ass.get_thesis()) << endl;
-    for (auto &label : this->labels) {
+    SymTok label;
+    while ((label = label_gen()) != 0) {
         const Assertion &child = this->lib.get_assertion(label);
         cerr << "  Considering label " << this->lib.resolve_label(label);
         if (child.is_valid()) {
