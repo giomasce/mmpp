@@ -68,15 +68,37 @@ Assertion::Assertion() :
 }
 
 Assertion::Assertion(bool theorem,
+                     int num_floating,
                      std::set<std::pair<SymTok, SymTok> > dists,
                      std::vector<LabTok> hyps,
                      LabTok thesis,
                      std::vector<LabTok> proof) :
-    valid(true), theorem(theorem), dists(dists), hyps(hyps), thesis(thesis), proof(proof)
+    valid(true), num_floating(num_floating), theorem(theorem), dists(dists), hyps(hyps), thesis(thesis), proof(proof)
 {
 }
 
 bool Assertion::is_valid()
 {
     return this->valid;
+}
+
+bool Assertion::is_theorem() {
+    return this->theorem;
+}
+
+int Assertion::get_num_floating()
+{
+    return this->num_floating;
+}
+
+std::set<std::pair<SymTok, SymTok> > Assertion::get_dists() {
+    return this->dists;
+}
+
+std::vector<LabTok> Assertion::get_hyps() {
+    return this->hyps;
+}
+
+LabTok Assertion::get_thesis() {
+    return this->thesis;
 }

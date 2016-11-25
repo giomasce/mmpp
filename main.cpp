@@ -18,13 +18,18 @@ int main() {
     cout << w2->imp_not_form()->to_string() << endl;
 
     CompressedDecoder cd;
-    string test[] = { "A", "B", "T", "UA", "UB", "UT", "VA", "VB", "YT", "UUA", "YYT", "UUUA", "UUUAZ" };
-    for (auto &str : test) {
+    string test_enc[] = { "A", "B", "T", "UA", "UB", "UT", "VA", "VB", "YT", "UUA", "YYT", "UUUA", "UUUAZ" };
+    int test_dec[] = { 1, 2, 20, 21, 22, 40, 41, 42, 120, 121, 620, 621, 0 };
+    for (auto &str : test_enc) {
         cout << "Testing " << str << ":";
         for (auto &c : str) {
             cout << " " << c << "->" << cd.push_char(c);
         }
         cout << endl;
+    }
+    CompressedEncoder ce;
+    for (auto &val : test_dec) {
+        cout << "Testing " << val << ": " << ce.push_int(val) << endl;
     }
 
     {

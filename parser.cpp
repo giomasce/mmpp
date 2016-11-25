@@ -275,15 +275,17 @@ set< SymTok > Parser::collect_mand_vars(vector< SymTok > sent) {
 }
 
 // Here order matters! Be careful!
-vector< LabTok > Parser::collect_mand_hyps(set< SymTok > vars) {
+pair< int, vector< LabTok > > Parser::collect_mand_hyps(set< SymTok > vars) {
     vector< LabTok > hyps;
 
-    // Type hypotheses
+    // Floating hypotheses
+    int num_floating = 0;
     for (auto &frame : this->stack) {
         for (auto &type : frame.types) {
             auto sent = this->lib.get_sentence(type);
             if (vars.find(sent[1]) != vars.end()) {
                 hyps.push_back(type);
+                num_floating++;
             }
         }
     }
@@ -295,7 +297,7 @@ vector< LabTok > Parser::collect_mand_hyps(set< SymTok > vars) {
         }
     }
 
-    return hyps;
+    return make_pair(num_floating, hyps);
 }
 
 set< pair< SymTok, SymTok > > Parser::collect_mand_dists(set< SymTok > vars) {
@@ -327,11 +329,13 @@ void Parser::parse_a()
 
     // Collect mandatory things
     set< SymTok > mand_vars = this->collect_mand_vars(tmp);
-    vector< LabTok > mand_hyps = this->collect_mand_hyps(mand_vars);
+    int num_floating;
+    vector< LabTok > mand_hyps;
+    tie(num_floating, mand_hyps) = this->collect_mand_hyps(mand_vars);
     set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
 
     // Finally build assertion
-    Assertion ass(false, mand_dists, mand_hyps, this->label);
+    Assertion ass(false, num_floating, mand_dists, mand_hyps, this->label);
     this->lib.add_assertion(this->label, ass);
 }
 
@@ -398,7 +402,9 @@ void Parser::parse_p()
 
     // Collect mandatory things
     set< SymTok > mand_vars = this->collect_mand_vars(tmp);
-    vector< LabTok > mand_hyps = this->collect_mand_hyps(mand_vars);
+    int num_floating;
+    vector< LabTok > mand_hyps;
+    tie(num_floating, mand_hyps) = this->collect_mand_hyps(mand_vars);
     set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
 
     // Check that the proof is syntactically valid
@@ -408,7 +414,7 @@ void Parser::parse_p()
     }
 
     // Finally build assertion
-    Assertion ass(true, mand_dists, mand_hyps, this->label, proof);
+    Assertion ass(true, num_floating, mand_dists, mand_hyps, this->label, proof);
     this->lib.add_assertion(this->label, ass);
 }
 
@@ -444,4 +450,24 @@ int CompressedDecoder::push_char(char c)
         this->current = this->current * 5 + (c - 'U' + 1);
         return -1;
     }
+}
+
+string CompressedEncoder::push_int(int x)
+{
+    assert(x >= 0);
+    if (x == 0) {
+        return "Z";
+    }
+    vector< char > buf;
+    int div = (x-1) / 20;
+    int rem = (x-1) % 20 + 1;
+    buf.push_back('A' + rem - 1);
+    x = div;
+    while (x > 0) {
+        div = (x-1) / 5;
+        rem = (x-1) % 5 + 1;
+        buf.push_back('U' + rem - 1);
+        x = div;
+    }
+    return string(buf.rbegin(), buf.rend());
 }

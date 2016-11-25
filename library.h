@@ -19,22 +19,25 @@ static_assert(std::is_unsigned< SymTok >::value);
 static_assert(std::is_integral< LabTok >::value);
 static_assert(std::is_unsigned< LabTok >::value);
 
-class Proof {
-
-};
-
 class Assertion {
 public:
     Assertion();
     Assertion(bool theorem,
+              int num_floating,
               std::set< std::pair< SymTok, SymTok > > dists,
               std::vector< LabTok > hyps,
               LabTok thesis,
               std::vector< LabTok > proof = {});
     bool is_valid();
+    bool is_theorem();
+    int get_num_floating();
+    std::set< std::pair< SymTok, SymTok > > get_dists();
+    std::vector< LabTok > get_hyps();
+    LabTok get_thesis();
 
 private:
     bool valid;
+    int num_floating;
     bool theorem;
     std::set< std::pair< SymTok, SymTok > > dists;
     std::vector< LabTok > hyps;

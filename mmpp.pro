@@ -5,7 +5,8 @@ CONFIG -= qt
 
 SOURCES += main.cpp \
     parser.cpp \
-    library.cpp
+    library.cpp \
+    proof.cpp
 
 QMAKE_CXXFLAGS += -std=c++17 -march=native
 
@@ -13,4 +14,5 @@ HEADERS += \
     wff.h \
     parser.h \
     library.h \
-    statics.h
+    statics.h \
+    proof.h

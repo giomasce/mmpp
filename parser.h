@@ -55,7 +55,7 @@ private:
     bool check_const(SymTok tok);
     std::set<SymTok> collect_mand_vars(std::vector<SymTok> sent);
     void collect_vars(std::set<SymTok> &vars, std::vector<SymTok> sent);
-    std::vector<LabTok> collect_mand_hyps(std::set<SymTok> vars);
+    std::pair< int, std::vector<LabTok> > collect_mand_hyps(std::set<SymTok> vars);
     std::set<std::pair<SymTok, SymTok> > collect_mand_dists(std::set<SymTok> vars);
 
     FileTokenizer &ft;
@@ -65,6 +65,11 @@ private:
 
     std::vector< ParserStackFrame > stack;
     std::set< SymTok > consts;
+};
+
+class CompressedEncoder {
+public:
+    std::string push_int(int x);
 };
 
 class CompressedDecoder {
