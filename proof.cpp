@@ -1,6 +1,7 @@
 
 #include "proof.h"
 
+#include <iostream>
 #include <algorithm>
 
 using namespace std;
@@ -71,9 +72,12 @@ void UncompressedProof::execute()
 {
     // FIXME check distinct variables
     vector< vector< SymTok > > stack;
+    cerr << "Executing proof of " << this->lib.resolve_label(this->ass.get_thesis()) << endl;
     for (auto &label : this->labels) {
         const Assertion &child = this->lib.get_assertion(label);
+        cerr << "  Considering label " << this->lib.resolve_label(label);
         if (child.is_valid()) {
+            cerr << ", which is a previous assertion" << endl;
             assert(stack.size() >= child.get_hyps().size());
             assert(child.get_num_floating() <= child.get_hyps().size());
             const size_t stack_base = stack.size() - child.get_hyps().size();
@@ -92,6 +96,7 @@ void UncompressedProof::execute()
                 assert(hyp_sent.at(0) == stack_hyp_sent.at(0));
                 auto res = subst_map.insert(make_pair(hyp_sent.at(1), vector< SymTok >(stack_hyp_sent.begin()+1, stack_hyp_sent.end())));
                 assert(res.second);
+                cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
             }
 
             // Then parse the other hypotheses and check them
@@ -115,6 +120,7 @@ void UncompressedProof::execute()
                     }
                 }
                 assert(stack_it == stack_hyp_sent.end());
+                cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
             }
 
             // Build the thesis
@@ -130,14 +136,20 @@ void UncompressedProof::execute()
                     copy(subst.begin(), subst.end(), back_inserter(stack_thesis_sent));
                 }
             }
+            cerr << "    Thesis:         " << print_sentence(thesis_sent, this->lib) << endl << "      becomes:      " << print_sentence(stack_thesis_sent, this->lib) << endl;
 
             // Finally do some popping and pushing
-            stack.reserve(stack_base);
+            cerr << "    Popping from stack " << stack.size() - stack_base << " elements" << endl;
+            stack.resize(stack_base);
+            cerr << "    Pushing on stack: " << print_sentence(stack_thesis_sent, this->lib) << endl;
             stack.push_back(stack_thesis_sent);
         } else {
+            cerr << ", which is an hypothesis" << endl;
             // In line of principle searching in a set would be faster, but since usually hypotheses are not many the vector is probably better
             assert(find(this->ass.get_hyps().begin(), this->ass.get_hyps().end(), label) != this->ass.get_hyps().end());
-            stack.push_back(this->lib.get_sentence(label));
+            const vector< SymTok > &stack_hyp = this->lib.get_sentence(label);
+            cerr << "    Pushing on stack: " << print_sentence(stack_hyp, this->lib) << endl;
+            stack.push_back(stack_hyp);
         }
     }
 }

@@ -32,6 +32,16 @@ LabTok Library::get_label(string s) const
     return this->labels.get(s);
 }
 
+string Library::resolve_symbol(SymTok tok) const
+{
+    return this->syms.resolve(tok);
+}
+
+string Library::resolve_label(LabTok tok) const
+{
+    return this->labels.resolve(tok);
+}
+
 size_t Library::get_symbol_num() const
 {
     return this->syms.size();
@@ -122,4 +132,23 @@ void Assertion::add_proof(Proof *proof)
 Proof *Assertion::get_proof()
 {
     return this->proof;
+}
+
+ostream &operator<<(ostream &os, const SentencePrinter &sp)
+{
+    bool first = true;
+    for (auto &tok : sp.sent) {
+        if (first) {
+            first = false;
+        } else {
+            os << string(" ");
+        }
+        os << sp.lib.resolve_symbol(tok);
+    }
+    return os;
+}
+
+SentencePrinter print_sentence(const std::vector<SymTok> &sent, const Library &lib)
+{
+    return SentencePrinter({ sent, lib });
 }

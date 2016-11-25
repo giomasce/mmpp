@@ -24,6 +24,13 @@ static_assert(std::is_unsigned< LabTok >::value);
 
 #include "proof.h"
 
+struct SentencePrinter {
+    const std::vector< SymTok > &sent;
+    const Library &lib;
+};
+SentencePrinter print_sentence(const std::vector< SymTok > &sent, const Library &lib);
+std::ostream &operator<<(std::ostream &os, const SentencePrinter &sp);
+
 class Assertion {
 public:
     Assertion();
@@ -107,6 +114,8 @@ public:
     LabTok create_label(std::string s);
     SymTok get_symbol(std::string s) const;
     LabTok get_label(std::string s) const;
+    std::string resolve_symbol(SymTok tok) const;
+    std::string resolve_label(LabTok tok) const;
     std::size_t get_symbol_num() const;
     std::size_t get_label_num() const;
     void add_sentence(LabTok label, std::vector< SymTok > content);
