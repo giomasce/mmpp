@@ -11,6 +11,9 @@
 
 #include <cassert>
 
+class Library;
+class Assertion;
+
 typedef uint16_t SymTok;
 typedef uint32_t LabTok;
 
@@ -19,36 +22,40 @@ static_assert(std::is_unsigned< SymTok >::value);
 static_assert(std::is_integral< LabTok >::value);
 static_assert(std::is_unsigned< LabTok >::value);
 
+#include "proof.h"
+
 class Assertion {
 public:
     Assertion();
     Assertion(bool theorem,
-              int num_floating,
+              size_t num_floating,
               std::set< std::pair< SymTok, SymTok > > dists,
               std::vector< LabTok > hyps,
-              LabTok thesis,
-              std::vector< LabTok > proof = {});
-    bool is_valid();
-    bool is_theorem();
-    int get_num_floating();
-    std::set< std::pair< SymTok, SymTok > > get_dists();
-    std::vector< LabTok > get_hyps();
-    LabTok get_thesis();
+              LabTok thesis);
+    bool is_valid() const;
+    bool is_theorem() const;
+    size_t get_num_floating() const;
+    const std::set< std::pair< SymTok, SymTok > > &get_dists() const;
+    const std::vector< LabTok > &get_hyps() const;
+    LabTok get_thesis() const;
+
+    void add_proof(Proof *proof);
+    Proof *get_proof();
 
 private:
     bool valid;
-    int num_floating;
+    size_t num_floating;
     bool theorem;
     std::set< std::pair< SymTok, SymTok > > dists;
     std::vector< LabTok > hyps;
     LabTok thesis;
-    std::vector< LabTok > proof;
+    Proof *proof;
 };
 
 template< typename Tok >
 class StringCache {
 public:
-    Tok get(std::string s) {
+    Tok get(std::string s) const {
         auto it = this->dir.find(s);
         if (it == this->dir.end()) {
             return 0;
@@ -72,7 +79,7 @@ public:
             return 0;
         }
     }
-    std::string resolve(Tok id)
+    std::string resolve(Tok id) const
     {
         return this->inv.at(id);
     }
@@ -83,7 +90,7 @@ public:
         }
         return tok;
     }
-    std::size_t size() {
+    std::size_t size() const {
         return this->dir.size();
     }
 private:
@@ -98,18 +105,21 @@ public:
     Library();
     SymTok create_symbol(std::string s);
     LabTok create_label(std::string s);
-    SymTok get_symbol(std::string s);
-    LabTok get_label(std::string s);
-    std::size_t get_symbol_num();
-    std::size_t get_label_num();
+    SymTok get_symbol(std::string s) const;
+    LabTok get_label(std::string s) const;
+    std::size_t get_symbol_num() const;
+    std::size_t get_label_num() const;
     void add_sentence(LabTok label, std::vector< SymTok > content);
-    std::vector<SymTok> get_sentence(LabTok label);
+    const std::vector<SymTok> &get_sentence(LabTok label) const;
     void add_assertion(LabTok label, const Assertion &ass);
-    Assertion get_assertion(LabTok label);
+    const Assertion &get_assertion(LabTok label) const;
+    void add_constant(SymTok c);
+    bool is_constant(SymTok c);
 
 private:
     StringCache< SymTok > syms;
     StringCache< LabTok > labels;
+    std::set< SymTok > consts;
 
     // Vector is more efficient if labels are known to be contiguous and starting from 1; in the general case the unordered_map might be better
     //std::unordered_map< LabTok, std::vector< SymTok > > sentences;

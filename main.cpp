@@ -32,7 +32,7 @@ int main() {
         cout << "Testing " << val << ": " << ce.push_int(val) << endl;
     }
 
-    {
+    if (false) {
         fstream in("/home/giovanni/progetti/metamath/set.mm/set.mm");
         FileTokenizer ft(in);
         Parser p(ft);

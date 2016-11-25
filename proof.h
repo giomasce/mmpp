@@ -3,12 +3,18 @@
 
 #include <vector>
 
-#include "library.h"
-
+class Proof;
 class CompressedProof;
 class UncompressedProof;
 
+#include "library.h"
+
 class Proof {
+public:
+    virtual void execute() = 0;
+    virtual CompressedProof &compress() = 0;
+    virtual UncompressedProof &uncompress() = 0;
+    virtual bool check_syntax() const = 0;
 protected:
     Library &lib;
     Assertion &ass;
@@ -18,8 +24,10 @@ protected:
 class CompressedProof : public Proof {
 public:
     CompressedProof(Library &lib, Assertion &ass, std::vector< LabTok > refs, std::vector< int > codes);
-    UncompressedProof uncompress();
+    CompressedProof &compress();
+    UncompressedProof &uncompress();
     void execute();
+    bool check_syntax() const;
 private:
     std::vector< LabTok > refs;
     std::vector< int > codes;
@@ -28,8 +36,10 @@ private:
 class UncompressedProof : public Proof {
 public:
     UncompressedProof(Library &lib, Assertion &ass, std::vector< LabTok > labels);
-    CompressedProof compress();
+    CompressedProof &compress();
+    UncompressedProof &uncompress();
     void execute();
+    bool check_syntax() const;
 private:
     std::vector< LabTok > labels;
 };

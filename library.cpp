@@ -22,22 +22,22 @@ LabTok Library::create_label(string s)
     return res;
 }
 
-SymTok Library::get_symbol(string s)
+SymTok Library::get_symbol(string s) const
 {
     return this->syms.get(s);
 }
 
-LabTok Library::get_label(string s)
+LabTok Library::get_label(string s) const
 {
     return this->labels.get(s);
 }
 
-size_t Library::get_symbol_num()
+size_t Library::get_symbol_num() const
 {
     return this->syms.size();
 }
 
-size_t Library::get_label_num()
+size_t Library::get_label_num() const
 {
     return this->labels.size();
 }
@@ -48,7 +48,7 @@ void Library::add_sentence(LabTok label, std::vector<SymTok> content) {
     this->sentences[label] = content;
 }
 
-vector< SymTok > Library::get_sentence(LabTok label) {
+const std::vector<SymTok> &Library::get_sentence(LabTok label) const {
     return this->sentences.at(label);
 }
 
@@ -57,9 +57,19 @@ void Library::add_assertion(LabTok label, const Assertion &ass)
     this->assertions[label] = ass;
 }
 
-Assertion Library::get_assertion(LabTok label)
+const Assertion &Library::get_assertion(LabTok label) const
 {
     return this->assertions.at(label);
+}
+
+void Library::add_constant(SymTok c)
+{
+    this->consts.insert(c);
+}
+
+bool Library::is_constant(SymTok c)
+{
+    return this->consts.find(c) != this->consts.end();
 }
 
 Assertion::Assertion() :
@@ -68,37 +78,48 @@ Assertion::Assertion() :
 }
 
 Assertion::Assertion(bool theorem,
-                     int num_floating,
+                     size_t num_floating,
                      std::set<std::pair<SymTok, SymTok> > dists,
                      std::vector<LabTok> hyps,
-                     LabTok thesis,
-                     std::vector<LabTok> proof) :
-    valid(true), num_floating(num_floating), theorem(theorem), dists(dists), hyps(hyps), thesis(thesis), proof(proof)
+                     LabTok thesis) :
+    valid(true), num_floating(num_floating), theorem(theorem), dists(dists), hyps(hyps), thesis(thesis), proof(NULL)
 {
 }
 
-bool Assertion::is_valid()
+bool Assertion::is_valid() const
 {
     return this->valid;
 }
 
-bool Assertion::is_theorem() {
+bool Assertion::is_theorem() const {
     return this->theorem;
 }
 
-int Assertion::get_num_floating()
+size_t Assertion::get_num_floating() const
 {
     return this->num_floating;
 }
 
-std::set<std::pair<SymTok, SymTok> > Assertion::get_dists() {
+const std::set<std::pair<SymTok, SymTok> > &Assertion::get_dists() const {
     return this->dists;
 }
 
-std::vector<LabTok> Assertion::get_hyps() {
+const std::vector<LabTok> &Assertion::get_hyps() const {
     return this->hyps;
 }
 
-LabTok Assertion::get_thesis() {
+LabTok Assertion::get_thesis() const {
     return this->thesis;
+}
+
+void Assertion::add_proof(Proof *proof)
+{
+    assert(this->proof == NULL);
+    assert(proof->check_syntax());
+    this->proof = proof;
+}
+
+Proof *Assertion::get_proof()
+{
+    return this->proof;
 }

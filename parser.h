@@ -64,7 +64,7 @@ private:
     std::vector< std::string > toks;
 
     std::vector< ParserStackFrame > stack;
-    std::set< SymTok > consts;
+    //std::set< SymTok > consts;
 };
 
 class CompressedEncoder {

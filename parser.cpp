@@ -8,6 +8,7 @@
 
 #include "parser.h"
 #include "statics.h"
+#include "proof.h"
 
 using namespace std;
 
@@ -181,6 +182,7 @@ void Parser::run () {
         } else {
             this->label = this->lib.create_label(token);
             assert(this->label != 0);
+            //cout << "Found label " << token << endl;
         }
     }
     this->stack.pop_back();
@@ -195,7 +197,7 @@ void Parser::parse_c()
         SymTok tok = this->lib.create_symbol(stok);
         assert(!this->check_const(tok));
         assert(!this->check_var(tok));
-        this->consts.insert(tok);
+        this->lib.add_constant(tok);
     }
 }
 
@@ -345,7 +347,7 @@ void Parser::parse_p()
     assert(this->label != 0);
     assert(this->toks.size() >= 1);
     vector< SymTok > tmp;
-    vector< LabTok > proof;
+    vector< LabTok > proof_labels;
     vector< LabTok > proof_ref;
     vector< int > proof_codes;
     CompressedDecoder cd;
@@ -392,7 +394,7 @@ void Parser::parse_p()
             if (compressed_proof == -1) {
                 LabTok tok = this->lib.get_label(stok);
                 assert(tok != 0);
-                proof.push_back(tok);
+                proof_labels.push_back(tok);
             }
         }
     }
@@ -407,14 +409,16 @@ void Parser::parse_p()
     tie(num_floating, mand_hyps) = this->collect_mand_hyps(mand_vars);
     set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
 
-    // Check that the proof is syntactically valid
-    set< LabTok > mand_hyps_set(mand_hyps.begin(), mand_hyps.end());
-    for (auto &tok : proof) {
-        assert(this->get_library().get_assertion(tok).is_valid() || mand_hyps_set.find(tok) != mand_hyps_set.end());
+    // Finally build assertion and attach proof
+    Assertion ass(true, num_floating, mand_dists, mand_hyps, this->label);
+    Proof *proof;
+    if (compressed_proof < 0) {
+        proof = new UncompressedProof(this->lib, ass, proof_labels);
+    } else {
+        proof = new CompressedProof(this->lib, ass, proof_ref, proof_codes);
     }
-
-    // Finally build assertion
-    Assertion ass(true, num_floating, mand_dists, mand_hyps, this->label, proof);
+    ass.add_proof(proof);
+    proof->execute();
     this->lib.add_assertion(this->label, ass);
 }
 
@@ -430,7 +434,7 @@ bool Parser::check_var(SymTok tok)
 
 bool Parser::check_const(SymTok tok)
 {
-    return this->consts.find(tok) != this->consts.end();
+    return this->lib.is_constant(tok);
 }
 
 int CompressedDecoder::push_char(char c)
