@@ -118,8 +118,8 @@ string FileTokenizer::next()
     }
 }
 
-Parser::Parser(FileTokenizer &ft) :
-    ft(ft)
+Parser::Parser(FileTokenizer &ft, bool execute_proofs) :
+    ft(ft), execute_proofs(execute_proofs)
 {
 }
 
@@ -426,7 +426,9 @@ void Parser::parse_p()
         proof = new CompressedProof(this->lib, ass, proof_ref, proof_codes);
     }
     ass.add_proof(proof);
-    proof->execute();
+    if (this->execute_proofs) {
+        proof->execute();
+    }
     this->lib.add_assertion(this->label, ass);
 }
 

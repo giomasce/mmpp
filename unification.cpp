@@ -6,6 +6,9 @@
 #include <iostream>
 #include <cassert>
 
+// I do not want this to apply to cassert
+#define NDEBUG
+
 using namespace std;
 
 // This algorithm is probably not terribly efficient
@@ -29,7 +32,7 @@ static void unify_internal(vector<SymTok>::const_iterator sent_cur, vector<SymTo
     } else {
         // Process a new token from the template
         const SymTok &cur_tok = *templ_cur;
-        if (lib.is_constant(cur_tok)) {
+        if (lib.is_constant(cur_tok) || cur_tok == 0) {
             // Easy case: the token is a constant
             if (cur_tok == *sent_cur) {
 #ifndef NDEBUG

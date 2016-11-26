@@ -7,7 +7,8 @@ SOURCES += main.cpp \
     parser.cpp \
     library.cpp \
     proof.cpp \
-    unification.cpp
+    unification.cpp \
+    memory.c
 
 QMAKE_CXXFLAGS += -std=c++17 -march=native
 
@@ -17,4 +18,5 @@ HEADERS += \
     library.h \
     statics.h \
     proof.h \
-    unification.h
+    unification.h \
+    memory.h

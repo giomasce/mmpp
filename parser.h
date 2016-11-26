@@ -38,7 +38,7 @@ struct ParserStackFrame {
 
 class Parser {
 public:
-    Parser(FileTokenizer &ft);
+    Parser(FileTokenizer &ft, bool execute_proofs=true);
     void run();
     const Library &get_library() const;
 
@@ -59,6 +59,7 @@ private:
     std::set<std::pair<SymTok, SymTok> > collect_mand_dists(std::set<SymTok> vars) const;
 
     FileTokenizer &ft;
+    bool execute_proofs;
     Library lib;
     LabTok label;
     std::vector< std::string > toks;

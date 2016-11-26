@@ -1,6 +1,9 @@
 #include "library.h"
 #include "statics.h"
 #include "parser.h"
+#include "unification.h"
+
+#include <algorithm>
 
 using namespace std;
 
@@ -83,6 +86,45 @@ bool Library::is_constant(SymTok c) const
     return this->consts.find(c) != this->consts.end();
 }
 
+std::vector< LabTok > Library::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis)
+{
+    vector< LabTok > ret;
+
+    vector< SymTok > sent;
+    for (auto &hyp : hypotheses) {
+        copy(hyp.begin(), hyp.end(), back_inserter(sent));
+        sent.push_back(0);
+    }
+    copy(thesis.begin(), thesis.end(), back_inserter(sent));
+
+    for (Assertion &ass : this->assertions) {
+        if (ass.get_hyps().size() - ass.get_num_floating() != hypotheses.size()) {
+            continue;
+        }
+        // We have to generate all the hypotheses' permutations; fortunately usually hypotheses are not many
+        // TODO Is there a better algorithm?
+        vector< int > perm;
+        for (size_t i = 0; i < hypotheses.size(); i++) {
+            perm.push_back(i);
+        }
+        do {
+            vector< SymTok > templ;
+            for (size_t i = 0; i < hypotheses.size(); i++) {
+                auto &hyp = this->get_sentence(ass.get_hyps().at(ass.get_num_floating()+perm[i]));
+                copy(hyp.begin(), hyp.end(), back_inserter(templ));
+                templ.push_back(0);
+            }
+            auto &th = this->get_sentence(ass.get_thesis());
+            copy(th.begin(), th.end(), back_inserter(templ));
+            if (!unify(sent, templ, *this).empty()) {
+                ret.push_back(ass.get_thesis());
+            }
+        } while (next_permutation(perm.begin(), perm.end()));
+    }
+
+    return ret;
+}
+
 Assertion::Assertion() :
     valid(false)
 {
@@ -117,6 +159,13 @@ const std::set<std::pair<SymTok, SymTok> > &Assertion::get_dists() const {
 
 const std::vector<LabTok> &Assertion::get_hyps() const {
     return this->hyps;
+}
+
+std::vector<LabTok> Assertion::get_ess_hyps() const
+{
+    vector< LabTok > ret;
+    copy(this->hyps.begin() + this->num_floating, this->hyps.end(), back_inserter(ret));
+    return ret;
 }
 
 LabTok Assertion::get_thesis() const {

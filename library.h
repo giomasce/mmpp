@@ -45,6 +45,7 @@ public:
     size_t get_num_floating() const;
     const std::set< std::pair< SymTok, SymTok > > &get_dists() const;
     const std::vector< LabTok > &get_hyps() const;
+    std::vector<LabTok> get_ess_hyps() const;
     LabTok get_thesis() const;
 
     void add_proof(Proof *proof);
@@ -125,6 +126,7 @@ public:
     const Assertion &get_assertion(LabTok label) const;
     void add_constant(SymTok c);
     bool is_constant(SymTok c) const;
+    std::vector<LabTok> unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis);
 
 private:
     StringCache< SymTok > syms;

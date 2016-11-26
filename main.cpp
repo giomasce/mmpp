@@ -1,12 +1,27 @@
 
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 
 #include "wff.h"
 #include "parser.h"
 #include "unification.h"
+#include "memory.h"
 
 using namespace std;
+
+// Partly taken from http://programanddesign.com/cpp/human-readable-file-size-in-c/
+static inline string size_to_string(size_t size) {
+    ostringstream stream;
+    int i = 0;
+    const char* units[] = {"B", "kiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};
+    while (size > 1024) {
+        size /= 1024;
+        i++;
+    }
+    stream << fixed << setprecision(2) << size << " " << units[i];
+    return stream.str();
+}
 
 int main() {
 
@@ -33,18 +48,36 @@ int main() {
         for (auto &val : test_dec) {
             cout << "Testing " << val << ": " << ce.push_code(val) << endl;
         }
-    }
 
-    if (false) {
-        fstream in("/home/giovanni/progetti/metamath/set.mm/set.mm");
-        FileTokenizer ft(in);
-        Parser p(ft);
-        p.run();
-        Library lib = p.get_library();
-        cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
+        cout << "Memory usage: " << size_to_string(getCurrentRSS()) << endl;
     }
 
     if (true) {
+        fstream in("/home/giovanni/progetti/metamath/set.mm/set.mm");
+        FileTokenizer ft(in);
+        Parser p(ft, false);
+        p.run();
+        Library lib = p.get_library();
+        cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
+
+        //auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> th )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- th", lib));
+        auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> ( ph -> ps ) )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- ( ph -> ps )", lib));
+        cout << "Found " << res.size() << " matching assertions:" << endl;
+        for (auto &label : res) {
+            const Assertion &ass = lib.get_assertion(label);
+            cout << " * " << lib.resolve_label(label) << ":";
+            for (auto &hyp : ass.get_ess_hyps()) {
+                auto &hyp_sent = lib.get_sentence(hyp);
+                cout << "  & " << print_sentence(hyp_sent, lib);
+            }
+            auto &thesis_sent = lib.get_sentence(ass.get_thesis());
+            cout << "  => " << print_sentence(thesis_sent, lib) << endl;
+        }
+
+        cout << "Memory usage: " << size_to_string(getCurrentRSS()) << endl;
+    }
+
+    if (false) {
         fstream in("/home/giovanni/progetti/metamath/demo0.mm");
         FileTokenizer ft(in);
         Parser p(ft);
@@ -52,8 +85,8 @@ int main() {
         Library lib = p.get_library();
         cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
 
-        vector< SymTok > sent = parse_sentence("t + 0", lib);
-        vector< SymTok > templ = parse_sentence("t + P", lib);
+        vector< SymTok > sent = parse_sentence("+ + +", lib);
+        vector< SymTok > templ = parse_sentence("t + r", lib);
         auto res = unify(sent, templ, lib, false);
         cout << "Matching:         " << print_sentence(sent, lib) << endl << "against template: " << print_sentence(templ, lib) << endl;
         for (auto &match : res) {
@@ -63,7 +96,11 @@ int main() {
             }
             cout << endl;
         }
+
+        cout << "Memory usage: " << size_to_string(getCurrentRSS()) << endl;
     }
+
+    cout << "Maximum memory usage: " << size_to_string(getPeakRSS()) << endl;
 
     return 0;
 
