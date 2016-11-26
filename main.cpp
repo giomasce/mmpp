@@ -60,18 +60,35 @@ int main() {
         Library lib = p.get_library();
         cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
 
-        //auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> th )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- th", lib));
-        auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> ( ph -> ps ) )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- ( ph -> ps )", lib));
-        cout << "Found " << res.size() << " matching assertions:" << endl;
-        for (auto &label : res) {
-            const Assertion &ass = lib.get_assertion(label);
-            cout << " * " << lib.resolve_label(label) << ":";
-            for (auto &hyp : ass.get_ess_hyps()) {
-                auto &hyp_sent = lib.get_sentence(hyp);
-                cout << "  & " << print_sentence(hyp_sent, lib);
+        if (true) {
+            vector< SymTok > sent = parse_sentence("wff ( ph -> ( ps -> ch ) )", lib);
+            vector< SymTok > templ = parse_sentence("wff ( th -> et )", lib);
+            auto res = unify(sent, templ, lib, false);
+            cout << "Matching:         " << print_sentence(sent, lib) << endl << "against template: " << print_sentence(templ, lib) << endl;
+            for (auto &match : res) {
+                cout << "  *";
+                for (auto &var: match) {
+                    cout << " " << print_sentence({var.first}, lib) << " => " << print_sentence(var.second, lib) << "  ";
+                }
+                cout << endl;
             }
-            auto &thesis_sent = lib.get_sentence(ass.get_thesis());
-            cout << "  => " << print_sentence(thesis_sent, lib) << endl;
+        }
+
+        if (false) {
+            //auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> th )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- th", lib));
+            auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> ( ph -> ps ) )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- ( ph -> ps )", lib));
+            cout << "Found " << res.size() << " matching assertions:" << endl;
+            for (auto &match : res) {
+                auto &label = match.first;
+                const Assertion &ass = lib.get_assertion(label);
+                cout << " * " << lib.resolve_label(label) << ":";
+                for (auto &hyp : ass.get_ess_hyps()) {
+                    auto &hyp_sent = lib.get_sentence(hyp);
+                    cout << " & " << print_sentence(hyp_sent, lib);
+                }
+                auto &thesis_sent = lib.get_sentence(ass.get_thesis());
+                cout << " => " << print_sentence(thesis_sent, lib) << endl;
+            }
         }
 
         cout << "Memory usage: " << size_to_string(getCurrentRSS()) << endl;
@@ -84,18 +101,6 @@ int main() {
         p.run();
         Library lib = p.get_library();
         cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
-
-        vector< SymTok > sent = parse_sentence("+ + +", lib);
-        vector< SymTok > templ = parse_sentence("t + r", lib);
-        auto res = unify(sent, templ, lib, false);
-        cout << "Matching:         " << print_sentence(sent, lib) << endl << "against template: " << print_sentence(templ, lib) << endl;
-        for (auto &match : res) {
-            cout << "  *";
-            for (auto &var: match) {
-                cout << " " << print_sentence({var.first}, lib) << " => " << print_sentence(var.second, lib) << "  ";
-            }
-            cout << endl;
-        }
 
         cout << "Memory usage: " << size_to_string(getCurrentRSS()) << endl;
     }

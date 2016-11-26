@@ -57,6 +57,7 @@ private:
     void collect_vars(std::set<SymTok> &vars, const std::vector<SymTok> &sent) const;
     std::pair< int, std::vector<LabTok> > collect_mand_hyps(std::set<SymTok> vars) const;
     std::set<std::pair<SymTok, SymTok> > collect_mand_dists(std::set<SymTok> vars) const;
+    const ParserStackFrame &get_final_frame() const;
 
     FileTokenizer &ft;
     bool execute_proofs;
@@ -65,6 +66,7 @@ private:
     std::vector< std::string > toks;
 
     std::vector< ParserStackFrame > stack;
+    ParserStackFrame final_frame;
     //std::set< SymTok > consts;
 };
 

@@ -86,9 +86,9 @@ bool Library::is_constant(SymTok c) const
     return this->consts.find(c) != this->consts.end();
 }
 
-std::vector< LabTok > Library::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis)
+std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > > Library::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis)
 {
-    vector< LabTok > ret;
+    std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > > ret;
 
     vector< SymTok > sent;
     for (auto &hyp : hypotheses) {
@@ -116,13 +116,36 @@ std::vector< LabTok > Library::unify_assertion(std::vector<std::vector<SymTok> >
             }
             auto &th = this->get_sentence(ass.get_thesis());
             copy(th.begin(), th.end(), back_inserter(templ));
-            if (!unify(sent, templ, *this).empty()) {
-                ret.push_back(ass.get_thesis());
+            auto unifications = unify(sent, templ, *this);
+            if (!unifications.empty()) {
+                auto res = ret.insert(make_pair(ass.get_thesis(), unifications));
+                assert(res.second);
             }
         } while (next_permutation(perm.begin(), perm.end()));
     }
 
     return ret;
+}
+
+void Library::prove_type_internal(std::vector< SymTok >::const_iterator begin,
+                                  std::vector< SymTok >::const_iterator end,
+                                  std::vector< LabTok > &ret) const {
+    // Iterate over all axioms with zero essential hypotheses, try to match and recur on all matches;
+    // hopefully nearly all branches die early and there is just one real long-standing branch;
+    // when the length is 2 try to match on floating hypotheses
+}
+
+std::vector<LabTok> Library::prove_type(const std::vector<SymTok> &type) const
+{
+    vector< LabTok > ret;
+    this->prove_type_internal(type.begin(), type.end(), ret);
+    return ret;
+}
+
+void Library::set_types(const std::vector<LabTok> &types)
+{
+    assert(this->types.empty());
+    this->types = types;
 }
 
 Assertion::Assertion() :

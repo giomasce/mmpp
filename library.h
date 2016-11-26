@@ -126,9 +126,13 @@ public:
     const Assertion &get_assertion(LabTok label) const;
     void add_constant(SymTok c);
     bool is_constant(SymTok c) const;
-    std::vector<LabTok> unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis);
+    std::unordered_map<LabTok, std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis);
+    std::vector< LabTok > prove_type(const std::vector< SymTok > &type) const;
+    void set_types(const std::vector< LabTok > &types);
 
 private:
+    void prove_type_internal(std::vector<SymTok>::const_iterator begin, std::vector<SymTok>::const_iterator end, std::vector<LabTok> &ret) const;
+
     StringCache< SymTok > syms;
     StringCache< LabTok > labels;
     std::set< SymTok > consts;
@@ -137,6 +141,9 @@ private:
     //std::unordered_map< LabTok, std::vector< SymTok > > sentences;
     std::vector< std::vector< SymTok > > sentences;
     std::vector< Assertion > assertions;
+
+    // This is not used in parsing or proof execution, but only for later algorithms (such as type inference)
+    std::vector< LabTok > types;
 };
 
 #endif // LIBRARY_H

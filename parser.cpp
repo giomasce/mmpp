@@ -185,12 +185,19 @@ void Parser::run () {
             //cout << "Found label " << token << endl;
         }
     }
+    this->final_frame = this->stack.back();
+    this->lib.set_types(this->final_frame.types);
     this->stack.pop_back();
     assert(this->stack.empty());
 }
 
 const Library &Parser::get_library() const {
     return this->lib;
+}
+
+const ParserStackFrame &Parser::get_final_frame() const
+{
+    return this->final_frame;
 }
 
 void Parser::parse_c()
