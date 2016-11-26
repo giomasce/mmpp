@@ -6,7 +6,8 @@ CONFIG -= qt
 SOURCES += main.cpp \
     parser.cpp \
     library.cpp \
-    proof.cpp
+    proof.cpp \
+    unification.cpp
 
 QMAKE_CXXFLAGS += -std=c++17 -march=native
 
@@ -15,4 +16,5 @@ HEADERS += \
     parser.h \
     library.h \
     statics.h \
-    proof.h
+    proof.h \
+    unification.h

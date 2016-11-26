@@ -17,8 +17,8 @@ vector< string > tokenize(string in) {
   vector< string > toks;
   bool white = true;
   int begin = -1;
-  for (unsigned int i = 0; i < in.size(); i++) {
-    char c = in[i];
+  for (unsigned int i = 0; i <= in.size(); i++) {
+    char c = i < in.size() ? in[i] : ' ';
     if (is_valid(c)) {
       if (white) {
         begin = i;
@@ -189,6 +189,10 @@ void Parser::run () {
     assert(this->stack.empty());
 }
 
+const Library &Parser::get_library() const {
+    return this->lib;
+}
+
 void Parser::parse_c()
 {
     assert(this->label == 0);
@@ -261,7 +265,7 @@ void Parser::parse_d()
     }
 }
 
-void Parser::collect_vars(set< SymTok > &vars, vector< SymTok > sent) {
+void Parser::collect_vars(std::set<SymTok> &vars, const std::vector<SymTok> &sent) const {
     for (auto &tok : sent) {
         if (this->check_var(tok)) {
             vars.insert(tok);
@@ -269,7 +273,7 @@ void Parser::collect_vars(set< SymTok > &vars, vector< SymTok > sent) {
     }
 }
 
-set< SymTok > Parser::collect_mand_vars(vector< SymTok > sent) {
+set< SymTok > Parser::collect_mand_vars(const std::vector<SymTok> &sent) const {
     set< SymTok > vars;
     this->collect_vars(vars, sent);
     for (auto &frame : this->stack) {
@@ -281,7 +285,7 @@ set< SymTok > Parser::collect_mand_vars(vector< SymTok > sent) {
 }
 
 // Here order matters! Be careful!
-pair< int, vector< LabTok > > Parser::collect_mand_hyps(set< SymTok > vars) {
+pair< int, vector< LabTok > > Parser::collect_mand_hyps(set< SymTok > vars) const {
     vector< LabTok > hyps;
 
     // Floating hypotheses
@@ -306,7 +310,7 @@ pair< int, vector< LabTok > > Parser::collect_mand_hyps(set< SymTok > vars) {
     return make_pair(num_floating, hyps);
 }
 
-set< pair< SymTok, SymTok > > Parser::collect_mand_dists(set< SymTok > vars) {
+set< pair< SymTok, SymTok > > Parser::collect_mand_dists(set< SymTok > vars) const {
     set< pair< SymTok, SymTok > > dists;
     for (auto &frame : this->stack) {
         for (auto &dist : frame.dists) {
@@ -426,7 +430,7 @@ void Parser::parse_p()
     this->lib.add_assertion(this->label, ass);
 }
 
-bool Parser::check_var(SymTok tok)
+bool Parser::check_var(SymTok tok) const
 {
     for (auto &frame : this->stack) {
         if (frame.vars.find(tok) != frame.vars.end()) {
@@ -436,7 +440,7 @@ bool Parser::check_var(SymTok tok)
     return false;
 }
 
-bool Parser::check_const(SymTok tok)
+bool Parser::check_const(SymTok tok) const
 {
     return this->lib.is_constant(tok);
 }

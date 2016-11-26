@@ -1,5 +1,6 @@
 #include "library.h"
 #include "statics.h"
+#include "parser.h"
 
 using namespace std;
 
@@ -152,4 +153,15 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
 SentencePrinter print_sentence(const std::vector<SymTok> &sent, const Library &lib)
 {
     return SentencePrinter({ sent, lib });
+}
+
+vector< SymTok > parse_sentence(const std::string &in, const Library &lib) {
+    auto toks = tokenize(in);
+    vector< SymTok > res;
+    for (auto &tok : toks) {
+        auto tok_num = lib.get_symbol(tok);
+        assert(tok_num != 0);
+        res.push_back(tok_num);
+    }
+    return res;
 }

@@ -30,6 +30,7 @@ struct SentencePrinter {
 };
 SentencePrinter print_sentence(const std::vector< SymTok > &sent, const Library &lib);
 std::ostream &operator<<(std::ostream &os, const SentencePrinter &sp);
+std::vector< SymTok > parse_sentence(const std::string &in, const Library &lib);
 
 class Assertion {
 public:

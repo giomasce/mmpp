@@ -8,6 +8,8 @@
 
 #include "library.h"
 
+std::vector< std::string > tokenize(std::string in);
+
 /*
  * Some notes on this Metamath parser:
  *  + At the moment it does not support file inclusion. File inclusions
@@ -38,9 +40,7 @@ class Parser {
 public:
     Parser(FileTokenizer &ft);
     void run();
-    Library get_library() {
-        return this->lib;
-    }
+    const Library &get_library() const;
 
 private:
     void parse_c();
@@ -51,12 +51,12 @@ private:
     void parse_a();
     void parse_p();
 
-    bool check_var(SymTok tok);
-    bool check_const(SymTok tok);
-    std::set<SymTok> collect_mand_vars(std::vector<SymTok> sent);
-    void collect_vars(std::set<SymTok> &vars, std::vector<SymTok> sent);
-    std::pair< int, std::vector<LabTok> > collect_mand_hyps(std::set<SymTok> vars);
-    std::set<std::pair<SymTok, SymTok> > collect_mand_dists(std::set<SymTok> vars);
+    bool check_var(SymTok tok) const;
+    bool check_const(SymTok tok) const;
+    std::set<SymTok> collect_mand_vars(const std::vector<SymTok> &sent) const;
+    void collect_vars(std::set<SymTok> &vars, const std::vector<SymTok> &sent) const;
+    std::pair< int, std::vector<LabTok> > collect_mand_hyps(std::set<SymTok> vars) const;
+    std::set<std::pair<SymTok, SymTok> > collect_mand_dists(std::set<SymTok> vars) const;
 
     FileTokenizer &ft;
     Library lib;
