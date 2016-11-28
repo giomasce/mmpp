@@ -25,6 +25,8 @@ static inline string size_to_string(size_t size) {
 
 int main() {
 
+    // This program just does a lot of tests on the features of the mmpp library
+
     if (false) {
         auto ph = pwff(new Var("ph"));
         auto ps = pwff(new Var("ps"));
