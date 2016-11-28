@@ -14,13 +14,13 @@ Library::Library()
 
 SymTok Library::create_symbol(string s)
 {
-    assert(is_symbol(s));
+    assert_or_throw(is_symbol(s));
     return this->syms.get_or_create(s);
 }
 
 LabTok Library::create_label(string s)
 {
-    assert(is_label(s));
+    assert_or_throw(is_label(s));
     auto res = this->labels.get_or_create(s);
     //cerr << "Resizing from " << this->assertions.size() << " to " << res+1 << endl;
     this->sentences.resize(res+1);
@@ -306,7 +306,7 @@ vector< SymTok > parse_sentence(const std::string &in, const Library &lib) {
     vector< SymTok > res;
     for (auto &tok : toks) {
         auto tok_num = lib.get_symbol(tok);
-        assert(tok_num != 0);
+        assert_or_throw(tok_num != 0);
         res.push_back(tok_num);
     }
     return res;

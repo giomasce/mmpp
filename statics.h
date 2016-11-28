@@ -4,6 +4,23 @@
 #include <set>
 #include <string>
 
+class MMPPException {
+public:
+    MMPPException(std::string reason);
+    const std::string &get_reason() {
+        return this->reason;
+    }
+
+private:
+    std::string reason;
+};
+
+inline static void assert_or_throw(bool cond, std::string reason="") {
+    if (!cond) {
+        throw MMPPException(reason);
+    }
+}
+
 inline static bool is_ascii(char c) {
     return c > 32 && c < 127;
 }

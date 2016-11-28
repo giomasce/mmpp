@@ -1,5 +1,6 @@
 
 #include "proof.h"
+#include "statics.h"
 
 #include <iostream>
 #include <algorithm>
@@ -51,13 +52,13 @@ void CompressedProofExecutor::execute()
             LabTok label = this->proof.refs.at(code-this->ass.get_mand_hyps().size()-1);
             this->process_label(label);
         } else {
-            assert(code <= this->ass.get_mand_hyps().size() + this->proof.refs.size() + saved.size());
+            assert_or_throw(code <= this->ass.get_mand_hyps().size() + this->proof.refs.size() + saved.size());
             const vector< SymTok > &sent = saved.at(code-this->ass.get_mand_hyps().size()-this->proof.refs.size()-1);
             this->process_sentence(sent);
         }
     }
-    assert(this->get_stack().size() == 1);
-    assert(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()));
+    assert_or_throw(this->get_stack().size() == 1);
+    assert_or_throw(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()));
 }
 
 bool CompressedProofExecutor::check_syntax()
@@ -128,8 +129,8 @@ void UncompressedProofExecutor::execute()
     for (auto &label : this->proof.labels) {
         this->process_label(label);
     }
-    assert(this->get_stack().size() == 1);
-    assert(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()));
+    assert_or_throw(this->get_stack().size() == 1);
+    assert_or_throw(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()));
 }
 
 bool UncompressedProofExecutor::check_syntax()
@@ -150,7 +151,7 @@ ProofExecutor::ProofExecutor(const Library &lib, const Assertion &ass) :
 void ProofExecutor::process_assertion(const Assertion &child_ass)
 {
     // FIXME check distinct variables
-    assert(this->stack.size() >= child_ass.get_mand_hyps().size());
+    assert_or_throw(this->stack.size() >= child_ass.get_mand_hyps().size());
     assert(child_ass.get_num_floating() <= child_ass.get_mand_hyps().size());
     const size_t stack_base = this->stack.size() - child_ass.get_mand_hyps().size();
 
@@ -165,7 +166,7 @@ void ProofExecutor::process_assertion(const Assertion &child_ass)
         assert(this->lib.is_constant(hyp_sent.at(0)));
         assert(!this->lib.is_constant(hyp_sent.at(1)));
         const vector< SymTok > &stack_hyp_sent = this->stack.at(stack_base + i);
-        assert(hyp_sent.at(0) == stack_hyp_sent.at(0));
+        assert_or_throw(hyp_sent.at(0) == stack_hyp_sent.at(0));
         auto res = subst_map.insert(make_pair(hyp_sent.at(1), vector< SymTok >(stack_hyp_sent.begin()+1, stack_hyp_sent.end())));
         assert(res.second);
 #ifndef NDEBUG
@@ -183,17 +184,17 @@ void ProofExecutor::process_assertion(const Assertion &child_ass)
         for (auto it = hyp_sent.begin(); it != hyp_sent.end(); it++) {
             const SymTok &tok = *it;
             if (this->lib.is_constant(tok)) {
-                assert(tok == *stack_it);
+                assert_or_throw(tok == *stack_it);
                 stack_it++;
             } else {
                 const vector< SymTok > &subst = subst_map.at(tok);
-                assert(distance(stack_it, stack_hyp_sent.end()) >= 0);
-                assert(subst.size() <= (size_t) distance(stack_it, stack_hyp_sent.end()));
-                assert(equal(subst.begin(), subst.end(), stack_it));
+                assert_or_throw(distance(stack_it, stack_hyp_sent.end()) >= 0);
+                assert_or_throw(subst.size() <= (size_t) distance(stack_it, stack_hyp_sent.end()));
+                assert_or_throw(equal(subst.begin(), subst.end(), stack_it));
                 stack_it += subst.size();
             }
         }
-        assert(stack_it == stack_hyp_sent.end());
+        assert_or_throw(stack_it == stack_hyp_sent.end());
 #ifndef NDEBUG
         cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
 #endif
@@ -251,7 +252,7 @@ void ProofExecutor::process_label(const LabTok label)
         cerr << ", which is an hypothesis" << endl;
 #endif
         // In line of principle searching in a set would be faster, but since usually hypotheses are not many the vector is probably better
-        assert(find(this->ass.get_mand_hyps().begin(), this->ass.get_mand_hyps().end(), label) != this->ass.get_mand_hyps().end() ||
+        assert_or_throw(find(this->ass.get_mand_hyps().begin(), this->ass.get_mand_hyps().end(), label) != this->ass.get_mand_hyps().end() ||
                 find(this->ass.get_opt_hyps().begin(), this->ass.get_opt_hyps().end(), label) != this->ass.get_opt_hyps().end());
         const vector< SymTok > &sent = this->lib.get_sentence(label);
         this->process_sentence(sent);

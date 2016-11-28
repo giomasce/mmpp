@@ -1,6 +1,5 @@
 
 #include <set>
-#include <cassert>
 #include <istream>
 #include <iostream>
 #include <algorithm>
@@ -10,6 +9,7 @@
 #include "parser.h"
 #include "statics.h"
 #include "proof.h"
+#include "statics.h"
 
 using namespace std;
 
@@ -31,7 +31,7 @@ vector< string > tokenize(string in) {
         white = true;
       }
     } else {
-      assert("Wrong input character" == NULL);
+      throw MMPPException("Wrong input character");
     }
   }
   return toks;
@@ -64,13 +64,16 @@ string FileTokenizer::next()
         }
         if (c == '$') {
             if (!this->white) {
-                assert("Dollars cannot appear in the middle of a token" == NULL);
+                throw MMPPException("Dollars cannot appear in the middle of a token");
             }
             /* This can be a regular token or the beginning of a comment;
              * file inclusion is not supported so far and is treated like a comment. */
             this->in.get(c);
             if (this->in.eof()) {
-                assert("Interrupted dollar sequence" == NULL);
+                throw MMPPException("Interrupted dollar sequence");
+            }
+            if (c == '[' || c == ']') {
+                throw MMPPException("File inclusion not supported");
             }
             if (c == '[' || c == '(') {
                 // Here the comment begin
@@ -81,11 +84,11 @@ string FileTokenizer::next()
                 while (true) {
                     this->in.get(c);
                     if (this->in.eof()) {
-                        assert("File ended in a comment" == NULL);
+                        throw MMPPException("File ended in a comment");
                     }
                     if (found_dollar) {
                         if (c == '(') {
-                            assert("Comment opening forbidden in comment" == NULL);
+                            throw MMPPException("Comment opening forbidden in comment");
                         } else if ((real_comment && c == ')') || (!real_comment && c == ']')) {
                             break;
                         }
@@ -96,15 +99,15 @@ string FileTokenizer::next()
                     }
                 }
             } else if (c == ']' || c == ')') {
-                assert("Comment closed while not in comment" == NULL);
+                throw MMPPException("Comment closed while not in comment");
             } else if (c == '$' || is_valid(c)) {
                 this->buf.push_back('$');
                 this->buf.push_back(c);
                 this->white = false;
             } else if (is_whitespace(c)) {
-                assert("Interrupted dollar sequence" == NULL);
+                throw MMPPException("Interrupted dollar sequence");
             } else {
-                assert("Forbidden input character" == NULL);
+                throw MMPPException("Forbidden input character");
             }
         } else if (is_valid(c)) {
             this->buf.push_back(c);
@@ -114,7 +117,7 @@ string FileTokenizer::next()
                 return this->finalize_token();
             }
         } else {
-            assert("Forbidden input character" == NULL);
+            throw MMPPException("Forbidden input character");
         }
     }
 }
@@ -131,7 +134,7 @@ void Parser::run () {
     this->stack.emplace_back();
     while ((token = ft.next()) != "") {
         if (token[0] == '$') {
-            assert(token.size() == 2);
+            assert_or_throw(token.size() == 2);
             char c = token[1];
 
             // Parse scoping blocks
@@ -146,7 +149,7 @@ void Parser::run () {
             // Collect tokens in statement
             while ((token = ft.next()) != "$.") {
                 if (token == "") {
-                    assert("File ended in a statement" == NULL);
+                    throw MMPPException("File ended in a statement");
                 }
                 this->toks.push_back(token);
             }
@@ -175,21 +178,21 @@ void Parser::run () {
                 this->parse_p();
                 break;
             default:
-                assert("Wrong statement type" == NULL);
+                throw MMPPException("Wrong statement type");
                 break;
             }
             this->label = 0;
             this->toks.clear();
         } else {
             this->label = this->lib.create_label(token);
-            assert(this->label != 0);
+            assert_or_throw(this->label != 0);
             //cout << "Found label " << token << endl;
         }
     }
     this->final_frame = this->stack.back();
     this->lib.set_types(this->final_frame.types);
     this->stack.pop_back();
-    assert(this->stack.empty());
+    assert_or_throw(this->stack.empty());
 }
 
 const Library &Parser::get_library() const {
@@ -203,37 +206,37 @@ const ParserStackFrame &Parser::get_final_frame() const
 
 void Parser::parse_c()
 {
-    assert(this->label == 0);
-    assert(this->stack.size() == 1);
+    assert_or_throw(this->label == 0);
+    assert_or_throw(this->stack.size() == 1);
     for (auto stok : this->toks) {
         SymTok tok = this->lib.create_symbol(stok);
-        assert(!this->check_const(tok));
-        assert(!this->check_var(tok));
+        assert_or_throw(!this->check_const(tok));
+        assert_or_throw(!this->check_var(tok));
         this->lib.add_constant(tok);
     }
 }
 
 void Parser::parse_v()
 {
-    assert(this->label == 0);
+    assert_or_throw(this->label == 0);
     for (auto stok : this->toks) {
         SymTok tok = this->lib.create_symbol(stok);
-        assert(!this->check_const(tok));
-        assert(!this->check_var(tok));
+        assert_or_throw(!this->check_const(tok));
+        assert_or_throw(!this->check_var(tok));
         this->stack.back().vars.insert(tok);
     }
 }
 
 void Parser::parse_f()
 {
-    assert(this->label != 0);
-    assert(this->toks.size() == 2);
+    assert_or_throw(this->label != 0);
+    assert_or_throw(this->toks.size() == 2);
     SymTok const_tok = this->lib.get_symbol(this->toks[0]);
     SymTok var_tok = this->lib.get_symbol(this->toks[1]);
-    assert(const_tok != 0);
-    assert(var_tok != 0);
-    assert(this->check_const(const_tok));
-    assert(this->check_var(var_tok));
+    assert_or_throw(const_tok != 0);
+    assert_or_throw(var_tok != 0);
+    assert_or_throw(this->check_const(const_tok));
+    assert_or_throw(this->check_var(var_tok));
     this->lib.add_sentence(this->label, { const_tok, var_tok });
     this->stack.back().types.push_back(this->label);
     this->stack.back().types_set.insert(this->label);
@@ -245,30 +248,30 @@ void Parser::parse_f()
 
 void Parser::parse_e()
 {
-    assert(this->label != 0);
-    assert(this->toks.size() >= 1);
+    assert_or_throw(this->label != 0);
+    assert_or_throw(this->toks.size() >= 1);
     vector< SymTok > tmp;
     for (auto &stok : this->toks) {
         SymTok tok = this->lib.get_symbol(stok);
-        assert(tok != 0);
-        assert(this->check_const(tok) || this->check_var(tok));
+        assert_or_throw(tok != 0);
+        assert_or_throw(this->check_const(tok) || this->check_var(tok));
         tmp.push_back(tok);
     }
-    assert(this->check_const(tmp[0]));
+    assert_or_throw(this->check_const(tmp[0]));
     this->lib.add_sentence(this->label, tmp);
     this->stack.back().hyps.push_back(this->label);
 }
 
 void Parser::parse_d()
 {
-    assert(this->label == 0);
+    assert_or_throw(this->label == 0);
     for (auto it = this->toks.begin(); it != this->toks.end(); it++) {
         SymTok tok1 = this->lib.get_symbol(*it);
-        assert(this->check_var(tok1));
+        assert_or_throw(this->check_var(tok1));
         for (auto it2 = it+1; it2 != this->toks.end(); it2++) {
             SymTok tok2 = this->lib.get_symbol(*it2);
-            assert(this->check_var(tok2));
-            assert(tok1 != tok2);
+            assert_or_throw(this->check_var(tok2));
+            assert_or_throw(tok1 != tok2);
             this->stack.back().dists.insert(minmax(tok1, tok2));
         }
     }
@@ -286,7 +289,7 @@ void Parser::collect_vars_from_proof(std::set<SymTok> &vars, const std::vector<L
 {
     for (auto &tok : proof) {
         if (this->check_type(tok)) {
-            assert(this->lib.get_sentence(tok).size() == 2);
+            assert_or_throw(this->lib.get_sentence(tok).size() == 2);
             vars.insert(this->lib.get_sentence(tok).at(1));
         }
     }
@@ -367,16 +370,16 @@ set< pair< SymTok, SymTok > > Parser::collect_mand_dists(set< SymTok > vars) con
 void Parser::parse_a()
 {
     // Usual sanity checks and symbol conversion
-    assert(this->label != 0);
-    assert(this->toks.size() >= 1);
+    assert_or_throw(this->label != 0);
+    assert_or_throw(this->toks.size() >= 1);
     vector< SymTok > tmp;
     for (auto &stok : this->toks) {
         SymTok tok = this->lib.get_symbol(stok);
-        assert(tok != 0);
-        assert(this->check_const(tok) || this->check_var(tok));
+        assert_or_throw(tok != 0);
+        assert_or_throw(this->check_const(tok) || this->check_var(tok));
         tmp.push_back(tok);
     }
-    assert(this->check_const(tmp[0]));
+    assert_or_throw(this->check_const(tmp[0]));
     this->lib.add_sentence(this->label, tmp);
 
     // Collect things
@@ -394,8 +397,8 @@ void Parser::parse_a()
 void Parser::parse_p()
 {
     // Usual sanity checks and symbol conversion
-    assert(this->label != 0);
-    assert(this->toks.size() >= 1);
+    assert_or_throw(this->label != 0);
+    assert_or_throw(this->toks.size() >= 1);
     vector< SymTok > tmp;
     vector< LabTok > proof_labels;
     vector< LabTok > proof_refs;
@@ -410,8 +413,8 @@ void Parser::parse_p()
                 continue;
             }
             SymTok tok = this->lib.get_symbol(stok);
-            assert(tok != 0);
-            assert(this->check_const(tok) || this->check_var(tok));
+            assert_or_throw(tok != 0);
+            assert_or_throw(this->check_const(tok) || this->check_var(tok));
             tmp.push_back(tok);
         } else {
             if (compressed_proof == 0) {
@@ -429,7 +432,7 @@ void Parser::parse_p()
                     continue;
                 } else {
                     LabTok tok = this->lib.get_label(stok);
-                    assert(tok != 0);
+                    assert_or_throw(tok != 0);
                     proof_refs.push_back(tok);
                 }
             }
@@ -443,12 +446,12 @@ void Parser::parse_p()
             }
             if (compressed_proof == -1) {
                 LabTok tok = this->lib.get_label(stok);
-                assert(tok != 0);
+                assert_or_throw(tok != 0);
                 proof_labels.push_back(tok);
             }
         }
     }
-    assert(this->check_const(tmp[0]));
+    assert_or_throw(this->check_const(tmp[0]));
     assert(compressed_proof == -1 || compressed_proof == 2);
     this->lib.add_sentence(this->label, tmp);
 
@@ -476,7 +479,7 @@ void Parser::parse_p()
     }
     ass.add_proof(proof);
     auto pe = ass.get_proof_executor(this->lib);
-    assert(pe->check_syntax());
+    assert_or_throw(pe->check_syntax());
     if (this->execute_proofs) {
         pe->execute();
     }
@@ -513,9 +516,9 @@ CodeTok CompressedDecoder::push_char(char c)
     if (is_whitespace(c)) {
         return -1;
     }
-    assert('A' <= c && c <= 'Z');
+    assert_or_throw('A' <= c && c <= 'Z');
     if (c == 'Z') {
-        assert(this->current == 0);
+        assert_or_throw(this->current == 0);
         return 0;
     } else if ('A' <= c && c <= 'T') {
         int res = this->current * 20 + (c - 'A' + 1);
@@ -530,7 +533,7 @@ CodeTok CompressedDecoder::push_char(char c)
 
 string CompressedEncoder::push_code(CodeTok x)
 {
-    assert(x != INVALID_CODE);
+    assert_or_throw(x != INVALID_CODE);
     if (x == 0) {
         return "Z";
     }
@@ -546,4 +549,9 @@ string CompressedEncoder::push_code(CodeTok x)
         x = div;
     }
     return string(buf.rbegin(), buf.rend());
+}
+
+MMPPException::MMPPException(string reason)
+{
+    this->reason = reason;
 }
