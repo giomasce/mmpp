@@ -68,7 +68,9 @@ static vector< pair < string, bool > > get_tests() {
 
 int main() {
 
-    // This program just does a lot of tests on the features of the mmpp library
+    /* This program just does a lot of tests on the features of the mmpp library
+     * MISSING TO TEST: proof compressiond and decompression
+     */
 
     if (true) {
         cout << "Testing random small stuff..." << endl;
@@ -152,15 +154,18 @@ int main() {
     }
     cout << "Found " << problems << " problems" << endl;
 
-    if (false) {
-        fstream in("/home/giovanni/progetti/metamath/set.mm/set.mm");
+    if (true) {
+        cout << "Doing additional tests on set.mm..." << endl;
+        fstream in(test_basename + "/set.mm");
         FileTokenizer ft(in);
-        Parser p(ft, true);
+        Parser p(ft, false);
         p.run();
         Library lib = p.get_library();
         cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
+        cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl << endl;
 
         if (true) {
+            cout << "Generic unification test" << endl;
             vector< SymTok > sent = parse_sentence("wff ( ph -> ( ps -> ch ) )", lib);
             vector< SymTok > templ = parse_sentence("wff ( th -> et )", lib);
             auto res = unify(sent, templ, lib, false);
@@ -172,9 +177,11 @@ int main() {
                 }
                 cout << endl;
             }
+            cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
 
         if (true) {
+            cout << "Statement unification test" << endl;
             //auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> th )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- th", lib));
             auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> ( ph -> ps ) )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- ( ph -> ps )", lib));
             cout << "Found " << res.size() << " matching assertions:" << endl;
@@ -189,9 +196,11 @@ int main() {
                 auto &thesis_sent = lib.get_sentence(ass.get_thesis());
                 cout << " => " << print_sentence(thesis_sent, lib) << endl;
             }
+            cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
 
         if (true) {
+            cout << "Type proving test" << endl;
             //auto res = lib.prove_type(parse_sentence("wff ( x = y -> ps )", lib));
             auto res = lib.prove_type(parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )", lib));
             cout << "Found type proof:";
@@ -199,29 +208,8 @@ int main() {
                 cout << " " << lib.resolve_label(label);
             }
             cout << endl;
+            cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
-
-        if (true) {
-            cout << "Executing all proofs..." << endl;
-            for (auto &ass : lib.get_assertions()) {
-                if (ass.is_valid() && ass.is_theorem()) {
-                    ass.get_proof_executor(lib)->execute();
-                }
-            }
-        }
-
-        cout << "Memory usage: " << size_to_string(getCurrentRSS()) << endl;
-    }
-
-    if (false) {
-        fstream in("/home/giovanni/progetti/metamath/demo0.mm");
-        FileTokenizer ft(in);
-        Parser p(ft, true);
-        p.run();
-        Library lib = p.get_library();
-        cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
-
-        cout << "Memory usage: " << size_to_string(getCurrentRSS()) << endl;
     }
 
     cout << "Maximum memory usage: " << size_to_string(getPeakRSS()) << endl;
