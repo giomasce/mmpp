@@ -34,8 +34,8 @@ private:
 class Proof {
 public:
     virtual void execute() const = 0;
-    virtual const CompressedProof &compress() const = 0;
-    virtual const UncompressedProof &uncompress() const = 0;
+    virtual const CompressedProof compress() const = 0;
+    virtual const UncompressedProof uncompress() const = 0;
     virtual bool check_syntax() const = 0;
     virtual ~Proof();
 protected:
@@ -47,8 +47,8 @@ protected:
 class CompressedProof : public Proof {
 public:
     CompressedProof(const Library &lib, const Assertion &ass, const std::vector< LabTok > &refs, const std::vector< CodeTok > &codes);
-    const CompressedProof &compress() const;
-    const UncompressedProof &uncompress() const;
+    const CompressedProof compress() const;
+    const UncompressedProof uncompress() const;
     void execute() const;
     bool check_syntax() const;
     virtual ~CompressedProof();
@@ -60,8 +60,8 @@ private:
 class UncompressedProof : public Proof {
 public:
     UncompressedProof(const Library &lib, const Assertion &ass, const std::vector< LabTok > &labels);
-    const CompressedProof &compress() const;
-    const UncompressedProof &uncompress() const;
+    const CompressedProof compress() const;
+    const UncompressedProof uncompress() const;
     void execute() const;
     bool check_syntax() const;
     virtual ~UncompressedProof();

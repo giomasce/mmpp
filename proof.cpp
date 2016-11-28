@@ -25,12 +25,12 @@ CompressedProof::CompressedProof(const Library &lib, const Assertion &ass, const
 {
 }
 
-const CompressedProof &CompressedProof::compress() const
+const CompressedProof CompressedProof::compress() const
 {
     return *this;
 }
 
-const UncompressedProof &CompressedProof::uncompress() const
+const UncompressedProof CompressedProof::uncompress() const
 {
 
 }
@@ -93,12 +93,30 @@ UncompressedProof::UncompressedProof(const Library &lib, const Assertion &ass, c
 {
 }
 
-const CompressedProof &UncompressedProof::compress() const
+const CompressedProof UncompressedProof::compress() const
 {
-
+    // TODO use backreferences
+    CodeTok code_idx = 1;
+    unordered_map< LabTok, CodeTok > label_map;
+    vector < LabTok > refs;
+    vector < CodeTok > codes;
+    for (auto &label : this->ass.get_mand_hyps()) {
+        auto res = label_map.insert(make_pair(label, code_idx++));
+        assert(res.second);
+    }
+    for (auto &label : this->labels) {
+        if (label_map.find(label) == label_map.end()) {
+            auto res = label_map.insert(make_pair(label, code_idx++));
+            assert(res.second);
+            refs.push_back(label);
+        }
+        codes.push_back(label_map.at(label));
+    }
+    // FIXME this fails because of dangling references
+    return CompressedProof(this->lib, this->ass, refs, codes);
 }
 
-const UncompressedProof &UncompressedProof::uncompress() const
+const UncompressedProof UncompressedProof::uncompress() const
 {
     return *this;
 }
