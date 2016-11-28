@@ -39,6 +39,7 @@ public:
     Assertion(bool theorem,
               size_t num_floating,
               std::set< std::pair< SymTok, SymTok > > dists,
+              std::set< std::pair< SymTok, SymTok > > opt_dists,
               std::vector< LabTok > hyps,
               std::set< LabTok > opt_hyps,
               LabTok thesis);
@@ -46,7 +47,9 @@ public:
     bool is_valid() const;
     bool is_theorem() const;
     size_t get_num_floating() const;
-    const std::set< std::pair< SymTok, SymTok > > &get_dists() const;
+    const std::set< std::pair< SymTok, SymTok > > &get_mand_dists() const;
+    const std::set< std::pair< SymTok, SymTok > > &get_opt_dists() const;
+    const std::set<std::pair<SymTok, SymTok> > get_dists() const;
     const std::vector< LabTok > &get_mand_hyps() const;
     const std::set< LabTok > &get_opt_hyps() const;
     std::vector<LabTok> get_ess_hyps() const;
@@ -60,6 +63,7 @@ private:
     size_t num_floating;
     bool theorem;
     std::set< std::pair< SymTok, SymTok > > dists;
+    std::set< std::pair< SymTok, SymTok > > opt_dists;
     std::vector< LabTok > hyps;
     std::set< LabTok > opt_hyps;
     LabTok thesis;

@@ -62,6 +62,7 @@ private:
     std::pair< int, std::vector<LabTok> > collect_mand_hyps(std::set<SymTok> vars) const;
     std::set<LabTok> collect_opt_hyps(std::set<SymTok> opt_vars) const;
     std::set<std::pair<SymTok, SymTok> > collect_mand_dists(std::set<SymTok> vars) const;
+    std::set<std::pair<SymTok, SymTok> > collect_opt_dists(std::set<SymTok> opt_vars, std::set<SymTok> mand_vars) const;
     const ParserStackFrame &get_final_frame() const;
 
     FileTokenizer &ft;

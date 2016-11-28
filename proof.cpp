@@ -147,6 +147,7 @@ bool UncompressedProofExecutor::check_syntax()
 
 ProofExecutor::ProofExecutor(const Library &lib, const Assertion &ass) :
     lib(lib), ass(ass) {
+    this->dists = ass.get_dists();
 }
 
 void ProofExecutor::process_assertion(const Assertion &child_ass)
@@ -173,6 +174,34 @@ void ProofExecutor::process_assertion(const Assertion &child_ass)
 #ifndef NDEBUG
         cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
 #endif
+    }
+
+    // Check the substitution map against the distince variables requirements
+    const auto child_dists = child_ass.get_dists();
+    for (auto it1 = subst_map.begin(); it1 != subst_map.end(); it1++) {
+        for (auto it2 = it1; it2 != subst_map.end(); it2++) {
+            if (it1 == it2) {
+                continue;
+            }
+            auto &var1 = it1->first;
+            auto &var2 = it2->first;
+            auto &subst1 = it1->second;
+            auto &subst2 = it2->second;
+            if (child_dists.find(minmax(var1, var2)) != child_dists.end()) {
+                for (auto &tok1 : subst1) {
+                    if (this->lib.is_constant(tok1)) {
+                        continue;
+                    }
+                    for (auto &tok2 : subst2) {
+                        if (this->lib.is_constant(tok2)) {
+                            continue;
+                        }
+                        assert_or_throw(this->dists.find(minmax(tok1, tok2)) != this->dists.end(), "Distinct variables constraint violated");
+                        assert(tok1 != tok2);
+                    }
+                }
+            }
+        }
     }
 
     // Then parse the other hypotheses and check them

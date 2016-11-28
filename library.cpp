@@ -217,9 +217,10 @@ Assertion::Assertion() :
 Assertion::Assertion(bool theorem,
                      size_t num_floating,
                      std::set<std::pair<SymTok, SymTok> > dists,
+                     std::set<std::pair<SymTok, SymTok> > opt_dists,
                      std::vector<LabTok> hyps, std::set<LabTok> opt_hyps,
                      LabTok thesis) :
-    valid(true), num_floating(num_floating), theorem(theorem), dists(dists), hyps(hyps), opt_hyps(opt_hyps), thesis(thesis), proof(NULL)
+    valid(true), num_floating(num_floating), theorem(theorem), dists(dists), opt_dists(opt_dists), hyps(hyps), opt_hyps(opt_hyps), thesis(thesis), proof(NULL)
 {
 }
 
@@ -241,8 +242,22 @@ size_t Assertion::get_num_floating() const
     return this->num_floating;
 }
 
-const std::set<std::pair<SymTok, SymTok> > &Assertion::get_dists() const {
+const std::set<std::pair<SymTok, SymTok> > &Assertion::get_mand_dists() const {
     return this->dists;
+}
+
+const std::set<std::pair<SymTok, SymTok> > &Assertion::get_opt_dists() const
+{
+    return this->opt_dists;
+}
+
+const std::set<std::pair<SymTok, SymTok> > Assertion::get_dists() const
+{
+    std::set<std::pair<SymTok, SymTok> > ret;
+    set_union(this->get_mand_dists().begin(), this->get_mand_dists().end(),
+              this->get_opt_dists().begin(), this->get_opt_dists().end(),
+              inserter(ret, ret.begin()));
+    return ret;
 }
 
 const std::vector<LabTok> &Assertion::get_mand_hyps() const {

@@ -37,6 +37,7 @@ protected:
     const Library &lib;
     const Assertion &ass;
     std::vector< std::vector< SymTok > > stack;
+    std::set< std::pair< SymTok, SymTok > > dists;
 };
 
 class CompressedProofExecutor : public ProofExecutor {

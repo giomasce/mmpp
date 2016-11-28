@@ -6,6 +6,7 @@
 #include <vector>
 #include <sstream>
 #include <ostream>
+#include <iostream>
 
 #ifdef __GNUG__
 #include <execinfo.h>
@@ -67,6 +68,7 @@ class MMPPException {
 public:
     MMPPException(std::string reason) : reason(reason), stacktrace(dump_stacktrace()) {
         if (mmpp_abort) {
+            this->print_stacktrace(std::cerr);
             abort();
         }
     }
@@ -83,6 +85,7 @@ public:
             st << "  * " << frame << endl;
         }
         st << "End of stack trace" << endl;
+        st.flush();
     }
 
 private:

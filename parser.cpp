@@ -367,6 +367,22 @@ set< pair< SymTok, SymTok > > Parser::collect_mand_dists(set< SymTok > vars) con
     return dists;
 }
 
+set< pair< SymTok, SymTok > > Parser::collect_opt_dists(set< SymTok > opt_vars, set< SymTok > mand_vars) const {
+    set< SymTok > vars;
+    set_union(opt_vars.begin(), opt_vars.end(), mand_vars.begin(), mand_vars.end(), inserter(vars, vars.begin()));
+    set< pair< SymTok, SymTok > > dists;
+    for (auto &frame : this->stack) {
+        for (auto &dist : frame.dists) {
+            if (vars.find(dist.first) != vars.end() && vars.find(dist.second) != vars.end()) {
+                if (mand_vars.find(dist.first) == mand_vars.end() || mand_vars.find(dist.second) == mand_vars.end()) {
+                    dists.insert(dist);
+                }
+            }
+        }
+    }
+    return dists;
+}
+
 void Parser::parse_a()
 {
     // Usual sanity checks and symbol conversion
@@ -390,7 +406,7 @@ void Parser::parse_a()
     set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
 
     // Finally build assertion
-    Assertion ass(false, num_floating, mand_dists, mand_hyps, {}, this->label);
+    Assertion ass(false, num_floating, mand_dists, {}, mand_hyps, {}, this->label);
     this->lib.add_assertion(this->label, ass);
 }
 
@@ -468,9 +484,10 @@ void Parser::parse_p()
         opt_vars = this->collect_opt_vars(proof_refs, mand_vars);
     }
     set< LabTok > opt_hyps = this->collect_opt_hyps(opt_vars);
+    set< pair< SymTok, SymTok > > opt_dists = this->collect_opt_dists(opt_vars, mand_vars);
 
     // Finally build assertion and attach proof
-    Assertion ass(true, num_floating, mand_dists, mand_hyps, opt_hyps, this->label);
+    Assertion ass(true, num_floating, mand_dists, opt_dists, mand_hyps, opt_hyps, this->label);
     shared_ptr< Proof > proof;
     if (compressed_proof < 0) {
         proof = shared_ptr< Proof > (new UncompressedProof(proof_labels));

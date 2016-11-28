@@ -99,19 +99,21 @@ int main() {
     }
 
     auto tests = get_tests();
+    int problems = 0;
     for (auto test_pair : tests) {
         string filename = test_pair.first;
         bool success = true;
         bool expect_success = test_pair.second;
-        cout << "Testing file " << filename << " from " << test_basename << ", which is expected to " << (expect_success ? "pass" : "fail" ) << "..." << endl;
 
         // Useful for debugging
-        /*if (filename == "set-dist.mm") {
+        /*if (filename == "hol.mm") {
             mmpp_abort = true;
         } else {
+            continue;
             mmpp_abort = false;
         }*/
 
+        cout << "Testing file " << filename << " from " << test_basename << ", which is expected to " << (expect_success ? "pass" : "fail" ) << "..." << endl;
         try {
             cout << "Memory usage when starting: " << size_to_string(getCurrentRSS()) << endl;
             fstream in(test_basename + "/" + filename);
@@ -121,6 +123,9 @@ int main() {
             p.run();
             Library lib = p.get_library();
             cout << "Library has " << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
+            /*LabTok failing = 287;
+            cout << "Checking proof of " << lib.resolve_label(failing) << endl;
+            lib.get_assertion(failing).get_proof_executor(lib)->execute();*/
             cout << "Finished. Memory usage: " << size_to_string(getCurrentRSS()) << endl;
         } catch (MMPPException e) {
             cout << "An exception with message '" << e.get_reason() << "' was thrown!" << endl;
@@ -129,13 +134,15 @@ int main() {
         }
         if (success) {
             if (expect_success) {
-                cout << "Good, this was expected!" << endl;
+                cout << "Good, it worked!" << endl;
             } else {
-                cout << "Bad, this was NOT expected!" << endl;
+                cout << "Bad, it should have been failed!" << endl;
+                problems++;
             }
         } else {
             if (expect_success) {
                 cout << "Bad, this was NOT expected!" << endl;
+                problems++;
             } else {
                 cout << "Good, this was expected!" << endl;
             }
@@ -143,6 +150,7 @@ int main() {
 
         cout << "-------" << endl << endl;
     }
+    cout << "Found " << problems << " problems" << endl;
 
     if (false) {
         fstream in("/home/giovanni/progetti/metamath/set.mm/set.mm");
