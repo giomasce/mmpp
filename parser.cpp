@@ -470,13 +470,15 @@ void Parser::parse_p()
     Assertion ass(true, num_floating, mand_dists, mand_hyps, opt_hyps, this->label);
     shared_ptr< Proof > proof;
     if (compressed_proof < 0) {
-        proof = shared_ptr< Proof > (new UncompressedProof(this->lib, ass, proof_labels));
+        proof = shared_ptr< Proof > (new UncompressedProof(proof_labels));
     } else {
-        proof = shared_ptr< Proof > (new CompressedProof(this->lib, ass, proof_refs, proof_codes));
+        proof = shared_ptr< Proof > (new CompressedProof(proof_refs, proof_codes));
     }
     ass.add_proof(proof);
+    auto pe = ass.get_proof_executor(this->lib);
+    assert(pe->check_syntax());
     if (this->execute_proofs) {
-        proof->execute();
+        pe->execute();
     }
     this->lib.add_assertion(this->label, ass);
 }

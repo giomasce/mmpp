@@ -51,9 +51,9 @@ public:
     const std::set< LabTok > &get_opt_hyps() const;
     std::vector<LabTok> get_ess_hyps() const;
     LabTok get_thesis() const;
+    std::shared_ptr< ProofExecutor > get_proof_executor(const Library &lib) const;
 
     void add_proof(std::shared_ptr<Proof> proof);
-    std::shared_ptr< Proof > get_proof() const;
 
 private:
     bool valid;
@@ -64,6 +64,8 @@ private:
     std::set< LabTok > opt_hyps;
     LabTok thesis;
     std::shared_ptr< Proof > proof;
+
+    std::shared_ptr< Proof > get_proof() const;
 };
 
 template< typename Tok >

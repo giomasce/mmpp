@@ -55,7 +55,7 @@ int main() {
     if (true) {
         fstream in("/home/giovanni/progetti/metamath/set.mm/set.mm");
         FileTokenizer ft(in);
-        Parser p(ft, false);
+        Parser p(ft, true);
         p.run();
         Library lib = p.get_library();
         cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
@@ -105,7 +105,7 @@ int main() {
             cout << "Executing all proofs..." << endl;
             for (auto &ass : lib.get_assertions()) {
                 if (ass.is_valid() && ass.is_theorem()) {
-                    ass.get_proof()->execute();
+                    ass.get_proof_executor(lib)->execute();
                 }
             }
         }
@@ -113,7 +113,7 @@ int main() {
         cout << "Memory usage: " << size_to_string(getCurrentRSS()) << endl;
     }
 
-    if (false) {
+    if (true) {
         fstream in("/home/giovanni/progetti/metamath/demo0.mm");
         FileTokenizer ft(in);
         Parser p(ft, true);

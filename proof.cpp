@@ -15,68 +15,67 @@ Proof::~Proof()
 {
 }
 
-Proof::Proof(const Library &lib) :
-    lib(lib), ass(&ass)
+CompressedProof::CompressedProof(const std::vector<LabTok> &refs, const std::vector<CodeTok> &codes) :
+    refs(refs), codes(codes)
 {
 }
 
-CompressedProof::CompressedProof(const Library &lib, const Assertion &ass, const std::vector<LabTok> &refs, const std::vector<CodeTok> &codes) :
-    Proof(lib, ass), refs(refs), codes(codes)
+std::shared_ptr<ProofExecutor> CompressedProof::get_executor(const Library &lib, const Assertion &ass) const
 {
+    return shared_ptr< ProofExecutor >(new CompressedProofExecutor(lib, ass, *this));
 }
 
-const CompressedProof CompressedProof::compress() const
+const CompressedProof CompressedProofExecutor::compress()
 {
-    return *this;
+    return this->proof;
 }
 
-const UncompressedProof CompressedProof::uncompress() const
+const UncompressedProof CompressedProofExecutor::uncompress()
 {
 
 }
 
-void CompressedProof::execute() const
+void CompressedProofExecutor::execute()
 {
 #ifndef NDEBUG
     cerr << "Executing proof of " << this->lib.resolve_label(this->ass.get_thesis()) << endl;
 #endif
-    ProofExecutor pe(this->lib, *this->ass);
     vector< vector< SymTok > > saved;
-    for (auto &code : this->codes) {
+    for (auto &code : this->proof.codes) {
         if (code == 0) {
-            saved.push_back(pe.get_stack().back());
-        } else if (code <= this->ass->get_mand_hyps().size()) {
-            LabTok label = this->ass->get_mand_hyps().at(code-1);
-            pe.process_label(label);
-        } else if (code <= this->ass->get_mand_hyps().size() + this->refs.size()) {
-            LabTok label = this->refs.at(code-this->ass->get_mand_hyps().size()-1);
-            pe.process_label(label);
+            saved.push_back(this->get_stack().back());
+        } else if (code <= this->ass.get_mand_hyps().size()) {
+            LabTok label = this->ass.get_mand_hyps().at(code-1);
+            this->process_label(label);
+        } else if (code <= this->ass.get_mand_hyps().size() + this->proof.refs.size()) {
+            LabTok label = this->proof.refs.at(code-this->ass.get_mand_hyps().size()-1);
+            this->process_label(label);
         } else {
-            assert(code <= this->ass->get_mand_hyps().size() + this->refs.size() + saved.size());
-            const vector< SymTok > &sent = saved.at(code-this->ass->get_mand_hyps().size()-this->refs.size()-1);
-            pe.process_sentence(sent);
+            assert(code <= this->ass.get_mand_hyps().size() + this->proof.refs.size() + saved.size());
+            const vector< SymTok > &sent = saved.at(code-this->ass.get_mand_hyps().size()-this->proof.refs.size()-1);
+            this->process_sentence(sent);
         }
     }
-    assert(pe.get_stack().size() == 1);
-    assert(pe.get_stack().at(0) == this->lib.get_sentence(this->ass->get_thesis()));
+    assert(this->get_stack().size() == 1);
+    assert(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()));
 }
 
-bool CompressedProof::check_syntax() const
+bool CompressedProofExecutor::check_syntax()
 {
-    for (auto &ref : this->refs) {
-        if (!this->lib.get_assertion(ref).is_valid() && this->ass->get_opt_hyps().find(ref) == this->ass->get_opt_hyps().end()) {
+    for (auto &ref : this->proof.refs) {
+        if (!this->lib.get_assertion(ref).is_valid() && this->ass.get_opt_hyps().find(ref) == this->ass.get_opt_hyps().end()) {
             //cerr << "Syntax error for assertion " << this->lib.resolve_label(this->ass.get_thesis()) << " in reference " << this->lib.resolve_label(ref) << endl;
             //abort();
             return false;
         }
     }
     unsigned int zero_count = 0;
-    for (auto &code : this->codes) {
+    for (auto &code : this->proof.codes) {
         assert(code != INVALID_CODE);
         if (code == 0) {
             zero_count++;
         } else {
-            if (code > this->ass->get_mand_hyps().size() + this->refs.size() + zero_count) {
+            if (code > this->ass.get_mand_hyps().size() + this->proof.refs.size() + zero_count) {
                 return false;
             }
         }
@@ -84,27 +83,28 @@ bool CompressedProof::check_syntax() const
     return true;
 }
 
-CompressedProof::~CompressedProof()
+UncompressedProof::UncompressedProof(const std::vector<LabTok> &labels) :
+    labels(labels)
 {
 }
 
-UncompressedProof::UncompressedProof(const Library &lib, const Assertion &ass, const std::vector<LabTok> &labels) :
-    Proof(lib, ass), labels(labels)
+std::shared_ptr<ProofExecutor> UncompressedProof::get_executor(const Library &lib, const Assertion &ass) const
 {
+    return shared_ptr< ProofExecutor >(new UncompressedProofExecutor(lib, ass, *this));
 }
 
-const CompressedProof UncompressedProof::compress() const
+const CompressedProof UncompressedProofExecutor::compress()
 {
     // TODO use backreferences
     CodeTok code_idx = 1;
     unordered_map< LabTok, CodeTok > label_map;
     vector < LabTok > refs;
     vector < CodeTok > codes;
-    for (auto &label : this->ass->get_mand_hyps()) {
+    for (auto &label : this->ass.get_mand_hyps()) {
         auto res = label_map.insert(make_pair(label, code_idx++));
         assert(res.second);
     }
-    for (auto &label : this->labels) {
+    for (auto &label : this->proof.labels) {
         if (label_map.find(label) == label_map.end()) {
             auto res = label_map.insert(make_pair(label, code_idx++));
             assert(res.second);
@@ -112,40 +112,35 @@ const CompressedProof UncompressedProof::compress() const
         }
         codes.push_back(label_map.at(label));
     }
-    return CompressedProof(this->lib, *this->ass, refs, codes);
+    return CompressedProof(refs, codes);
 }
 
-const UncompressedProof UncompressedProof::uncompress() const
+const UncompressedProof UncompressedProofExecutor::uncompress()
 {
-    return *this;
+    return this->proof;
 }
 
-void UncompressedProof::execute() const
+void UncompressedProofExecutor::execute()
 {
 #ifndef NDEBUG
     cerr << "Executing proof of " << this->lib.resolve_label(this->ass.get_thesis()) << endl;
 #endif
-    ProofExecutor pe(this->lib, *this->ass);
-    for (auto &label : this->labels) {
-        pe.process_label(label);
+    for (auto &label : this->proof.labels) {
+        this->process_label(label);
     }
-    assert(pe.get_stack().size() == 1);
-    assert(pe.get_stack().at(0) == this->lib.get_sentence(this->ass->get_thesis()));
+    assert(this->get_stack().size() == 1);
+    assert(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()));
 }
 
-bool UncompressedProof::check_syntax() const
+bool UncompressedProofExecutor::check_syntax()
 {
-    const set< LabTok > mand_hyps_set(this->ass->get_mand_hyps().begin(), this->ass->get_mand_hyps().end());
-    for (auto &label : this->labels) {
+    const set< LabTok > mand_hyps_set(this->ass.get_mand_hyps().begin(), this->ass.get_mand_hyps().end());
+    for (auto &label : this->proof.labels) {
         if (!this->lib.get_assertion(label).is_valid() && mand_hyps_set.find(label) == mand_hyps_set.end()) {
             return false;
         }
     }
     return true;
-}
-
-UncompressedProof::~UncompressedProof()
-{
 }
 
 ProofExecutor::ProofExecutor(const Library &lib, const Assertion &ass) :
@@ -263,7 +258,21 @@ void ProofExecutor::process_label(const LabTok label)
     }
 }
 
-const std::vector<std::vector<SymTok> > &ProofExecutor::get_stack()
+const std::vector<std::vector<SymTok> > &ProofExecutor::get_stack() const
 {
     return this->stack;
+}
+
+ProofExecutor::~ProofExecutor()
+{
+}
+
+CompressedProofExecutor::CompressedProofExecutor(const Library &lib, const Assertion &ass, const CompressedProof &proof) :
+    ProofExecutor(lib, ass), proof(proof)
+{
+}
+
+UncompressedProofExecutor::UncompressedProofExecutor(const Library &lib, const Assertion &ass, const UncompressedProof &proof) :
+    ProofExecutor(lib, ass), proof(proof)
+{
 }
