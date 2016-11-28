@@ -47,6 +47,7 @@ pass peano-fixed.mm
 pass ql.mm
 pass set.2010-08-29.mm
 pass set.mm
+fail set-dist.mm
 )tests";
 
 static vector< pair < string, bool > > get_tests() {
@@ -105,7 +106,7 @@ int main() {
         cout << "Testing file " << filename << " from " << test_basename << ", which is expected to " << (expect_success ? "pass" : "fail" ) << "..." << endl;
 
         // Useful for debugging
-        /*if (filename == "set.mm") {
+        /*if (filename == "set-dist.mm") {
             mmpp_abort = true;
         } else {
             mmpp_abort = false;

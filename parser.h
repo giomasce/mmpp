@@ -12,10 +12,10 @@ std::vector< std::string > tokenize(std::string in);
 
 /*
  * Some notes on this Metamath parser:
- *  + At the moment it does not support file inclusion. File inclusions
- *    are treated (more or less) like comments.
+ *  + It does not support file inclusion.
+ *  + It does not enforce distinct variables.
  *  + It does not require that label tokens do not match any math token.
- *  + It does not support unknown points in proofs.
+ *  + It does not support unknown points ("?") in proofs.
  */
 
 class FileTokenizer {
