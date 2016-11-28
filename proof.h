@@ -38,9 +38,10 @@ public:
     virtual const UncompressedProof uncompress() const = 0;
     virtual bool check_syntax() const = 0;
     virtual ~Proof();
+
 protected:
     const Library &lib;
-    const Assertion &ass;
+    const Assertion *ass;
     Proof(const Library &lib, const Assertion &ass);
 };
 
@@ -53,8 +54,8 @@ public:
     bool check_syntax() const;
     virtual ~CompressedProof();
 private:
-    const std::vector< LabTok > &refs;
-    const std::vector< CodeTok > &codes;
+    const std::vector< LabTok > refs;
+    const std::vector< CodeTok > codes;
 };
 
 class UncompressedProof : public Proof {
@@ -66,7 +67,7 @@ public:
     bool check_syntax() const;
     virtual ~UncompressedProof();
 private:
-    const std::vector< LabTok > &labels;
+    const std::vector< LabTok > labels;
 };
 
 #endif // PROOF_H

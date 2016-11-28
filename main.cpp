@@ -101,6 +101,15 @@ int main() {
             cout << endl;
         }
 
+        if (true) {
+            cout << "Executing all proofs..." << endl;
+            for (auto &ass : lib.get_assertions()) {
+                if (ass.is_valid() && ass.is_theorem()) {
+                    ass.get_proof()->execute();
+                }
+            }
+        }
+
         cout << "Memory usage: " << size_to_string(getCurrentRSS()) << endl;
     }
 

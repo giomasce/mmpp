@@ -79,6 +79,11 @@ const Assertion &Library::get_assertion(LabTok label) const
     return this->assertions.at(label);
 }
 
+const std::vector<Assertion> &Library::get_assertions() const
+{
+    return this->assertions;
+}
+
 void Library::add_constant(SymTok c)
 {
     this->consts.insert(c);
@@ -268,7 +273,7 @@ void Assertion::add_proof(shared_ptr< Proof > proof)
     this->proof = proof;
 }
 
-shared_ptr< Proof > Assertion::get_proof()
+shared_ptr< Proof > Assertion::get_proof() const
 {
     return this->proof;
 }

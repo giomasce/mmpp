@@ -53,7 +53,7 @@ public:
     LabTok get_thesis() const;
 
     void add_proof(std::shared_ptr<Proof> proof);
-    std::shared_ptr< Proof > get_proof();
+    std::shared_ptr< Proof > get_proof() const;
 
 private:
     bool valid;
@@ -129,6 +129,7 @@ public:
     const std::vector<SymTok> &get_sentence(LabTok label) const;
     void add_assertion(LabTok label, const Assertion &ass);
     const Assertion &get_assertion(LabTok label) const;
+    const std::vector< Assertion > &get_assertions() const;
     void add_constant(SymTok c);
     bool is_constant(SymTok c) const;
     std::unordered_map<LabTok, std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis);
