@@ -21,12 +21,12 @@ std::vector< std::string > tokenize(std::string in);
 class FileTokenizer {
 public:
     FileTokenizer(std::istream &in);
-    std::string next();
+    std::pair< bool, std::string > next();
 private:
     std::istream &in;
     bool white;
     std::vector< char > buf;
-    std::string finalize_token();
+    std::pair< bool, std::string > finalize_token(bool comment);
 };
 
 struct ParserStackFrame {
@@ -39,7 +39,7 @@ struct ParserStackFrame {
 
 class Parser {
 public:
-    Parser(FileTokenizer &ft, bool execute_proofs=true);
+    Parser(FileTokenizer &ft, bool execute_proofs=true, bool store_comments=false);
     void run();
     const Library &get_library() const;
 
@@ -51,6 +51,8 @@ private:
     void parse_d();
     void parse_a();
     void parse_p();
+    void process_comment(const std::string &comment);
+    void parse_t_comment(const std::string &comment);
 
     bool check_var(SymTok tok) const;
     bool check_const(SymTok tok) const;
@@ -67,8 +69,10 @@ private:
 
     FileTokenizer &ft;
     bool execute_proofs;
+    bool store_comments;
     Library lib;
     LabTok label;
+    std::string last_comment;
     std::vector< std::string > toks;
 
     std::vector< ParserStackFrame > stack;

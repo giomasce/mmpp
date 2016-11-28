@@ -43,63 +43,79 @@ FileTokenizer::FileTokenizer(istream &in) :
 {
 }
 
-string FileTokenizer::finalize_token() {
+std::pair<bool, string> FileTokenizer::finalize_token(bool comment) {
     if (this->white) {
-        return "";
+        return make_pair(comment, "");
     } else {
         string res = string(this->buf.begin(), this->buf.end());
         this->buf.clear();
         this->white = true;
-        return res;
+        return make_pair(comment, res);
     }
 }
 
-string FileTokenizer::next()
+std::pair<bool, string> FileTokenizer::next()
 {
     while (true) {
         char c;
         this->in.get(c);
         if (this->in.eof()) {
-            return this->finalize_token();
+            return this->finalize_token(false);
         }
         if (c == '$') {
             if (!this->white) {
                 throw MMPPException("Dollars cannot appear in the middle of a token");
             }
-            /* This can be a regular token or the beginning of a comment;
-             * file inclusion is not supported so far and is treated like a comment. */
+            // This can be a regular token or the beginning of a comment
             this->in.get(c);
             if (this->in.eof()) {
                 throw MMPPException("Interrupted dollar sequence");
             }
-            if (c == '[' || c == ']') {
-                throw MMPPException("File inclusion not supported");
-            }
-            if (c == '[' || c == '(') {
+            if (c == '(' || c == '[') {
                 // Here the comment begin
-                // real_comment is just a trick to work around problems arising from
-                // not implementing corretly file inclusion
-                bool real_comment = c == '(';
                 bool found_dollar = false;
+                bool comment = c == '(';
+                vector< char > content;
                 while (true) {
                     this->in.get(c);
                     if (this->in.eof()) {
                         throw MMPPException("File ended in a comment");
                     }
                     if (found_dollar) {
-                        if (c == '(') {
-                            throw MMPPException("Comment opening forbidden in comment");
-                        } else if ((real_comment && c == ')') || (!real_comment && c == ']')) {
-                            break;
+                        if ((comment && c == '(') || (!comment && c == '[')) {
+                            throw MMPPException("Comment and file inclusion opening forbidden in comments and file inclusions");
+                        } else if ((comment && c == ')') || (!comment && c == ']')) {
+                            this->white = true;
+                            if (comment) {
+                                if (content.empty()) {
+                                    break;
+                                } else {
+                                    return make_pair(true, string(content.begin(), content.end()));
+                                }
+                            } else {
+                                string filename = trimmed(string(content.begin(), content.end()));
+                                (void) filename;
+                                throw MMPPException("File inclusion not supported");
+                            }
+                        } else if (c == '$') {
+                            content.push_back('$');
+                        } else {
+                            content.push_back('$');
+                            content.push_back(c);
+                            found_dollar = false;
                         }
-                        found_dollar = false;
-                    }
-                    if (c == '$') {
-                        found_dollar = true;
+                    } else {
+                        if (c == '$') {
+                            found_dollar = true;
+                        } else {
+                            content.push_back(c);
+                        }
                     }
                 }
-            } else if (c == ']' || c == ')') {
+            } else if (c == ')') {
                 throw MMPPException("Comment closed while not in comment");
+            } else if (c == ']') {
+                throw MMPPException("File inclusion closed while not in comment");
             } else if (c == '$' || is_valid(c)) {
                 this->buf.push_back('$');
                 this->buf.push_back(c);
@@ -114,7 +130,7 @@ string FileTokenizer::next()
             this->white = false;
         } else if (is_whitespace(c)) {
             if (!this->white) {
-                return this->finalize_token();
+                return this->finalize_token(false);
             }
         } else {
             throw MMPPException("Forbidden input character");
@@ -122,17 +138,23 @@ string FileTokenizer::next()
     }
 }
 
-Parser::Parser(FileTokenizer &ft, bool execute_proofs) :
-    ft(ft), execute_proofs(execute_proofs)
+Parser::Parser(FileTokenizer &ft, bool execute_proofs, bool store_comments) :
+    ft(ft), execute_proofs(execute_proofs), store_comments(store_comments)
 {
 }
 
 void Parser::run () {
-    string token;
+    pair< bool, string > token_pair;
     this->label = 0;
     assert(this->stack.empty());
     this->stack.emplace_back();
-    while ((token = ft.next()) != "") {
+    while ((token_pair = ft.next()).second != "") {
+        bool &comment = token_pair.first;
+        string &token = token_pair.second;
+        if (comment) {
+            this->process_comment(token);
+            continue;
+        }
         if (token[0] == '$') {
             assert_or_throw(token.size() == 2);
             char c = token[1];
@@ -147,7 +169,13 @@ void Parser::run () {
             }
 
             // Collect tokens in statement
-            while ((token = ft.next()) != "$.") {
+            while ((token_pair = ft.next()).second != "$.") {
+                bool &comment = token_pair.first;
+                string &token = token_pair.second;
+                if (comment) {
+                    this->process_comment(token);
+                    continue;
+                }
                 if (token == "") {
                     throw MMPPException("File ended in a statement");
                 }
@@ -206,7 +234,7 @@ const ParserStackFrame &Parser::get_final_frame() const
 
 void Parser::parse_c()
 {
-    assert_or_throw(this->label == 0);
+    assert_or_throw(this->label == 0, "Undue label in $c statement");
     assert_or_throw(this->stack.size() == 1);
     for (auto stok : this->toks) {
         SymTok tok = this->lib.create_symbol(stok);
@@ -218,7 +246,7 @@ void Parser::parse_c()
 
 void Parser::parse_v()
 {
-    assert_or_throw(this->label == 0);
+    assert_or_throw(this->label == 0, "Undue label in $v statement");
     for (auto stok : this->toks) {
         SymTok tok = this->lib.create_symbol(stok);
         assert_or_throw(!this->check_const(tok));
@@ -229,7 +257,7 @@ void Parser::parse_v()
 
 void Parser::parse_f()
 {
-    assert_or_throw(this->label != 0);
+    assert_or_throw(this->label != 0, "Missing label in $f statement");
     assert_or_throw(this->toks.size() == 2);
     SymTok const_tok = this->lib.get_symbol(this->toks[0]);
     SymTok var_tok = this->lib.get_symbol(this->toks[1]);
@@ -240,15 +268,11 @@ void Parser::parse_f()
     this->lib.add_sentence(this->label, { const_tok, var_tok });
     this->stack.back().types.push_back(this->label);
     this->stack.back().types_set.insert(this->label);
-
-    // FIXME This does not appear to be mentioned in the specs, but it seems necessary anyway
-    //Assertion ass(false, 0, {}, {}, this->label);
-    //this->lib.add_assertion(this->label, ass);
 }
 
 void Parser::parse_e()
 {
-    assert_or_throw(this->label != 0);
+    assert_or_throw(this->label != 0, "Missing label in $e statement");
     assert_or_throw(this->toks.size() >= 1);
     vector< SymTok > tmp;
     for (auto &stok : this->toks) {
@@ -264,7 +288,7 @@ void Parser::parse_e()
 
 void Parser::parse_d()
 {
-    assert_or_throw(this->label == 0);
+    assert_or_throw(this->label == 0, "Undue label in $d statement");
     for (auto it = this->toks.begin(); it != this->toks.end(); it++) {
         SymTok tok1 = this->lib.get_symbol(*it);
         assert_or_throw(this->check_var(tok1));
@@ -386,7 +410,7 @@ set< pair< SymTok, SymTok > > Parser::collect_opt_dists(set< SymTok > opt_vars, 
 void Parser::parse_a()
 {
     // Usual sanity checks and symbol conversion
-    assert_or_throw(this->label != 0);
+    assert_or_throw(this->label != 0, "Missing label in $a statement");
     assert_or_throw(this->toks.size() >= 1);
     vector< SymTok > tmp;
     for (auto &stok : this->toks) {
@@ -406,14 +430,15 @@ void Parser::parse_a()
     set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
 
     // Finally build assertion
-    Assertion ass(false, num_floating, mand_dists, {}, mand_hyps, {}, this->label);
+    Assertion ass(false, num_floating, mand_dists, {}, mand_hyps, {}, this->label, this->last_comment);
+    this->last_comment = "";
     this->lib.add_assertion(this->label, ass);
 }
 
 void Parser::parse_p()
 {
     // Usual sanity checks and symbol conversion
-    assert_or_throw(this->label != 0);
+    assert_or_throw(this->label != 0, "Missing label in $p statement");
     assert_or_throw(this->toks.size() >= 1);
     vector< SymTok > tmp;
     vector< LabTok > proof_labels;
@@ -487,7 +512,8 @@ void Parser::parse_p()
     set< pair< SymTok, SymTok > > opt_dists = this->collect_opt_dists(opt_vars, mand_vars);
 
     // Finally build assertion and attach proof
-    Assertion ass(true, num_floating, mand_dists, opt_dists, mand_hyps, opt_hyps, this->label);
+    Assertion ass(true, num_floating, mand_dists, opt_dists, mand_hyps, opt_hyps, this->label, this->last_comment);
+    this->last_comment = "";
     shared_ptr< Proof > proof;
     if (compressed_proof < 0) {
         proof = shared_ptr< Proof > (new UncompressedProof(proof_labels));
@@ -501,6 +527,37 @@ void Parser::parse_p()
         pe->execute();
     }
     this->lib.add_assertion(this->label, ass);
+}
+
+void Parser::process_comment(const string &comment)
+{
+    if (this->store_comments) {
+        this->last_comment = comment;
+    }
+    bool found_dollar = false;
+    for (auto &c : comment) {
+        if (is_whitespace(c)) {
+            continue;
+        }
+        if (c == '$') {
+            found_dollar = true;
+        } else {
+            if (found_dollar) {
+                if (c == 't') {
+                    this->parse_t_comment(comment);
+                }
+            } else {
+                // Either the $ token is at the beginning or the comment is discarded
+                return;
+            }
+        }
+    }
+}
+
+void Parser::parse_t_comment(const string &comment)
+{
+    (void) comment;
+    // TODO
 }
 
 bool Parser::check_var(SymTok tok) const
@@ -533,7 +590,7 @@ CodeTok CompressedDecoder::push_char(char c)
     if (is_whitespace(c)) {
         return -1;
     }
-    assert_or_throw('A' <= c && c <= 'Z');
+    assert_or_throw('A' <= c && c <= 'Z', "Invalid character in compressed proof");
     if (c == 'Z') {
         assert_or_throw(this->current == 0);
         return 0;

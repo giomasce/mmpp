@@ -42,7 +42,8 @@ public:
               std::set< std::pair< SymTok, SymTok > > opt_dists,
               std::vector< LabTok > hyps,
               std::set< LabTok > opt_hyps,
-              LabTok thesis);
+              LabTok thesis,
+              std::string comment = "");
     ~Assertion();
     bool is_valid() const;
     bool is_theorem() const;
@@ -68,6 +69,7 @@ private:
     std::set< LabTok > opt_hyps;
     LabTok thesis;
     std::shared_ptr< Proof > proof;
+    std::string comment;
 
     std::shared_ptr< Proof > get_proof() const;
 };

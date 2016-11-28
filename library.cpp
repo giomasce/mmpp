@@ -219,8 +219,8 @@ Assertion::Assertion(bool theorem,
                      std::set<std::pair<SymTok, SymTok> > dists,
                      std::set<std::pair<SymTok, SymTok> > opt_dists,
                      std::vector<LabTok> hyps, std::set<LabTok> opt_hyps,
-                     LabTok thesis) :
-    valid(true), num_floating(num_floating), theorem(theorem), dists(dists), opt_dists(opt_dists), hyps(hyps), opt_hyps(opt_hyps), thesis(thesis), proof(NULL)
+                     LabTok thesis, string comment) :
+    valid(true), num_floating(num_floating), theorem(theorem), dists(dists), opt_dists(opt_dists), hyps(hyps), opt_hyps(opt_hyps), thesis(thesis), proof(NULL), comment(comment)
 {
 }
 

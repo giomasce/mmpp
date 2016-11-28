@@ -120,7 +120,7 @@ int main() {
             cout << "Memory usage when starting: " << size_to_string(getCurrentRSS()) << endl;
             fstream in(test_basename + "/" + filename);
             FileTokenizer ft(in);
-            Parser p(ft, true);
+            Parser p(ft, true, true);
             cout << "Reading library and executing all proofs..." << endl;
             p.run();
             Library lib = p.get_library();
