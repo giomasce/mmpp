@@ -32,7 +32,8 @@ private:
 struct ParserStackFrame {
     std::set< SymTok > vars;
     std::set< std::pair< SymTok, SymTok > > dists;     // Must be stored ordered, for example using minmax()
-    std::vector< LabTok > types;
+    std::vector< LabTok > types;                       // Sentence is of type (constant, variable)
+    std::set< LabTok > types_set;                      // For faster searching
     std::vector< LabTok > hyps;
 };
 
@@ -53,9 +54,13 @@ private:
 
     bool check_var(SymTok tok) const;
     bool check_const(SymTok tok) const;
+    bool check_type(LabTok tok) const;
     std::set<SymTok> collect_mand_vars(const std::vector<SymTok> &sent) const;
-    void collect_vars(std::set<SymTok> &vars, const std::vector<SymTok> &sent) const;
+    std::set< SymTok > collect_opt_vars(const std::vector< LabTok > &proof, const std::set< SymTok > &mand_vars) const;
+    void collect_vars_from_sentence(std::set<SymTok> &vars, const std::vector<SymTok> &sent) const;
+    void collect_vars_from_proof(std::set<SymTok> &vars, const std::vector< LabTok > &proof) const;
     std::pair< int, std::vector<LabTok> > collect_mand_hyps(std::set<SymTok> vars) const;
+    std::set<LabTok> collect_opt_hyps(std::set<SymTok> opt_vars) const;
     std::set<std::pair<SymTok, SymTok> > collect_mand_dists(std::set<SymTok> vars) const;
     const ParserStackFrame &get_final_frame() const;
 

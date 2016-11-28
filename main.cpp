@@ -74,7 +74,7 @@ int main() {
             }
         }
 
-        if (false) {
+        if (true) {
             //auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> th )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- th", lib));
             auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> ( ph -> ps ) )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- ( ph -> ps )", lib));
             cout << "Found " << res.size() << " matching assertions:" << endl;
@@ -91,13 +91,23 @@ int main() {
             }
         }
 
+        if (true) {
+            //auto res = lib.prove_type(parse_sentence("wff ( x = y -> ps )", lib));
+            auto res = lib.prove_type(parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )", lib));
+            cout << "Found type proof:";
+            for (auto &label : res) {
+                cout << " " << lib.resolve_label(label);
+            }
+            cout << endl;
+        }
+
         cout << "Memory usage: " << size_to_string(getCurrentRSS()) << endl;
     }
 
     if (false) {
         fstream in("/home/giovanni/progetti/metamath/demo0.mm");
         FileTokenizer ft(in);
-        Parser p(ft);
+        Parser p(ft, true);
         p.run();
         Library lib = p.get_library();
         cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;

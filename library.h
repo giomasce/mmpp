@@ -8,6 +8,7 @@
 #include <limits>
 #include <set>
 #include <type_traits>
+#include <memory>
 
 #include <cassert>
 
@@ -39,17 +40,20 @@ public:
               size_t num_floating,
               std::set< std::pair< SymTok, SymTok > > dists,
               std::vector< LabTok > hyps,
+              std::set< LabTok > opt_hyps,
               LabTok thesis);
+    ~Assertion();
     bool is_valid() const;
     bool is_theorem() const;
     size_t get_num_floating() const;
     const std::set< std::pair< SymTok, SymTok > > &get_dists() const;
-    const std::vector< LabTok > &get_hyps() const;
+    const std::vector< LabTok > &get_mand_hyps() const;
+    const std::set< LabTok > &get_opt_hyps() const;
     std::vector<LabTok> get_ess_hyps() const;
     LabTok get_thesis() const;
 
-    void add_proof(Proof *proof);
-    Proof *get_proof();
+    void add_proof(std::shared_ptr<Proof> proof);
+    std::shared_ptr< Proof > get_proof();
 
 private:
     bool valid;
@@ -57,8 +61,9 @@ private:
     bool theorem;
     std::set< std::pair< SymTok, SymTok > > dists;
     std::vector< LabTok > hyps;
+    std::set< LabTok > opt_hyps;
     LabTok thesis;
-    Proof *proof;
+    std::shared_ptr< Proof > proof;
 };
 
 template< typename Tok >
@@ -127,12 +132,10 @@ public:
     void add_constant(SymTok c);
     bool is_constant(SymTok c) const;
     std::unordered_map<LabTok, std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis);
-    std::vector< LabTok > prove_type(const std::vector< SymTok > &type) const;
+    std::vector< LabTok > prove_type(const std::vector< SymTok > &type_sent) const;
     void set_types(const std::vector< LabTok > &types);
 
 private:
-    void prove_type_internal(std::vector<SymTok>::const_iterator begin, std::vector<SymTok>::const_iterator end, std::vector<LabTok> &ret) const;
-
     StringCache< SymTok > syms;
     StringCache< LabTok > labels;
     std::set< SymTok > consts;
@@ -142,8 +145,10 @@ private:
     std::vector< std::vector< SymTok > > sentences;
     std::vector< Assertion > assertions;
 
-    // This is not used in parsing or proof execution, but only for later algorithms (such as type inference)
+    // These are not used in parsing or proof execution, but only for later algorithms (such as type inference)
     std::vector< LabTok > types;
+    std::vector< LabTok > types_by_var;
+    std::unordered_map< SymTok, std::vector< LabTok > > assertions_by_type;
 };
 
 #endif // LIBRARY_H

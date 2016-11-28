@@ -4,7 +4,8 @@
 #include "unification.h"
 
 #include <algorithm>
-
+#include <iostream>
+#include <map>
 using namespace std;
 
 Library::Library()
@@ -21,6 +22,7 @@ LabTok Library::create_label(string s)
 {
     assert(is_label(s));
     auto res = this->labels.get_or_create(s);
+    //cerr << "Resizing from " << this->assertions.size() << " to " << res+1 << endl;
     this->sentences.resize(res+1);
     this->assertions.resize(res+1);
     return res;
@@ -69,6 +71,7 @@ const std::vector<SymTok> &Library::get_sentence(LabTok label) const {
 void Library::add_assertion(LabTok label, const Assertion &ass)
 {
     this->assertions[label] = ass;
+    this->assertions_by_type[this->sentences.at(label).at(0)].push_back(label);
 }
 
 const Assertion &Library::get_assertion(LabTok label) const
@@ -98,7 +101,7 @@ std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > 
     copy(thesis.begin(), thesis.end(), back_inserter(sent));
 
     for (Assertion &ass : this->assertions) {
-        if (ass.get_hyps().size() - ass.get_num_floating() != hypotheses.size()) {
+        if (ass.get_mand_hyps().size() - ass.get_num_floating() != hypotheses.size()) {
             continue;
         }
         // We have to generate all the hypotheses' permutations; fortunately usually hypotheses are not many
@@ -110,7 +113,7 @@ std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > 
         do {
             vector< SymTok > templ;
             for (size_t i = 0; i < hypotheses.size(); i++) {
-                auto &hyp = this->get_sentence(ass.get_hyps().at(ass.get_num_floating()+perm[i]));
+                auto &hyp = this->get_sentence(ass.get_mand_hyps().at(ass.get_num_floating()+perm[i]));
                 copy(hyp.begin(), hyp.end(), back_inserter(templ));
                 templ.push_back(0);
             }
@@ -127,25 +130,78 @@ std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > 
     return ret;
 }
 
-void Library::prove_type_internal(std::vector< SymTok >::const_iterator begin,
-                                  std::vector< SymTok >::const_iterator end,
-                                  std::vector< LabTok > &ret) const {
-    // Iterate over all axioms with zero essential hypotheses, try to match and recur on all matches;
-    // hopefully nearly all branches die early and there is just one real long-standing branch;
-    // when the length is 2 try to match on floating hypotheses
-}
-
-std::vector<LabTok> Library::prove_type(const std::vector<SymTok> &type) const
+std::vector<LabTok> Library::prove_type(const std::vector<SymTok> &type_sent) const
 {
-    vector< LabTok > ret;
-    this->prove_type_internal(type.begin(), type.end(), ret);
-    return ret;
+    // Iterate over all propositions (maybe just axioms would be enough) with zero essential hypotheses, try to match and recur on all matches;
+    // hopefully nearly all branches die early and there is just one real long-standing branch;
+    // when the length is 2 try to match with floating hypotheses.
+    // The current implementation is probably less efficient and more copy-ish than it could be.
+    assert(type_sent.size() >= 2);
+    if (type_sent.size() == 2) {
+        for (auto &test_type : this->types) {
+            if (this->get_sentence(test_type) == type_sent) {
+                return { test_type };
+            }
+        }
+    }
+    auto &type_const = type_sent.at(0);
+    // If a there are no assertions for a certain type (which is possible, see for example "set" in set.mm), then processing stops here
+    if (this->assertions_by_type.find(type_const) == this->assertions_by_type.end()) {
+        return {};
+    }
+    for (auto &templ : this->assertions_by_type.at(type_const)) {
+        const Assertion &templ_ass = this->get_assertion(templ);
+        if (templ_ass.get_num_floating() != templ_ass.get_mand_hyps().size()) {
+            continue;
+        }
+        const auto &templ_sent = this->get_sentence(templ);
+        auto unifications = unify(type_sent, templ_sent, *this);
+        for (auto &unification : unifications) {
+            bool failed = false;
+            unordered_map< SymTok, vector< LabTok > > matches;
+            for (auto &unif_pair : unification) {
+                const SymTok &var = unif_pair.first;
+                const vector< SymTok > &subst = unif_pair.second;
+                SymTok type = this->get_sentence(this->types_by_var[var]).at(0);
+                vector< SymTok > new_type_sent = { type };
+                // TODO This is not very efficient
+                copy(subst.begin(), subst.end(), back_inserter(new_type_sent));
+                auto res = matches.insert(make_pair(var, this->prove_type(new_type_sent)));
+                assert(res.second);
+                if (res.first->second.empty()) {
+                    failed = true;
+                    break;
+                }
+            }
+            if (!failed) {
+                // We have to sort hypotheses by order af appearance; here we assume that numeric orderd of labels coincides with the order of appearance
+                vector< pair< LabTok, SymTok > > hyp_labels;
+                for (auto &match_pair : matches) {
+                    hyp_labels.push_back(make_pair(this->types_by_var[match_pair.first], match_pair.first));
+                }
+                sort(hyp_labels.begin(), hyp_labels.end());
+                vector< LabTok > ret;
+                for (auto &hyp_pair : hyp_labels) {
+                    auto &hyp_var = hyp_pair.second;
+                    copy(matches.at(hyp_var).begin(), matches.at(hyp_var).end(), back_inserter(ret));
+                }
+                ret.push_back(templ);
+                return ret;
+            }
+        }
+    }
+    return {};
 }
 
 void Library::set_types(const std::vector<LabTok> &types)
 {
     assert(this->types.empty());
     this->types = types;
+    for (auto &type : types) {
+        const SymTok &var = this->sentences.at(type).at(1);
+        this->types_by_var.resize(max(this->types_by_var.size(), (size_t) var+1));
+        this->types_by_var[var] = type;
+    }
 }
 
 Assertion::Assertion() :
@@ -156,9 +212,13 @@ Assertion::Assertion() :
 Assertion::Assertion(bool theorem,
                      size_t num_floating,
                      std::set<std::pair<SymTok, SymTok> > dists,
-                     std::vector<LabTok> hyps,
+                     std::vector<LabTok> hyps, std::set<LabTok> opt_hyps,
                      LabTok thesis) :
-    valid(true), num_floating(num_floating), theorem(theorem), dists(dists), hyps(hyps), thesis(thesis), proof(NULL)
+    valid(true), num_floating(num_floating), theorem(theorem), dists(dists), hyps(hyps), opt_hyps(opt_hyps), thesis(thesis), proof(NULL)
+{
+}
+
+Assertion::~Assertion()
 {
 }
 
@@ -180,8 +240,13 @@ const std::set<std::pair<SymTok, SymTok> > &Assertion::get_dists() const {
     return this->dists;
 }
 
-const std::vector<LabTok> &Assertion::get_hyps() const {
+const std::vector<LabTok> &Assertion::get_mand_hyps() const {
     return this->hyps;
+}
+
+const std::set<LabTok> &Assertion::get_opt_hyps() const
+{
+    return this->opt_hyps;
 }
 
 std::vector<LabTok> Assertion::get_ess_hyps() const
@@ -195,7 +260,7 @@ LabTok Assertion::get_thesis() const {
     return this->thesis;
 }
 
-void Assertion::add_proof(Proof *proof)
+void Assertion::add_proof(shared_ptr< Proof > proof)
 {
     assert(this->theorem);
     assert(this->proof == NULL);
@@ -203,7 +268,7 @@ void Assertion::add_proof(Proof *proof)
     this->proof = proof;
 }
 
-Proof *Assertion::get_proof()
+shared_ptr< Proof > Assertion::get_proof()
 {
     return this->proof;
 }

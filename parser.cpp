@@ -5,6 +5,7 @@
 #include <iostream>
 #include <algorithm>
 #include <iterator>
+#include <memory>
 
 #include "parser.h"
 #include "statics.h"
@@ -235,6 +236,7 @@ void Parser::parse_f()
     assert(this->check_var(var_tok));
     this->lib.add_sentence(this->label, { const_tok, var_tok });
     this->stack.back().types.push_back(this->label);
+    this->stack.back().types_set.insert(this->label);
 
     // FIXME This does not appear to be mentioned in the specs, but it seems necessary anyway
     //Assertion ass(false, 0, {}, {}, this->label);
@@ -272,7 +274,7 @@ void Parser::parse_d()
     }
 }
 
-void Parser::collect_vars(std::set<SymTok> &vars, const std::vector<SymTok> &sent) const {
+void Parser::collect_vars_from_sentence(std::set<SymTok> &vars, const std::vector<SymTok> &sent) const {
     for (auto &tok : sent) {
         if (this->check_var(tok)) {
             vars.insert(tok);
@@ -280,15 +282,34 @@ void Parser::collect_vars(std::set<SymTok> &vars, const std::vector<SymTok> &sen
     }
 }
 
+void Parser::collect_vars_from_proof(std::set<SymTok> &vars, const std::vector<LabTok> &proof) const
+{
+    for (auto &tok : proof) {
+        if (this->check_type(tok)) {
+            assert(this->lib.get_sentence(tok).size() == 2);
+            vars.insert(this->lib.get_sentence(tok).at(1));
+        }
+    }
+}
+
 set< SymTok > Parser::collect_mand_vars(const std::vector<SymTok> &sent) const {
     set< SymTok > vars;
-    this->collect_vars(vars, sent);
+    this->collect_vars_from_sentence(vars, sent);
     for (auto &frame : this->stack) {
         for (auto &hyp : frame.hyps) {
-            this->collect_vars(vars, this->lib.get_sentence(hyp));
+            this->collect_vars_from_sentence(vars, this->lib.get_sentence(hyp));
         }
     }
     return vars;
+}
+
+std::set<SymTok> Parser::collect_opt_vars(const std::vector<LabTok> &proof, const std::set<SymTok> &mand_vars) const
+{
+    set< SymTok > vars;
+    this->collect_vars_from_proof(vars, proof);
+    set< SymTok > opt_vars;
+    set_difference(vars.begin(), vars.end(), mand_vars.begin(), mand_vars.end(), inserter(opt_vars, opt_vars.begin()));
+    return opt_vars;
 }
 
 // Here order matters! Be careful!
@@ -299,7 +320,7 @@ pair< int, vector< LabTok > > Parser::collect_mand_hyps(set< SymTok > vars) cons
     int num_floating = 0;
     for (auto &frame : this->stack) {
         for (auto &type : frame.types) {
-            auto sent = this->lib.get_sentence(type);
+            const auto &sent = this->lib.get_sentence(type);
             if (vars.find(sent[1]) != vars.end()) {
                 hyps.push_back(type);
                 num_floating++;
@@ -315,6 +336,20 @@ pair< int, vector< LabTok > > Parser::collect_mand_hyps(set< SymTok > vars) cons
     }
 
     return make_pair(num_floating, hyps);
+}
+
+std::set<LabTok> Parser::collect_opt_hyps(std::set<SymTok> opt_vars) const
+{
+    set< LabTok > ret;
+    for (auto &frame : this->stack) {
+        for (auto &type : frame.types) {
+            const auto &sent = this->lib.get_sentence(type);
+            if (opt_vars.find(sent[1]) != opt_vars.end()) {
+                ret.insert(type);
+            }
+        }
+    }
+    return ret;
 }
 
 set< pair< SymTok, SymTok > > Parser::collect_mand_dists(set< SymTok > vars) const {
@@ -344,7 +379,7 @@ void Parser::parse_a()
     assert(this->check_const(tmp[0]));
     this->lib.add_sentence(this->label, tmp);
 
-    // Collect mandatory things
+    // Collect things
     set< SymTok > mand_vars = this->collect_mand_vars(tmp);
     int num_floating;
     vector< LabTok > mand_hyps;
@@ -352,7 +387,7 @@ void Parser::parse_a()
     set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
 
     // Finally build assertion
-    Assertion ass(false, num_floating, mand_dists, mand_hyps, this->label);
+    Assertion ass(false, num_floating, mand_dists, mand_hyps, {}, this->label);
     this->lib.add_assertion(this->label, ass);
 }
 
@@ -363,7 +398,7 @@ void Parser::parse_p()
     assert(this->toks.size() >= 1);
     vector< SymTok > tmp;
     vector< LabTok > proof_labels;
-    vector< LabTok > proof_ref;
+    vector< LabTok > proof_refs;
     vector< CodeTok > proof_codes;
     CompressedDecoder cd;
     bool in_proof = false;
@@ -395,7 +430,7 @@ void Parser::parse_p()
                 } else {
                     LabTok tok = this->lib.get_label(stok);
                     assert(tok != 0);
-                    proof_ref.push_back(tok);
+                    proof_refs.push_back(tok);
                 }
             }
             if (compressed_proof == 2) {
@@ -417,20 +452,27 @@ void Parser::parse_p()
     assert(compressed_proof == -1 || compressed_proof == 2);
     this->lib.add_sentence(this->label, tmp);
 
-    // Collect mandatory things
+    // Collect things
     set< SymTok > mand_vars = this->collect_mand_vars(tmp);
     int num_floating;
     vector< LabTok > mand_hyps;
     tie(num_floating, mand_hyps) = this->collect_mand_hyps(mand_vars);
     set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
+    set< SymTok > opt_vars;
+    if (compressed_proof < 0) {
+        opt_vars = this->collect_opt_vars(proof_labels, mand_vars);
+    } else {
+        opt_vars = this->collect_opt_vars(proof_refs, mand_vars);
+    }
+    set< LabTok > opt_hyps = this->collect_opt_hyps(opt_vars);
 
     // Finally build assertion and attach proof
-    Assertion ass(true, num_floating, mand_dists, mand_hyps, this->label);
-    Proof *proof;
+    Assertion ass(true, num_floating, mand_dists, mand_hyps, opt_hyps, this->label);
+    shared_ptr< Proof > proof;
     if (compressed_proof < 0) {
-        proof = new UncompressedProof(this->lib, ass, proof_labels);
+        proof = shared_ptr< Proof > (new UncompressedProof(this->lib, ass, proof_labels));
     } else {
-        proof = new CompressedProof(this->lib, ass, proof_ref, proof_codes);
+        proof = shared_ptr< Proof > (new CompressedProof(this->lib, ass, proof_refs, proof_codes));
     }
     ass.add_proof(proof);
     if (this->execute_proofs) {
@@ -452,6 +494,16 @@ bool Parser::check_var(SymTok tok) const
 bool Parser::check_const(SymTok tok) const
 {
     return this->lib.is_constant(tok);
+}
+
+bool Parser::check_type(LabTok tok) const
+{
+    for (auto &frame : this->stack) {
+        if (frame.types_set.find(tok) != frame.types_set.end()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 CodeTok CompressedDecoder::push_char(char c)

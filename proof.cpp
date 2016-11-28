@@ -11,6 +11,10 @@
 
 using namespace std;
 
+Proof::~Proof()
+{
+}
+
 Proof::Proof(const Library &lib, const Assertion &ass) :
     lib(lib), ass(ass)
 {
@@ -19,7 +23,6 @@ Proof::Proof(const Library &lib, const Assertion &ass) :
 CompressedProof::CompressedProof(const Library &lib, const Assertion &ass, const std::vector<LabTok> &refs, const std::vector<CodeTok> &codes) :
     Proof(lib, ass), refs(refs), codes(codes)
 {
-
 }
 
 const CompressedProof &CompressedProof::compress() const
@@ -42,15 +45,15 @@ void CompressedProof::execute() const
     for (auto &code : this->codes) {
         if (code == 0) {
             saved.push_back(pe.get_stack().back());
-        } else if (code <= this->ass.get_hyps().size()) {
-            LabTok label = this->ass.get_hyps().at(code-1);
+        } else if (code <= this->ass.get_mand_hyps().size()) {
+            LabTok label = this->ass.get_mand_hyps().at(code-1);
             pe.process_label(label);
-        } else if (code <= this->ass.get_hyps().size() + this->refs.size()) {
-            LabTok label = this->refs.at(code-this->ass.get_hyps().size()-1);
+        } else if (code <= this->ass.get_mand_hyps().size() + this->refs.size()) {
+            LabTok label = this->refs.at(code-this->ass.get_mand_hyps().size()-1);
             pe.process_label(label);
         } else {
-            assert(code <= this->ass.get_hyps().size() + this->refs.size() + saved.size());
-            const vector< SymTok > &sent = saved.at(code-this->ass.get_hyps().size()-this->refs.size()-1);
+            assert(code <= this->ass.get_mand_hyps().size() + this->refs.size() + saved.size());
+            const vector< SymTok > &sent = saved.at(code-this->ass.get_mand_hyps().size()-this->refs.size()-1);
             pe.process_sentence(sent);
         }
     }
@@ -61,11 +64,10 @@ void CompressedProof::execute() const
 bool CompressedProof::check_syntax() const
 {
     for (auto &ref : this->refs) {
-        if (!this->lib.get_assertion(ref).is_valid()) {
-            // FIXME Quick hack while the $f validity question is not settled
-            if (this->lib.get_sentence(ref).size() != 2) {
-                return false;
-            }
+        if (!this->lib.get_assertion(ref).is_valid() && this->ass.get_opt_hyps().find(ref) == this->ass.get_opt_hyps().end()) {
+            //cerr << "Syntax error for assertion " << this->lib.resolve_label(this->ass.get_thesis()) << " in reference " << this->lib.resolve_label(ref) << endl;
+            //abort();
+            return false;
         }
     }
     unsigned int zero_count = 0;
@@ -74,12 +76,16 @@ bool CompressedProof::check_syntax() const
         if (code == 0) {
             zero_count++;
         } else {
-            if (code > this->ass.get_hyps().size() + this->refs.size() + zero_count) {
+            if (code > this->ass.get_mand_hyps().size() + this->refs.size() + zero_count) {
                 return false;
             }
         }
     }
     return true;
+}
+
+CompressedProof::~CompressedProof()
+{
 }
 
 UncompressedProof::UncompressedProof(const Library &lib, const Assertion &ass, const std::vector<LabTok> &labels) :
@@ -112,13 +118,17 @@ void UncompressedProof::execute() const
 
 bool UncompressedProof::check_syntax() const
 {
-    const set< LabTok > mand_hyps_set(this->ass.get_hyps().begin(), this->ass.get_hyps().end());
+    const set< LabTok > mand_hyps_set(this->ass.get_mand_hyps().begin(), this->ass.get_mand_hyps().end());
     for (auto &label : this->labels) {
         if (!this->lib.get_assertion(label).is_valid() && mand_hyps_set.find(label) == mand_hyps_set.end()) {
             return false;
         }
     }
     return true;
+}
+
+UncompressedProof::~UncompressedProof()
+{
 }
 
 ProofExecutor::ProofExecutor(const Library &lib, const Assertion &ass) :
@@ -128,15 +138,15 @@ ProofExecutor::ProofExecutor(const Library &lib, const Assertion &ass) :
 void ProofExecutor::process_assertion(const Assertion &child_ass)
 {
     // FIXME check distinct variables
-    assert(this->stack.size() >= child_ass.get_hyps().size());
-    assert(child_ass.get_num_floating() <= child_ass.get_hyps().size());
-    const size_t stack_base = this->stack.size() - child_ass.get_hyps().size();
+    assert(this->stack.size() >= child_ass.get_mand_hyps().size());
+    assert(child_ass.get_num_floating() <= child_ass.get_mand_hyps().size());
+    const size_t stack_base = this->stack.size() - child_ass.get_mand_hyps().size();
 
     // Use the first num_floating hypotheses to build the substitution map
     unordered_map< SymTok, vector< SymTok > > subst_map;
     size_t i;
     for (i = 0; i < child_ass.get_num_floating(); i++) {
-        SymTok hyp = child_ass.get_hyps().at(i);
+        SymTok hyp = child_ass.get_mand_hyps().at(i);
         const vector< SymTok > &hyp_sent = this->lib.get_sentence(hyp);
         // Some extra checks
         assert(hyp_sent.size() == 2);
@@ -152,8 +162,8 @@ void ProofExecutor::process_assertion(const Assertion &child_ass)
     }
 
     // Then parse the other hypotheses and check them
-    for (; i < child_ass.get_hyps().size(); i++) {
-        SymTok hyp = child_ass.get_hyps().at(i);
+    for (; i < child_ass.get_mand_hyps().size(); i++) {
+        SymTok hyp = child_ass.get_mand_hyps().at(i);
         const vector< SymTok > &hyp_sent = this->lib.get_sentence(hyp);
         assert(this->lib.is_constant(hyp_sent.at(0)));
         const vector< SymTok > &stack_hyp_sent = this->stack.at(stack_base + i);
@@ -229,8 +239,8 @@ void ProofExecutor::process_label(const LabTok label)
         cerr << ", which is an hypothesis" << endl;
 #endif
         // In line of principle searching in a set would be faster, but since usually hypotheses are not many the vector is probably better
-        // FIXME Following line disabled while the $f validity question is not settled
-        //assert(find(this->ass.get_hyps().begin(), this->ass.get_hyps().end(), label) != this->ass.get_hyps().end());
+        assert(find(this->ass.get_mand_hyps().begin(), this->ass.get_mand_hyps().end(), label) != this->ass.get_mand_hyps().end() ||
+                find(this->ass.get_opt_hyps().begin(), this->ass.get_opt_hyps().end(), label) != this->ass.get_opt_hyps().end());
         const vector< SymTok > &sent = this->lib.get_sentence(label);
         this->process_sentence(sent);
     }
