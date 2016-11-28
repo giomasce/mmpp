@@ -550,8 +550,3 @@ string CompressedEncoder::push_code(CodeTok x)
     }
     return string(buf.rbegin(), buf.rend());
 }
-
-MMPPException::MMPPException(string reason)
-{
-    this->reason = reason;
-}

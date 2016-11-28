@@ -24,6 +24,8 @@ static inline string size_to_string(size_t size) {
     return stream.str();
 }
 
+bool mmpp_abort = false;
+
 const string test_basename = "/home/giovanni/progetti/metamath/metamath-test";
 const string tests_filenames = R"tests(
 fail anatomy-bad1.mm "Simple incorrect 'anatomy' test "
@@ -102,6 +104,13 @@ int main() {
         bool expect_success = test_pair.second;
         cout << "Testing file " << filename << " from " << test_basename << ", which is expected to " << (expect_success ? "pass" : "fail" ) << "..." << endl;
 
+        // Useful for debugging
+        /*if (filename == "set.mm") {
+            mmpp_abort = true;
+        } else {
+            mmpp_abort = false;
+        }*/
+
         try {
             cout << "Memory usage when starting: " << size_to_string(getCurrentRSS()) << endl;
             fstream in(test_basename + "/" + filename);
@@ -114,9 +123,7 @@ int main() {
             cout << "Finished. Memory usage: " << size_to_string(getCurrentRSS()) << endl;
         } catch (MMPPException e) {
             cout << "An exception with message '" << e.get_reason() << "' was thrown!" << endl;
-            success = false;
-        } catch (...) {
-            cout << "An unknown exception was thrown!" << endl;
+            e.print_stacktrace(cout);
             success = false;
         }
         if (success) {

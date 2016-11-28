@@ -33,7 +33,7 @@ const CompressedProof CompressedProofExecutor::compress()
 
 const UncompressedProof CompressedProofExecutor::uncompress()
 {
-
+    return UncompressedProof({});
 }
 
 void CompressedProofExecutor::execute()
@@ -176,7 +176,7 @@ void ProofExecutor::process_assertion(const Assertion &child_ass)
 
     // Then parse the other hypotheses and check them
     for (; i < child_ass.get_mand_hyps().size(); i++) {
-        SymTok hyp = child_ass.get_mand_hyps().at(i);
+        LabTok hyp = child_ass.get_mand_hyps().at(i);
         const vector< SymTok > &hyp_sent = this->lib.get_sentence(hyp);
         assert(this->lib.is_constant(hyp_sent.at(0)));
         const vector< SymTok > &stack_hyp_sent = this->stack.at(stack_base + i);
@@ -201,7 +201,7 @@ void ProofExecutor::process_assertion(const Assertion &child_ass)
     }
 
     // Build the thesis
-    SymTok thesis = child_ass.get_thesis();
+    LabTok thesis = child_ass.get_thesis();
     const vector< SymTok > &thesis_sent = this->lib.get_sentence(thesis);
     vector< SymTok > stack_thesis_sent;
     for (auto it = thesis_sent.begin(); it != thesis_sent.end(); it++) {
