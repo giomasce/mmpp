@@ -33,6 +33,7 @@ const CompressedProof CompressedProofExecutor::compress()
 
 const UncompressedProof CompressedProofExecutor::uncompress()
 {
+    throw MMPPException("Not implemented");
     return UncompressedProof({});
 }
 
