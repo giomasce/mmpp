@@ -178,7 +178,7 @@ void Parser::run () {
             continue;
         }
         if (token[0] == '$') {
-            assert_or_throw(token.size() == 2);
+            assert_or_throw(token.size() == 2, "Dollar sequence with wrong length");
             char c = token[1];
 
             // Parse scoping blocks
@@ -186,6 +186,7 @@ void Parser::run () {
                 this->stack.emplace_back();
                 continue;
             } else if (c == '}') {
+                assert_or_throw(!this->stack.empty(), "Unmatched closed scoping block");
                 this->stack.pop_back();
                 continue;
             }
@@ -235,14 +236,14 @@ void Parser::run () {
             this->toks.clear();
         } else {
             this->label = this->lib.create_label(token);
-            assert_or_throw(this->label != 0);
+            assert_or_throw(this->label != 0, "Repeated label detected");
             //cout << "Found label " << token << endl;
         }
     }
     this->final_frame = this->stack.back();
     this->lib.set_types(this->final_frame.types);
     this->stack.pop_back();
-    assert_or_throw(this->stack.empty());
+    assert_or_throw(this->stack.empty(), "Unmatched open scoping block");
 }
 
 const Library &Parser::get_library() const {
@@ -262,11 +263,11 @@ const ParserStackFrame &Parser::get_final_frame() const
 void Parser::parse_c()
 {
     assert_or_throw(this->label == 0, "Undue label in $c statement");
-    assert_or_throw(this->stack.size() == 1);
+    assert_or_throw(this->stack.size() == 1, "Found $c statement when not in top-level scope");
     for (auto stok : this->toks) {
         SymTok tok = this->lib.create_symbol(stok);
-        assert_or_throw(!this->check_const(tok));
-        assert_or_throw(!this->check_var(tok));
+        assert_or_throw(!this->check_const(tok), "Symbol already bound in $c statement");
+        assert_or_throw(!this->check_var(tok), "Symbol already bound in $c statement");
         this->lib.add_constant(tok);
     }
 }
@@ -276,8 +277,8 @@ void Parser::parse_v()
     assert_or_throw(this->label == 0, "Undue label in $v statement");
     for (auto stok : this->toks) {
         SymTok tok = this->lib.create_symbol(stok);
-        assert_or_throw(!this->check_const(tok));
-        assert_or_throw(!this->check_var(tok));
+        assert_or_throw(!this->check_const(tok), "Symbol already bound in $v statement");
+        assert_or_throw(!this->check_var(tok), "Symbol already bound in $v statement");
         this->stack.back().vars.insert(tok);
     }
 }
@@ -285,13 +286,13 @@ void Parser::parse_v()
 void Parser::parse_f()
 {
     assert_or_throw(this->label != 0, "Missing label in $f statement");
-    assert_or_throw(this->toks.size() == 2);
+    assert_or_throw(this->toks.size() == 2, "Found $f statement with wrong length");
     SymTok const_tok = this->lib.get_symbol(this->toks[0]);
     SymTok var_tok = this->lib.get_symbol(this->toks[1]);
-    assert_or_throw(const_tok != 0);
-    assert_or_throw(var_tok != 0);
-    assert_or_throw(this->check_const(const_tok));
-    assert_or_throw(this->check_var(var_tok));
+    assert_or_throw(const_tok != 0, "First member of a $f statement is not defined");
+    assert_or_throw(var_tok != 0, "Second member of a $f statement is not defined");
+    assert_or_throw(this->check_const(const_tok), "First member of a $f statement is not a constant");
+    assert_or_throw(this->check_var(var_tok), "Second member of a $f statement is not a variable");
     this->lib.add_sentence(this->label, { const_tok, var_tok });
     this->stack.back().types.push_back(this->label);
     this->stack.back().types_set.insert(this->label);
@@ -300,15 +301,15 @@ void Parser::parse_f()
 void Parser::parse_e()
 {
     assert_or_throw(this->label != 0, "Missing label in $e statement");
-    assert_or_throw(this->toks.size() >= 1);
+    assert_or_throw(this->toks.size() >= 1, "Empty $e statement");
     vector< SymTok > tmp;
     for (auto &stok : this->toks) {
         SymTok tok = this->lib.get_symbol(stok);
-        assert_or_throw(tok != 0);
-        assert_or_throw(this->check_const(tok) || this->check_var(tok));
+        assert_or_throw(tok != 0, "Symbol in $e statement is not defined");
+        assert(this->check_const(tok) || this->check_var(tok));
         tmp.push_back(tok);
     }
-    assert_or_throw(this->check_const(tmp[0]));
+    assert_or_throw(this->check_const(tmp[0]), "First symbol of $e statement is not a constant");
     this->lib.add_sentence(this->label, tmp);
     this->stack.back().hyps.push_back(this->label);
 }
@@ -318,11 +319,11 @@ void Parser::parse_d()
     assert_or_throw(this->label == 0, "Undue label in $d statement");
     for (auto it = this->toks.begin(); it != this->toks.end(); it++) {
         SymTok tok1 = this->lib.get_symbol(*it);
-        assert_or_throw(this->check_var(tok1));
+        assert_or_throw(this->check_var(tok1), "Symbol in $d statement is not a variable");
         for (auto it2 = it+1; it2 != this->toks.end(); it2++) {
             SymTok tok2 = this->lib.get_symbol(*it2);
-            assert_or_throw(this->check_var(tok2));
-            assert_or_throw(tok1 != tok2);
+            assert_or_throw(this->check_var(tok2), "Symbol in $d statement is not a variable");
+            assert_or_throw(tok1 != tok2, "Repeated symbol in $d statement");
             this->stack.back().dists.insert(minmax(tok1, tok2));
         }
     }
@@ -438,15 +439,15 @@ void Parser::parse_a()
 {
     // Usual sanity checks and symbol conversion
     assert_or_throw(this->label != 0, "Missing label in $a statement");
-    assert_or_throw(this->toks.size() >= 1);
+    assert_or_throw(this->toks.size() >= 1, "Empty $a statement");
     vector< SymTok > tmp;
     for (auto &stok : this->toks) {
         SymTok tok = this->lib.get_symbol(stok);
-        assert_or_throw(tok != 0);
-        assert_or_throw(this->check_const(tok) || this->check_var(tok));
+        assert_or_throw(tok != 0, "Symbol in $a statement is not defined");
+        assert(this->check_const(tok) || this->check_var(tok));
         tmp.push_back(tok);
     }
-    assert_or_throw(this->check_const(tmp[0]));
+    assert_or_throw(this->check_const(tmp[0]), "First symbol of $a statement is not a constant");
     this->lib.add_sentence(this->label, tmp);
 
     // Collect things
@@ -466,7 +467,7 @@ void Parser::parse_p()
 {
     // Usual sanity checks and symbol conversion
     assert_or_throw(this->label != 0, "Missing label in $p statement");
-    assert_or_throw(this->toks.size() >= 1);
+    assert_or_throw(this->toks.size() >= 1, "Empty $p statement");
     vector< SymTok > tmp;
     vector< LabTok > proof_labels;
     vector< LabTok > proof_refs;
@@ -481,8 +482,8 @@ void Parser::parse_p()
                 continue;
             }
             SymTok tok = this->lib.get_symbol(stok);
-            assert_or_throw(tok != 0);
-            assert_or_throw(this->check_const(tok) || this->check_var(tok));
+            assert_or_throw(tok != 0, "Symbol in $p statement is not defined");
+            assert(this->check_const(tok) || this->check_var(tok));
             tmp.push_back(tok);
         } else {
             if (compressed_proof == 0) {
@@ -500,7 +501,7 @@ void Parser::parse_p()
                     continue;
                 } else {
                     LabTok tok = this->lib.get_label(stok);
-                    assert_or_throw(tok != 0);
+                    assert_or_throw(tok != 0, "Label in compressed proof in $p statement is not defined");
                     proof_refs.push_back(tok);
                 }
             }
@@ -514,12 +515,12 @@ void Parser::parse_p()
             }
             if (compressed_proof == -1) {
                 LabTok tok = this->lib.get_label(stok);
-                assert_or_throw(tok != 0);
+                assert_or_throw(tok != 0, "Symbol in uncompressed proof in $p statement is not defined");
                 proof_labels.push_back(tok);
             }
         }
     }
-    assert_or_throw(this->check_const(tmp[0]));
+    assert_or_throw(this->check_const(tmp[0]), "First symbol of $p statement is not a constant");
     assert(compressed_proof == -1 || compressed_proof == 2);
     this->lib.add_sentence(this->label, tmp);
 
@@ -549,7 +550,7 @@ void Parser::parse_p()
     }
     ass.add_proof(proof);
     auto pe = ass.get_proof_executor(this->lib);
-    assert_or_throw(pe->check_syntax());
+    assert_or_throw(pe->check_syntax(), "Syntax check failed for proof of $p statement");
     if (this->execute_proofs) {
         pe->execute();
     }
@@ -619,7 +620,7 @@ CodeTok CompressedDecoder::push_char(char c)
     }
     assert_or_throw('A' <= c && c <= 'Z', "Invalid character in compressed proof");
     if (c == 'Z') {
-        assert_or_throw(this->current == 0);
+        assert_or_throw(this->current == 0, "Invalid character Z in compressed proof");
         return 0;
     } else if ('A' <= c && c <= 'T') {
         int res = this->current * 20 + (c - 'A' + 1);
