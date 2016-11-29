@@ -548,10 +548,11 @@ void Parser::parse_p()
     } else {
         proof = shared_ptr< Proof > (new CompressedProof(proof_refs, proof_codes));
     }
-    ass.add_proof(proof);
+    ass.set_proof(proof);
     auto pe = ass.get_proof_executor(this->lib);
     assert_or_throw(pe->check_syntax(), "Syntax check failed for proof of $p statement");
     if (this->execute_proofs) {
+        pe = ass.get_proof_executor(this->lib);
         pe->execute();
     }
     this->lib.add_assertion(this->label, ass);

@@ -285,10 +285,9 @@ std::shared_ptr<ProofExecutor> Assertion::get_proof_executor(const Library &lib)
     return this->proof->get_executor(lib, *this);
 }
 
-void Assertion::add_proof(shared_ptr< Proof > proof)
+void Assertion::set_proof(shared_ptr< Proof > proof)
 {
     assert(this->theorem);
-    assert(this->proof == NULL);
     this->proof = proof;
 }
 

@@ -69,7 +69,6 @@ static vector< pair < string, bool > > get_tests() {
 int main() {
 
     /* This program just does a lot of tests on the features of the mmpp library
-     * MISSING TO TEST: proof compressiond and decompression
      */
 
     if (true) {
@@ -108,11 +107,14 @@ int main() {
         bool expect_success = test_pair.second;
 
         // Useful for debugging
-        /*if (filename == "demo0-includer.mm") {
+        /*if (filename == "big-unifier.mm") {
             mmpp_abort = true;
         } else {
             continue;
             mmpp_abort = false;
+        }*/
+        /*if (filename == "nf.mm") {
+            break;
         }*/
 
         cout << "Testing file " << filename << " from " << test_basename << ", which is expected to " << (expect_success ? "pass" : "fail" ) << "..." << endl;
@@ -124,9 +126,49 @@ int main() {
             p.run();
             Library lib = p.get_library();
             cout << "Library has " << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
+
             /*LabTok failing = 287;
             cout << "Checking proof of " << lib.resolve_label(failing) << endl;
             lib.get_assertion(failing).get_proof_executor(lib)->execute();*/
+
+            if (expect_success) {
+                cout << "Compressing all proofs and executing again..." << endl;
+                for (auto &ass : lib.get_assertions()) {
+                    if (ass.is_valid() && ass.is_theorem()) {
+                        CompressedProof compressed = ass.get_proof_executor(lib)->compress();
+                        compressed.get_executor(lib, ass)->execute();
+                    }
+                }
+
+                cout << "Decompressing all proofs and executing again..." << endl;
+                for (auto &ass : lib.get_assertions()) {
+                    if (ass.is_valid() && ass.is_theorem()) {
+                        UncompressedProof uncompressed = ass.get_proof_executor(lib)->uncompress();
+                        uncompressed.get_executor(lib, ass)->execute();
+                    }
+                }
+
+                cout << "Compressing and decompressing all proofs and executing again..." << endl;
+                for (auto &ass : lib.get_assertions()) {
+                    if (ass.is_valid() && ass.is_theorem()) {
+                        CompressedProof compressed = ass.get_proof_executor(lib)->compress();
+                        UncompressedProof uncompressed = compressed.get_executor(lib, ass)->uncompress();
+                        uncompressed.get_executor(lib, ass)->execute();
+                    }
+                }
+
+                cout << "Decompressing and compressing all proofs and executing again..." << endl;
+                for (auto &ass : lib.get_assertions()) {
+                    if (ass.is_valid() && ass.is_theorem()) {
+                        UncompressedProof uncompressed = ass.get_proof_executor(lib)->uncompress();
+                        CompressedProof compressed = uncompressed.get_executor(lib, ass)->compress();
+                        compressed.get_executor(lib, ass)->execute();
+                    }
+                }
+            } else {
+                cout << "Skipping compression and decompression test, since unit is known to fail" << endl;
+            }
+
             cout << "Finished. Memory usage: " << size_to_string(getCurrentRSS()) << endl;
         } catch (MMPPException e) {
             cout << "An exception with message '" << e.get_reason() << "' was thrown!" << endl;

@@ -10,6 +10,8 @@
 // I do not want this to apply to cassert
 #define NDEBUG
 
+const size_t max_decompression_size = 1024 * 1024;
+
 using namespace std;
 
 Proof::~Proof()
@@ -33,8 +35,50 @@ const CompressedProof CompressedProofExecutor::compress()
 
 const UncompressedProof CompressedProofExecutor::uncompress()
 {
-    throw MMPPException("Not implemented");
-    return UncompressedProof({});
+    vector< size_t > opening_stack;
+    vector< LabTok > labels;
+    vector< vector< LabTok > > saved;
+    for (size_t i = 0; i < this->proof.codes.size(); i++) {
+        /* The decompressiong algorithm is potentially exponential in the input data,
+         * which means that even with very short compressed proof you can obtain very
+         * big uncompressed proofs. This is analogous to a "ZIP bomb" and might lead to
+         * security problems. Therefore we fail when decompressed data are too long.
+         */
+        assert_or_throw(labels.size() < max_decompression_size, "Decompressed proof is too large");
+        const CodeTok &code = this->proof.codes.at(i);
+        if (code == 0) {
+            saved.emplace_back(labels.begin() + opening_stack.back(), labels.end());
+        } else if (code <= this->ass.get_mand_hyps().size()) {
+            LabTok label = this->ass.get_mand_hyps().at(code-1);
+            size_t opening = labels.size();
+            assert_or_throw(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
+            for (size_t j = 0; j < this->get_hyp_num(label); j++) {
+                opening = opening_stack.back();
+                opening_stack.pop_back();
+            }
+            opening_stack.push_back(opening);
+            labels.push_back(label);
+        } else if (code <= this->ass.get_mand_hyps().size() + this->proof.refs.size()) {
+            LabTok label = this->proof.refs.at(code-this->ass.get_mand_hyps().size()-1);
+            size_t opening = labels.size();
+            assert_or_throw(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
+            for (size_t j = 0; j < this->get_hyp_num(label); j++) {
+                opening = opening_stack.back();
+                opening_stack.pop_back();
+            }
+            opening_stack.push_back(opening);
+            labels.push_back(label);
+        } else {
+            assert_or_throw(code <= this->ass.get_mand_hyps().size() + this->proof.refs.size() + saved.size(), "Code too big in compressed proof");
+            const vector< LabTok > &sent = saved.at(code-this->ass.get_mand_hyps().size()-this->proof.refs.size()-1);
+            size_t opening = labels.size();
+            opening_stack.push_back(opening);
+            copy(sent.begin(), sent.end(), back_inserter(labels));
+        }
+    }
+    assert_or_throw(opening_stack.size() == 1, "Proof uncompression did not end with a single element on the stack");
+    assert(opening_stack.at(0) == 0);
+    return UncompressedProof(labels);
 }
 
 void CompressedProofExecutor::execute()
@@ -286,6 +330,15 @@ void ProofExecutor::process_label(const LabTok label)
                         "Requested label cannot be used by this theorem");
         const vector< SymTok > &sent = this->lib.get_sentence(label);
         this->process_sentence(sent);
+    }
+}
+
+size_t ProofExecutor::get_hyp_num(const LabTok label) const {
+    const Assertion &child_ass = this->lib.get_assertion(label);
+    if (child_ass.is_valid()) {
+        return child_ass.get_mand_hyps().size();
+    } else {
+        return 0;
     }
 }
 

@@ -33,6 +33,7 @@ protected:
     void process_assertion(const Assertion &child_ass);
     void process_sentence(const std::vector< SymTok > &sent);
     void process_label(const LabTok label);
+    size_t get_hyp_num(const LabTok label)const ;
 
     const Library &lib;
     const Assertion &ass;
