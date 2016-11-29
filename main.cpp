@@ -108,7 +108,7 @@ int main() {
         bool expect_success = test_pair.second;
 
         // Useful for debugging
-        /*if (filename == "hol.mm") {
+        /*if (filename == "demo0-includer.mm") {
             mmpp_abort = true;
         } else {
             continue;
@@ -118,8 +118,7 @@ int main() {
         cout << "Testing file " << filename << " from " << test_basename << ", which is expected to " << (expect_success ? "pass" : "fail" ) << "..." << endl;
         try {
             cout << "Memory usage when starting: " << size_to_string(getCurrentRSS()) << endl;
-            fstream in(test_basename + "/" + filename);
-            FileTokenizer ft(in);
+            FileTokenizer ft(test_basename + "/" + filename);
             Parser p(ft, true, true);
             cout << "Reading library and executing all proofs..." << endl;
             p.run();
@@ -156,8 +155,7 @@ int main() {
 
     if (true) {
         cout << "Doing additional tests on set.mm..." << endl;
-        fstream in(test_basename + "/set.mm");
-        FileTokenizer ft(in);
+        FileTokenizer ft(test_basename + "/set.mm");
         Parser p(ft, false);
         p.run();
         Library lib = p.get_library();

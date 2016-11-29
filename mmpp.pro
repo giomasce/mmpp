@@ -11,7 +11,7 @@ SOURCES += main.cpp \
     memory.c
 
 QMAKE_CXXFLAGS += -std=c++17 -march=native
-QMAKE_LIBS += -ldl -export-dynamic -rdynamic
+QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem
 
 HEADERS += \
     wff.h \

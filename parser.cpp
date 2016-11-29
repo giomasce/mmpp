@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <iterator>
 #include <memory>
+#include <fstream>
 
 #include "parser.h"
 #include "statics.h"
@@ -12,6 +13,7 @@
 #include "statics.h"
 
 using namespace std;
+using namespace boost::filesystem;
 
 vector< string > tokenize(string in) {
 
@@ -38,8 +40,13 @@ vector< string > tokenize(string in) {
 
 }
 
-FileTokenizer::FileTokenizer(istream &in) :
-    in(in), white(true)
+FileTokenizer::FileTokenizer(string filename) :
+    fin(filename), base_path(path(filename).parent_path()), cascade(NULL), white(true)
+{
+}
+
+FileTokenizer::FileTokenizer(string filename, path base_path) :
+    fin(filename), base_path(base_path), cascade(NULL), white(true)
 {
 }
 
@@ -57,9 +64,18 @@ std::pair<bool, string> FileTokenizer::finalize_token(bool comment) {
 std::pair<bool, string> FileTokenizer::next()
 {
     while (true) {
+        if (this->cascade != NULL) {
+            auto next_pair = this->cascade->next();
+            if (next_pair.second != "") {
+                return next_pair;
+            } else {
+                delete this->cascade;
+                this->cascade = NULL;
+            }
+        }
         char c;
-        this->in.get(c);
-        if (this->in.eof()) {
+        this->fin.get(c);
+        if (this->fin.eof()) {
             return this->finalize_token(false);
         }
         if (c == '$') {
@@ -67,8 +83,8 @@ std::pair<bool, string> FileTokenizer::next()
                 throw MMPPException("Dollars cannot appear in the middle of a token");
             }
             // This can be a regular token or the beginning of a comment
-            this->in.get(c);
-            if (this->in.eof()) {
+            this->fin.get(c);
+            if (this->fin.eof()) {
                 throw MMPPException("Interrupted dollar sequence");
             }
             if (c == '(' || c == '[') {
@@ -77,9 +93,9 @@ std::pair<bool, string> FileTokenizer::next()
                 bool comment = c == '(';
                 vector< char > content;
                 while (true) {
-                    this->in.get(c);
-                    if (this->in.eof()) {
-                        throw MMPPException("File ended in a comment");
+                    this->fin.get(c);
+                    if (this->fin.eof()) {
+                        throw MMPPException("File ended in comment or in file inclusion");
                     }
                     if (found_dollar) {
                         if ((comment && c == '(') || (!comment && c == '[')) {
@@ -94,8 +110,9 @@ std::pair<bool, string> FileTokenizer::next()
                                 }
                             } else {
                                 string filename = trimmed(string(content.begin(), content.end()));
-                                (void) filename;
-                                throw MMPPException("File inclusion not supported");
+                                string actual_filename = (this->base_path / filename).native();
+                                this->cascade = new FileTokenizer(actual_filename, this->base_path);
+                                break;
                             }
                         } else if (c == '$') {
                             content.push_back('$');
@@ -138,8 +155,13 @@ std::pair<bool, string> FileTokenizer::next()
     }
 }
 
-Parser::Parser(FileTokenizer &ft, bool execute_proofs, bool store_comments) :
-    ft(ft), execute_proofs(execute_proofs), store_comments(store_comments)
+FileTokenizer::~FileTokenizer()
+{
+    delete this->cascade;
+}
+
+Parser::Parser(TokenGenerator &tg, bool execute_proofs, bool store_comments) :
+    tg(&tg), execute_proofs(execute_proofs), store_comments(store_comments)
 {
 }
 
@@ -148,7 +170,7 @@ void Parser::run () {
     this->label = 0;
     assert(this->stack.empty());
     this->stack.emplace_back();
-    while ((token_pair = ft.next()).second != "") {
+    while ((token_pair = this->next_token()).second != "") {
         bool &comment = token_pair.first;
         string &token = token_pair.second;
         if (comment) {
@@ -169,7 +191,7 @@ void Parser::run () {
             }
 
             // Collect tokens in statement
-            while ((token_pair = ft.next()).second != "$.") {
+            while ((token_pair = this->next_token()).second != "$.") {
                 bool &comment = token_pair.first;
                 string &token = token_pair.second;
                 if (comment) {
@@ -225,6 +247,11 @@ void Parser::run () {
 
 const Library &Parser::get_library() const {
     return this->lib;
+}
+
+std::pair<bool, string> Parser::next_token()
+{
+    return this->tg->next();
 }
 
 const ParserStackFrame &Parser::get_final_frame() const
@@ -623,4 +650,8 @@ string CompressedEncoder::push_code(CodeTok x)
         x = div;
     }
     return string(buf.rbegin(), buf.rend());
+}
+
+TokenGenerator::~TokenGenerator()
+{
 }

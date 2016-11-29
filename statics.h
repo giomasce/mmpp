@@ -72,6 +72,7 @@ class MMPPException {
 public:
     MMPPException(std::string reason) : reason(reason), stacktrace(dump_stacktrace()) {
         if (mmpp_abort) {
+            std::cerr << "Exception with message: " << reason << std::endl;
             this->print_stacktrace(std::cerr);
             abort();
         }
