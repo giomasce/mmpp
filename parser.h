@@ -10,7 +10,7 @@
 
 #include "library.h"
 
-std::vector< std::string > tokenize(std::string in);
+std::vector< std::string > tokenize(const std::string &in);
 
 /*
  * Some notes on this Metamath parser:

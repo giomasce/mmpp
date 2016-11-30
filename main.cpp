@@ -100,6 +100,7 @@ int main() {
     }
 
     auto tests = get_tests();
+    //tests = {};
     int problems = 0;
     for (auto test_pair : tests) {
         string filename = test_pair.first;
@@ -196,8 +197,8 @@ int main() {
     cout << "Found " << problems << " problems" << endl;
 
     if (true) {
-        cout << "Doing additional tests on set.mm..." << endl;
-        FileTokenizer ft(test_basename + "/set.mm");
+        cout << "Doing additional tests on set.2010-08-29.mm..." << endl;
+        FileTokenizer ft(test_basename + "/set.2010-08-29.mm");
         Parser p(ft, false);
         p.run();
         Library lib = p.get_library();

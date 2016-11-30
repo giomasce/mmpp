@@ -15,13 +15,13 @@
 using namespace std;
 using namespace boost::filesystem;
 
-vector< string > tokenize(string in) {
+vector< string > tokenize(const string &in) {
 
   vector< string > toks;
   bool white = true;
-  int begin = -1;
-  for (unsigned int i = 0; i <= in.size(); i++) {
-    char c = i < in.size() ? in[i] : ' ';
+  size_t begin = 0;
+  for (size_t i = 0; i <= in.size(); i++) {
+    char c = (i < in.size()) ? in[i] : ' ';
     if (is_valid(c)) {
       if (white) {
         begin = i;

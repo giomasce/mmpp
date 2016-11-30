@@ -34,7 +34,7 @@ static void unify_internal(vector<SymTok>::const_iterator sent_cur, vector<SymTo
         const SymTok &cur_tok = *templ_cur;
         if (lib.is_constant(cur_tok) || cur_tok == 0) {
             // Easy case: the token is a constant
-            if (cur_tok == *sent_cur) {
+            if (sent_cur != sent_end && cur_tok == *sent_cur) {
 #ifndef NDEBUG
                 cerr << "Token is a constant, which matched" << endl;
 #endif

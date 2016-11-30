@@ -106,6 +106,9 @@ std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > 
     copy(thesis.begin(), thesis.end(), back_inserter(sent));
 
     for (Assertion &ass : this->assertions) {
+        if (!ass.is_valid()) {
+            continue;
+        }
         if (ass.get_mand_hyps().size() - ass.get_num_floating() != hypotheses.size()) {
             continue;
         }
