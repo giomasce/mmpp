@@ -83,12 +83,16 @@ std::vector<LabTok> Not::prove_true(const LibraryInterface &lib) {
     return rec;
 }
 
+static void proving_helper() {
+
+}
+
 std::vector<LabTok> Not::prove_false(const LibraryInterface &lib) {
     std::vector< LabTok > rec = this->a->prove_true(lib);
     if (rec.empty()) {
         return {};
     }
-    auto res = lib.unify_assertion({parse_sentence("|- -. -. ph", lib)}, parse_sentence("|- ph", lib));
+    auto res = lib.unify_assertion({parse_sentence("|- ph", lib)}, parse_sentence("|- -. -. ph", lib));
     assert(!res.empty());
     rec.push_back(res.begin()->first);
     return rec;
