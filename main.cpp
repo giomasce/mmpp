@@ -76,7 +76,7 @@ void test() {
         auto ph = pwff(new Var("ph"));
         auto ps = pwff(new Var("ps"));
         auto w = pwff(new Nand(ph, ps));
-        auto w2 = pwff(new Xor(w, ph));
+        auto w2 = pwff(new Xor(w, pwff(new And(pwff(new True()), ph))));
 
         cout << w2->to_string() << endl;
         cout << w2->imp_not_form()->to_string() << endl;
@@ -272,16 +272,22 @@ void unification_loop() {
         if (line == "") {
             break;
         }
-        auto sent = parse_sentence(line, lib);
-        auto sent_wff = sent;
+        size_t dollar_pos;
+        vector< vector< SymTok > > hypotheses;
+        while ((dollar_pos = line.find("$")) != string::npos) {
+            hypotheses.push_back(parse_sentence(line.substr(0, dollar_pos), lib));
+            line = line.substr(dollar_pos+1);
+        }
+        vector< SymTok > sent = parse_sentence(line, lib);
+        /*auto sent_wff = sent;
         sent_wff[0] = lib.get_symbol("wff");
         auto res = lib.prove_type(sent_wff);
         cout << "Found type proof:";
         for (auto &label : res) {
             cout << " " << lib.resolve_label(label);
         }
-        cout << endl;
-        auto res2 = lib.unify_assertion({}, sent);
+        cout << endl;*/
+        auto res2 = lib.unify_assertion(hypotheses, sent);
         cout << "Found " << res2.size() << " matching assertions:" << endl;
         for (auto &match : res2) {
             auto &label = match.first;

@@ -10,8 +10,11 @@
 #include <type_traits>
 #include <memory>
 
+#include <boost/functional/hash.hpp>
+
 #include <cassert>
 
+class LibraryInterface;
 class Library;
 class Assertion;
 
@@ -27,11 +30,11 @@ static_assert(std::is_unsigned< LabTok >::value);
 
 struct SentencePrinter {
     const std::vector< SymTok > &sent;
-    const Library &lib;
+    const LibraryInterface &lib;
 };
 SentencePrinter print_sentence(const std::vector< SymTok > &sent, const Library &lib);
 std::ostream &operator<<(std::ostream &os, const SentencePrinter &sp);
-std::vector< SymTok > parse_sentence(const std::string &in, const Library &lib);
+std::vector< SymTok > parse_sentence(const std::string &in, const LibraryInterface &lib);
 
 class Assertion {
 public:
@@ -124,7 +127,23 @@ private:
     std::unordered_map< Tok, std::string > inv;
 };
 
-class Library
+class LibraryInterface {
+public:
+    virtual std::unordered_map<LabTok, std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis) const = 0;
+    virtual SymTok get_symbol(std::string s) const = 0;
+    virtual LabTok get_label(std::string s) const = 0;
+    virtual std::string resolve_symbol(SymTok tok) const = 0;
+    virtual std::string resolve_label(LabTok tok) const = 0;
+    virtual std::size_t get_symbol_num() const = 0;
+    virtual std::size_t get_label_num() const = 0;
+    virtual std::vector< LabTok > prove_type(const std::vector< SymTok > &type_sent) const = 0;
+    virtual bool is_constant(SymTok c) const = 0;
+    virtual std::vector< SymTok > parse_sentence(const std::string &in) const = 0;
+    virtual SentencePrinter print_sentence(const std::vector< SymTok > &sent) const = 0;
+    virtual ~LibraryInterface();
+};
+
+class Library : public LibraryInterface
 {
 public:
     Library();
@@ -143,9 +162,11 @@ public:
     const std::vector< Assertion > &get_assertions() const;
     void add_constant(SymTok c);
     bool is_constant(SymTok c) const;
-    std::unordered_map<LabTok, std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis);
+    std::unordered_map<LabTok, std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis) const;
     std::vector< LabTok > prove_type(const std::vector< SymTok > &type_sent) const;
     void set_types(const std::vector< LabTok > &types);
+    std::vector< SymTok > parse_sentence(const std::string &in) const;
+    virtual SentencePrinter print_sentence(const std::vector< SymTok > &sent) const;
 
 private:
     StringCache< SymTok > syms;
@@ -161,6 +182,27 @@ private:
     std::vector< LabTok > types;
     std::vector< LabTok > types_by_var;
     std::unordered_map< SymTok, std::vector< LabTok > > assertions_by_type;
+};
+
+class LibraryCache : public LibraryInterface {
+public:
+    LibraryCache(const Library &lib);
+    std::unordered_map<LabTok, std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis);
+    SymTok get_symbol(std::string s) const;
+    LabTok get_label(std::string s) const;
+    std::string resolve_symbol(SymTok tok) const;
+    std::string resolve_label(LabTok tok) const;
+    std::size_t get_symbol_num() const;
+    std::size_t get_label_num() const;
+    std::vector< LabTok > prove_type(const std::vector< SymTok > &type_sent) const;
+    bool is_constant(SymTok c) const;
+    std::vector< SymTok > parse_sentence(const std::string &in) const;
+    SentencePrinter print_sentence(const std::vector< SymTok > &sent) const;
+private:
+    const Library &lib;
+    std::unordered_map< std::pair< std::vector< std::vector< SymTok > >, std::vector< SymTok > >,
+                        std::unordered_map<LabTok, std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > >,
+                        boost::hash< std::pair< std::vector< std::vector< SymTok > >, std::vector< SymTok > > > > cache;
 };
 
 #endif // LIBRARY_H

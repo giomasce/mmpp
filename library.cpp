@@ -94,7 +94,7 @@ bool Library::is_constant(SymTok c) const
     return this->consts.find(c) != this->consts.end();
 }
 
-std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > > Library::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis)
+std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > > Library::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis) const
 {
     std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > > ret;
 
@@ -105,7 +105,7 @@ std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > 
     }
     copy(thesis.begin(), thesis.end(), back_inserter(sent));
 
-    for (Assertion &ass : this->assertions) {
+    for (const Assertion &ass : this->assertions) {
         if (!ass.is_valid()) {
             continue;
         }
@@ -336,16 +336,94 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
 
 SentencePrinter print_sentence(const std::vector<SymTok> &sent, const Library &lib)
 {
-    return SentencePrinter({ sent, lib });
+    return lib.print_sentence(sent);
 }
 
-vector< SymTok > parse_sentence(const std::string &in, const Library &lib) {
+vector< SymTok > parse_sentence(const std::string &in, const LibraryInterface &lib) {
+    return lib.parse_sentence(in);
+}
+
+std::vector<SymTok> Library::parse_sentence(const string &in) const
+{
     auto toks = tokenize(in);
     vector< SymTok > res;
     for (auto &tok : toks) {
-        auto tok_num = lib.get_symbol(tok);
+        auto tok_num = this->get_symbol(tok);
         assert_or_throw(tok_num != 0);
         res.push_back(tok_num);
     }
     return res;
+}
+
+SentencePrinter Library::print_sentence(const std::vector<SymTok> &sent) const
+{
+    return SentencePrinter({ sent, *this });
+}
+
+LibraryCache::LibraryCache(const Library &lib) :
+    lib(lib)
+{
+}
+
+std::unordered_map<LabTok, std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryCache::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis)
+{
+    const auto key = make_pair(hypotheses, thesis);
+    if (this->cache.find(key) == this->cache.end()) {
+        this->cache[key] = this->lib.unify_assertion(hypotheses, thesis);
+    }
+    return this->cache.at(key);
+}
+
+SymTok LibraryCache::get_symbol(string s) const
+{
+    return this->lib.get_symbol(s);
+}
+
+LabTok LibraryCache::get_label(string s) const
+{
+    return this->lib.get_label(s);
+}
+
+string LibraryCache::resolve_symbol(SymTok tok) const
+{
+    return this->lib.resolve_symbol(tok);
+}
+
+string LibraryCache::resolve_label(LabTok tok) const
+{
+    return this->lib.resolve_label(tok);
+}
+
+size_t LibraryCache::get_symbol_num() const
+{
+    return this->lib.get_symbol_num();
+}
+
+size_t LibraryCache::get_label_num() const
+{
+    return this->lib.get_label_num();
+}
+
+std::vector<LabTok> LibraryCache::prove_type(const std::vector<SymTok> &type_sent) const
+{
+    return this->lib.prove_type(type_sent);
+}
+
+bool LibraryCache::is_constant(SymTok c) const
+{
+    return this->lib.is_constant(c);
+}
+
+std::vector<SymTok> LibraryCache::parse_sentence(const string &in) const
+{
+    return this->lib.parse_sentence(in);
+}
+
+SentencePrinter LibraryCache::print_sentence(const std::vector<SymTok> &sent) const
+{
+    return this->lib.print_sentence(sent);
+}
+
+LibraryInterface::~LibraryInterface()
+{
 }

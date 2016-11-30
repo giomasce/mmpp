@@ -8,7 +8,8 @@ SOURCES += main.cpp \
     library.cpp \
     proof.cpp \
     unification.cpp \
-    memory.c
+    memory.c \
+    wff.cpp
 
 QMAKE_CXXFLAGS += -std=c++17 -march=native
 QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem
