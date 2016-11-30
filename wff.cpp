@@ -83,10 +83,6 @@ std::vector<LabTok> Not::prove_true(const LibraryInterface &lib) {
     return rec;
 }
 
-static void proving_helper() {
-
-}
-
 std::vector<LabTok> Not::prove_false(const LibraryInterface &lib) {
     std::vector< LabTok > rec = this->a->prove_true(lib);
     if (rec.empty()) {

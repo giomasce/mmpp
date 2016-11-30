@@ -23,7 +23,7 @@ CompressedProof::CompressedProof(const std::vector<LabTok> &refs, const std::vec
 {
 }
 
-std::shared_ptr<ProofExecutor> CompressedProof::get_executor(const Library &lib, const Assertion &ass) const
+std::shared_ptr<ProofExecutor> CompressedProof::get_executor(const LibraryInterface &lib, const Assertion &ass) const
 {
     return shared_ptr< ProofExecutor >(new CompressedProofExecutor(lib, ass, *this));
 }
@@ -102,8 +102,7 @@ void CompressedProofExecutor::execute()
             this->process_sentence(sent);
         }
     }
-    assert_or_throw(this->get_stack().size() == 1, "Proof execution did not end with a single element on the stack");
-    assert_or_throw(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()), "Proof does not prove the thesis");
+    this->final_checks();
 }
 
 bool CompressedProofExecutor::check_syntax()
@@ -134,7 +133,7 @@ UncompressedProof::UncompressedProof(const std::vector<LabTok> &labels) :
 {
 }
 
-std::shared_ptr<ProofExecutor> UncompressedProof::get_executor(const Library &lib, const Assertion &ass) const
+std::shared_ptr<ProofExecutor> UncompressedProof::get_executor(const LibraryInterface &lib, const Assertion &ass) const
 {
     return shared_ptr< ProofExecutor >(new UncompressedProofExecutor(lib, ass, *this));
 }
@@ -174,8 +173,7 @@ void UncompressedProofExecutor::execute()
     for (auto &label : this->proof.labels) {
         this->process_label(label);
     }
-    assert_or_throw(this->get_stack().size() == 1, "Proof execution did not end with a single element on the stack");
-    assert_or_throw(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()), "Proof does not prove the thesis");
+    this->final_checks();
 }
 
 bool UncompressedProofExecutor::check_syntax()
@@ -189,12 +187,80 @@ bool UncompressedProofExecutor::check_syntax()
     return true;
 }
 
-ProofExecutor::ProofExecutor(const Library &lib, const Assertion &ass) :
-    lib(lib), ass(ass) {
-    this->dists = ass.get_dists();
+ProofExecutor::ProofExecutor(const LibraryInterface &lib, const Assertion &ass) :
+    lib(lib), ass(ass), engine(lib) {
 }
 
-void ProofExecutor::process_assertion(const Assertion &child_ass)
+void ProofExecutor::process_sentence(const vector<SymTok> &sent)
+{
+    this->engine.process_sentence(sent);
+}
+
+void ProofExecutor::process_label(const LabTok label)
+{
+    const Assertion &child_ass = this->lib.get_assertion(label);
+    if (!child_ass.is_valid()) {
+        // In line of principle searching in a set would be faster, but since usually hypotheses are not many the vector is probably better
+        assert_or_throw(find(this->ass.get_mand_hyps().begin(), this->ass.get_mand_hyps().end(), label) != this->ass.get_mand_hyps().end() ||
+                find(this->ass.get_opt_hyps().begin(), this->ass.get_opt_hyps().end(), label) != this->ass.get_opt_hyps().end(),
+                        "Requested label cannot be used by this theorem");
+    }
+    this->engine.process_label(label);
+}
+
+size_t ProofExecutor::get_hyp_num(const LabTok label) const {
+    const Assertion &child_ass = this->lib.get_assertion(label);
+    if (child_ass.is_valid()) {
+        return child_ass.get_mand_hyps().size();
+    } else {
+        return 0;
+    }
+}
+
+void ProofExecutor::final_checks() const
+{
+    assert_or_throw(this->get_stack().size() == 1, "Proof execution did not end with a single element on the stack");
+    assert_or_throw(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()), "Proof does not prove the thesis");
+    assert_or_throw(includes(this->ass.get_dists().begin(), this->ass.get_dists().end(),
+                             this->engine.get_dists().begin(), this->engine.get_dists().end()),
+                    "Distinct variables constraints are too wide");
+}
+
+const std::vector<std::vector<SymTok> > &ProofExecutor::get_stack() const
+{
+    return this->engine.get_stack();
+}
+
+ProofExecutor::~ProofExecutor()
+{
+}
+
+CompressedProofExecutor::CompressedProofExecutor(const LibraryInterface &lib, const Assertion &ass, const CompressedProof &proof) :
+    ProofExecutor(lib, ass), proof(proof)
+{
+}
+
+UncompressedProofExecutor::UncompressedProofExecutor(const LibraryInterface &lib, const Assertion &ass, const UncompressedProof &proof) :
+    ProofExecutor(lib, ass), proof(proof)
+{
+}
+
+ProofEngine::ProofEngine(const LibraryInterface &lib) :
+    lib(lib)
+{
+}
+
+const std::vector<std::vector<SymTok> > &ProofEngine::get_stack() const
+{
+    return this->stack;
+}
+
+const std::set<std::pair<SymTok, SymTok> > &ProofEngine::get_dists() const
+{
+    return this->dists;
+}
+
+void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 {
     assert_or_throw(this->stack.size() >= child_ass.get_mand_hyps().size(), "Stack too small to pop hypotheses");
     assert(child_ass.get_num_floating() <= child_ass.get_mand_hyps().size());
@@ -219,7 +285,7 @@ void ProofExecutor::process_assertion(const Assertion &child_ass)
 #endif
     }
 
-    // Check the substitution map against the distince variables requirements
+    // Keep track of the distinct variables constraints in the substitution map
     const auto child_dists = child_ass.get_dists();
     for (auto it1 = subst_map.begin(); it1 != subst_map.end(); it1++) {
         for (auto it2 = it1; it2 != subst_map.end(); it2++) {
@@ -239,8 +305,8 @@ void ProofExecutor::process_assertion(const Assertion &child_ass)
                         if (this->lib.is_constant(tok2)) {
                             continue;
                         }
-                        assert_or_throw(this->dists.find(minmax(tok1, tok2)) != this->dists.end(), "Distinct variables constraint violated");
-                        assert(tok1 != tok2);
+                        assert_or_throw(tok1 != tok2, "Distinct variable constraint violated");
+                        this->dists.insert(minmax(tok1, tok2));
                     }
                 }
             }
@@ -299,17 +365,16 @@ void ProofExecutor::process_assertion(const Assertion &child_ass)
     cerr << "    Pushing on stack: " << print_sentence(stack_thesis_sent, this->lib) << endl;
 #endif
     this->stack.push_back(stack_thesis_sent);
+    this->labels.push_back(label);
 }
 
-void ProofExecutor::process_sentence(const vector<SymTok> &sent)
+void ProofEngine::process_sentence(const std::vector<SymTok> &sent, LabTok label)
 {
-#ifndef NDEBUG
-    cerr << "    Pushing on stack: " << print_sentence(sent, this->lib) << endl;
-#endif
     this->stack.push_back(sent);
+    this->labels.push_back(label);
 }
 
-void ProofExecutor::process_label(const LabTok label)
+void ProofEngine::process_label(const LabTok label)
 {
     const Assertion &child_ass = this->lib.get_assertion(label);
 #ifndef NDEBUG
@@ -319,44 +384,12 @@ void ProofExecutor::process_label(const LabTok label)
 #ifndef NDEBUG
         cerr << ", which is a previous assertion" << endl;
 #endif
-        this->process_assertion(child_ass);
+        this->process_assertion(child_ass, label);
     } else {
 #ifndef NDEBUG
         cerr << ", which is an hypothesis" << endl;
 #endif
-        // In line of principle searching in a set would be faster, but since usually hypotheses are not many the vector is probably better
-        assert_or_throw(find(this->ass.get_mand_hyps().begin(), this->ass.get_mand_hyps().end(), label) != this->ass.get_mand_hyps().end() ||
-                find(this->ass.get_opt_hyps().begin(), this->ass.get_opt_hyps().end(), label) != this->ass.get_opt_hyps().end(),
-                        "Requested label cannot be used by this theorem");
         const vector< SymTok > &sent = this->lib.get_sentence(label);
-        this->process_sentence(sent);
+        this->process_sentence(sent, label);
     }
-}
-
-size_t ProofExecutor::get_hyp_num(const LabTok label) const {
-    const Assertion &child_ass = this->lib.get_assertion(label);
-    if (child_ass.is_valid()) {
-        return child_ass.get_mand_hyps().size();
-    } else {
-        return 0;
-    }
-}
-
-const std::vector<std::vector<SymTok> > &ProofExecutor::get_stack() const
-{
-    return this->stack;
-}
-
-ProofExecutor::~ProofExecutor()
-{
-}
-
-CompressedProofExecutor::CompressedProofExecutor(const Library &lib, const Assertion &ass, const CompressedProof &proof) :
-    ProofExecutor(lib, ass), proof(proof)
-{
-}
-
-UncompressedProofExecutor::UncompressedProofExecutor(const Library &lib, const Assertion &ass, const UncompressedProof &proof) :
-    ProofExecutor(lib, ass), proof(proof)
-{
 }

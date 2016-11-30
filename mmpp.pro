@@ -9,7 +9,8 @@ SOURCES += main.cpp \
     proof.cpp \
     unification.cpp \
     memory.c \
-    wff.cpp
+    wff.cpp \
+    toolbox.cpp
 
 QMAKE_CXXFLAGS += -std=c++17 -march=native
 QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem
@@ -21,4 +22,5 @@ HEADERS += \
     statics.h \
     proof.h \
     unification.h \
-    memory.h
+    memory.h \
+    toolbox.h

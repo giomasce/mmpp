@@ -94,9 +94,9 @@ bool Library::is_constant(SymTok c) const
     return this->consts.find(c) != this->consts.end();
 }
 
-std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > > Library::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis) const
+std::unordered_map<LabTok, std::vector<std::pair<std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > > Library::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis, bool just_first) const
 {
-    std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > > ret;
+    std::unordered_map<LabTok, std::vector<std::pair< std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > > ret;
 
     vector< SymTok > sent;
     for (auto &hyp : hypotheses) {
@@ -117,7 +117,8 @@ std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > 
         }
         // We have to generate all the hypotheses' permutations; fortunately usually hypotheses are not many
         // TODO Is there a better algorithm?
-        vector< int > perm;
+        // The i-th specified hypothesis is matched with the perm[i]-th assertion hypothesis
+        vector< size_t > perm;
         for (size_t i = 0; i < hypotheses.size(); i++) {
             perm.push_back(i);
         }
@@ -132,8 +133,13 @@ std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > 
             copy(th.begin(), th.end(), back_inserter(templ));
             auto unifications = unify(sent, templ, *this);
             if (!unifications.empty()) {
-                auto res = ret.insert(make_pair(ass.get_thesis(), unifications));
-                assert(res.second);
+                ret.insert(make_pair(ass.get_thesis(), vector<std::pair< std::vector< size_t >,  unordered_map< SymTok, vector< SymTok > > > >()));
+                for (auto &unification : unifications) {
+                    ret.at(ass.get_thesis()).push_back(make_pair(perm, unification));
+                    if (just_first) {
+                        return ret;
+                    }
+                }
             }
         } while (next_permutation(perm.begin(), perm.end()));
     }
@@ -365,11 +371,11 @@ LibraryCache::LibraryCache(const Library &lib) :
 {
 }
 
-std::unordered_map<LabTok, std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryCache::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis)
+std::unordered_map<LabTok, std::vector<std::pair<std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > > LibraryCache::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis, bool just_first)
 {
-    const auto key = make_pair(hypotheses, thesis);
+    const auto key = make_tuple(hypotheses, thesis, just_first);
     if (this->cache.find(key) == this->cache.end()) {
-        this->cache[key] = this->lib.unify_assertion(hypotheses, thesis);
+        this->cache[key] = this->lib.unify_assertion(hypotheses, thesis, just_first);
     }
     return this->cache.at(key);
 }
@@ -422,6 +428,16 @@ std::vector<SymTok> LibraryCache::parse_sentence(const string &in) const
 SentencePrinter LibraryCache::print_sentence(const std::vector<SymTok> &sent) const
 {
     return this->lib.print_sentence(sent);
+}
+
+const Assertion &LibraryCache::get_assertion(LabTok label) const
+{
+    return this->lib.get_assertion(label);
+}
+
+const std::vector<SymTok> &LibraryCache::get_sentence(LabTok label) const
+{
+    return this->lib.get_sentence(label);
 }
 
 LibraryInterface::~LibraryInterface()

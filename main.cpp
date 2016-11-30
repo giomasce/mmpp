@@ -100,7 +100,7 @@ void test() {
     }
 
     auto tests = get_tests();
-    tests = {};
+    //tests = {};
     int problems = 0;
     for (auto test_pair : tests) {
         string filename = test_pair.first;
@@ -306,8 +306,8 @@ void unification_loop() {
 
 int main() {
 
-    //test();
-    unification_loop();
+    test();
+    //unification_loop();
     return 0;
 
 }
