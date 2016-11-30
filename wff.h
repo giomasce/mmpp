@@ -15,72 +15,31 @@ class Wff {
 public:
     virtual std::string to_string() = 0;
     virtual pwff imp_not_form() = 0;
-    virtual std::vector< LabTok > prove_true(const LibraryInterface &lib) {
-        (void) lib;
-        return {};
-    }
-    virtual std::vector< LabTok > prove_false(const LibraryInterface &lib) {
-        (void) lib;
-        return {};
-    }
+    virtual std::vector< LabTok > prove_true(const LibraryInterface &lib);
+    virtual std::vector< LabTok > prove_false(const LibraryInterface &lib);
 };
 
 class True : public Wff {
 public:
-    True() {
-    }
-
-    std::string to_string() {
-        return "T.";
-    }
-
-    pwff imp_not_form() {
-        // Already fundamental
-        return pwff(new True());
-    }
-
-    std::vector< LabTok > prove_true(const LibraryInterface &lib) {
-        auto res = lib.unify_assertion({}, parse_sentence("|- T.", lib));
-        assert(!res.empty());
-        return { res.begin()->first };
-    }
+    True();
+    std::string to_string();
+    pwff imp_not_form();
+    std::vector< LabTok > prove_true(const LibraryInterface &lib);
 };
 
 class False : public Wff {
 public:
-    False() {
-    }
-
-    std::string to_string() {
-        return "F.";
-    }
-
-    pwff imp_not_form() {
-        // Already fundamental
-        return pwff(new False());
-    }
-
-    std::vector< LabTok > prove_false(const LibraryInterface &lib) {
-        auto res = lib.unify_assertion({}, parse_sentence("|- -. F.", lib));
-        assert(!res.empty());
-        return { res.begin()->first };
-    }
+    False();
+    std::string to_string();
+    pwff imp_not_form();
+    std::vector< LabTok > prove_false(const LibraryInterface &lib);
 };
 
 class Var : public Wff {
 public:
-  Var(std::string name) :
-    name(name) {
-  }
-
-  std::string to_string() {
-    return this->name;
-  }
-
-  pwff imp_not_form() {
-      // Already fundamental
-      return pwff(new Var(this->name));
-  }
+  Var(std::string name);
+  std::string to_string();
+  pwff imp_not_form();
 
 private:
   std::string name;
@@ -88,37 +47,11 @@ private:
 
 class Not : public Wff {
 public:
-  Not(pwff a) :
-    a(a) {
-  }
-
-  std::string to_string() {
-    return "-. " + this->a->to_string();
-  }
-
-  pwff imp_not_form() {
-    // Already fundamental
-    return pwff(new Not(this->a->imp_not_form()));
-  }
-
-  std::vector< LabTok > prove_true(const LibraryInterface &lib) {
-      std::vector< LabTok > rec = this->a->prove_false(lib);
-      if (rec.empty()) {
-          return {};
-      }
-      return rec;
-  }
-
-  std::vector< LabTok > prove_false(const LibraryInterface &lib) {
-      std::vector< LabTok > rec = this->a->prove_true(lib);
-      if (rec.empty()) {
-          return {};
-      }
-      auto res = lib.unify_assertion({parse_sentence("|- -. -. ph", lib)}, parse_sentence("|- ph", lib));
-      assert(!res.empty());
-      rec.push_back(res.begin()->first);
-      return rec;
-  }
+  Not(pwff a);
+  std::string to_string();
+  pwff imp_not_form();
+  std::vector< LabTok > prove_true(const LibraryInterface &lib);
+  std::vector< LabTok > prove_false(const LibraryInterface &lib);
 
 private:
   pwff a;
@@ -126,38 +59,11 @@ private:
 
 class Imp : public Wff {
 public:
-  Imp(pwff a, pwff b) :
-    a(a), b(b) {
-  }
+  Imp(pwff a, pwff b);
+  std::string to_string();
+  pwff imp_not_form();
 
-  std::string to_string() {
-    return "( " + this->a->to_string() + " -> " + this->b->to_string() + " )";
-  }
-
-  pwff imp_not_form() {
-    // Already fundamental
-    return pwff(new Imp(this->a->imp_not_form(), this->b->imp_not_form()));
-  }
-
-  std::vector< LabTok > prove_true(const LibraryInterface &lib) {
-      auto rec = this->b->prove_true(lib);
-      if (rec.empty()) {
-          rec = this->a->prove_false(lib);
-          if (rec.empty()) {
-              return {};
-          } else {
-              auto res = lib.unify_assertion({parse_sentence("|- -. ph", lib)}, parse_sentence("|- ( ph -> ps )", lib));
-              assert(!res.empty());
-              rec.push_back(res.begin()->first);
-              return rec;
-          }
-      } else {
-          auto res = lib.unify_assertion({parse_sentence("|- ph", lib)}, parse_sentence("|- ( ps -> ph )", lib));
-          assert(!res.empty());
-          rec.push_back(res.begin()->first);
-          return rec;
-      }
-  }
+  std::vector< LabTok > prove_true(const LibraryInterface &lib);
 
 private:
   pwff a, b;
@@ -165,20 +71,9 @@ private:
 
 class Biimp : public Wff {
 public:
-  Biimp(pwff a, pwff b) :
-    a(a), b(b) {
-  }
-
-  std::string to_string() {
-    return "( " + this->a->to_string() + " <-> " + this->b->to_string() + " )";
-  }
-
-  pwff imp_not_form() {
-    // Using dfbi1
-    auto ain = this->a->imp_not_form();
-    auto bin = this->b->imp_not_form();
-    return pwff(new Not(pwff(new Imp(pwff(new Imp(ain, bin)), pwff(new Not(pwff(new Imp(bin, ain))))))));
-  }
+  Biimp(pwff a, pwff b);
+  std::string to_string();
+  pwff imp_not_form();
 
 private:
   pwff a, b;
@@ -186,18 +81,9 @@ private:
 
 class And : public Wff {
 public:
-  And(pwff a, pwff b) :
-    a(a), b(b) {
-  }
-
-  std::string to_string() {
-    return "( " + this->a->to_string() + " /\\ " + this->b->to_string() + " )";
-  }
-
-  pwff imp_not_form() {
-    // Using df-an
-    return pwff(new Not(pwff(new Imp(this->a->imp_not_form(), pwff(new Not(this->b->imp_not_form()))))));
-  }
+  And(pwff a, pwff b);
+  std::string to_string();
+  pwff imp_not_form();
 
 private:
   pwff a, b;
@@ -205,18 +91,9 @@ private:
 
 class Or : public Wff {
 public:
-  Or(pwff a, pwff b) :
-    a(a), b(b) {
-  }
-
-  std::string to_string() {
-    return "( " + this->a->to_string() + " \\/ " + this->b->to_string() + " )";
-  }
-
-  pwff imp_not_form() {
-    // Using df-or
-    return pwff(new Imp(pwff(new Not(this->a->imp_not_form())), this->b->imp_not_form()));
-  }
+  Or(pwff a, pwff b);
+  std::string to_string();
+  pwff imp_not_form();
 
 private:
   pwff a, b;
@@ -224,18 +101,9 @@ private:
 
 class Nand : public Wff {
 public:
-  Nand(pwff a, pwff b) :
-    a(a), b(b) {
-  }
-
-  std::string to_string() {
-    return "( " + this->a->to_string() + " -/\\ " + this->b->to_string() + " )";
-  }
-
-  pwff imp_not_form() {
-    // Using df-nan and recurring
-    return pwff(new Not(pwff(new Or(this->a->imp_not_form(), this->b->imp_not_form()))))->imp_not_form();
-  }
+  Nand(pwff a, pwff b);
+  std::string to_string();
+  pwff imp_not_form();
 
 private:
   pwff a, b;
@@ -243,18 +111,9 @@ private:
 
 class Xor : public Wff {
 public:
-  Xor(pwff a, pwff b) :
-    a(a), b(b) {
-  }
-
-  std::string to_string() {
-    return "( " + this->a->to_string() + " \\/_ " + this->b->to_string() + " )";
-  }
-
-  pwff imp_not_form() {
-    // Using df-xor and recurring
-    return pwff(new Not(pwff(new Biimp(this->a->imp_not_form(), this->b->imp_not_form()))))->imp_not_form();
-  }
+  Xor(pwff a, pwff b);
+  std::string to_string();
+  pwff imp_not_form();
 
 private:
   pwff a, b;
