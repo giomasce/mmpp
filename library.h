@@ -32,8 +32,13 @@ struct SentencePrinter {
     const std::vector< SymTok > &sent;
     const LibraryInterface &lib;
 };
+struct ProofPrinter {
+    const std::vector< LabTok > &proof;
+    const LibraryInterface &lib;
+};
 SentencePrinter print_sentence(const std::vector< SymTok > &sent, const Library &lib);
 std::ostream &operator<<(std::ostream &os, const SentencePrinter &sp);
+std::ostream &operator<<(std::ostream &os, const ProofPrinter &sp);
 std::vector< SymTok > parse_sentence(const std::string &in, const LibraryInterface &lib);
 
 class Assertion {
@@ -139,6 +144,7 @@ public:
     virtual bool is_constant(SymTok c) const = 0;
     virtual std::vector< SymTok > parse_sentence(const std::string &in) const = 0;
     virtual SentencePrinter print_sentence(const std::vector< SymTok > &sent) const = 0;
+    virtual ProofPrinter print_proof(const std::vector< LabTok > &proof) const = 0;
     virtual const std::vector<SymTok> &get_sentence(LabTok label) const = 0;
     virtual std::unordered_map<LabTok, std::vector<std::pair< std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis, bool just_first=true) const = 0;
     virtual const Assertion &get_assertion(LabTok label) const = 0;
@@ -168,7 +174,8 @@ public:
     std::vector< LabTok > prove_type(const std::vector< SymTok > &type_sent) const;
     void set_types(const std::vector< LabTok > &types);
     std::vector< SymTok > parse_sentence(const std::string &in) const;
-    virtual SentencePrinter print_sentence(const std::vector< SymTok > &sent) const;
+    SentencePrinter print_sentence(const std::vector< SymTok > &sent) const;
+    ProofPrinter print_proof(const std::vector< LabTok > &proof) const;
 
 private:
     StringCache< SymTok > syms;
@@ -200,6 +207,7 @@ public:
     bool is_constant(SymTok c) const;
     std::vector< SymTok > parse_sentence(const std::string &in) const;
     SentencePrinter print_sentence(const std::vector< SymTok > &sent) const;
+    ProofPrinter print_proof(const std::vector< LabTok > &proof) const;
     const Assertion &get_assertion(LabTok label) const;
     const std::vector<SymTok> &get_sentence(LabTok label) const;
 private:

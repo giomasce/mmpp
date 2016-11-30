@@ -366,6 +366,11 @@ SentencePrinter Library::print_sentence(const std::vector<SymTok> &sent) const
     return SentencePrinter({ sent, *this });
 }
 
+ProofPrinter Library::print_proof(const std::vector<LabTok> &proof) const
+{
+    return ProofPrinter({ proof, *this });
+}
+
 LibraryCache::LibraryCache(const Library &lib) :
     lib(lib)
 {
@@ -430,6 +435,11 @@ SentencePrinter LibraryCache::print_sentence(const std::vector<SymTok> &sent) co
     return this->lib.print_sentence(sent);
 }
 
+ProofPrinter LibraryCache::print_proof(const std::vector<LabTok> &proof) const
+{
+    return this->lib.print_proof(proof);
+}
+
 const Assertion &LibraryCache::get_assertion(LabTok label) const
 {
     return this->lib.get_assertion(label);
@@ -442,4 +452,18 @@ const std::vector<SymTok> &LibraryCache::get_sentence(LabTok label) const
 
 LibraryInterface::~LibraryInterface()
 {
+}
+
+ostream &operator<<(ostream &os, const ProofPrinter &sp)
+{
+    bool first = true;
+    for (auto &label : sp.proof) {
+        if (first) {
+            first = false;
+        } else {
+            os << string(" ");
+        }
+        os << sp.lib.resolve_label(label);
+    }
+    return os;
 }

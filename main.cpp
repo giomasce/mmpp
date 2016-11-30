@@ -71,7 +71,7 @@ void test() {
     /* This program just does a lot of tests on the features of the mmpp library
      */
 
-    if (true) {
+    if (false) {
         cout << "Testing random small stuff..." << endl;
         auto ph = pwff(new Var("ph"));
         auto ps = pwff(new Var("ps"));
@@ -100,7 +100,7 @@ void test() {
     }
 
     auto tests = get_tests();
-    //tests = {};
+    tests = {};
     int problems = 0;
     for (auto test_pair : tests) {
         string filename = test_pair.first;
@@ -205,7 +205,7 @@ void test() {
         cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
         cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl << endl;
 
-        if (true) {
+        if (false) {
             cout << "Generic unification test" << endl;
             vector< SymTok > sent = parse_sentence("wff ( ph -> ( ps -> ch ) )", lib);
             vector< SymTok > templ = parse_sentence("wff ( th -> et )", lib);
@@ -221,7 +221,7 @@ void test() {
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
 
-        if (true) {
+        if (false) {
             cout << "Statement unification test" << endl;
             //auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> th )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- th", lib));
             auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> ( ph -> ps ) )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- ( ph -> ps )", lib));
@@ -240,16 +240,22 @@ void test() {
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
 
-        if (true) {
+        if (false) {
             cout << "Type proving test" << endl;
             //auto res = lib.prove_type(parse_sentence("wff ( x = y -> ps )", lib));
             auto res = lib.prove_type(parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )", lib));
-            cout << "Found type proof:";
-            for (auto &label : res) {
-                cout << " " << lib.resolve_label(label);
-            }
-            cout << endl;
+            cout << "Found type proof: " << lib.print_proof(res) << endl;
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
+        }
+
+        if (true) {
+            cout << "WFF proving test" << endl;
+            pwff wff = pwff(new Not(pwff(new True())));
+            auto res = wff->prove_false(lib);
+            cout << "Found proof: " << lib.print_proof(res) << endl;
+            wff = pwff(new Imp(pwff(new True()), pwff(new True())));
+            res = wff->prove_true(lib);
+            cout << "Found proof: " << lib.print_proof(res) << endl;
         }
     }
 

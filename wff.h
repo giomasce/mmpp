@@ -15,6 +15,7 @@ class Wff {
 public:
     virtual std::string to_string() = 0;
     virtual pwff imp_not_form() = 0;
+    virtual std::vector< SymTok > to_sentence(const LibraryInterface &lib) const = 0;
     virtual std::vector< LabTok > prove_true(const LibraryInterface &lib);
     virtual std::vector< LabTok > prove_false(const LibraryInterface &lib);
 };
@@ -24,6 +25,7 @@ public:
     True();
     std::string to_string();
     pwff imp_not_form();
+    std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
     std::vector< LabTok > prove_true(const LibraryInterface &lib);
 };
 
@@ -32,6 +34,7 @@ public:
     False();
     std::string to_string();
     pwff imp_not_form();
+    std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
     std::vector< LabTok > prove_false(const LibraryInterface &lib);
 };
 
@@ -40,6 +43,7 @@ public:
   Var(std::string name);
   std::string to_string();
   pwff imp_not_form();
+  std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
 
 private:
   std::string name;
@@ -50,6 +54,7 @@ public:
   Not(pwff a);
   std::string to_string();
   pwff imp_not_form();
+  std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
   std::vector< LabTok > prove_true(const LibraryInterface &lib);
   std::vector< LabTok > prove_false(const LibraryInterface &lib);
 
@@ -62,6 +67,7 @@ public:
   Imp(pwff a, pwff b);
   std::string to_string();
   pwff imp_not_form();
+  std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
 
   std::vector< LabTok > prove_true(const LibraryInterface &lib);
 
@@ -74,6 +80,7 @@ public:
   Biimp(pwff a, pwff b);
   std::string to_string();
   pwff imp_not_form();
+  std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
 
 private:
   pwff a, b;
@@ -84,6 +91,7 @@ public:
   And(pwff a, pwff b);
   std::string to_string();
   pwff imp_not_form();
+  std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
 
 private:
   pwff a, b;
@@ -94,6 +102,7 @@ public:
   Or(pwff a, pwff b);
   std::string to_string();
   pwff imp_not_form();
+  std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
 
 private:
   pwff a, b;
@@ -104,6 +113,7 @@ public:
   Nand(pwff a, pwff b);
   std::string to_string();
   pwff imp_not_form();
+  std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
 
 private:
   pwff a, b;
@@ -114,6 +124,7 @@ public:
   Xor(pwff a, pwff b);
   std::string to_string();
   pwff imp_not_form();
+  std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
 
 private:
   pwff a, b;
