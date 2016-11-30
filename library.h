@@ -47,6 +47,8 @@ public:
     ~Assertion();
     bool is_valid() const;
     bool is_theorem() const;
+    bool is_modif_disc() const;
+    bool is_usage_disc() const;
     size_t get_num_floating() const;
     const std::set< std::pair< SymTok, SymTok > > &get_mand_dists() const;
     const std::set< std::pair< SymTok, SymTok > > &get_opt_dists() const;
@@ -69,6 +71,8 @@ private:
     LabTok thesis;
     std::shared_ptr< Proof > proof;
     std::string comment;
+    bool modif_disc;
+    bool usage_disc;
 
     std::shared_ptr< Proof > get_proof() const;
 };

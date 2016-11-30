@@ -109,6 +109,9 @@ std::unordered_map< LabTok, vector< unordered_map< SymTok, vector< SymTok > > > 
         if (!ass.is_valid()) {
             continue;
         }
+        if (ass.is_usage_disc()) {
+            continue;
+        }
         if (ass.get_mand_hyps().size() - ass.get_num_floating() != hypotheses.size()) {
             continue;
         }
@@ -223,8 +226,16 @@ Assertion::Assertion(bool theorem,
                      std::set<std::pair<SymTok, SymTok> > opt_dists,
                      std::vector<LabTok> hyps, std::set<LabTok> opt_hyps,
                      LabTok thesis, string comment) :
-    valid(true), num_floating(num_floating), theorem(theorem), dists(dists), opt_dists(opt_dists), hyps(hyps), opt_hyps(opt_hyps), thesis(thesis), proof(NULL), comment(comment)
+    valid(true), num_floating(num_floating), theorem(theorem), dists(dists), opt_dists(opt_dists),
+    hyps(hyps), opt_hyps(opt_hyps), thesis(thesis), proof(NULL), comment(comment),
+    modif_disc(false), usage_disc(false)
 {
+    if (this->comment.find("(Proof modification is discouraged.)") != string::npos) {
+        this->modif_disc = true;
+    }
+    if (this->comment.find("(New usage is discouraged.)") != string::npos) {
+        this->usage_disc = true;
+    }
 }
 
 Assertion::~Assertion()
@@ -238,6 +249,16 @@ bool Assertion::is_valid() const
 
 bool Assertion::is_theorem() const {
     return this->theorem;
+}
+
+bool Assertion::is_modif_disc() const
+{
+    return this->modif_disc;
+}
+
+bool Assertion::is_usage_disc() const
+{
+    return this->usage_disc;
 }
 
 size_t Assertion::get_num_floating() const
