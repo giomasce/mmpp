@@ -66,7 +66,7 @@ static vector< pair < string, bool > > get_tests() {
     return tests;
 }
 
-int main() {
+void test() {
 
     /* This program just does a lot of tests on the features of the mmpp library
      */
@@ -255,6 +255,53 @@ int main() {
 
     cout << "Maximum memory usage: " << size_to_string(getPeakRSS()) << endl;
 
+}
+
+void unification_loop() {
+
+    cout << "Reading set.mm..." << endl;
+    FileTokenizer ft("../set.mm/set.mm");
+    Parser p(ft, false, true);
+    p.run();
+    Library lib = p.get_library();
+    cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
+    cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl;
+    while (true) {
+        string line;
+        getline(cin, line);
+        if (line == "") {
+            break;
+        }
+        auto sent = parse_sentence(line, lib);
+        auto sent_wff = sent;
+        sent_wff[0] = lib.get_symbol("wff");
+        auto res = lib.prove_type(sent_wff);
+        cout << "Found type proof:";
+        for (auto &label : res) {
+            cout << " " << lib.resolve_label(label);
+        }
+        cout << endl;
+        auto res2 = lib.unify_assertion({}, sent);
+        cout << "Found " << res2.size() << " matching assertions:" << endl;
+        for (auto &match : res2) {
+            auto &label = match.first;
+            const Assertion &ass = lib.get_assertion(label);
+            cout << " * " << lib.resolve_label(label) << ":";
+            for (auto &hyp : ass.get_ess_hyps()) {
+                auto &hyp_sent = lib.get_sentence(hyp);
+                cout << " & " << print_sentence(hyp_sent, lib);
+            }
+            auto &thesis_sent = lib.get_sentence(ass.get_thesis());
+            cout << " => " << print_sentence(thesis_sent, lib) << endl;
+        }
+    }
+
+}
+
+int main() {
+
+    //test();
+    unification_loop();
     return 0;
 
 }
