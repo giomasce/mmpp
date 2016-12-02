@@ -15,12 +15,12 @@ void Wff::prove_type(const LibraryInterface &lib, ProofEngine &engine) const
     }
 }
 
-std::vector<LabTok> Wff::prove_true(const LibraryInterface &lib) {
+std::vector<LabTok> Wff::prove_true(const LibraryInterface &lib) const {
     (void) lib;
     return {};
 }
 
-std::vector<LabTok> Wff::prove_false(const LibraryInterface &lib) {
+std::vector<LabTok> Wff::prove_false(const LibraryInterface &lib) const {
     (void) lib;
     return {};
 }
@@ -28,11 +28,11 @@ std::vector<LabTok> Wff::prove_false(const LibraryInterface &lib) {
 True::True() {
 }
 
-string True::to_string() {
+string True::to_string() const {
     return "T.";
 }
 
-pwff True::imp_not_form() {
+pwff True::imp_not_form() const {
     // Already fundamental
     return pwff(new True());
 }
@@ -48,7 +48,7 @@ void True::prove_type(const LibraryInterface &lib, ProofEngine &engine) const
     engine.process_label(get<0>(res.at(0)));
 }
 
-std::vector<LabTok> True::prove_true(const LibraryInterface &lib) {
+std::vector<LabTok> True::prove_true(const LibraryInterface &lib) const {
     LibraryToolbox tb(lib);
     return tb.proving_helper({}, lib.parse_sentence("|- T."), {}, {});
 }
@@ -56,11 +56,11 @@ std::vector<LabTok> True::prove_true(const LibraryInterface &lib) {
 False::False() {
 }
 
-string False::to_string() {
+string False::to_string() const {
     return "F.";
 }
 
-pwff False::imp_not_form() {
+pwff False::imp_not_form() const {
     // Already fundamental
     return pwff(new False());
 }
@@ -70,7 +70,7 @@ std::vector<SymTok> False::to_sentence(const LibraryInterface &lib) const
     return { lib.get_symbol("F.") };
 }
 
-std::vector<LabTok> False::prove_false(const LibraryInterface &lib) {
+std::vector<LabTok> False::prove_false(const LibraryInterface &lib) const {
     LibraryToolbox tb(lib);
     return tb.proving_helper({}, lib.parse_sentence("|- -. F."), {}, {});
 }
@@ -79,11 +79,11 @@ Var::Var(string name) :
     name(name) {
 }
 
-string Var::to_string() {
+string Var::to_string() const {
     return this->name;
 }
 
-pwff Var::imp_not_form() {
+pwff Var::imp_not_form() const {
     // Already fundamental
     return pwff(new Var(this->name));
 }
@@ -97,11 +97,11 @@ Not::Not(pwff a) :
     a(a) {
 }
 
-string Not::to_string() {
+string Not::to_string() const {
     return "-. " + this->a->to_string();
 }
 
-pwff Not::imp_not_form() {
+pwff Not::imp_not_form() const {
     // Already fundamental
     return pwff(new Not(this->a->imp_not_form()));
 }
@@ -115,11 +115,11 @@ std::vector<SymTok> Not::to_sentence(const LibraryInterface &lib) const
     return ret;
 }
 
-std::vector<LabTok> Not::prove_true(const LibraryInterface &lib) {
+std::vector<LabTok> Not::prove_true(const LibraryInterface &lib) const {
     return this->a->prove_false(lib);
 }
 
-std::vector<LabTok> Not::prove_false(const LibraryInterface &lib) {
+std::vector<LabTok> Not::prove_false(const LibraryInterface &lib) const {
     LibraryToolbox tb(lib);
     std::vector< LabTok > rec = this->a->prove_true(lib);
     if (rec.empty()) {
@@ -132,11 +132,11 @@ Imp::Imp(pwff a, pwff b) :
     a(a), b(b) {
 }
 
-string Imp::to_string() {
+string Imp::to_string() const {
     return "( " + this->a->to_string() + " -> " + this->b->to_string() + " )";
 }
 
-pwff Imp::imp_not_form() {
+pwff Imp::imp_not_form() const {
     // Already fundamental
     return pwff(new Imp(this->a->imp_not_form(), this->b->imp_not_form()));
 }
@@ -154,7 +154,7 @@ std::vector<SymTok> Imp::to_sentence(const LibraryInterface &lib) const
     return ret;
 }
 
-std::vector<LabTok> Imp::prove_true(const LibraryInterface &lib) {
+std::vector<LabTok> Imp::prove_true(const LibraryInterface &lib) const {
     LibraryToolbox tb(lib);
     auto rec = this->b->prove_true(lib);
     if (rec.empty()) {
@@ -177,11 +177,11 @@ Biimp::Biimp(pwff a, pwff b) :
     a(a), b(b) {
 }
 
-string Biimp::to_string() {
+string Biimp::to_string() const {
     return "( " + this->a->to_string() + " <-> " + this->b->to_string() + " )";
 }
 
-pwff Biimp::imp_not_form() {
+pwff Biimp::imp_not_form() const {
     // Using dfbi1
     auto ain = this->a->imp_not_form();
     auto bin = this->b->imp_not_form();
@@ -205,11 +205,11 @@ Xor::Xor(pwff a, pwff b) :
     a(a), b(b) {
 }
 
-string Xor::to_string() {
+string Xor::to_string() const {
     return "( " + this->a->to_string() + " \\/_ " + this->b->to_string() + " )";
 }
 
-pwff Xor::imp_not_form() {
+pwff Xor::imp_not_form() const {
     // Using df-xor and recurring
     return pwff(new Not(pwff(new Biimp(this->a->imp_not_form(), this->b->imp_not_form()))))->imp_not_form();
 }
@@ -231,11 +231,11 @@ Nand::Nand(pwff a, pwff b) :
     a(a), b(b) {
 }
 
-string Nand::to_string() {
+string Nand::to_string() const {
     return "( " + this->a->to_string() + " -/\\ " + this->b->to_string() + " )";
 }
 
-pwff Nand::imp_not_form() {
+pwff Nand::imp_not_form() const {
     // Using df-nan and recurring
     return pwff(new Not(pwff(new Or(this->a->imp_not_form(), this->b->imp_not_form()))))->imp_not_form();
 }
@@ -257,11 +257,11 @@ Or::Or(pwff a, pwff b) :
     a(a), b(b) {
 }
 
-string Or::to_string() {
+string Or::to_string() const {
     return "( " + this->a->to_string() + " \\/ " + this->b->to_string() + " )";
 }
 
-pwff Or::imp_not_form() {
+pwff Or::imp_not_form() const {
     // Using df-or
     return pwff(new Imp(pwff(new Not(this->a->imp_not_form())), this->b->imp_not_form()));
 }
@@ -283,11 +283,11 @@ And::And(pwff a, pwff b) :
     a(a), b(b) {
 }
 
-string And::to_string() {
+string And::to_string() const {
     return "( " + this->a->to_string() + " /\\ " + this->b->to_string() + " )";
 }
 
-pwff And::imp_not_form() {
+pwff And::imp_not_form() const {
     // Using df-an
     return pwff(new Not(pwff(new Imp(this->a->imp_not_form(), pwff(new Not(this->b->imp_not_form()))))));
 }
