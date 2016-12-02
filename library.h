@@ -146,7 +146,7 @@ public:
     virtual SentencePrinter print_sentence(const std::vector< SymTok > &sent) const = 0;
     virtual ProofPrinter print_proof(const std::vector< LabTok > &proof) const = 0;
     virtual const std::vector<SymTok> &get_sentence(LabTok label) const = 0;
-    virtual std::unordered_map<LabTok, std::vector<std::pair< std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis, bool just_first=true) const = 0;
+    virtual std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis, bool just_first=true) const = 0;
     virtual const Assertion &get_assertion(LabTok label) const = 0;
     virtual ~LibraryInterface();
 };
@@ -170,7 +170,7 @@ public:
     const std::vector< Assertion > &get_assertions() const;
     void add_constant(SymTok c);
     bool is_constant(SymTok c) const;
-    std::unordered_map<LabTok, std::vector<std::pair< std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis, bool just_first=true) const;
+    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis, bool just_first=true) const;
     std::vector< LabTok > prove_type(const std::vector< SymTok > &type_sent) const;
     void set_types(const std::vector< LabTok > &types);
     std::vector< SymTok > parse_sentence(const std::string &in) const;
@@ -196,7 +196,7 @@ private:
 class LibraryCache : public LibraryInterface {
 public:
     LibraryCache(const Library &lib);
-    std::unordered_map<LabTok, std::vector<std::pair< std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis, bool just_first=true);
+    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis, bool just_first=true);
     SymTok get_symbol(std::string s) const;
     LabTok get_label(std::string s) const;
     std::string resolve_symbol(SymTok tok) const;
@@ -213,7 +213,7 @@ public:
 private:
     const Library &lib;
     std::unordered_map< std::tuple< std::vector< std::vector< SymTok > >, std::vector< SymTok >, bool >,
-                        std::unordered_map<LabTok, std::vector<std::pair< std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > >,
+                        std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > >,
                         boost::hash< std::tuple< std::vector< std::vector< SymTok > >, std::vector< SymTok >, bool > > > cache;
 };
 

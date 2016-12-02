@@ -31,6 +31,11 @@ std::vector<SymTok> True::to_sentence(const LibraryInterface &lib) const
     return { lib.get_symbol("T.") };
 }
 
+void True::prove_type(const LibraryInterface &lib, ProofEngine &engine) const
+{
+    lib.unify_assertion({}, lib.parse_sentence("|- T."), true);
+}
+
 std::vector<LabTok> True::prove_true(const LibraryInterface &lib) {
     LibraryToolbox tb(lib);
     return tb.proving_helper({}, lib.parse_sentence("|- T."), {}, {});

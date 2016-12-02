@@ -205,7 +205,7 @@ void test() {
         cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
         cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl << endl;
 
-        if (false) {
+        if (true) {
             cout << "Generic unification test" << endl;
             vector< SymTok > sent = parse_sentence("wff ( ph -> ( ps -> ch ) )", lib);
             vector< SymTok > templ = parse_sentence("wff ( th -> et )", lib);
@@ -221,13 +221,13 @@ void test() {
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
 
-        if (false) {
+        if (true) {
             cout << "Statement unification test" << endl;
             //auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> th )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- th", lib));
             auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> ( ph -> ps ) )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- ( ph -> ps )", lib));
             cout << "Found " << res.size() << " matching assertions:" << endl;
             for (auto &match : res) {
-                auto &label = match.first;
+                auto &label = get<0>(match);
                 const Assertion &ass = lib.get_assertion(label);
                 cout << " * " << lib.resolve_label(label) << ":";
                 for (auto &hyp : ass.get_ess_hyps()) {
@@ -240,7 +240,7 @@ void test() {
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
 
-        if (false) {
+        if (true) {
             cout << "Type proving test" << endl;
             //auto res = lib.prove_type(parse_sentence("wff ( x = y -> ps )", lib));
             auto res = lib.prove_type(parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )", lib));
@@ -296,7 +296,7 @@ void unification_loop() {
         auto res2 = lib.unify_assertion(hypotheses, sent);
         cout << "Found " << res2.size() << " matching assertions:" << endl;
         for (auto &match : res2) {
-            auto &label = match.first;
+            auto &label = get<0>(match);
             const Assertion &ass = lib.get_assertion(label);
             cout << " * " << lib.resolve_label(label) << ":";
             for (auto &hyp : ass.get_ess_hyps()) {

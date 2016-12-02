@@ -94,9 +94,9 @@ bool Library::is_constant(SymTok c) const
     return this->consts.find(c) != this->consts.end();
 }
 
-std::unordered_map<LabTok, std::vector<std::pair<std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > > Library::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis, bool just_first) const
+std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > Library::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis, bool just_first) const
 {
-    std::unordered_map<LabTok, std::vector<std::pair< std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > > ret;
+    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
 
     vector< SymTok > sent;
     for (auto &hyp : hypotheses) {
@@ -133,9 +133,8 @@ std::unordered_map<LabTok, std::vector<std::pair<std::vector<size_t>, std::unord
             copy(th.begin(), th.end(), back_inserter(templ));
             auto unifications = unify(sent, templ, *this);
             if (!unifications.empty()) {
-                ret.insert(make_pair(ass.get_thesis(), vector<std::pair< std::vector< size_t >,  unordered_map< SymTok, vector< SymTok > > > >()));
                 for (auto &unification : unifications) {
-                    ret.at(ass.get_thesis()).push_back(make_pair(perm, unification));
+                    ret.emplace_back(ass.get_thesis(), perm, unification);
                     if (just_first) {
                         return ret;
                     }
@@ -376,7 +375,7 @@ LibraryCache::LibraryCache(const Library &lib) :
 {
 }
 
-std::unordered_map<LabTok, std::vector<std::pair<std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > > LibraryCache::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis, bool just_first)
+std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryCache::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis, bool just_first)
 {
     const auto key = make_tuple(hypotheses, thesis, just_first);
     if (this->cache.find(key) == this->cache.end()) {

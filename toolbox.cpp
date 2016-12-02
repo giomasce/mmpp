@@ -48,11 +48,11 @@ std::vector<LabTok> LibraryToolbox::proving_helper(const std::vector<std::vector
     vector< LabTok > ret;
     auto res = this->lib.unify_assertion(templ_hyps, templ_thesis, true);
     assert_or_throw(!res.empty(), "Could not find the template assertion");
-    const Assertion &ass = this->lib.get_assertion(res.begin()->first);
+    const Assertion &ass = this->lib.get_assertion(get<0>(*res.begin()));
     assert(ass.is_valid());
-    const vector< size_t > &perm = res.begin()->second.at(0).first;
+    const vector< size_t > &perm = get<1>(*res.begin());
     const vector< size_t > perm_inv = invert_perm(perm);
-    const unordered_map< SymTok, vector< SymTok > > &ass_map = res.begin()->second.at(0).second;
+    const unordered_map< SymTok, vector< SymTok > > &ass_map = get<2>(*res.begin());
     const unordered_map< SymTok, vector< SymTok > > full_map = this->compose_subst(ass_map, subst_map);
 
     // Compute floating hypotheses
