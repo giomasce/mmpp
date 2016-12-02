@@ -4,6 +4,17 @@
 
 using namespace std;
 
+void Wff::prove_type(const LibraryInterface &lib, ProofEngine &engine) const
+{
+    vector< SymTok > type_sent;
+    type_sent.push_back(lib.get_symbol("wff"));
+    auto sent = this->to_sentence(lib);
+    copy(sent.begin(), sent.end(), back_inserter(type_sent));
+    for (auto &label : lib.prove_type(type_sent)) {
+        engine.process_label(label);
+    }
+}
+
 std::vector<LabTok> Wff::prove_true(const LibraryInterface &lib) {
     (void) lib;
     return {};
@@ -33,7 +44,8 @@ std::vector<SymTok> True::to_sentence(const LibraryInterface &lib) const
 
 void True::prove_type(const LibraryInterface &lib, ProofEngine &engine) const
 {
-    lib.unify_assertion({}, lib.parse_sentence("|- T."), true);
+    auto res = lib.unify_assertion({}, lib.parse_sentence("wff T."), true);
+    engine.process_label(get<0>(res.at(0)));
 }
 
 std::vector<LabTok> True::prove_true(const LibraryInterface &lib) {

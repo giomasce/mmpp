@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <functional>
 
 class LibraryToolbox
 {
@@ -15,6 +16,11 @@ public:
                                                                       const std::unordered_map< SymTok, std::vector< SymTok > > &second) const;
     std::vector< LabTok > proving_helper(const std::vector< std::vector< SymTok > > &templ_hyps, const std::vector< SymTok > &templ_thesis,
                                          const std::vector< std::vector< LabTok > > &hyps_proofs, const std::unordered_map< SymTok, std::vector< SymTok > > &subst_map) const;
+    void proving_helper2(const std::vector< std::vector< SymTok > > &templ_hyps,
+                         const std::vector< SymTok > &templ_thesis,
+                         const std::vector< std::function< void(const LibraryInterface&, ProofEngine&) > > &hyps_provers,
+                         const std::unordered_map< SymTok, std::vector< SymTok > > &subst_map,
+                         ProofEngine &engine) const;
 private:
     const LibraryInterface &lib;
 };

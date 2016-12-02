@@ -71,3 +71,31 @@ std::vector<LabTok> LibraryToolbox::proving_helper(const std::vector<std::vector
 
     return ret;
 }
+
+void LibraryToolbox::proving_helper2(const std::vector<std::vector<SymTok> > &templ_hyps, const std::vector<SymTok> &templ_thesis, const std::vector<std::function<void (const LibraryInterface &, ProofEngine &)> > &hyps_provers, const std::unordered_map<SymTok, std::vector<SymTok> > &subst_map, ProofEngine &engine) const
+{
+    auto res = this->lib.unify_assertion(templ_hyps, templ_thesis, true);
+    assert_or_throw(!res.empty(), "Could not find the template assertion");
+    const Assertion &ass = this->lib.get_assertion(get<0>(*res.begin()));
+    assert(ass.is_valid());
+    const vector< size_t > &perm = get<1>(*res.begin());
+    const vector< size_t > perm_inv = invert_perm(perm);
+    const unordered_map< SymTok, vector< SymTok > > &ass_map = get<2>(*res.begin());
+    const unordered_map< SymTok, vector< SymTok > > full_map = this->compose_subst(ass_map, subst_map);
+
+    // Compute floating hypotheses
+    for (size_t i = 0; i < ass.get_num_floating(); i++) {
+        auto proof = this->lib.prove_type(this->substitute(this->lib.get_sentence(ass.get_mand_hyps()[i]), full_map));
+        for (auto &label : proof) {
+            engine.process_label(label);
+        }
+    }
+
+    // Compute essential hypotheses
+    for (size_t i = 0; i < ass.get_mand_hyps().size() - ass.get_num_floating(); i++) {
+        hyps_provers[perm_inv[i]](lib, engine);
+    }
+
+    // Finally add this assertion's label
+    engine.process_label(ass.get_thesis());
+}

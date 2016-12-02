@@ -17,7 +17,7 @@ public:
     virtual std::string to_string() = 0;
     virtual pwff imp_not_form() = 0;
     virtual std::vector< SymTok > to_sentence(const LibraryInterface &lib) const = 0;
-    //virtual void prove_type(const LibraryInterface &lib, ProofEngine &engine) const = 0;
+    virtual void prove_type(const LibraryInterface &lib, ProofEngine &engine) const;
     virtual std::vector< LabTok > prove_true(const LibraryInterface &lib);
     virtual std::vector< LabTok > prove_false(const LibraryInterface &lib);
 };

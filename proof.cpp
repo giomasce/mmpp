@@ -365,13 +365,13 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
     cerr << "    Pushing on stack: " << print_sentence(stack_thesis_sent, this->lib) << endl;
 #endif
     this->stack.push_back(stack_thesis_sent);
-    this->labels.push_back(label);
+    this->proof.push_back(label);
 }
 
 void ProofEngine::process_sentence(const std::vector<SymTok> &sent, LabTok label)
 {
     this->stack.push_back(sent);
-    this->labels.push_back(label);
+    this->proof.push_back(label);
 }
 
 void ProofEngine::process_label(const LabTok label)
@@ -392,4 +392,9 @@ void ProofEngine::process_label(const LabTok label)
         const vector< SymTok > &sent = this->lib.get_sentence(label);
         this->process_sentence(sent, label);
     }
+}
+
+const std::vector<LabTok> &ProofEngine::get_proof()
+{
+    return this->proof;
 }
