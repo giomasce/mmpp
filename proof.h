@@ -28,12 +28,17 @@ public:
     void process_assertion(const Assertion &child_ass, LabTok label = 0);
     void process_sentence(const std::vector< SymTok > &sent, LabTok label = 0);
     void process_label(const LabTok label);
-    const std::vector< LabTok > &get_proof();
+    const std::vector< LabTok > &get_proof() const;
+    void checkpoint();
+    void commit();
+    void rollback();
+
 private:
     const LibraryInterface &lib;
     std::vector< std::vector< SymTok > > stack;
     std::set< std::pair< SymTok, SymTok > > dists;
     std::vector< LabTok > proof;
+    std::vector< std::tuple< std::vector< std::vector< SymTok > >, std::set< std::pair< SymTok, SymTok > >, std::vector< LabTok > > > checkpoints;
 };
 
 class ProofExecutor {

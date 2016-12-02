@@ -15,14 +15,28 @@ void Wff::prove_type(const LibraryInterface &lib, ProofEngine &engine) const
     }
 }
 
-std::vector<LabTok> Wff::prove_true(const LibraryInterface &lib) const {
+bool Wff::prove_true(const LibraryInterface &lib, ProofEngine &engine) const
+{
     (void) lib;
-    return {};
+    (void) engine;
+    return false;
 }
 
-std::vector<LabTok> Wff::prove_false(const LibraryInterface &lib) const {
+bool Wff::prove_false(const LibraryInterface &lib, ProofEngine &engine) const
+{
     (void) lib;
-    return {};
+    (void) engine;
+    return false;
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> Wff::get_truth_prover() const
+{
+    return [this](const LibraryInterface & lib, ProofEngine &engine){ return this->prove_true(lib, engine); };
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> Wff::get_falsehood_prover() const
+{
+    return [this](const LibraryInterface & lib, ProofEngine &engine){ return this->prove_false(lib, engine); };
 }
 
 True::True() {
@@ -48,9 +62,10 @@ void True::prove_type(const LibraryInterface &lib, ProofEngine &engine) const
     engine.process_label(get<0>(res.at(0)));
 }
 
-std::vector<LabTok> True::prove_true(const LibraryInterface &lib) const {
+bool True::prove_true(const LibraryInterface &lib, ProofEngine &engine) const
+{
     LibraryToolbox tb(lib);
-    return tb.proving_helper({}, lib.parse_sentence("|- T."), {}, {});
+    return tb.proving_helper2({}, lib.parse_sentence("|- T."), {}, {}, engine);
 }
 
 False::False() {
@@ -70,9 +85,10 @@ std::vector<SymTok> False::to_sentence(const LibraryInterface &lib) const
     return { lib.get_symbol("F.") };
 }
 
-std::vector<LabTok> False::prove_false(const LibraryInterface &lib) const {
+bool False::prove_false(const LibraryInterface &lib, ProofEngine &engine) const
+{
     LibraryToolbox tb(lib);
-    return tb.proving_helper({}, lib.parse_sentence("|- -. F."), {}, {});
+    return tb.proving_helper2({}, lib.parse_sentence("|- -. F."), {}, {}, engine);
 }
 
 Var::Var(string name) :
@@ -115,17 +131,16 @@ std::vector<SymTok> Not::to_sentence(const LibraryInterface &lib) const
     return ret;
 }
 
-std::vector<LabTok> Not::prove_true(const LibraryInterface &lib) const {
-    return this->a->prove_false(lib);
+bool Not::prove_true(const LibraryInterface &lib, ProofEngine &engine) const
+{
+    return this->a->prove_false(lib, engine);
 }
 
-std::vector<LabTok> Not::prove_false(const LibraryInterface &lib) const {
+bool Not::prove_false(const LibraryInterface &lib, ProofEngine &engine) const
+{
+
     LibraryToolbox tb(lib);
-    std::vector< LabTok > rec = this->a->prove_true(lib);
-    if (rec.empty()) {
-        return {};
-    }
-    return tb.proving_helper({ lib.parse_sentence("|- ph") }, lib.parse_sentence("|- -. -. ph"), { rec }, {{lib.get_symbol("ph"), this->a->to_sentence(lib) }});
+    return tb.proving_helper2({ lib.parse_sentence("|- ph") }, lib.parse_sentence("|- -. -. ph"), { this->a->get_truth_prover() }, {{lib.get_symbol("ph"), this->a->to_sentence(lib) }}, engine);
 }
 
 Imp::Imp(pwff a, pwff b) :
@@ -154,23 +169,28 @@ std::vector<SymTok> Imp::to_sentence(const LibraryInterface &lib) const
     return ret;
 }
 
-std::vector<LabTok> Imp::prove_true(const LibraryInterface &lib) const {
+bool Imp::prove_true(const LibraryInterface &lib, ProofEngine &engine) const
+{
     LibraryToolbox tb(lib);
-    auto rec = this->b->prove_true(lib);
-    if (rec.empty()) {
-        rec = this->a->prove_false(lib);
-        if (rec.empty()) {
-            return {};
-        } else {
-            return tb.proving_helper({ lib.parse_sentence("|- -. ph") }, lib.parse_sentence("|- ( ph -> ps )"), { rec },
-            {{lib.get_symbol("ph"), this->a->to_sentence(lib) },
-             {lib.get_symbol("ps"), this->b->to_sentence(lib)}});
-        }
-    } else {
-        return tb.proving_helper({ lib.parse_sentence("|- ps") }, lib.parse_sentence("|- ( ph -> ps )"), { rec },
+    bool res = tb.proving_helper2({ lib.parse_sentence("|- ps") }, lib.parse_sentence("|- ( ph -> ps )"),
+        { this->b->get_truth_prover() },
         {{lib.get_symbol("ph"), this->a->to_sentence(lib) },
-         {lib.get_symbol("ps"), this->b->to_sentence(lib)}});
+         {lib.get_symbol("ps"), this->b->to_sentence(lib)}},
+        engine);
+    if (res) {
+        return true;
     }
+    return tb.proving_helper2({ lib.parse_sentence("|- -. ph") }, lib.parse_sentence("|- ( ph -> ps )"),
+        { this->a->get_falsehood_prover() },
+        {{lib.get_symbol("ph"), this->a->to_sentence(lib) },
+         {lib.get_symbol("ps"), this->b->to_sentence(lib)}},
+                              engine);
+}
+
+bool Imp::prove_false(const LibraryInterface &lib, ProofEngine &engine) const
+{
+    LibraryToolbox tb(lib);
+    return false;
 }
 
 Biimp::Biimp(pwff a, pwff b) :

@@ -394,7 +394,23 @@ void ProofEngine::process_label(const LabTok label)
     }
 }
 
-const std::vector<LabTok> &ProofEngine::get_proof()
+const std::vector<LabTok> &ProofEngine::get_proof() const
 {
     return this->proof;
+}
+
+void ProofEngine::checkpoint()
+{
+    this->checkpoints.emplace_back(this->stack, this->dists, this->proof);
+}
+
+void ProofEngine::commit()
+{
+    this->checkpoints.pop_back();
+}
+
+void ProofEngine::rollback()
+{
+    tie(this->stack, this->dists, this->proof) = this->checkpoints.back();
+    this->checkpoints.pop_back();
 }

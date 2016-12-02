@@ -16,11 +16,15 @@ public:
                                                                       const std::unordered_map< SymTok, std::vector< SymTok > > &second) const;
     std::vector< LabTok > proving_helper(const std::vector< std::vector< SymTok > > &templ_hyps, const std::vector< SymTok > &templ_thesis,
                                          const std::vector< std::vector< LabTok > > &hyps_proofs, const std::unordered_map< SymTok, std::vector< SymTok > > &subst_map) const;
-    void proving_helper2(const std::vector< std::vector< SymTok > > &templ_hyps,
+    bool proving_helper2(const std::vector< std::vector< SymTok > > &templ_hyps,
                          const std::vector< SymTok > &templ_thesis,
-                         const std::vector< std::function< void(const LibraryInterface&, ProofEngine&) > > &hyps_provers,
+                         const std::vector< std::function< bool(const LibraryInterface&, ProofEngine&) > > &hyps_provers,
                          const std::unordered_map< SymTok, std::vector< SymTok > > &subst_map,
                          ProofEngine &engine) const;
+    static std::function< bool(const LibraryInterface&, ProofEngine&) > build_prover(const std::vector< std::vector< SymTok > > &templ_hyps,
+                             const std::vector< SymTok > &templ_thesis,
+                             const std::vector< std::function< bool(const LibraryInterface&, ProofEngine&) > > &hyps_provers,
+                             const std::unordered_map< SymTok, std::vector< SymTok > > &subst_map);
 private:
     const LibraryInterface &lib;
 };

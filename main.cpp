@@ -24,7 +24,7 @@ static inline string size_to_string(size_t size) {
     return stream.str();
 }
 
-bool mmpp_abort = false;
+bool mmpp_abort = true;
 
 const string test_basename = "/home/giovanni/progetti/metamath/metamath-test";
 const string tests_filenames = R"tests(
@@ -252,17 +252,16 @@ void test() {
             cout << "WFF proving test" << endl;
             ProofEngine engine(lib);
             pwff wff = pwff(new Not(pwff(new True())));
-            wff->prove_type(lib, engine);
+            //pwff wff = pwff(new True());
+            //wff->prove_type(lib, engine);
+            wff->prove_false(lib, engine);
             cout << "Engine content: " << lib.print_proof(engine.get_proof()) << endl;
-            auto res = wff->prove_false(lib);
-            //cout << "Found proof: " << lib.print_proof(res) << endl;
 
             ProofEngine engine2(lib);
-            wff = pwff(new Imp(pwff(new True()), pwff(new True())));
-            wff->prove_type(lib, engine2);
+            wff = pwff(new Imp(pwff(new True()), pwff(new False())));
+            //wff->prove_type(lib, engine2);
+            wff->prove_false(lib, engine2);
             cout << "Engine content: " << lib.print_proof(engine2.get_proof()) << endl;
-            res = wff->prove_true(lib);
-            //cout << "Found proof: " << lib.print_proof(res) << endl;
         }
     }
 
