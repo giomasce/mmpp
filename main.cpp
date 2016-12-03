@@ -250,18 +250,31 @@ void test() {
 
         if (true) {
             cout << "WFF proving test" << endl;
-            ProofEngine engine(lib);
-            pwff wff = pwff(new Not(pwff(new True())));
-            //pwff wff = pwff(new True());
-            //wff->prove_type(lib, engine);
-            wff->prove_false(lib, engine);
-            cout << "Engine content: " << lib.print_proof(engine.get_proof()) << endl;
-
-            ProofEngine engine2(lib);
-            wff = pwff(new Imp(pwff(new True()), pwff(new False())));
-            //wff->prove_type(lib, engine2);
-            wff->prove_false(lib, engine2);
-            cout << "Engine content: " << lib.print_proof(engine2.get_proof()) << endl;
+            vector< pwff > wffs = { pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
+                                    pwff(new Imp(pwff(new True()), pwff(new True()))),
+                                    pwff(new Imp(pwff(new True()), pwff(new False()))),
+                                    pwff(new Imp(pwff(new False()), pwff(new True()))),
+                                    pwff(new Imp(pwff(new False()), pwff(new False()))),
+                                  };
+            for (pwff &wff : wffs) {
+                //wff->prove_type(lib, engine);
+                cout << "WFF: " << wff->to_string() << endl;
+                {
+                    ProofEngine engine(lib);
+                    wff->prove_true(lib, engine);
+                    if (engine.get_proof().size() > 0) {
+                        cout << "Truth proof: " << lib.print_proof(engine.get_proof()) << endl;
+                    }
+                }
+                {
+                    ProofEngine engine(lib);
+                    wff->prove_false(lib, engine);
+                    if (engine.get_proof().size() > 0) {
+                        cout << "Falsity proof: " << lib.print_proof(engine.get_proof()) << endl;
+                    }
+                }
+                cout << endl;
+            }
         }
     }
 

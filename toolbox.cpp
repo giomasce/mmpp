@@ -110,7 +110,7 @@ bool LibraryToolbox::proving_helper2(const std::vector<std::vector<SymTok> > &te
     return true;
 }
 
-bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &templ_hyps, const std::vector<SymTok> &templ_thesis, const std::unordered_map<SymTok, Prover> &types_provers, const std::vector<Prover> &hyps_provers, const std::unordered_map<SymTok, std::vector<SymTok> > &subst_map, ProofEngine &engine) const
+bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &templ_hyps, const std::vector<SymTok> &templ_thesis, const std::unordered_map<SymTok, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ProofEngine &engine) const
 {
     engine.checkpoint();
     auto res = this->lib.unify_assertion(templ_hyps, templ_thesis, true);
@@ -120,11 +120,11 @@ bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &te
     const vector< size_t > &perm = get<1>(*res.begin());
     const vector< size_t > perm_inv = invert_perm(perm);
     const unordered_map< SymTok, vector< SymTok > > &ass_map = get<2>(*res.begin());
-    const unordered_map< SymTok, vector< SymTok > > full_map = this->compose_subst(ass_map, subst_map);
+    //const unordered_map< SymTok, vector< SymTok > > full_map = this->compose_subst(ass_map, subst_map);
 
     // Compute floating hypotheses
     for (size_t i = 0; i < ass.get_num_floating(); i++) {
-        bool res = this->type_proving_helper(this->lib.get_sentence(ass.get_mand_hyps()[i]), engine, types_provers);
+        bool res = this->type_proving_helper(this->substitute(this->lib.get_sentence(ass.get_mand_hyps()[i]), ass_map), engine, types_provers);
         if (!res) {
             engine.rollback();
             return false;
@@ -218,15 +218,23 @@ bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, P
 
 std::function<bool (const LibraryInterface &, ProofEngine &)> LibraryToolbox::build_prover2(const std::vector<std::vector<SymTok> > &templ_hyps, const std::vector<SymTok> &templ_thesis, const std::vector<std::function<bool (const LibraryInterface &, ProofEngine &)> > &hyps_provers, const std::unordered_map<SymTok, std::vector<SymTok> > &subst_map)
 {
-    return [&](const LibraryInterface & lib, ProofEngine &engine){
+    return [=](const LibraryInterface & lib, ProofEngine &engine){
         LibraryToolbox tb(lib);
         return tb.proving_helper2(templ_hyps, templ_thesis, hyps_provers, subst_map, engine);
     };
 }
 
+std::function<bool (const LibraryInterface &, ProofEngine &)> LibraryToolbox::build_prover3(const std::vector<std::vector<SymTok> > &templ_hyps, const std::vector<SymTok> &templ_thesis, const std::unordered_map<SymTok, Prover> &types_provers, const std::vector<Prover> &hyps_provers)
+{
+    return [=](const LibraryInterface & lib, ProofEngine &engine){
+        LibraryToolbox tb(lib);
+        return tb.proving_helper3(templ_hyps, templ_thesis, types_provers, hyps_provers, engine);
+    };
+}
+
 std::function<bool (const LibraryInterface &, ProofEngine &)> LibraryToolbox::build_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
 {
-    return [&](const LibraryInterface &lib, ProofEngine &engine){
+    return [=](const LibraryInterface &lib, ProofEngine &engine){
         LibraryToolbox tb(lib);
         return tb.type_proving_helper(type_sent, engine, var_provers);
     };

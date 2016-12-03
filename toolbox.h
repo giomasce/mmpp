@@ -27,13 +27,16 @@ public:
                          const std::vector< SymTok > &templ_thesis,
                          const std::unordered_map< SymTok, Prover > &types_provers,
                          const std::vector< Prover > &hyps_provers,
-                         const std::unordered_map< SymTok, std::vector< SymTok > > &subst_map,
                          ProofEngine &engine) const;
     bool type_proving_helper(const std::vector< SymTok > &type_sent, ProofEngine &engine, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
     static std::function< bool(const LibraryInterface&, ProofEngine&) > build_prover2(const std::vector< std::vector< SymTok > > &templ_hyps,
                              const std::vector< SymTok > &templ_thesis,
                              const std::vector< std::function< bool(const LibraryInterface&, ProofEngine&) > > &hyps_provers,
                              const std::unordered_map< SymTok, std::vector< SymTok > > &subst_map);
+    static std::function< bool(const LibraryInterface&, ProofEngine&) > build_prover3(const std::vector< std::vector< SymTok > > &templ_hyps,
+                         const std::vector< SymTok > &templ_thesis,
+                         const std::unordered_map< SymTok, Prover > &types_provers,
+                         const std::vector< Prover > &hyps_provers);
     static std::function< bool(const LibraryInterface&, ProofEngine&) > build_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {});
 private:
     const LibraryInterface &lib;

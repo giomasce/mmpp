@@ -319,6 +319,9 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
         const vector< SymTok > &hyp_sent = this->lib.get_sentence(hyp);
         assert(this->lib.is_constant(hyp_sent.at(0)));
         const vector< SymTok > &stack_hyp_sent = this->stack.at(stack_base + i);
+#ifndef NDEBUG
+        cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
+#endif
         auto stack_it = stack_hyp_sent.begin();
         for (auto it = hyp_sent.begin(); it != hyp_sent.end(); it++) {
             const SymTok &tok = *it;
@@ -334,9 +337,6 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
             }
         }
         assert_or_throw(stack_it == stack_hyp_sent.end(), "Essential hypothesis does not match stack because stack is longer");
-#ifndef NDEBUG
-        cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
-#endif
     }
 
     // Build the thesis

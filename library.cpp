@@ -95,7 +95,7 @@ bool Library::is_constant(SymTok c) const
     return this->consts.find(c) != this->consts.end();
 }
 
-std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > Library::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis, bool just_first) const
+std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > Library::unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first) const
 {
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
 
@@ -350,7 +350,7 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
     return os;
 }
 
-SentencePrinter print_sentence(const std::vector<SymTok> &sent, const Library &lib)
+SentencePrinter print_sentence(const std::vector<SymTok> &sent, const LibraryInterface &lib)
 {
     return lib.print_sentence(sent);
 }
@@ -401,7 +401,7 @@ LibraryCache::LibraryCache(const Library &lib) :
 {
 }
 
-std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryCache::unify_assertion(std::vector<std::vector<SymTok> > hypotheses, std::vector<SymTok> thesis, bool just_first)
+std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryCache::unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first)
 {
     const auto key = make_tuple(hypotheses, thesis, just_first);
     if (this->cache.find(key) == this->cache.end()) {
