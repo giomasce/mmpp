@@ -34,11 +34,16 @@ public:
     void rollback();
 
 private:
+    void push_stack(const std::vector< SymTok > sent);
+    void stack_resize(size_t size);
+    void pop_stack();
+    void check_stack_underflow();
+
     const LibraryInterface &lib;
     std::vector< std::vector< SymTok > > stack;
     std::set< std::pair< SymTok, SymTok > > dists;
     std::vector< LabTok > proof;
-    std::vector< std::tuple< std::vector< std::vector< SymTok > >, std::set< std::pair< SymTok, SymTok > >, std::vector< LabTok > > > checkpoints;
+    std::vector< std::tuple< int, std::set< std::pair< SymTok, SymTok > >, int > > checkpoints;
 };
 
 class ProofExecutor {

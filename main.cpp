@@ -240,7 +240,7 @@ void test() {
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
 
-        if (false) {
+        if (true) {
             cout << "Type proving test" << endl;
             //auto res = lib.prove_type(parse_sentence("wff ( x = y -> ps )", lib));
             auto res = lib.prove_type(parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )", lib));

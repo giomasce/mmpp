@@ -2,6 +2,7 @@
 #include "statics.h"
 #include "parser.h"
 #include "unification.h"
+#include "toolbox.h"
 
 #include <algorithm>
 #include <iostream>
@@ -146,7 +147,17 @@ std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok
     return ret;
 }
 
-std::vector<LabTok> Library::prove_type(const std::vector<SymTok> &type_sent) const
+std::vector<LabTok> Library::prove_type(const std::vector<SymTok> &type_sent) const {
+    ProofEngine engine(*this);
+    LibraryToolbox tb(*this);
+    if (tb.type_proving_helper(type_sent, engine)) {
+        return engine.get_proof();
+    } else {
+        return {};
+    }
+}
+
+std::vector<LabTok> Library::prove_type2(const std::vector<SymTok> &type_sent) const
 {
     // Iterate over all propositions (maybe just axioms would be enough) with zero essential hypotheses, try to match and recur on all matches;
     // hopefully nearly all branches die early and there is just one real long-standing branch;
@@ -370,6 +381,21 @@ ProofPrinter Library::print_proof(const std::vector<LabTok> &proof) const
     return ProofPrinter({ proof, *this });
 }
 
+const std::vector<LabTok> &Library::get_types() const
+{
+    return this->types;
+}
+
+const std::vector<LabTok> &Library::get_types_by_var() const
+{
+    return this->types_by_var;
+}
+
+const std::unordered_map<SymTok, std::vector<LabTok> > &Library::get_assertions_by_type() const
+{
+    return this->assertions_by_type;
+}
+
 LibraryCache::LibraryCache(const Library &lib) :
     lib(lib)
 {
@@ -447,6 +473,21 @@ const Assertion &LibraryCache::get_assertion(LabTok label) const
 const std::vector<SymTok> &LibraryCache::get_sentence(LabTok label) const
 {
     return this->lib.get_sentence(label);
+}
+
+const std::vector<LabTok> &LibraryCache::get_types() const
+{
+    return this->lib.get_types();
+}
+
+const std::vector<LabTok> &LibraryCache::get_types_by_var() const
+{
+    return this->lib.get_types_by_var();
+}
+
+const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryCache::get_assertions_by_type() const
+{
+    return this->lib.get_assertions_by_type();
 }
 
 LibraryInterface::~LibraryInterface()

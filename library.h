@@ -148,6 +148,9 @@ public:
     virtual const std::vector<SymTok> &get_sentence(LabTok label) const = 0;
     virtual std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis, bool just_first=true) const = 0;
     virtual const Assertion &get_assertion(LabTok label) const = 0;
+    virtual const std::vector< LabTok > &get_types() const = 0;
+    virtual const std::vector< LabTok > &get_types_by_var() const = 0;
+    virtual const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const = 0;
     virtual ~LibraryInterface();
 };
 
@@ -172,17 +175,21 @@ public:
     bool is_constant(SymTok c) const;
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(std::vector< std::vector< SymTok > > hypotheses, std::vector< SymTok > thesis, bool just_first=true) const;
     std::vector< LabTok > prove_type(const std::vector< SymTok > &type_sent) const;
+    std::vector< LabTok > prove_type2(const std::vector< SymTok > &type_sent) const;
     void set_types(const std::vector< LabTok > &types);
     std::vector< SymTok > parse_sentence(const std::string &in) const;
     SentencePrinter print_sentence(const std::vector< SymTok > &sent) const;
     ProofPrinter print_proof(const std::vector< LabTok > &proof) const;
+    const std::vector< LabTok > &get_types() const;
+    const std::vector< LabTok > &get_types_by_var() const;
+    const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const;
 
 private:
     StringCache< SymTok > syms;
     StringCache< LabTok > labels;
     std::set< SymTok > consts;
 
-    // Vector is more efficient if labels are known to be contiguous and starting from 1; in the general case the unordered_map might be better
+    // vector is more efficient than unordered_map if labels are known to be contiguous and starting from 1; in the general case the unordered_map might be better
     //std::unordered_map< LabTok, std::vector< SymTok > > sentences;
     std::vector< std::vector< SymTok > > sentences;
     std::vector< Assertion > assertions;
@@ -210,6 +217,10 @@ public:
     ProofPrinter print_proof(const std::vector< LabTok > &proof) const;
     const Assertion &get_assertion(LabTok label) const;
     const std::vector<SymTok> &get_sentence(LabTok label) const;
+    const std::vector< LabTok > &get_types() const;
+    const std::vector< LabTok > &get_types_by_var() const;
+    const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const;
+
 private:
     const Library &lib;
     std::unordered_map< std::tuple< std::vector< std::vector< SymTok > >, std::vector< SymTok >, bool >,

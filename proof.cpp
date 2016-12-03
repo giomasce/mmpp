@@ -360,17 +360,17 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 #ifndef NDEBUG
     cerr << "    Popping from stack " << stack.size() - stack_base << " elements" << endl;
 #endif
-    this->stack.resize(stack_base);
+    this->stack_resize(stack_base);
 #ifndef NDEBUG
     cerr << "    Pushing on stack: " << print_sentence(stack_thesis_sent, this->lib) << endl;
 #endif
-    this->stack.push_back(stack_thesis_sent);
+    this->push_stack(stack_thesis_sent);
     this->proof.push_back(label);
 }
 
 void ProofEngine::process_sentence(const std::vector<SymTok> &sent, LabTok label)
 {
-    this->stack.push_back(sent);
+    this->push_stack(sent);
     this->proof.push_back(label);
 }
 
@@ -401,7 +401,7 @@ const std::vector<LabTok> &ProofEngine::get_proof() const
 
 void ProofEngine::checkpoint()
 {
-    this->checkpoints.emplace_back(this->stack, this->dists, this->proof);
+    this->checkpoints.emplace_back(this->stack.size(), this->dists, this->proof.size());
 }
 
 void ProofEngine::commit()
@@ -411,6 +411,32 @@ void ProofEngine::commit()
 
 void ProofEngine::rollback()
 {
-    tie(this->stack, this->dists, this->proof) = this->checkpoints.back();
+    this->stack.resize(get<0>(this->checkpoints.back()));
+    this->dists = get<1>(this->checkpoints.back());
+    this->proof.resize(get<2>(this->checkpoints.back()));
     this->checkpoints.pop_back();
+}
+
+void ProofEngine::push_stack(const std::vector<SymTok> sent)
+{
+    this->stack.push_back(sent);
+}
+
+void ProofEngine::stack_resize(size_t size)
+{
+    this->stack.resize(size);
+    this->check_stack_underflow();
+}
+
+void ProofEngine::pop_stack()
+{
+    this->stack.pop_back();
+    this->check_stack_underflow();
+}
+
+void ProofEngine::check_stack_underflow()
+{
+    if (this->stack.size() < get<0>(this->checkpoints.back())) {
+        throw MMPPException("Checkpointed context exited without committing or rolling back");
+    }
 }
