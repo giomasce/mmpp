@@ -124,10 +124,10 @@ bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &te
 
     // Compute floating hypotheses
     for (size_t i = 0; i < ass.get_num_floating(); i++) {
-        auto primary_proof = this->lib.prove_type(this->substitute(this->lib.get_sentence(ass.get_mand_hyps()[i]), ass_map));
-        for (auto &label : primary_proof) {
-            // TODO
-            engine.process_label(label);
+        bool res = this->type_proving_helper(this->lib.get_sentence(ass.get_mand_hyps()[i]), engine, types_provers);
+        if (!res) {
+            engine.rollback();
+            return false;
         }
     }
 
@@ -147,7 +147,7 @@ bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &te
     return true;
 }
 
-bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, ProofEngine &engine, const std::unordered_map<SymTok, Prover> &var_provers)
+bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, ProofEngine &engine, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
     // Iterate over all propositions (maybe just axioms would be enough) with zero essential hypotheses, try to match and recur on all matches;
     // hopefully nearly all branches die early and there is just one real long-standing branch;
