@@ -4,65 +4,28 @@
 
 using namespace std;
 
-/*bool Wff::prove_type(const LibraryInterface &lib, ProofEngine &engine) const
-{
-    vector< SymTok > type_sent;
-    type_sent.push_back(lib.get_symbol("wff"));
-    auto sent = this->to_sentence(lib);
-    copy(sent.begin(), sent.end(), back_inserter(type_sent));
-    auto proof = lib.prove_type(type_sent);
-    if (proof.empty()) {
-        return false;
-    }
-    for (auto &label : proof) {
-        engine.process_label(label);
-    }
-    return true;
-}
-
-bool Wff::prove_true(const LibraryInterface &lib, ProofEngine &engine) const
-{
-    (void) lib;
-    (void) engine;
-    return false;
-}
-
-bool Wff::prove_false(const LibraryInterface &lib, ProofEngine &engine) const
-{
-    (void) lib;
-    (void) engine;
-    return false;
-}
-
-bool Wff::prove_imp_not(const LibraryInterface &lib, ProofEngine &engine) const
-{
-    (void) lib;
-    (void) engine;
-    return false;
-}*/
-
 Wff::~Wff()
 {
 }
 
 std::function<bool (const LibraryInterface &, ProofEngine &)> Wff::get_truth_prover() const
 {
-    return [](const LibraryInterface&, ProofEngine &){ return false; };
+    return null_prover;
 }
 
 std::function<bool (const LibraryInterface &, ProofEngine &)> Wff::get_falsity_prover() const
 {
-    return [this](const LibraryInterface &, ProofEngine &){ return false; };
+    return null_prover;
 }
 
 std::function<bool (const LibraryInterface &, ProofEngine &)> Wff::get_type_prover() const
 {
-    return [this](const LibraryInterface &, ProofEngine &){ return false; };
+    return null_prover;
 }
 
 std::function<bool (const LibraryInterface &, ProofEngine &)> Wff::get_imp_not_prover() const
 {
-    return [this](const LibraryInterface &, ProofEngine &){ return false; };
+    return null_prover;
 }
 
 True::True() {
@@ -73,7 +36,6 @@ string True::to_string() const {
 }
 
 pwff True::imp_not_form() const {
-    // Already fundamental
     return pwff(new True());
 }
 
@@ -105,7 +67,6 @@ string False::to_string() const {
 }
 
 pwff False::imp_not_form() const {
-    // Already fundamental
     return pwff(new False());
 }
 
@@ -138,7 +99,6 @@ string Var::to_string() const {
 }
 
 pwff Var::imp_not_form() const {
-    // Already fundamental
     return pwff(new Var(this->name));
 }
 
@@ -208,7 +168,6 @@ string Imp::to_string() const {
 }
 
 pwff Imp::imp_not_form() const {
-    // Already fundamental
     return pwff(new Imp(this->a->imp_not_form(), this->b->imp_not_form()));
 }
 
@@ -399,7 +358,6 @@ string Or::to_string() const {
 }
 
 pwff Or::imp_not_form() const {
-    // Using df-or
     return pwff(new Imp(pwff(new Not(this->a->imp_not_form())), this->b->imp_not_form()));
 }
 
