@@ -147,6 +147,21 @@ bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &te
     return true;
 }
 
+bool LibraryToolbox::proving_helper4(const std::vector<string> &templ_hyps, const std::string &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ProofEngine &engine) const
+{
+    std::vector<std::vector<SymTok> > templ_hyps_sent;
+    for (auto &hyp : templ_hyps) {
+        templ_hyps_sent.push_back(lib.parse_sentence(hyp));
+    }
+    std::vector<SymTok> templ_thesis_sent = lib.parse_sentence(templ_thesis);
+    std::unordered_map<SymTok, Prover> types_provers_sym;
+    for (auto &type_pair : types_provers) {
+        auto res = types_provers_sym.insert(make_pair(lib.get_symbol(type_pair.first), type_pair.second));
+        assert(res.second);
+    }
+    return this->proving_helper3(templ_hyps_sent, templ_thesis_sent, types_provers_sym, hyps_provers, engine);
+}
+
 bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, ProofEngine &engine, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
     // Iterate over all propositions (maybe just axioms would be enough) with zero essential hypotheses, try to match and recur on all matches;
@@ -229,6 +244,36 @@ std::function<bool (const LibraryInterface &, ProofEngine &)> LibraryToolbox::bu
     return [=](const LibraryInterface & lib, ProofEngine &engine){
         LibraryToolbox tb(lib);
         return tb.proving_helper3(templ_hyps, templ_thesis, types_provers, hyps_provers, engine);
+    };
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> LibraryToolbox::build_prover4(const std::vector<string> &templ_hyps, const string &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers)
+{
+    return [=](const LibraryInterface & lib, ProofEngine &engine){
+        LibraryToolbox tb(lib);
+        return tb.proving_helper4(templ_hyps, templ_thesis, types_provers, hyps_provers, engine);
+    };
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> LibraryToolbox::build_type_prover2(const std::string &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
+{
+    return [=](const LibraryInterface &lib, ProofEngine &engine){
+        LibraryToolbox tb(lib);
+        vector< SymTok > type_sent2 = lib.parse_sentence(type_sent);
+        return tb.type_proving_helper(type_sent2, engine, var_provers);
+    };
+}
+
+Prover LibraryToolbox::compose_provers(const Prover &a,  const Prover &b)
+{
+    return [=](const LibraryInterface & lib, ProofEngine &engine) {
+        bool res;
+        res = a(lib, engine);
+        if (res) {
+            return true;
+        }
+        res = b(lib, engine);
+        return res;
     };
 }
 

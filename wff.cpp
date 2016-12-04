@@ -4,7 +4,7 @@
 
 using namespace std;
 
-bool Wff::prove_type(const LibraryInterface &lib, ProofEngine &engine) const
+/*bool Wff::prove_type(const LibraryInterface &lib, ProofEngine &engine) const
 {
     vector< SymTok > type_sent;
     type_sent.push_back(lib.get_symbol("wff"));
@@ -34,19 +34,35 @@ bool Wff::prove_false(const LibraryInterface &lib, ProofEngine &engine) const
     return false;
 }
 
+bool Wff::prove_imp_not(const LibraryInterface &lib, ProofEngine &engine) const
+{
+    (void) lib;
+    (void) engine;
+    return false;
+}*/
+
+Wff::~Wff()
+{
+}
+
 std::function<bool (const LibraryInterface &, ProofEngine &)> Wff::get_truth_prover() const
 {
-    return [this](const LibraryInterface & lib, ProofEngine &engine){ return this->prove_true(lib, engine); };
+    return [](const LibraryInterface&, ProofEngine &){ return false; };
 }
 
 std::function<bool (const LibraryInterface &, ProofEngine &)> Wff::get_falsity_prover() const
 {
-    return [this](const LibraryInterface & lib, ProofEngine &engine){ return this->prove_false(lib, engine); };
+    return [this](const LibraryInterface &, ProofEngine &){ return false; };
 }
 
 std::function<bool (const LibraryInterface &, ProofEngine &)> Wff::get_type_prover() const
 {
-    return [this](const LibraryInterface & lib, ProofEngine &engine){ return this->prove_type(lib, engine); };
+    return [this](const LibraryInterface &, ProofEngine &){ return false; };
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> Wff::get_imp_not_prover() const
+{
+    return [this](const LibraryInterface &, ProofEngine &){ return false; };
 }
 
 True::True() {
@@ -66,18 +82,19 @@ std::vector<SymTok> True::to_sentence(const LibraryInterface &lib) const
     return { lib.get_symbol("T.") };
 }
 
-bool True::prove_type(const LibraryInterface &lib, ProofEngine &engine) const
+std::function<bool (const LibraryInterface &, ProofEngine &)> True::get_truth_prover() const
 {
-    // FIXME
-    auto res = lib.unify_assertion({}, lib.parse_sentence("wff T."), true);
-    engine.process_label(get<0>(res.at(0)));
-    return true;
+    return LibraryToolbox::build_prover4({}, "|- T.", {}, {});
 }
 
-bool True::prove_true(const LibraryInterface &lib, ProofEngine &engine) const
+std::function<bool (const LibraryInterface &, ProofEngine &)> True::get_type_prover() const
 {
-    LibraryToolbox tb(lib);
-    return tb.proving_helper3({}, lib.parse_sentence("|- T."), {}, {}, engine);
+    return LibraryToolbox::build_prover4({}, "wff T.", {}, {});
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> True::get_imp_not_prover() const
+{
+    return LibraryToolbox::build_prover4({}, "|- ( T. <-> T. )", {}, {});
 }
 
 False::False() {
@@ -97,10 +114,19 @@ std::vector<SymTok> False::to_sentence(const LibraryInterface &lib) const
     return { lib.get_symbol("F.") };
 }
 
-bool False::prove_false(const LibraryInterface &lib, ProofEngine &engine) const
+std::function<bool (const LibraryInterface &, ProofEngine &)> False::get_falsity_prover() const
 {
-    LibraryToolbox tb(lib);
-    return tb.proving_helper3({}, lib.parse_sentence("|- -. F."), {}, {}, engine);
+    return LibraryToolbox::build_prover4({}, "|- -. F.", {}, {});
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> False::get_type_prover() const
+{
+    return LibraryToolbox::build_prover4({}, "wff F.", {}, {});
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> False::get_imp_not_prover() const
+{
+    return LibraryToolbox::build_prover4({}, "|- ( F. <-> F. )", {}, {});
 }
 
 Var::Var(string name) :
@@ -119,6 +145,16 @@ pwff Var::imp_not_form() const {
 std::vector<SymTok> Var::to_sentence(const LibraryInterface &lib) const
 {
     return { lib.get_symbol(this->name) };
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> Var::get_type_prover() const
+{
+    return LibraryToolbox::build_type_prover2("wff " + this->name);
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> Var::get_imp_not_prover() const
+{
+    return LibraryToolbox::build_prover4({}, "|- ( " + this->name + " <-> " + this->name + " )", {{"ph", this->get_type_prover()}}, {});
 }
 
 Not::Not(pwff a) :
@@ -143,16 +179,24 @@ std::vector<SymTok> Not::to_sentence(const LibraryInterface &lib) const
     return ret;
 }
 
-bool Not::prove_true(const LibraryInterface &lib, ProofEngine &engine) const
+std::function<bool (const LibraryInterface &, ProofEngine &)> Not::get_truth_prover() const
 {
-    return this->a->prove_false(lib, engine);
+    return this->a->get_falsity_prover();
 }
 
-bool Not::prove_false(const LibraryInterface &lib, ProofEngine &engine) const
+std::function<bool (const LibraryInterface &, ProofEngine &)> Not::get_falsity_prover() const
 {
+    return LibraryToolbox::build_prover4({ "|- ph" }, "|- -. -. ph", {{ "ph", this->a->get_type_prover() }}, { this->a->get_truth_prover() });
+}
 
-    LibraryToolbox tb(lib);
-    return tb.proving_helper3({ lib.parse_sentence("|- ph") }, lib.parse_sentence("|- -. -. ph"), {{ lib.get_symbol("ph"), this->a->get_type_prover() }}, { this->a->get_truth_prover() }, engine);
+std::function<bool (const LibraryInterface &, ProofEngine &)> Not::get_type_prover() const
+{
+    return LibraryToolbox::build_prover4({}, "wff -. ph", {{ "ph", this->a->get_type_prover() }}, {});
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> Not::get_imp_not_prover() const
+{
+    return LibraryToolbox::build_prover4({"|- ( ph <-> ps )"}, "|- ( -. ph <-> -. ps )", {{"ph", this->a->get_type_prover()}, {"ps", this->a->imp_not_form()->get_type_prover() }}, { this->a->get_imp_not_prover() });
 }
 
 Imp::Imp(pwff a, pwff b) :
@@ -181,45 +225,33 @@ std::vector<SymTok> Imp::to_sentence(const LibraryInterface &lib) const
     return ret;
 }
 
-bool Imp::prove_true(const LibraryInterface &lib, ProofEngine &engine) const
+std::function<bool (const LibraryInterface &, ProofEngine &)> Imp::get_truth_prover() const
 {
-    LibraryToolbox tb(lib);
-    bool res = tb.proving_helper3({ lib.parse_sentence("|- ps") }, lib.parse_sentence("|- ( ph -> ps )"),
-    {{lib.get_symbol("ph"), this->a->get_type_prover()},
-     {lib.get_symbol("ps"), this->b->get_type_prover()}},
-        { this->b->get_truth_prover() },
-        engine);
-    if (res) {
-        return true;
-    }
-    return tb.proving_helper3({ lib.parse_sentence("|- -. ph") }, lib.parse_sentence("|- ( ph -> ps )"),
-    {{lib.get_symbol("ph"), this->a->get_type_prover()},
-     {lib.get_symbol("ps"), this->b->get_type_prover()}},
-        { this->a->get_falsity_prover() },
-                              engine);
+    Prover first_prover = LibraryToolbox::build_prover4({ "|- ps" }, "|- ( ph -> ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, { this->b->get_truth_prover() });
+    Prover second_prover = LibraryToolbox::build_prover4({ "|- -. ph" }, "|- ( ph -> ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, { this->a->get_falsity_prover() });
+    return LibraryToolbox::compose_provers(first_prover, second_prover);
 }
 
-bool Imp::prove_false(const LibraryInterface &lib, ProofEngine &engine) const
+std::function<bool (const LibraryInterface &, ProofEngine &)> Imp::get_falsity_prover() const
 {
+    Prover theorem_prover = LibraryToolbox::build_prover4({}, "|- ( ph -> ( -. ps -> -. ( ph -> ps ) ) )", {{"ph", this->a->get_type_prover()}, {"ps", this->b->get_type_prover()}}, {});
+    Prover mp_prover1 = LibraryToolbox::build_prover4({ "|- ph", "|- ( ph -> ( -. ps -> -. ( ph -> ps ) ) )"}, "|- ( -. ps -> -. ( ph -> ps ) )",
+        {{"ph", this->a->get_type_prover()}, {"ps", this->b->get_type_prover()}}, { this->a->get_truth_prover(), theorem_prover });
+    Prover mp_prover2 = LibraryToolbox::build_prover4({ "|- ( -. ps -> -. ( ph -> ps ) )", "|- -. ps"}, "|- -. ( ph -> ps )",
+        {{"ph", this->a->get_type_prover()}, {"ps", this->b->get_type_prover()}}, { mp_prover1, this->b->get_falsity_prover() });
+    return mp_prover2;
+}
 
-    Prover theorem_prover = LibraryToolbox::build_prover3({}, lib.parse_sentence("|- ( ph -> ( -. ps -> -. ( ph -> ps ) ) )"),
-    {{lib.get_symbol("ph"), this->a->get_type_prover()},
-     {lib.get_symbol("ps"), this->b->get_type_prover()}},
-        {});
+std::function<bool (const LibraryInterface &, ProofEngine &)> Imp::get_type_prover() const
+{
+    return LibraryToolbox::build_prover4({}, "wff ( ph -> ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
+}
 
-    Prover mp_prover1 = LibraryToolbox::build_prover3({ lib.parse_sentence("|- ph"), lib.parse_sentence(("|- ( ph -> ( -. ps -> -. ( ph -> ps ) ) )"))},
-                                                      lib.parse_sentence("|- ( -. ps -> -. ( ph -> ps ) )"),
-    {{lib.get_symbol("ph"), this->a->get_type_prover()},
-     {lib.get_symbol("ps"), this->b->get_type_prover()}},
-    { this->a->get_truth_prover(), theorem_prover });
-
-    Prover mp_prover2 = LibraryToolbox::build_prover3({ lib.parse_sentence("|- ( -. ps -> -. ( ph -> ps ) )"), lib.parse_sentence("|- -. ps")},
-                                                      lib.parse_sentence("|- -. ( ph -> ps )"),
-    {{lib.get_symbol("ph"), this->a->get_type_prover()},
-     {lib.get_symbol("ps"), this->b->get_type_prover()}},
-    { mp_prover1, this->b->get_falsity_prover() });
-
-    return mp_prover2(lib, engine);
+std::function<bool (const LibraryInterface &, ProofEngine &)> Imp::get_imp_not_prover() const
+{
+    return LibraryToolbox::build_prover4({"|- ( ph <-> ps )", "|- ( ch <-> th )"}, "|- ( ( ph -> ch ) <-> ( ps -> th ) )",
+        {{"ph", this->a->get_type_prover()}, {"ps", this->a->imp_not_form()->get_type_prover() }, {"ch", this->b->get_type_prover()}, {"th", this->b->imp_not_form()->get_type_prover()}},
+        { this->a->get_imp_not_prover(), this->b->get_imp_not_prover() });
 }
 
 Biimp::Biimp(pwff a, pwff b) :
@@ -231,9 +263,15 @@ string Biimp::to_string() const {
 }
 
 pwff Biimp::imp_not_form() const {
-    // Using dfbi1
     auto ain = this->a->imp_not_form();
     auto bin = this->b->imp_not_form();
+    return pwff(new Not(pwff(new Imp(pwff(new Imp(ain, bin)), pwff(new Not(pwff(new Imp(bin, ain))))))));
+}
+
+pwff Biimp::half_imp_not_form() const
+{
+    auto ain = this->a;
+    auto bin = this->b;
     return pwff(new Not(pwff(new Imp(pwff(new Imp(ain, bin)), pwff(new Not(pwff(new Imp(bin, ain))))))));
 }
 
@@ -250,6 +288,20 @@ std::vector<SymTok> Biimp::to_sentence(const LibraryInterface &lib) const
     return ret;
 }
 
+std::function<bool (const LibraryInterface &, ProofEngine &)> Biimp::get_type_prover() const
+{
+    return LibraryToolbox::build_prover4({}, "wff ( ph <-> ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> Biimp::get_imp_not_prover() const
+{
+    Prover first = LibraryToolbox::build_prover4({}, "|- ( ( ph <-> ps ) <-> -. ( ( ph -> ps ) -> -. ( ps -> ph ) ) )", {{"ph", this->a->get_type_prover()}, {"ps", this->b->get_type_prover()}}, {});
+    Prover second = this->half_imp_not_form()->get_imp_not_prover();
+    Prover compose = LibraryToolbox::build_prover4({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )",
+        {{"ph", this->get_type_prover()}, {"ps", this->half_imp_not_form()->get_type_prover()}, {"ch", this->imp_not_form()->get_type_prover()}}, {first, second});
+    return compose;
+}
+
 Xor::Xor(pwff a, pwff b) :
     a(a), b(b) {
 }
@@ -259,8 +311,26 @@ string Xor::to_string() const {
 }
 
 pwff Xor::imp_not_form() const {
-    // Using df-xor and recurring
     return pwff(new Not(pwff(new Biimp(this->a->imp_not_form(), this->b->imp_not_form()))))->imp_not_form();
+}
+
+pwff Xor::half_imp_not_form() const
+{
+    return pwff(new Not(pwff(new Biimp(this->a, this->b))));
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> Xor::get_type_prover() const
+{
+    return LibraryToolbox::build_prover4({}, "wff ( ph \\/_ ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> Xor::get_imp_not_prover() const
+{
+    Prover first = LibraryToolbox::build_prover4({}, "|- ( ( ph \\/_ ps ) <-> -. ( ph <-> ps ) )", {{"ph", this->a->get_type_prover()}, {"ps", this->b->get_type_prover()}}, {});
+    Prover second = this->half_imp_not_form()->get_imp_not_prover();
+    Prover compose = LibraryToolbox::build_prover4({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )",
+        {{"ph", this->get_type_prover()}, {"ps", this->half_imp_not_form()->get_type_prover()}, {"ch", this->imp_not_form()->get_type_prover()}}, {first, second});
+    return compose;
 }
 
 std::vector<SymTok> Xor::to_sentence(const LibraryInterface &lib) const
@@ -285,8 +355,26 @@ string Nand::to_string() const {
 }
 
 pwff Nand::imp_not_form() const {
-    // Using df-nan and recurring
-    return pwff(new Not(pwff(new Or(this->a->imp_not_form(), this->b->imp_not_form()))))->imp_not_form();
+    return pwff(new Not(pwff(new And(this->a->imp_not_form(), this->b->imp_not_form()))))->imp_not_form();
+}
+
+pwff Nand::half_imp_not_form() const
+{
+    return pwff(new Not(pwff(new And(this->a, this->b))));
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> Nand::get_type_prover() const
+{
+    return LibraryToolbox::build_prover4({}, "wff ( ph -/\\ ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> Nand::get_imp_not_prover() const
+{
+    Prover first = LibraryToolbox::build_prover4({}, "|- ( ( ph -/\\ ps ) <-> -. ( ph /\\ ps ) )", {{"ph", this->a->get_type_prover()}, {"ps", this->b->get_type_prover()}}, {});
+    Prover second = this->half_imp_not_form()->get_imp_not_prover();
+    Prover compose = LibraryToolbox::build_prover4({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )",
+        {{"ph", this->get_type_prover()}, {"ps", this->half_imp_not_form()->get_type_prover()}, {"ch", this->imp_not_form()->get_type_prover()}}, {first, second});
+    return compose;
 }
 
 std::vector<SymTok> Nand::to_sentence(const LibraryInterface &lib) const
@@ -315,6 +403,25 @@ pwff Or::imp_not_form() const {
     return pwff(new Imp(pwff(new Not(this->a->imp_not_form())), this->b->imp_not_form()));
 }
 
+pwff Or::half_imp_not_form() const
+{
+    return pwff(new Imp(pwff(new Not(this->a)), this->b));
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> Or::get_type_prover() const
+{
+    return LibraryToolbox::build_prover4({}, "wff ( ph \\/ ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> Or::get_imp_not_prover() const
+{
+    Prover first = LibraryToolbox::build_prover4({}, "|- ( ( ph \\/ ps ) <-> ( -. ph -> ps ) )", {{"ph", this->a->get_type_prover()}, {"ps", this->b->get_type_prover()}}, {});
+    Prover second = this->half_imp_not_form()->get_imp_not_prover();
+    Prover compose = LibraryToolbox::build_prover4({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )",
+        {{"ph", this->get_type_prover()}, {"ps", this->half_imp_not_form()->get_type_prover()}, {"ch", this->imp_not_form()->get_type_prover()}}, {first, second});
+    return compose;
+}
+
 std::vector<SymTok> Or::to_sentence(const LibraryInterface &lib) const
 {
     vector< SymTok > ret;
@@ -336,8 +443,12 @@ string And::to_string() const {
     return "( " + this->a->to_string() + " /\\ " + this->b->to_string() + " )";
 }
 
-pwff And::imp_not_form() const {
-    // Using df-an
+pwff And::half_imp_not_form() const {
+    return pwff(new Not(pwff(new Imp(this->a, pwff(new Not(this->b))))));
+}
+
+pwff And::imp_not_form() const
+{
     return pwff(new Not(pwff(new Imp(this->a->imp_not_form(), pwff(new Not(this->b->imp_not_form()))))));
 }
 
@@ -352,4 +463,37 @@ std::vector<SymTok> And::to_sentence(const LibraryInterface &lib) const
     copy(sentb.begin(), sentb.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol(")"));
     return ret;
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> And::get_type_prover() const
+{
+    return LibraryToolbox::build_prover4({}, "wff ( ph /\\ ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> And::get_imp_not_prover() const
+{
+    Prover first = LibraryToolbox::build_prover4({}, "|- ( ( ph /\\ ps ) <-> -. ( ph -> -. ps ) )", {{"ph", this->a->get_type_prover()}, {"ps", this->b->get_type_prover()}}, {});
+    Prover second = this->half_imp_not_form()->get_imp_not_prover();
+    Prover compose = LibraryToolbox::build_prover4({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )",
+        {{"ph", this->get_type_prover()}, {"ps", this->half_imp_not_form()->get_type_prover()}, {"ch", this->imp_not_form()->get_type_prover()}}, {first, second});
+    return compose;
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> ConvertibleWff::get_truth_prover() const
+{
+    //return null_prover;
+    return LibraryToolbox::build_prover4({"|- ( ps <-> ph )", "|- ph"}, "|- ps", {{"ph", this->imp_not_form()->get_type_prover()}, {"ps", this->get_type_prover()}}, {this->get_imp_not_prover(), this->imp_not_form()->get_truth_prover()});
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> ConvertibleWff::get_falsity_prover() const
+{
+    //return null_prover;
+    return LibraryToolbox::build_prover4({"|- ( ps <-> ph )", "|- -. ph"}, "|- -. ps", {{"ph", this->imp_not_form()->get_type_prover()}, {"ps", this->get_type_prover()}}, {this->get_imp_not_prover(), this->imp_not_form()->get_falsity_prover()});
+}
+
+std::function<bool (const LibraryInterface &, ProofEngine &)> ConvertibleWff::get_type_prover() const
+{
+    // Disabled, because ordinarily I do not want to use this generic and probably inefficient method
+    return null_prover;
+    return LibraryToolbox::build_type_prover2("wff " + this->to_string());
 }

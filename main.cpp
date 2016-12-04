@@ -240,7 +240,7 @@ void test() {
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
 
-        if (true) {
+        if (false) {
             cout << "Type proving test" << endl;
             //auto res = lib.prove_type(parse_sentence("wff ( x = y -> ps )", lib));
             auto res = lib.prove_type(parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )", lib));
@@ -248,29 +248,91 @@ void test() {
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
 
+        vector< pwff > wffs = { pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
+                                pwff(new Var("ph")), pwff(new Not(pwff(new Var("ph")))),
+                                pwff(new Imp(pwff(new True()), pwff(new True()))),
+                                pwff(new Imp(pwff(new True()), pwff(new False()))),
+                                pwff(new Imp(pwff(new False()), pwff(new True()))),
+                                pwff(new Imp(pwff(new False()), pwff(new False()))),
+                                pwff(new Biimp(pwff(new True()), pwff(new True()))),
+                                pwff(new Biimp(pwff(new True()), pwff(new False()))),
+                                pwff(new Biimp(pwff(new False()), pwff(new True()))),
+                                pwff(new Biimp(pwff(new False()), pwff(new False()))),
+                                pwff(new And(pwff(new True()), pwff(new True()))),
+                                pwff(new And(pwff(new True()), pwff(new False()))),
+                                pwff(new And(pwff(new False()), pwff(new True()))),
+                                pwff(new And(pwff(new False()), pwff(new False()))),
+                                pwff(new Or(pwff(new True()), pwff(new True()))),
+                                pwff(new Or(pwff(new True()), pwff(new False()))),
+                                pwff(new Or(pwff(new False()), pwff(new True()))),
+                                pwff(new Or(pwff(new False()), pwff(new False()))),
+                                pwff(new Nand(pwff(new True()), pwff(new True()))),
+                                pwff(new Nand(pwff(new True()), pwff(new False()))),
+                                pwff(new Nand(pwff(new False()), pwff(new True()))),
+                                pwff(new Nand(pwff(new False()), pwff(new False()))),
+                                pwff(new Xor(pwff(new True()), pwff(new True()))),
+                                pwff(new Xor(pwff(new True()), pwff(new False()))),
+                                pwff(new Xor(pwff(new False()), pwff(new True()))),
+                                pwff(new Xor(pwff(new False()), pwff(new False()))),
+                                pwff(new Imp(pwff(new Var("ph")), pwff(new Var("ps")))),
+                                pwff(new And(pwff(new Var("ph")), pwff(new Var("ps")))),
+                                pwff(new And(pwff(new True()), pwff(new And(pwff(new Var("ph")), pwff(new False()))))),
+                                pwff(new And(pwff(new False()), pwff(new And(pwff(new True()), pwff(new True()))))),
+                              };
+
         if (true) {
-            cout << "WFF proving test" << endl;
-            vector< pwff > wffs = { pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
-                                    pwff(new Imp(pwff(new True()), pwff(new True()))),
-                                    pwff(new Imp(pwff(new True()), pwff(new False()))),
-                                    pwff(new Imp(pwff(new False()), pwff(new True()))),
-                                    pwff(new Imp(pwff(new False()), pwff(new False()))),
-                                  };
+            cout << "WFF type proving test" << endl;
             for (pwff &wff : wffs) {
                 //wff->prove_type(lib, engine);
                 cout << "WFF: " << wff->to_string() << endl;
                 {
                     ProofEngine engine(lib);
-                    wff->prove_true(lib, engine);
+                    wff->get_type_prover()(lib, engine);
+                    if (engine.get_proof().size() > 0) {
+                        cout << "type proof: " << lib.print_proof(engine.get_proof()) << endl;
+                        cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
+                    }
+                }
+                cout << endl;
+            }
+        }
+
+        if (true) {
+            cout << "WFF proving test" << endl;
+            for (pwff &wff : wffs) {
+                //wff->prove_type(lib, engine);
+                cout << "WFF: " << wff->to_string() << endl;
+                {
+                    ProofEngine engine(lib);
+                    wff->get_truth_prover()(lib, engine);
                     if (engine.get_proof().size() > 0) {
                         cout << "Truth proof: " << lib.print_proof(engine.get_proof()) << endl;
+                        cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
                 {
                     ProofEngine engine(lib);
-                    wff->prove_false(lib, engine);
+                    wff->get_falsity_prover()(lib, engine);
                     if (engine.get_proof().size() > 0) {
                         cout << "Falsity proof: " << lib.print_proof(engine.get_proof()) << endl;
+                        cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
+                    }
+                }
+                cout << endl;
+            }
+        }
+
+        if (true) {
+            cout << "WFF not_imp normal form test" << endl;
+            for (pwff &wff : wffs) {
+                //wff->prove_type(lib, engine);
+                cout << "WFF: " << wff->to_string() << endl;
+                {
+                    ProofEngine engine(lib);
+                    wff->get_imp_not_prover()(lib, engine);
+                    if (engine.get_proof().size() > 0) {
+                        cout << "not_imp proof: " << lib.print_proof(engine.get_proof()) << endl;
+                        cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
                 cout << endl;

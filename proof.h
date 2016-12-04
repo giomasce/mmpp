@@ -43,7 +43,7 @@ private:
     std::vector< std::vector< SymTok > > stack;
     std::set< std::pair< SymTok, SymTok > > dists;
     std::vector< LabTok > proof;
-    std::vector< std::tuple< int, std::set< std::pair< SymTok, SymTok > >, int > > checkpoints;
+    std::vector< std::tuple< size_t, std::set< std::pair< SymTok, SymTok > >, size_t > > checkpoints;
 };
 
 class ProofExecutor {
