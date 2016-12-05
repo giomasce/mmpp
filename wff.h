@@ -20,11 +20,13 @@ public:
     virtual pwff imp_not_form() const = 0;
     virtual pwff subst(std::string var, bool positive) const = 0;
     virtual std::vector< SymTok > to_sentence(const LibraryInterface &lib) const = 0;
+    virtual void get_variables(std::set< std::string > &vars) const = 0;
     virtual Prover get_truth_prover() const;
     virtual Prover get_falsity_prover() const;
     virtual Prover get_type_prover() const;
     virtual Prover get_imp_not_prover() const;
     virtual Prover get_subst_prover(std::string var, bool positive) const;
+    Prover get_adv_truth_prover() const;
 };
 
 class ConvertibleWff : public Wff {
@@ -42,6 +44,7 @@ public:
     pwff imp_not_form() const;
     pwff subst(std::string var, bool positive) const;
     std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
+    void get_variables(std::set< std::string > &vars) const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_truth_prover() const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_imp_not_prover() const;
@@ -55,6 +58,7 @@ public:
     pwff imp_not_form() const;
     pwff subst(std::string var, bool positive) const;
     std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
+    void get_variables(std::set< std::string > &vars) const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_falsity_prover() const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_imp_not_prover() const;
@@ -68,6 +72,7 @@ public:
   pwff imp_not_form() const;
   pwff subst(std::string var, bool positive) const;
   std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
+  void get_variables(std::set< std::string > &vars) const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_imp_not_prover() const;
   Prover get_subst_prover(std::string var, bool positive) const;
@@ -83,6 +88,7 @@ public:
   pwff imp_not_form() const;
   pwff subst(std::string var, bool positive) const;
   std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
+  void get_variables(std::set< std::string > &vars) const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_truth_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_falsity_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
@@ -100,6 +106,7 @@ public:
   pwff imp_not_form() const;
   pwff subst(std::string var, bool positive) const;
   std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
+  void get_variables(std::set< std::string > &vars) const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_truth_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_falsity_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
@@ -117,6 +124,7 @@ public:
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
   std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
+  void get_variables(std::set< std::string > &vars) const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_imp_not_prover() const;
 
@@ -131,6 +139,7 @@ public:
   std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
+  void get_variables(std::set< std::string > &vars) const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_imp_not_prover() const;
 
@@ -145,6 +154,7 @@ public:
   std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
+  void get_variables(std::set< std::string > &vars) const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_imp_not_prover() const;
 
@@ -159,6 +169,7 @@ public:
   std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
+  void get_variables(std::set< std::string > &vars) const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_imp_not_prover() const;
 
@@ -173,6 +184,7 @@ public:
   std::vector<SymTok> to_sentence(const LibraryInterface &lib) const;
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
+  void get_variables(std::set< std::string > &vars) const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_imp_not_prover() const;
 

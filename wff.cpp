@@ -34,6 +34,43 @@ Prover Wff::get_subst_prover(string var, bool positive) const
     return null_prover;
 }
 
+static Prover adv_truth_internal(pwff wff, set< string >::iterator cur_var, set< string >::iterator end_var) {
+    if (cur_var == end_var) {
+        return wff->get_truth_prover();
+    } else {
+        string var = *cur_var++;
+        pwff pos_wff = wff->subst(var, true);
+        pwff neg_wff = wff->subst(var, false);
+        pwff pos_antecent = pwff(new Var(var));
+        pwff neg_antecent = pwff(new Not(pwff(new Var(var))));
+        Prover rec_pos_prover = adv_truth_internal(pos_wff, cur_var, end_var);
+        Prover rec_neg_prover = adv_truth_internal(neg_wff, cur_var, end_var);
+        Prover pos_prover = wff->get_subst_prover(var, true);
+        Prover neg_prover = wff->get_subst_prover(var, false);
+        Prover pos_mp_prover = LibraryToolbox::build_prover4({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )",
+            {{"ph", pos_antecent->get_type_prover()}, {"ps", wff->get_type_prover()}, {"ch", pos_wff->get_type_prover()}},
+            {rec_pos_prover, pos_prover});
+        Prover neg_mp_prover = LibraryToolbox::build_prover4({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )",
+            {{"ph", neg_antecent->get_type_prover()}, {"ps", wff->get_type_prover()}, {"ch", neg_wff->get_type_prover()}},
+            {rec_neg_prover, neg_prover});
+        Prover final = LibraryToolbox::build_prover4({"|- ( ph -> ps )", "|- ( -. ph -> ps )"}, "|- ps",
+            {{"ph", pos_antecent->get_type_prover()}, {"ps", wff->get_type_prover()}},
+            {pos_mp_prover, neg_mp_prover});
+        return final;
+    }
+}
+
+Prover Wff::get_adv_truth_prover() const
+{
+    pwff not_imp = this->imp_not_form();
+    set< string > vars;
+    this->get_variables(vars);
+    Prover real = adv_truth_internal(not_imp, vars.begin(), vars.end());
+    Prover equiv = this->get_imp_not_prover();
+    Prover final = LibraryToolbox::build_prover4({"|- ps", "|- ( ph <-> ps )"}, "|- ph", {{"ph", this->get_type_prover()}, {"ps", not_imp->get_type_prover()}}, {real, equiv});
+    return final;
+}
+
 True::True() {
 }
 
@@ -55,6 +92,11 @@ pwff True::subst(string var, bool positive) const
 std::vector<SymTok> True::to_sentence(const LibraryInterface &lib) const
 {
     return { lib.get_symbol("T.") };
+}
+
+void True::get_variables(std::set<string> &vars) const
+{
+    (void) vars;
 }
 
 std::function<bool (const LibraryInterface &, ProofEngine &)> True::get_truth_prover() const
@@ -98,6 +140,11 @@ pwff False::subst(string var, bool positive) const
 std::vector<SymTok> False::to_sentence(const LibraryInterface &lib) const
 {
     return { lib.get_symbol("F.") };
+}
+
+void False::get_variables(std::set<string> &vars) const
+{
+    (void) vars;
 }
 
 std::function<bool (const LibraryInterface &, ProofEngine &)> False::get_falsity_prover() const
@@ -148,6 +195,11 @@ pwff Var::subst(string var, bool positive) const
 std::vector<SymTok> Var::to_sentence(const LibraryInterface &lib) const
 {
     return { lib.get_symbol(this->name) };
+}
+
+void Var::get_variables(std::set<string> &vars) const
+{
+    vars.insert(this->name);
 }
 
 std::function<bool (const LibraryInterface &, ProofEngine &)> Var::get_type_prover() const
@@ -214,6 +266,11 @@ std::vector<SymTok> Not::to_sentence(const LibraryInterface &lib) const
     return ret;
 }
 
+void Not::get_variables(std::set<string> &vars) const
+{
+    this->a->get_variables(vars);
+}
+
 std::function<bool (const LibraryInterface &, ProofEngine &)> Not::get_truth_prover() const
 {
     return this->a->get_falsity_prover();
@@ -274,6 +331,12 @@ std::vector<SymTok> Imp::to_sentence(const LibraryInterface &lib) const
     copy(sentb.begin(), sentb.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol(")"));
     return ret;
+}
+
+void Imp::get_variables(std::set<string> &vars) const
+{
+    this->a->get_variables(vars);
+    this->b->get_variables(vars);
 }
 
 std::function<bool (const LibraryInterface &, ProofEngine &)> Imp::get_truth_prover() const
@@ -352,6 +415,12 @@ std::vector<SymTok> Biimp::to_sentence(const LibraryInterface &lib) const
     return ret;
 }
 
+void Biimp::get_variables(std::set<string> &vars) const
+{
+    this->a->get_variables(vars);
+    this->b->get_variables(vars);
+}
+
 std::function<bool (const LibraryInterface &, ProofEngine &)> Biimp::get_type_prover() const
 {
     return LibraryToolbox::build_prover4({}, "wff ( ph <-> ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
@@ -381,6 +450,12 @@ pwff Xor::imp_not_form() const {
 pwff Xor::half_imp_not_form() const
 {
     return pwff(new Not(pwff(new Biimp(this->a, this->b))));
+}
+
+void Xor::get_variables(std::set<string> &vars) const
+{
+    this->a->get_variables(vars);
+    this->b->get_variables(vars);
 }
 
 std::function<bool (const LibraryInterface &, ProofEngine &)> Xor::get_type_prover() const
@@ -427,6 +502,12 @@ pwff Nand::half_imp_not_form() const
     return pwff(new Not(pwff(new And(this->a, this->b))));
 }
 
+void Nand::get_variables(std::set<string> &vars) const
+{
+    this->a->get_variables(vars);
+    this->b->get_variables(vars);
+}
+
 std::function<bool (const LibraryInterface &, ProofEngine &)> Nand::get_type_prover() const
 {
     return LibraryToolbox::build_prover4({}, "wff ( ph -/\\ ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
@@ -471,6 +552,12 @@ pwff Or::half_imp_not_form() const
     return pwff(new Imp(pwff(new Not(this->a)), this->b));
 }
 
+void Or::get_variables(std::set<string> &vars) const
+{
+    this->a->get_variables(vars);
+    this->b->get_variables(vars);
+}
+
 std::function<bool (const LibraryInterface &, ProofEngine &)> Or::get_type_prover() const
 {
     return LibraryToolbox::build_prover4({}, "wff ( ph \\/ ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
@@ -508,6 +595,12 @@ string And::to_string() const {
 
 pwff And::half_imp_not_form() const {
     return pwff(new Not(pwff(new Imp(this->a, pwff(new Not(this->b))))));
+}
+
+void And::get_variables(std::set<string> &vars) const
+{
+    this->a->get_variables(vars);
+    this->b->get_variables(vars);
 }
 
 pwff And::imp_not_form() const

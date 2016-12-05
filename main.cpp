@@ -281,7 +281,7 @@ void test() {
                                 pwff(new And(pwff(new False()), pwff(new And(pwff(new True()), pwff(new True()))))),
                               };
 
-        if (true) {
+        if (false) {
             cout << "WFF type proving test" << endl;
             for (pwff &wff : wffs) {
                 //wff->prove_type(lib, engine);
@@ -298,7 +298,7 @@ void test() {
             }
         }
 
-        if (true) {
+        if (false) {
             cout << "WFF proving test" << endl;
             for (pwff &wff : wffs) {
                 cout << "WFF: " << wff->to_string() << endl;
@@ -322,7 +322,7 @@ void test() {
             }
         }
 
-        if (true) {
+        if (false) {
             cout << "WFF not_imp normal form test" << endl;
             for (pwff &wff : wffs) {
                 cout << "WFF: " << wff->to_string() << endl;
@@ -338,7 +338,7 @@ void test() {
             }
         }
 
-        if (true) {
+        if (false) {
             cout << "WFF subst ph test" << endl;
             for (pwff &wff : wffs) {
                 cout << "WFF: " << wff->to_string() << endl;
@@ -356,6 +356,29 @@ void test() {
                     if (engine.get_proof().size() > 0) {
                         cout << "subst -. ph proof: " << lib.print_proof(engine.get_proof()) << endl;
                         cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
+                    }
+                }
+                cout << endl;
+            }
+        }
+
+        vector< pwff > wffs2 = { pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
+                                 pwff(new Imp(pwff(new Var("ph")), pwff(new Var("ph")))),
+                                 pwff(new Biimp(pwff(new Nand(pwff(new Var("ph")), pwff(new Nand(pwff(new Var("ch")), pwff(new Var("ps")))))),
+                                                pwff(new Imp(pwff(new Var("ph")), pwff(new And(pwff(new Var("ch")), pwff(new Var("ps")))))))),
+                               };
+
+        if (true) {
+            cout << "WFF adv_truth test" << endl;
+            for (pwff &wff : wffs2) {
+                cout << "WFF: " << wff->to_string() << endl;
+                {
+                    ProofEngine engine(lib);
+                    wff->get_adv_truth_prover()(lib, engine);
+                    if (engine.get_proof().size() > 0) {
+                        cout << "adv truth proof: " << lib.print_proof(engine.get_proof()) << endl;
+                        cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
+                        cout << "proof length: " << engine.get_proof().size() << endl;
                     }
                 }
                 cout << endl;
