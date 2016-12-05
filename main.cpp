@@ -250,6 +250,7 @@ void test() {
 
         vector< pwff > wffs = { pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
                                 pwff(new Var("ph")), pwff(new Not(pwff(new Var("ph")))),
+                                pwff(new Var("ps")), pwff(new Not(pwff(new Var("ps")))),
                                 pwff(new Imp(pwff(new True()), pwff(new True()))),
                                 pwff(new Imp(pwff(new True()), pwff(new False()))),
                                 pwff(new Imp(pwff(new False()), pwff(new True()))),
@@ -300,7 +301,6 @@ void test() {
         if (true) {
             cout << "WFF proving test" << endl;
             for (pwff &wff : wffs) {
-                //wff->prove_type(lib, engine);
                 cout << "WFF: " << wff->to_string() << endl;
                 {
                     ProofEngine engine(lib);
@@ -325,13 +325,36 @@ void test() {
         if (true) {
             cout << "WFF not_imp normal form test" << endl;
             for (pwff &wff : wffs) {
-                //wff->prove_type(lib, engine);
                 cout << "WFF: " << wff->to_string() << endl;
                 {
                     ProofEngine engine(lib);
                     wff->get_imp_not_prover()(lib, engine);
                     if (engine.get_proof().size() > 0) {
                         cout << "not_imp proof: " << lib.print_proof(engine.get_proof()) << endl;
+                        cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
+                    }
+                }
+                cout << endl;
+            }
+        }
+
+        if (true) {
+            cout << "WFF subst ph test" << endl;
+            for (pwff &wff : wffs) {
+                cout << "WFF: " << wff->to_string() << endl;
+                {
+                    ProofEngine engine(lib);
+                    wff->get_subst_prover("ph", true)(lib, engine);
+                    if (engine.get_proof().size() > 0) {
+                        cout << "subst ph proof: " << lib.print_proof(engine.get_proof()) << endl;
+                        cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
+                    }
+                }
+                {
+                    ProofEngine engine(lib);
+                    wff->get_subst_prover("ph", false)(lib, engine);
+                    if (engine.get_proof().size() > 0) {
+                        cout << "subst -. ph proof: " << lib.print_proof(engine.get_proof()) << endl;
                         cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }

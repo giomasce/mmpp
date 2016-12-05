@@ -8,6 +8,7 @@
 
 #include "library.h"
 #include "proof.h"
+#include "toolbox.h"
 
 class Wff;
 typedef std::shared_ptr< Wff > pwff;
@@ -17,15 +18,18 @@ public:
     virtual ~Wff();
     virtual std::string to_string() const = 0;
     virtual pwff imp_not_form() const = 0;
+    virtual pwff subst(std::string var, bool positive) const = 0;
     virtual std::vector< SymTok > to_sentence(const LibraryInterface &lib) const = 0;
-    virtual std::function< bool(const LibraryInterface&, ProofEngine&) > get_truth_prover() const;
-    virtual std::function< bool(const LibraryInterface&, ProofEngine&) > get_falsity_prover() const;
-    virtual std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
-    virtual std::function< bool(const LibraryInterface&, ProofEngine&) > get_imp_not_prover() const;
+    virtual Prover get_truth_prover() const;
+    virtual Prover get_falsity_prover() const;
+    virtual Prover get_type_prover() const;
+    virtual Prover get_imp_not_prover() const;
+    virtual Prover get_subst_prover(std::string var, bool positive) const;
 };
 
 class ConvertibleWff : public Wff {
 public:
+    pwff subst(std::string var, bool positive) const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_truth_prover() const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_falsity_prover() const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
@@ -36,10 +40,12 @@ public:
     True();
     std::string to_string() const;
     pwff imp_not_form() const;
+    pwff subst(std::string var, bool positive) const;
     std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_truth_prover() const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_imp_not_prover() const;
+    Prover get_subst_prover(std::string var, bool positive) const;
 };
 
 class False : public Wff {
@@ -47,10 +53,12 @@ public:
     False();
     std::string to_string() const;
     pwff imp_not_form() const;
+    pwff subst(std::string var, bool positive) const;
     std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_falsity_prover() const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
     std::function< bool(const LibraryInterface&, ProofEngine&) > get_imp_not_prover() const;
+    Prover get_subst_prover(std::string var, bool positive) const;
 };
 
 class Var : public Wff {
@@ -58,9 +66,11 @@ public:
   Var(std::string name);
   std::string to_string() const;
   pwff imp_not_form() const;
+  pwff subst(std::string var, bool positive) const;
   std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_imp_not_prover() const;
+  Prover get_subst_prover(std::string var, bool positive) const;
 
 private:
   std::string name;
@@ -71,11 +81,13 @@ public:
   Not(pwff a);
   std::string to_string() const;
   pwff imp_not_form() const;
+  pwff subst(std::string var, bool positive) const;
   std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_truth_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_falsity_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_imp_not_prover() const;
+  Prover get_subst_prover(std::string var, bool positive) const;
 
 private:
   pwff a;
@@ -86,11 +98,13 @@ public:
   Imp(pwff a, pwff b);
   std::string to_string() const;
   pwff imp_not_form() const;
+  pwff subst(std::string var, bool positive) const;
   std::vector< SymTok > to_sentence(const LibraryInterface &lib) const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_truth_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_falsity_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_type_prover() const;
   std::function< bool(const LibraryInterface&, ProofEngine&) > get_imp_not_prover() const;
+  Prover get_subst_prover(std::string var, bool positive) const;
 
 private:
   pwff a, b;

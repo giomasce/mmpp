@@ -1,5 +1,4 @@
 
-#include "toolbox.h"
 #include "wff.h"
 
 using namespace std;
@@ -8,23 +7,30 @@ Wff::~Wff()
 {
 }
 
-std::function<bool (const LibraryInterface &, ProofEngine &)> Wff::get_truth_prover() const
+Prover Wff::get_truth_prover() const
 {
     return null_prover;
 }
 
-std::function<bool (const LibraryInterface &, ProofEngine &)> Wff::get_falsity_prover() const
+Prover Wff::get_falsity_prover() const
 {
     return null_prover;
 }
 
-std::function<bool (const LibraryInterface &, ProofEngine &)> Wff::get_type_prover() const
+Prover Wff::get_type_prover() const
 {
     return null_prover;
 }
 
-std::function<bool (const LibraryInterface &, ProofEngine &)> Wff::get_imp_not_prover() const
+Prover Wff::get_imp_not_prover() const
 {
+    return null_prover;
+}
+
+Prover Wff::get_subst_prover(string var, bool positive) const
+{
+    (void) var;
+    (void) positive;
     return null_prover;
 }
 
@@ -36,6 +42,13 @@ string True::to_string() const {
 }
 
 pwff True::imp_not_form() const {
+    return pwff(new True());
+}
+
+pwff True::subst(string var, bool positive) const
+{
+    (void) var;
+    (void) positive;
     return pwff(new True());
 }
 
@@ -59,6 +72,11 @@ std::function<bool (const LibraryInterface &, ProofEngine &)> True::get_imp_not_
     return LibraryToolbox::build_prover4({}, "|- ( T. <-> T. )", {}, {});
 }
 
+Prover True::get_subst_prover(string var, bool positive) const
+{
+    return LibraryToolbox::build_prover4({}, string("|- ( ") + (positive ? "" : "-. ") + var + " -> ( T. <-> T. ) )", {}, {});
+}
+
 False::False() {
 }
 
@@ -67,6 +85,13 @@ string False::to_string() const {
 }
 
 pwff False::imp_not_form() const {
+    return pwff(new False());
+}
+
+pwff False::subst(string var, bool positive) const
+{
+    (void) var;
+    (void) positive;
     return pwff(new False());
 }
 
@@ -90,6 +115,11 @@ std::function<bool (const LibraryInterface &, ProofEngine &)> False::get_imp_not
     return LibraryToolbox::build_prover4({}, "|- ( F. <-> F. )", {}, {});
 }
 
+Prover False::get_subst_prover(string var, bool positive) const
+{
+    return LibraryToolbox::build_prover4({}, string("|- ( ") + (positive ? "" : "-. ") + var + " -> ( F. <-> F. ) )", {}, {});
+}
+
 Var::Var(string name) :
     name(name) {
 }
@@ -100,6 +130,19 @@ string Var::to_string() const {
 
 pwff Var::imp_not_form() const {
     return pwff(new Var(this->name));
+}
+
+pwff Var::subst(string var, bool positive) const
+{
+    if (this->name == var) {
+        if (positive) {
+            return pwff(new True());
+        } else {
+            return pwff(new False());
+        }
+    } else {
+        return pwff(new Var(this->name));
+    }
 }
 
 std::vector<SymTok> Var::to_sentence(const LibraryInterface &lib) const
@@ -117,6 +160,34 @@ std::function<bool (const LibraryInterface &, ProofEngine &)> Var::get_imp_not_p
     return LibraryToolbox::build_prover4({}, "|- ( " + this->name + " <-> " + this->name + " )", {{"ph", this->get_type_prover()}}, {});
 }
 
+Prover Var::get_subst_prover(string var, bool positive) const
+{
+    if (var == this->name) {
+        if (positive) {
+            string first_sent = "|- ( T. -> ( " + var + " -> ( T. <-> " + var + " ) ) )";
+            string second_sent = "|- ( " + var + " -> ( T. <-> " + var + " ) )";
+            string third_sent = "|- ( " + var + " -> ( " + var + " <-> T. ) )";
+            Prover first = LibraryToolbox::build_prover4({}, first_sent, {{var, this->get_type_prover()}}, {});
+            Prover truth = LibraryToolbox::build_prover4({}, "|- T.", {}, {});
+            Prover second = LibraryToolbox::build_prover4({"|- T.", first_sent}, second_sent, {{var, this->get_type_prover()}}, {truth, first});
+            Prover third = LibraryToolbox::build_prover4({second_sent}, third_sent, {{var, this->get_type_prover()}}, {second});
+            return third;
+        } else {
+            string first_sent = "|- ( -. F. -> ( -. " + var + " -> ( F. <-> " + var + " ) ) )";
+            string second_sent = "|- ( -. " + var + " -> ( F. <-> " + var + " ) )";
+            string third_sent = "|- ( -. " + var + " -> ( " + var + " <-> F. ) )";
+            Prover first = LibraryToolbox::build_prover4({}, first_sent, {{var, this->get_type_prover()}}, {});
+            Prover truth = LibraryToolbox::build_prover4({}, "|- -. F.", {}, {});
+            Prover second = LibraryToolbox::build_prover4({"|- -. F.", first_sent}, second_sent, {{var, this->get_type_prover()}}, {truth, first});
+            Prover third = LibraryToolbox::build_prover4({second_sent}, third_sent, {{var, this->get_type_prover()}}, {second});
+            return third;
+        }
+        //return LibraryToolbox::build_prover4({}, string("|- ( ") + (positive ? "" : "-. ") + var + " -> ( " + this->name + " <-> " + (positive ? "T." : "F.") + " ) )", {}, {});
+    } else {
+        return LibraryToolbox::build_prover4({}, string("|- ( ") + (positive ? "" : "-. ") + var + " -> ( " + this->name + " <-> " + this->name + " ) )", {}, {});
+    }
+}
+
 Not::Not(pwff a) :
     a(a) {
 }
@@ -126,8 +197,12 @@ string Not::to_string() const {
 }
 
 pwff Not::imp_not_form() const {
-    // Already fundamental
     return pwff(new Not(this->a->imp_not_form()));
+}
+
+pwff Not::subst(string var, bool positive) const
+{
+    return pwff(new Not(this->a->subst(var, positive)));
 }
 
 std::vector<SymTok> Not::to_sentence(const LibraryInterface &lib) const
@@ -159,6 +234,18 @@ std::function<bool (const LibraryInterface &, ProofEngine &)> Not::get_imp_not_p
     return LibraryToolbox::build_prover4({"|- ( ph <-> ps )"}, "|- ( -. ph <-> -. ps )", {{"ph", this->a->get_type_prover()}, {"ps", this->a->imp_not_form()->get_type_prover() }}, { this->a->get_imp_not_prover() });
 }
 
+Prover Not::get_subst_prover(string var, bool positive) const
+{
+    pwff antecent;
+    if (positive) {
+        antecent = pwff(new Var(var));
+    } else {
+        antecent = pwff(new Not(pwff(new Var(var))));
+    }
+    return LibraryToolbox::build_prover4({"|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ( -. ps <-> -. ch ) )",
+        {{"ph", antecent->get_type_prover()}, {"ps", this->a->get_type_prover()}, {"ch", this->a->subst(var, positive)->get_type_prover()}}, {this->a->get_subst_prover(var, positive)});
+}
+
 Imp::Imp(pwff a, pwff b) :
     a(a), b(b) {
 }
@@ -169,6 +256,11 @@ string Imp::to_string() const {
 
 pwff Imp::imp_not_form() const {
     return pwff(new Imp(this->a->imp_not_form(), this->b->imp_not_form()));
+}
+
+pwff Imp::subst(string var, bool positive) const
+{
+    return pwff(new Imp(this->a->subst(var, positive), this->b->subst(var, positive)));
 }
 
 std::vector<SymTok> Imp::to_sentence(const LibraryInterface &lib) const
@@ -210,7 +302,20 @@ std::function<bool (const LibraryInterface &, ProofEngine &)> Imp::get_imp_not_p
 {
     return LibraryToolbox::build_prover4({"|- ( ph <-> ps )", "|- ( ch <-> th )"}, "|- ( ( ph -> ch ) <-> ( ps -> th ) )",
         {{"ph", this->a->get_type_prover()}, {"ps", this->a->imp_not_form()->get_type_prover() }, {"ch", this->b->get_type_prover()}, {"th", this->b->imp_not_form()->get_type_prover()}},
-        { this->a->get_imp_not_prover(), this->b->get_imp_not_prover() });
+    { this->a->get_imp_not_prover(), this->b->get_imp_not_prover() });
+}
+
+Prover Imp::get_subst_prover(string var, bool positive) const
+{
+    pwff antecent;
+    if (positive) {
+        antecent = pwff(new Var(var));
+    } else {
+        antecent = pwff(new Not(pwff(new Var(var))));
+    }
+    return LibraryToolbox::build_prover4({"|- ( ph -> ( ps <-> ch ) )", "|- ( ph -> ( th <-> ta ) )"}, "|- ( ph -> ( ( ps -> th ) <-> ( ch -> ta ) ) )",
+        {{"ph", antecent->get_type_prover()}, {"ps", this->a->get_type_prover()}, {"ch", this->a->subst(var, positive)->get_type_prover()}, {"th", this->b->get_type_prover()}, {"ta", this->b->subst(var, positive)->get_type_prover()}},
+        {this->a->get_subst_prover(var, positive), this->b->get_subst_prover(var, positive)});
 }
 
 Biimp::Biimp(pwff a, pwff b) :
@@ -435,6 +540,11 @@ std::function<bool (const LibraryInterface &, ProofEngine &)> And::get_imp_not_p
     Prover compose = LibraryToolbox::build_prover4({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )",
         {{"ph", this->get_type_prover()}, {"ps", this->half_imp_not_form()->get_type_prover()}, {"ch", this->imp_not_form()->get_type_prover()}}, {first, second});
     return compose;
+}
+
+pwff ConvertibleWff::subst(string var, bool positive) const
+{
+    return this->imp_not_form()->subst(var, positive);
 }
 
 std::function<bool (const LibraryInterface &, ProofEngine &)> ConvertibleWff::get_truth_prover() const
