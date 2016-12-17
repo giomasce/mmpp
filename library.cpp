@@ -150,7 +150,7 @@ std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok
 std::vector<LabTok> Library::prove_type(const std::vector<SymTok> &type_sent) const {
     ProofEngine engine(*this);
     LibraryToolbox tb(*this);
-    if (tb.type_proving_helper(type_sent, engine)) {
+    if (tb.classical_type_proving_helper(type_sent, engine)) {
         return engine.get_proof();
     } else {
         return {};

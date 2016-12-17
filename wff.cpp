@@ -343,7 +343,7 @@ std::function<bool (const LibraryInterface &, ProofEngine &)> Imp::get_truth_pro
 {
     Prover first_prover = LibraryToolbox::build_prover4({ "|- ps" }, "|- ( ph -> ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, { this->b->get_truth_prover() });
     Prover second_prover = LibraryToolbox::build_prover4({ "|- -. ph" }, "|- ( ph -> ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, { this->a->get_falsity_prover() });
-    return LibraryToolbox::compose_provers(first_prover, second_prover);
+    return LibraryToolbox::cascade_provers(first_prover, second_prover);
 }
 
 std::function<bool (const LibraryInterface &, ProofEngine &)> Imp::get_falsity_prover() const

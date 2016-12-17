@@ -58,7 +58,7 @@ bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &te
 
     // Compute floating hypotheses
     for (size_t i = 0; i < ass.get_num_floating(); i++) {
-        bool res = this->type_proving_helper(this->substitute(this->lib.get_sentence(ass.get_mand_hyps()[i]), ass_map), engine, types_provers);
+        bool res = this->classical_type_proving_helper(this->substitute(this->lib.get_sentence(ass.get_mand_hyps()[i]), ass_map), engine, types_provers);
         if (!res) {
             engine.rollback();
             return false;
@@ -96,7 +96,7 @@ bool LibraryToolbox::proving_helper4(const std::vector<string> &templ_hyps, cons
     return this->proving_helper3(templ_hyps_sent, templ_thesis_sent, types_provers_sym, hyps_provers, engine);
 }
 
-bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, ProofEngine &engine, const std::unordered_map<SymTok, Prover> &var_provers) const
+bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &type_sent, ProofEngine &engine, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
     // Iterate over all propositions (maybe just axioms would be enough) with zero essential hypotheses, try to match and recur on all matches;
     // hopefully nearly all branches die early and there is just one real long-standing branch;
@@ -148,7 +148,7 @@ bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, P
                 vector< SymTok > new_type_sent = { type };
                 // TODO This is not very efficient
                 copy(subst.begin(), subst.end(), back_inserter(new_type_sent));
-                bool res = this->type_proving_helper(new_type_sent, engine, var_provers);
+                bool res = this->classical_type_proving_helper(new_type_sent, engine, var_provers);
                 if (!res) {
                     failed = true;
                     engine.rollback();
@@ -165,13 +165,26 @@ bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, P
     return false;
 }
 
-static void earley_type_unwind_tree(const EarleyTreeItem &tree, ProofEngine &engine) {
-    auto comparator = [](const EarleyTreeItem &a, const EarleyTreeItem &b){ return a.label < b.label; };
-    vector< EarleyTreeItem > children;
-    copy(tree.children.begin(), tree.children.end(), back_inserter(children));
-    sort(children.begin(), children.end(), comparator);
-    for (auto &child : children) {
-        earley_type_unwind_tree(child, engine);
+static void earley_type_unwind_tree(const EarleyTreeItem &tree, ProofEngine &engine, const LibraryInterface &lib) {
+    // We need to sort children according to their order as floating hypotheses of this assertion
+    // If this is not an assertion, then there are no children
+    const Assertion &ass = lib.get_assertion(tree.label);
+    if (ass.is_valid()) {
+        unordered_map< SymTok, const EarleyTreeItem* > children;
+        auto it = tree.children.begin();
+        for (auto &tok : lib.get_sentence(tree.label)) {
+            if (!lib.is_constant(tok)) {
+                children[tok] = &(*it);
+                it++;
+            }
+        }
+        assert(it == tree.children.end());
+        for (size_t k = 0; k < ass.get_num_floating(); k++) {
+            SymTok tok = lib.get_sentence(ass.get_mand_hyps()[k]).at(1);
+            earley_type_unwind_tree(*children.at(tok), engine, lib);
+        }
+    } else {
+        assert(tree.children.size() == 0);
     }
     engine.process_label(tree.label);
 }
@@ -230,7 +243,7 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
     if (tree.label == 0) {
         return false;
     } else {
-        earley_type_unwind_tree(tree, engine);
+        earley_type_unwind_tree(tree, engine, lib);
         return true;
     }
 }
@@ -248,11 +261,11 @@ Prover LibraryToolbox::build_type_prover2(const std::string &type_sent, const st
     return [=](const LibraryInterface &lib, ProofEngine &engine){
         LibraryToolbox tb(lib);
         vector< SymTok > type_sent2 = lib.parse_sentence(type_sent);
-        return tb.type_proving_helper(type_sent2, engine, var_provers);
+        return tb.classical_type_proving_helper(type_sent2, engine, var_provers);
     };
 }
 
-Prover LibraryToolbox::compose_provers(const Prover &a,  const Prover &b)
+Prover LibraryToolbox::cascade_provers(const Prover &a,  const Prover &b)
 {
     return [=](const LibraryInterface & lib, ProofEngine &engine) {
         bool res;
@@ -265,11 +278,11 @@ Prover LibraryToolbox::compose_provers(const Prover &a,  const Prover &b)
     };
 }
 
-Prover LibraryToolbox::build_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
+Prover LibraryToolbox::build_classical_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
 {
     return [=](const LibraryInterface &lib, ProofEngine &engine){
         LibraryToolbox tb(lib);
-        return tb.type_proving_helper(type_sent, engine, var_provers);
+        return tb.classical_type_proving_helper(type_sent, engine, var_provers);
     };
 }
 

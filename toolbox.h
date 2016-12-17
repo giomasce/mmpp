@@ -23,12 +23,12 @@ public:
                          const std::unordered_map< std::string, Prover > &types_provers,
                          const std::vector< Prover > &hyps_provers);
     static Prover build_type_prover2(const std::string &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {});
-    static Prover build_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {});
+    static Prover build_classical_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {});
     static Prover build_earley_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {});
-    bool type_proving_helper(const std::vector< SymTok > &type_sent, ProofEngine &engine, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
+    bool classical_type_proving_helper(const std::vector< SymTok > &type_sent, ProofEngine &engine, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
     bool earley_type_proving_helper(const std::vector< SymTok > &type_sent, ProofEngine &engine, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
 
-    static Prover compose_provers(const Prover &a, const Prover &b);
+    static Prover cascade_provers(const Prover &a, const Prover &b);
 
 private:
     bool proving_helper3(const std::vector< std::vector< SymTok > > &templ_hyps,

@@ -252,7 +252,7 @@ void test() {
             auto sent = lib.parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
             cout << "Sentence is " << lib.print_sentence(sent) << endl;
             ProofEngine engine(lib);
-            LibraryToolbox::build_earley_type_prover(sent)(lib, engine);
+            LibraryToolbox::build_classical_type_prover(sent)(lib, engine);
             auto res = engine.get_proof();
             cout << "Found type proof: " << lib.print_proof(res) << endl;
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
