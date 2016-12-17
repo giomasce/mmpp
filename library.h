@@ -150,6 +150,7 @@ public:
     virtual const Assertion &get_assertion(LabTok label) const = 0;
     virtual const std::vector< LabTok > &get_types() const = 0;
     virtual const std::vector< LabTok > &get_types_by_var() const = 0;
+    virtual const std::vector< Assertion > &get_assertions() const = 0;
     virtual const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const = 0;
     virtual ~LibraryInterface();
 };
@@ -219,6 +220,7 @@ public:
     const std::vector<SymTok> &get_sentence(LabTok label) const;
     const std::vector< LabTok > &get_types() const;
     const std::vector< LabTok > &get_types_by_var() const;
+    const std::vector< Assertion > &get_assertions() const;
     const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const;
 
 private:

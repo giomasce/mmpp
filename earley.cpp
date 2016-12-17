@@ -16,11 +16,20 @@ struct EarleyState {
     bool operator==(const EarleyState &x) const {
         return this->initial == x.initial && this->current == x.current && this->type == x.type && this->der_lab == x.der_lab && this->der == x.der && this->children == x.children;
     }
+
+    EarleyTreeItem get_tree() {
+        EarleyTreeItem ret;
+        ret.label = this->der_lab;
+        for (auto &child : this->children) {
+            ret.children.push_back(child->get_tree());
+        }
+        return ret;
+    }
 };
 
 // See http://loup-vaillant.fr/tutorials/earley-parsing/recogniser
 // FIXME This version does not support empty derivations
-bool earley(const std::vector<SymTok> &sent, SymTok type, const std::unordered_map<SymTok, std::vector<std::pair< LabTok, std::vector<SymTok> > > > &derivations)
+EarleyTreeItem earley(const std::vector<SymTok> &sent, SymTok type, const std::unordered_map<SymTok, std::vector<std::pair< LabTok, std::vector<SymTok> > > > &derivations)
 {
     /* For every position (plus one end-of-string position) we maintain a list
      * of tuples whose elements are the initial position of that item, the position
@@ -77,8 +86,10 @@ bool earley(const std::vector<SymTok> &sent, SymTok type, const std::unordered_m
     for (size_t j = 0; j < state[sent.size()].size(); j++) {
         EarleyState &cur_state = state[sent.size()][j];
         if (cur_state.initial == 0 && cur_state.current == cur_state.der->size() && cur_state.type == type) {
-            return true;
+            return cur_state.get_tree();
         }
     }
-    return false;
+    EarleyTreeItem ret;
+    ret.label = 0;
+    return ret;
 }

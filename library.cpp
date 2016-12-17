@@ -485,6 +485,11 @@ const std::vector<LabTok> &LibraryCache::get_types_by_var() const
     return this->lib.get_types_by_var();
 }
 
+const std::vector<Assertion> &LibraryCache::get_assertions() const
+{
+    return this->lib.get_assertions();
+}
+
 const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryCache::get_assertions_by_type() const
 {
     return this->lib.get_assertions_by_type();

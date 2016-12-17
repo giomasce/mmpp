@@ -1,6 +1,7 @@
 #include "toolbox.h"
 #include "statics.h"
 #include "unification.h"
+#include "earley.h"
 
 using namespace std;
 
@@ -164,6 +165,76 @@ bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, P
     return false;
 }
 
+static void earley_type_unwind_tree(const EarleyTreeItem &tree, ProofEngine &engine) {
+    auto comparator = [](const EarleyTreeItem &a, const EarleyTreeItem &b){ return a.label < b.label; };
+    vector< EarleyTreeItem > children;
+    copy(tree.children.begin(), tree.children.end(), back_inserter(children));
+    sort(children.begin(), children.end(), comparator);
+    for (auto &child : children) {
+        earley_type_unwind_tree(child, engine);
+    }
+    engine.process_label(tree.label);
+}
+
+// TODO Use var_provers
+bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_sent, ProofEngine &engine, const std::unordered_map<SymTok, Prover> &var_provers) const
+{
+    SymTok type = type_sent[0];
+    vector< SymTok > sent;
+    copy(type_sent.begin(), type_sent.end(), back_inserter(sent));
+
+    // Build the derivation rules; a derivation is created for each $f statement
+    // and for each $a and $p statement without essential hypotheses such that no variable
+    // appears more than once and without distinct variables constraints
+    std::unordered_map<SymTok, std::vector<std::pair< LabTok, std::vector<SymTok> > > > derivations;
+    for (auto &type_lab : this->lib.get_types()) {
+        auto &type_sent = this->lib.get_sentence(type_lab);
+        derivations[type_sent.at(0)].push_back(make_pair(type_lab, vector<SymTok>({type_sent.at(1)})));
+    }
+    for (const Assertion &ass : this->lib.get_assertions()) {
+        if (!ass.is_valid()) {
+            continue;
+        }
+        if (ass.get_mand_hyps().size() - ass.get_num_floating() != 0) {
+            continue;
+        }
+        if (ass.get_mand_dists().size() != 0) {
+            continue;
+        }
+        auto &sent = this->lib.get_sentence(ass.get_thesis());
+        set< SymTok > symbols;
+        bool duplicate = false;
+        for (auto &tok : sent) {
+            if (this->lib.is_constant(tok)) {
+                continue;
+            }
+            if (symbols.find(tok) != symbols.end()) {
+                duplicate = true;
+                break;
+            }
+            symbols.insert(tok);
+        }
+        if (duplicate) {
+            continue;
+        }
+        vector< SymTok > sent2;
+        for (size_t i = 1; i < sent.size(); i++) {
+            auto tok = sent[i];
+            // Variables are replaced with their types
+            sent2.push_back(this->lib.is_constant(tok) ? tok : this->lib.get_sentence(this->lib.get_types_by_var().at(tok)).at(0));
+        }
+        derivations[sent.at(0)].push_back(make_pair(ass.get_thesis(), sent2));
+    }
+
+    EarleyTreeItem tree = earley(sent, type, derivations);
+    if (tree.label == 0) {
+        return false;
+    } else {
+        earley_type_unwind_tree(tree, engine);
+        return true;
+    }
+}
+
 Prover LibraryToolbox::build_prover4(const std::vector<string> &templ_hyps, const string &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers)
 {
     return [=](const LibraryInterface & lib, ProofEngine &engine){
@@ -199,5 +270,13 @@ Prover LibraryToolbox::build_type_prover(const std::vector<SymTok> &type_sent, c
     return [=](const LibraryInterface &lib, ProofEngine &engine){
         LibraryToolbox tb(lib);
         return tb.type_proving_helper(type_sent, engine, var_provers);
+    };
+}
+
+Prover LibraryToolbox::build_earley_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
+{
+    return [=](const LibraryInterface &lib, ProofEngine &engine){
+        LibraryToolbox tb(lib);
+        return tb.earley_type_proving_helper(type_sent, engine, var_provers);
     };
 }

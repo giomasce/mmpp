@@ -71,7 +71,7 @@ void test() {
     /* This program just does a lot of tests on the features of the mmpp library
      */
 
-    if (true) {
+    if (false) {
         cout << "Testing random small stuff..." << endl;
         auto ph = pwff(new Var("ph"));
         auto ps = pwff(new Var("ps"));
@@ -100,7 +100,7 @@ void test() {
     }
 
     auto tests = get_tests();
-    //tests = {};
+    tests = {};
     int problems = 0;
     for (auto test_pair : tests) {
         string filename = test_pair.first;
@@ -205,7 +205,7 @@ void test() {
         cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
         cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl << endl;
 
-        if (true) {
+        if (false) {
             cout << "Generic unification test" << endl;
             vector< SymTok > sent = parse_sentence("wff ( ph -> ( ps -> ch ) )", lib);
             vector< SymTok > templ = parse_sentence("wff ( th -> et )", lib);
@@ -221,7 +221,7 @@ void test() {
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
 
-        if (true) {
+        if (false) {
             cout << "Statement unification test" << endl;
             //auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> th )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- th", lib));
             auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> ( ph -> ps ) )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- ( ph -> ps )", lib));
@@ -242,8 +242,12 @@ void test() {
 
         if (true) {
             cout << "Type proving test" << endl;
-            //auto res = lib.prove_type(parse_sentence("wff ( x = y -> ps )", lib));
-            auto res = lib.prove_type(parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )", lib));
+            auto sent = lib.parse_sentence("wff ph");
+            //auto sent = lib.parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
+            cout << "Sentence is " << lib.print_sentence(sent) << endl;
+            ProofEngine engine(lib);
+            LibraryToolbox::build_earley_type_prover(sent)(lib, engine);
+            auto res = engine.get_proof();
             cout << "Found type proof: " << lib.print_proof(res) << endl;
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
@@ -281,7 +285,7 @@ void test() {
                                 pwff(new And(pwff(new False()), pwff(new And(pwff(new True()), pwff(new True()))))),
                               };
 
-        if (true) {
+        if (false) {
             cout << "WFF type proving test" << endl;
             for (pwff &wff : wffs) {
                 //wff->prove_type(lib, engine);
@@ -298,7 +302,7 @@ void test() {
             }
         }
 
-        if (true) {
+        if (false) {
             cout << "WFF proving test" << endl;
             for (pwff &wff : wffs) {
                 cout << "WFF: " << wff->to_string() << endl;
@@ -322,7 +326,7 @@ void test() {
             }
         }
 
-        if (true) {
+        if (false) {
             cout << "WFF not_imp normal form test" << endl;
             for (pwff &wff : wffs) {
                 cout << "WFF: " << wff->to_string() << endl;
@@ -338,7 +342,7 @@ void test() {
             }
         }
 
-        if (true) {
+        if (false) {
             cout << "WFF subst ph test" << endl;
             for (pwff &wff : wffs) {
                 cout << "WFF: " << wff->to_string() << endl;
@@ -368,7 +372,7 @@ void test() {
                                                 pwff(new Imp(pwff(new Var("ph")), pwff(new And(pwff(new Var("ch")), pwff(new Var("ps")))))))),
                                };
 
-        if (true) {
+        if (false) {
             cout << "WFF adv_truth test" << endl;
             for (pwff &wff : wffs2) {
                 cout << "WFF: " << wff->to_string() << endl;
