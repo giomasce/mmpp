@@ -181,7 +181,7 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
 {
     SymTok type = type_sent[0];
     vector< SymTok > sent;
-    copy(type_sent.begin(), type_sent.end(), back_inserter(sent));
+    copy(type_sent.begin()+1, type_sent.end(), back_inserter(sent));
 
     // Build the derivation rules; a derivation is created for each $f statement
     // and for each $a and $p statement without essential hypotheses such that no variable

@@ -8,6 +8,7 @@
 #include "unification.h"
 #include "memory.h"
 #include "statics.h"
+#include "earley.h"
 
 using namespace std;
 
@@ -196,6 +197,11 @@ void test() {
     }
     cout << "Found " << problems << " problems" << endl;
 
+    if (false) {
+        cout << "Generic Earley parser test" << endl;
+        test_earley();
+    }
+
     if (true) {
         cout << "Doing additional tests on set.mm..." << endl;
         FileTokenizer ft(test_basename + "/set.mm");
@@ -242,8 +248,8 @@ void test() {
 
         if (true) {
             cout << "Type proving test" << endl;
-            auto sent = lib.parse_sentence("wff ph");
-            //auto sent = lib.parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
+            //auto sent = lib.parse_sentence("wff ph");
+            auto sent = lib.parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
             cout << "Sentence is " << lib.print_sentence(sent) << endl;
             ProofEngine engine(lib);
             LibraryToolbox::build_earley_type_prover(sent)(lib, engine);
