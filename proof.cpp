@@ -436,7 +436,7 @@ void ProofEngine::pop_stack()
 
 void ProofEngine::check_stack_underflow()
 {
-    if (this->stack.size() < get<0>(this->checkpoints.back())) {
+    if (!this->checkpoints.empty() && this->stack.size() < get<0>(this->checkpoints.back())) {
         throw MMPPException("Checkpointed context exited without committing or rolling back");
     }
 }
