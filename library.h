@@ -29,15 +29,15 @@ static_assert(std::is_unsigned< LabTok >::value);
 #include "proof.h"
 
 struct SentencePrinter {
-    enum {
-        TYPE_PLAIN,
-        TYPE_HTML,
-        TYPE_ALTHTML,
-        TYPE_LATEX,
+    enum Style {
+        STYLE_PLAIN,
+        STYLE_HTML,
+        STYLE_ALTHTML,
+        STYLE_LATEX,
     };
     const std::vector< SymTok > &sent;
     const LibraryInterface &lib;
-    const int flags;
+    const Style style;
 };
 struct ProofPrinter {
     const std::vector< LabTok > &proof;
@@ -151,7 +151,7 @@ public:
     virtual bool is_constant(SymTok c) const = 0;
     virtual std::vector< SymTok > parse_sentence(const std::string &in) const = 0;
     virtual SentencePrinter print_sentence(const std::vector< SymTok > &sent) const = 0;
-    virtual SentencePrinter print_sentence_html(const std::vector< SymTok > &sent) const = 0;
+    virtual SentencePrinter print_sentence_html(const std::vector< SymTok > &sent, SentencePrinter::Style style=SentencePrinter::STYLE_HTML) const = 0;
     virtual ProofPrinter print_proof(const std::vector< LabTok > &proof) const = 0;
     virtual const std::vector<SymTok> &get_sentence(LabTok label) const = 0;
     virtual std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true) const = 0;
@@ -163,6 +163,7 @@ public:
     virtual const std::vector< std::string > get_htmldefs() const = 0;
     virtual const std::vector< std::string > get_althtmldefs() const = 0;
     virtual const std::vector< std::string > get_latexdefs() const = 0;
+    virtual const std::pair< std::string, std::string > get_htmlstrings() const = 0;
     virtual ~LibraryInterface();
 };
 
@@ -191,15 +192,16 @@ public:
     void set_types(const std::vector< LabTok > &types);
     std::vector< SymTok > parse_sentence(const std::string &in) const;
     SentencePrinter print_sentence(const std::vector< SymTok > &sent) const;
-    SentencePrinter print_sentence_html(const std::vector< SymTok > &sent) const;
+    SentencePrinter print_sentence_html(const std::vector< SymTok > &sent, SentencePrinter::Style style=SentencePrinter::STYLE_HTML) const;
     ProofPrinter print_proof(const std::vector< LabTok > &proof) const;
     const std::vector< LabTok > &get_types() const;
     const std::vector< LabTok > &get_types_by_var() const;
     const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const;
-    void set_t_comment(std::vector< std::string > htmldefs, std::vector< std::string > althtmldefs, std::vector< std::string > latexdefs);
+    void set_t_comment(std::vector< std::string > htmldefs, std::vector< std::string > althtmldefs, std::vector< std::string > latexdefs, std::string htmlcss, std::string htmlfont);
     const std::vector< std::string > get_htmldefs() const;
     const std::vector< std::string > get_althtmldefs() const;
     const std::vector< std::string > get_latexdefs() const;
+    const std::pair< std::string, std::string > get_htmlstrings() const;
 
 private:
     StringCache< SymTok > syms;
@@ -220,6 +222,8 @@ private:
     std::vector< std::string > htmldefs;
     std::vector< std::string > althtmldefs;
     std::vector< std::string > latexdefs;
+    std::string htmlcss;
+    std::string htmlfont;
 };
 
 class LibraryCache : public LibraryInterface {
@@ -236,7 +240,7 @@ public:
     bool is_constant(SymTok c) const;
     std::vector< SymTok > parse_sentence(const std::string &in) const;
     SentencePrinter print_sentence(const std::vector< SymTok > &sent) const;
-    SentencePrinter print_sentence_html(const std::vector< SymTok > &sent) const;
+    SentencePrinter print_sentence_html(const std::vector< SymTok > &sent, SentencePrinter::Style style=SentencePrinter::STYLE_HTML) const;
     ProofPrinter print_proof(const std::vector< LabTok > &proof) const;
     const Assertion &get_assertion(LabTok label) const;
     const std::vector<SymTok> &get_sentence(LabTok label) const;
@@ -247,6 +251,7 @@ public:
     const std::vector< std::string > get_htmldefs() const;
     const std::vector< std::string > get_althtmldefs() const;
     const std::vector< std::string > get_latexdefs() const;
+    const std::pair< std::string, std::string > get_htmlstrings() const;
 
 private:
     const Library &lib;

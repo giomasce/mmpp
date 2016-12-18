@@ -251,7 +251,7 @@ void test() {
             //auto sent = lib.parse_sentence("wff ph");
             auto sent = lib.parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
             cout << "Sentence is " << lib.print_sentence(sent) << endl;
-            cout << "HTML sentence is " << lib.print_sentence_html(sent) << endl;
+            cout << "HTML sentence is " << lib.print_sentence_html(sent, SentencePrinter::STYLE_ALTHTML) << endl;
             ProofEngine engine(lib);
             LibraryToolbox::build_classical_type_prover(sent)(lib, engine);
             auto res = engine.get_proof();

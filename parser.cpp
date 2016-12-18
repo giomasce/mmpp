@@ -592,50 +592,96 @@ void Parser::process_comment(const string &comment)
     }
 }
 
+static string escape_string_literal(string s) {
+    bool escape = false;
+    vector< char > ret;
+    for (char c : s) {
+        if (escape) {
+            if (c == 'n') {
+                ret.push_back('\n');
+            } else if (c == '\\') {
+                ret.push_back('\\');
+            } else {
+                throw MMPPException("Unknown escape sequence");
+            }
+            escape = false;
+        } else {
+            if (c == '\\') {
+                escape = true;
+            } else {
+                ret.push_back(c);
+            }
+        }
+    }
+    if (escape) {
+        throw MMPPException("Broken escape sequence");
+    }
+    return string(ret.begin(), ret.end());
+}
+
+static string decode_string(vector< pair< bool, string > >::const_iterator begin, vector< pair< bool, string > >::const_iterator end, bool escape=false) {
+    assert_or_throw(distance(begin, end) >= 1);
+    assert_or_throw(distance(begin, end) % 2 == 1);
+    for (size_t i = 1; i < (size_t) distance(begin, end); i += 2) {
+        assert_or_throw(!(begin+i)->first, "Malformed string in $t comment");
+        assert_or_throw((begin+i)->second == "+", "Malformed string in $t comment");
+    }
+    string value;
+    for (size_t i = 0; i < (size_t) distance(begin, end); i += 2) {
+        assert_or_throw((begin+i)->first, "Malformed string in $t comment");
+        string tmp = (begin+i)->second;
+        if (escape) {
+            tmp = escape_string_literal(tmp);
+        }
+        value += tmp;
+    }
+    return value;
+}
+
 void Parser::parse_t_code(const vector< vector< pair< bool, string > > > &code) {
     std::vector< std::string > htmldefs;
     std::vector< std::string > althtmldefs;
     std::vector< std::string > latexdefs;
+    std::string htmlcss;
+    std::string htmlfont;
     for (auto &tokens : code) {
         assert_or_throw(tokens.size() > 0, "empty instruction in $t comment");
         assert_or_throw(!tokens.at(0).first, "instruction in $t comment begins with a string");
-        int type = 0;
+        int deftype = 0;
         if (tokens.at(0).second == "htmldef") {
-            type = 1;
+            deftype = 1;
         } else if (tokens.at(0).second == "althtmldef") {
-            type = 2;
+            deftype = 2;
         } else if (tokens.at(0).second == "latexdef") {
-            type = 3;
+            deftype = 3;
+        } else if (tokens.at(0).second == "htmlcss") {
+            htmlcss = decode_string(tokens.begin() + 1, tokens.end(), true);
+        } else if (tokens.at(0).second == "htmlfont") {
+            htmlfont = decode_string(tokens.begin() + 1, tokens.end(), true);
         }
-        if (type != 0) {
+        if (deftype != 0) {
             assert_or_throw(tokens.size() >= 4, "*def instruction in $t comment with wrong length");
             assert_or_throw(tokens.size() % 2 == 0, "*def instruction in $t comment with wrong length");
             assert_or_throw(tokens.at(1).first, "malformed *def instruction in $t comment");
             assert_or_throw(!tokens.at(2).first, "malformed *def instruction in $t comment");
             assert_or_throw(tokens.at(3).first, "malformed *def instruction in $t comment");
             assert_or_throw(tokens.at(2).second == "as", "malformed *def instruction in $t comment");
-            string value = tokens.at(3).second;
-            for (size_t k = 4; k < tokens.size(); k += 2) {
-                assert_or_throw(!tokens.at(k).first, "malformed *def instruction in $t comment");
-                assert_or_throw(tokens.at(k+1).first, "malformed *def instruction in $t comment");
-                assert_or_throw(tokens.at(k).second == "+", "malformed *def instruction in $t comment");
-                value += tokens.at(k+1).second;
-            }
+            string value = decode_string(tokens.begin() + 3, tokens.end());
             SymTok tok = this->lib.get_symbol(tokens.at(1).second);
             assert_or_throw(tok != 0, "unknown symbol in *def instruction in $t comment");
-            if (type == 1) {
+            if (deftype == 1) {
                 htmldefs.resize(max(htmldefs.size(), (size_t) tok+1));
                 htmldefs[tok] = value;
-            } else if (type == 2) {
+            } else if (deftype == 2) {
                 althtmldefs.resize(max(althtmldefs.size(), (size_t) tok+1));
                 althtmldefs[tok] = value;
-            } else if (type == 3) {
+            } else if (deftype == 3) {
                 latexdefs.resize(max(latexdefs.size(), (size_t) tok+1));
                 latexdefs[tok] = value;
             }
         }
     }
-    this->lib.set_t_comment(htmldefs, althtmldefs, latexdefs);
+    this->lib.set_t_comment(htmldefs, althtmldefs, latexdefs, htmlcss, htmlfont);
 }
 
 void Parser::parse_t_comment(const string &comment)
