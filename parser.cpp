@@ -244,6 +244,10 @@ void Parser::run () {
     this->lib.set_types(this->final_frame.types);
     this->stack.pop_back();
     assert_or_throw(this->stack.empty(), "Unmatched open scoping block");
+
+    // Some final operations
+    this->parse_t_comment(this->t_comment);
+    this->t_comment = "";
 }
 
 const Library &Parser::get_library() const {
@@ -573,7 +577,12 @@ void Parser::process_comment(const string &comment)
         } else {
             if (found_dollar) {
                 if (c == 't') {
-                    this->parse_t_comment(comment);
+                    this->t_comment = comment;
+                } else if (c == 'j') {
+                    this->parse_j_comment(comment);
+                } else {
+                    // Either the $ token is at the beginning or the comment is discarded
+                    return;
                 }
             } else {
                 // Either the $ token is at the beginning or the comment is discarded
@@ -583,7 +592,150 @@ void Parser::process_comment(const string &comment)
     }
 }
 
+void Parser::parse_t_code(const vector< vector< pair< bool, string > > > &code) {
+    std::vector< std::string > htmldefs;
+    std::vector< std::string > althtmldefs;
+    std::vector< std::string > latexdefs;
+    for (auto &tokens : code) {
+        assert_or_throw(tokens.size() > 0, "empty instruction in $t comment");
+        assert_or_throw(!tokens.at(0).first, "instruction in $t comment begins with a string");
+        int type = 0;
+        if (tokens.at(0).second == "htmldef") {
+            type = 1;
+        } else if (tokens.at(0).second == "althtmldef") {
+            type = 2;
+        } else if (tokens.at(0).second == "latexdef") {
+            type = 3;
+        }
+        if (type != 0) {
+            assert_or_throw(tokens.size() >= 4, "*def instruction in $t comment with wrong length");
+            assert_or_throw(tokens.size() % 2 == 0, "*def instruction in $t comment with wrong length");
+            assert_or_throw(tokens.at(1).first, "malformed *def instruction in $t comment");
+            assert_or_throw(!tokens.at(2).first, "malformed *def instruction in $t comment");
+            assert_or_throw(tokens.at(3).first, "malformed *def instruction in $t comment");
+            assert_or_throw(tokens.at(2).second == "as", "malformed *def instruction in $t comment");
+            string value = tokens.at(3).second;
+            for (size_t k = 4; k < tokens.size(); k += 2) {
+                assert_or_throw(!tokens.at(k).first, "malformed *def instruction in $t comment");
+                assert_or_throw(tokens.at(k+1).first, "malformed *def instruction in $t comment");
+                assert_or_throw(tokens.at(k).second == "+", "malformed *def instruction in $t comment");
+                value += tokens.at(k+1).second;
+            }
+            SymTok tok = this->lib.get_symbol(tokens.at(1).second);
+            assert_or_throw(tok != 0, "unknown symbol in *def instruction in $t comment");
+            if (type == 1) {
+                htmldefs.resize(max(htmldefs.size(), (size_t) tok+1));
+                htmldefs[tok] = value;
+            } else if (type == 2) {
+                althtmldefs.resize(max(althtmldefs.size(), (size_t) tok+1));
+                althtmldefs[tok] = value;
+            } else if (type == 3) {
+                latexdefs.resize(max(latexdefs.size(), (size_t) tok+1));
+                latexdefs[tok] = value;
+            }
+        }
+    }
+    this->lib.set_t_comment(htmldefs, althtmldefs, latexdefs);
+}
+
 void Parser::parse_t_comment(const string &comment)
+{
+    // 0 -> normal
+    // 1 -> comment
+    // 2 -> string with "
+    // 3 -> string with '
+    // 4 -> normal, found /
+    // 5 -> comment, found *
+    // 6 -> normal, expect whitespace (or ;)
+    // 7 -> wait $
+    // 8 -> skip one char
+    uint8_t state = 7;
+    vector< vector< pair< bool, string > > > code;
+    vector< pair< bool, string > > tokens;
+    vector< char > token;
+    for (char c : comment) {
+        if (state == 0) {
+            state0:
+            if (is_whitespace(c)) {
+                if (token.size() > 0) {
+                    tokens.push_back(make_pair(false, string(token.begin(), token.end())));
+                    token.clear();
+                }
+            } else if (c == ';') {
+                if (token.size() > 0) {
+                    tokens.push_back(make_pair(false, string(token.begin(), token.end())));
+                    token.clear();
+                }
+                code.push_back(tokens);
+                tokens.clear();
+            } else if (c == '/') {
+                state = 4;
+            } else if (c == '"') {
+                assert_or_throw(token.empty(), "$t string began during token");
+                state = 2;
+            } else if (c == '\'') {
+                assert_or_throw(token.empty(), "$t string began during token");
+                state = 3;
+            } else {
+                token.push_back(c);
+            }
+        } else if (state == 1) {
+            if (c == '*') {
+                state = 5;
+            }
+        } else if (state == 2) {
+            if (c == '"') {
+                tokens.push_back(make_pair(true, string(token.begin(), token.end())));
+                token.clear();
+                state = 6;
+            } else {
+                token.push_back(c);
+            }
+        } else if (state == 3) {
+            if (c == '\'') {
+                tokens.push_back(make_pair(true, string(token.begin(), token.end())));
+                token.clear();
+                state = 6;
+            } else {
+                token.push_back(c);
+            }
+        } else if (state == 4) {
+            if (c == '*') {
+                state = 1;
+            } else {
+                token.push_back('*');
+                state = 0;
+                goto state0;
+            }
+        } else if (state == 5) {
+            if (c == '/') {
+                state = 0;
+            }
+        } else if (state == 6) {
+            if (c == ';') {
+                assert(token.empty());
+                code.push_back(tokens);
+                tokens.clear();
+            } else {
+                assert_or_throw(is_whitespace(c), "no whitespace after $t string");
+            }
+            state = 0;
+        } else if (state == 7) {
+            if (c == '$') {
+                state = 8;
+            } else {
+                assert_or_throw(is_whitespace(c), "where is $t gone?");
+            }
+        } else if (state == 8) {
+            state = 0;
+        } else {
+            assert("Should not arrive here" == NULL);
+        }
+    }
+    this->parse_t_code(code);
+}
+
+void Parser::parse_j_comment(const string &comment)
 {
     (void) comment;
     // TODO

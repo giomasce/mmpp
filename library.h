@@ -29,8 +29,15 @@ static_assert(std::is_unsigned< LabTok >::value);
 #include "proof.h"
 
 struct SentencePrinter {
+    enum {
+        TYPE_PLAIN,
+        TYPE_HTML,
+        TYPE_ALTHTML,
+        TYPE_LATEX,
+    };
     const std::vector< SymTok > &sent;
     const LibraryInterface &lib;
+    const int flags;
 };
 struct ProofPrinter {
     const std::vector< LabTok > &proof;
@@ -144,6 +151,7 @@ public:
     virtual bool is_constant(SymTok c) const = 0;
     virtual std::vector< SymTok > parse_sentence(const std::string &in) const = 0;
     virtual SentencePrinter print_sentence(const std::vector< SymTok > &sent) const = 0;
+    virtual SentencePrinter print_sentence_html(const std::vector< SymTok > &sent) const = 0;
     virtual ProofPrinter print_proof(const std::vector< LabTok > &proof) const = 0;
     virtual const std::vector<SymTok> &get_sentence(LabTok label) const = 0;
     virtual std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true) const = 0;
@@ -152,6 +160,9 @@ public:
     virtual const std::vector< LabTok > &get_types_by_var() const = 0;
     virtual const std::vector< Assertion > &get_assertions() const = 0;
     virtual const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const = 0;
+    virtual const std::vector< std::string > get_htmldefs() const = 0;
+    virtual const std::vector< std::string > get_althtmldefs() const = 0;
+    virtual const std::vector< std::string > get_latexdefs() const = 0;
     virtual ~LibraryInterface();
 };
 
@@ -180,10 +191,15 @@ public:
     void set_types(const std::vector< LabTok > &types);
     std::vector< SymTok > parse_sentence(const std::string &in) const;
     SentencePrinter print_sentence(const std::vector< SymTok > &sent) const;
+    SentencePrinter print_sentence_html(const std::vector< SymTok > &sent) const;
     ProofPrinter print_proof(const std::vector< LabTok > &proof) const;
     const std::vector< LabTok > &get_types() const;
     const std::vector< LabTok > &get_types_by_var() const;
     const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const;
+    void set_t_comment(std::vector< std::string > htmldefs, std::vector< std::string > althtmldefs, std::vector< std::string > latexdefs);
+    const std::vector< std::string > get_htmldefs() const;
+    const std::vector< std::string > get_althtmldefs() const;
+    const std::vector< std::string > get_latexdefs() const;
 
 private:
     StringCache< SymTok > syms;
@@ -199,6 +215,11 @@ private:
     std::vector< LabTok > types;
     std::vector< LabTok > types_by_var;
     std::unordered_map< SymTok, std::vector< LabTok > > assertions_by_type;
+
+    // Data from $t comment
+    std::vector< std::string > htmldefs;
+    std::vector< std::string > althtmldefs;
+    std::vector< std::string > latexdefs;
 };
 
 class LibraryCache : public LibraryInterface {
@@ -215,6 +236,7 @@ public:
     bool is_constant(SymTok c) const;
     std::vector< SymTok > parse_sentence(const std::string &in) const;
     SentencePrinter print_sentence(const std::vector< SymTok > &sent) const;
+    SentencePrinter print_sentence_html(const std::vector< SymTok > &sent) const;
     ProofPrinter print_proof(const std::vector< LabTok > &proof) const;
     const Assertion &get_assertion(LabTok label) const;
     const std::vector<SymTok> &get_sentence(LabTok label) const;
@@ -222,6 +244,9 @@ public:
     const std::vector< LabTok > &get_types_by_var() const;
     const std::vector< Assertion > &get_assertions() const;
     const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const;
+    const std::vector< std::string > get_htmldefs() const;
+    const std::vector< std::string > get_althtmldefs() const;
+    const std::vector< std::string > get_latexdefs() const;
 
 private:
     const Library &lib;

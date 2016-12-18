@@ -64,6 +64,8 @@ private:
     void parse_p();
     void process_comment(const std::string &comment);
     void parse_t_comment(const std::string &comment);
+    void parse_t_code(const std::vector<std::vector<std::pair<bool, std::string> > > &code);
+    void parse_j_comment(const std::string &comment);
 
     bool check_var(SymTok tok) const;
     bool check_const(SymTok tok) const;
@@ -85,6 +87,7 @@ private:
     LabTok label;
     std::string last_comment;
     std::vector< std::string > toks;
+    std::string t_comment;
 
     std::vector< ParserStackFrame > stack;
     ParserStackFrame final_frame;

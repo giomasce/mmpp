@@ -345,7 +345,11 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
         } else {
             os << string(" ");
         }
-        os << sp.lib.resolve_symbol(tok);
+        if (sp.flags == SentencePrinter::TYPE_PLAIN) {
+            os << sp.lib.resolve_symbol(tok);
+        } else if (sp.flags == SentencePrinter::TYPE_HTML) {
+            os << sp.lib.get_htmldefs()[tok];
+        }
     }
     return os;
 }
@@ -373,7 +377,12 @@ std::vector<SymTok> Library::parse_sentence(const string &in) const
 
 SentencePrinter Library::print_sentence(const std::vector<SymTok> &sent) const
 {
-    return SentencePrinter({ sent, *this });
+    return SentencePrinter({ sent, *this, SentencePrinter::TYPE_PLAIN });
+}
+
+SentencePrinter Library::print_sentence_html(const std::vector<SymTok> &sent) const
+{
+    return SentencePrinter({ sent, *this, SentencePrinter::TYPE_HTML });
 }
 
 ProofPrinter Library::print_proof(const std::vector<LabTok> &proof) const
@@ -394,6 +403,28 @@ const std::vector<LabTok> &Library::get_types_by_var() const
 const std::unordered_map<SymTok, std::vector<LabTok> > &Library::get_assertions_by_type() const
 {
     return this->assertions_by_type;
+}
+
+void Library::set_t_comment(std::vector<string> htmldefs, std::vector<string> althtmldefs, std::vector<string> latexdefs)
+{
+    this->htmldefs = htmldefs;
+    this->althtmldefs = althtmldefs;
+    this->latexdefs = latexdefs;
+}
+
+const std::vector<string> Library::get_htmldefs() const
+{
+    return this->htmldefs;
+}
+
+const std::vector<string> Library::get_althtmldefs() const
+{
+    return this->althtmldefs;
+}
+
+const std::vector<string> Library::get_latexdefs() const
+{
+    return this->latexdefs;
 }
 
 LibraryCache::LibraryCache(const Library &lib) :
@@ -460,6 +491,11 @@ SentencePrinter LibraryCache::print_sentence(const std::vector<SymTok> &sent) co
     return this->lib.print_sentence(sent);
 }
 
+SentencePrinter LibraryCache::print_sentence_html(const std::vector<SymTok> &sent) const
+{
+    this->lib.print_sentence_html(sent);
+}
+
 ProofPrinter LibraryCache::print_proof(const std::vector<LabTok> &proof) const
 {
     return this->lib.print_proof(proof);
@@ -493,6 +529,21 @@ const std::vector<Assertion> &LibraryCache::get_assertions() const
 const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryCache::get_assertions_by_type() const
 {
     return this->lib.get_assertions_by_type();
+}
+
+const std::vector<string> LibraryCache::get_htmldefs() const
+{
+    return this->lib.get_htmldefs();
+}
+
+const std::vector<string> LibraryCache::get_althtmldefs() const
+{
+    return this->lib.get_althtmldefs();
+}
+
+const std::vector<string> LibraryCache::get_latexdefs() const
+{
+    return this->lib.get_latexdefs();
 }
 
 LibraryInterface::~LibraryInterface()
