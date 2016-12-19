@@ -35,7 +35,8 @@ public:
     void process_assertion(const Assertion &child_ass, LabTok label = 0);
     void process_sentence(const std::vector< SymTok > &sent, LabTok label = 0);
     void process_label(const LabTok label);
-    const std::vector< LabTok > &get_proof() const;
+    const std::vector< LabTok > &get_proof_labels() const;
+    UncompressedProof get_proof() const;
     ProofTree get_proof_tree() const;
     void checkpoint();
     void commit();

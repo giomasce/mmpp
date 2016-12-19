@@ -101,7 +101,7 @@ void test() {
     }
 
     auto tests = get_tests();
-    //tests = {};
+    tests = {};
     int problems = 0;
     for (auto test_pair : tests) {
         string filename = test_pair.first;
@@ -202,7 +202,7 @@ void test() {
         test_earley();
     }
 
-    if (false) {
+    if (true) {
         cout << "Doing additional tests on set.mm..." << endl;
         FileTokenizer ft(test_basename + "/set.mm");
         Parser p(ft, false, true);
@@ -246,7 +246,7 @@ void test() {
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
 
-        if (true) {
+        if (false) {
             cout << "Type proving test" << endl;
             //auto sent = lib.parse_sentence("wff ph");
             auto sent = lib.parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
@@ -254,7 +254,7 @@ void test() {
             cout << "HTML sentence is " << lib.print_sentence_html(sent, SentencePrinter::STYLE_ALTHTML) << endl;
             ProofEngine engine(lib);
             LibraryToolbox::build_classical_type_prover(sent)(lib, engine);
-            auto res = engine.get_proof();
+            auto res = engine.get_proof_labels();
             cout << "Found type proof: " << lib.print_proof(res) << endl;
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
@@ -300,8 +300,8 @@ void test() {
                 {
                     ProofEngine engine(lib);
                     wff->get_type_prover()(lib, engine);
-                    if (engine.get_proof().size() > 0) {
-                        cout << "type proof: " << lib.print_proof(engine.get_proof()) << endl;
+                    if (engine.get_proof_labels().size() > 0) {
+                        cout << "type proof: " << lib.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
@@ -316,16 +316,16 @@ void test() {
                 {
                     ProofEngine engine(lib);
                     wff->get_truth_prover()(lib, engine);
-                    if (engine.get_proof().size() > 0) {
-                        cout << "Truth proof: " << lib.print_proof(engine.get_proof()) << endl;
+                    if (engine.get_proof_labels().size() > 0) {
+                        cout << "Truth proof: " << lib.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
                 {
                     ProofEngine engine(lib);
                     wff->get_falsity_prover()(lib, engine);
-                    if (engine.get_proof().size() > 0) {
-                        cout << "Falsity proof: " << lib.print_proof(engine.get_proof()) << endl;
+                    if (engine.get_proof_labels().size() > 0) {
+                        cout << "Falsity proof: " << lib.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
@@ -340,8 +340,8 @@ void test() {
                 {
                     ProofEngine engine(lib);
                     wff->get_imp_not_prover()(lib, engine);
-                    if (engine.get_proof().size() > 0) {
-                        cout << "not_imp proof: " << lib.print_proof(engine.get_proof()) << endl;
+                    if (engine.get_proof_labels().size() > 0) {
+                        cout << "not_imp proof: " << lib.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
@@ -356,16 +356,16 @@ void test() {
                 {
                     ProofEngine engine(lib);
                     wff->get_subst_prover("ph", true)(lib, engine);
-                    if (engine.get_proof().size() > 0) {
-                        cout << "subst ph proof: " << lib.print_proof(engine.get_proof()) << endl;
+                    if (engine.get_proof_labels().size() > 0) {
+                        cout << "subst ph proof: " << lib.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
                 {
                     ProofEngine engine(lib);
                     wff->get_subst_prover("ph", false)(lib, engine);
-                    if (engine.get_proof().size() > 0) {
-                        cout << "subst -. ph proof: " << lib.print_proof(engine.get_proof()) << endl;
+                    if (engine.get_proof_labels().size() > 0) {
+                        cout << "subst -. ph proof: " << lib.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
@@ -379,17 +379,18 @@ void test() {
                                                 pwff(new Imp(pwff(new Var("ph")), pwff(new And(pwff(new Var("ch")), pwff(new Var("ps")))))))),
                                };
 
-        if (false) {
+        if (true) {
             cout << "WFF adv_truth test" << endl;
             for (pwff &wff : wffs2) {
                 cout << "WFF: " << wff->to_string() << endl;
                 {
                     ProofEngine engine(lib);
                     wff->get_adv_truth_prover()(lib, engine);
-                    if (engine.get_proof().size() > 0) {
-                        cout << "adv truth proof: " << lib.print_proof(engine.get_proof()) << endl;
+                    if (engine.get_proof_labels().size() > 0) {
+                        cout << "adv truth proof: " << lib.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
-                        cout << "proof length: " << engine.get_proof().size() << endl;
+                        cout << "proof length: " << engine.get_proof_labels().size() << endl;
+                        UncompressedProof proof = engine.get_proof();
                     }
                 }
                 cout << endl;

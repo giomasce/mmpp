@@ -484,9 +484,14 @@ void ProofEngine::process_label(const LabTok label)
     }
 }
 
-const std::vector<LabTok> &ProofEngine::get_proof() const
+const std::vector<LabTok> &ProofEngine::get_proof_labels() const
 {
     return this->proof;
+}
+
+UncompressedProof ProofEngine::get_proof() const
+{
+    return { this->get_proof_labels() };
 }
 
 ProofTree ProofEngine::get_proof_tree() const

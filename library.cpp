@@ -151,7 +151,7 @@ std::vector<LabTok> Library::prove_type(const std::vector<SymTok> &type_sent) co
     ProofEngine engine(*this);
     LibraryToolbox tb(*this);
     if (tb.classical_type_proving_helper(type_sent, engine)) {
-        return engine.get_proof();
+        return engine.get_proof_labels();
     } else {
         return {};
     }
