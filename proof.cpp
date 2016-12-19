@@ -150,17 +150,10 @@ static void compress_unwind_proof_tree_phase1(const ProofTree &tree,
                                               set< vector< SymTok > > &sents,
                                               set< vector< SymTok > > &dupl_sents,
                                               CodeTok &code_idx) {
-    // If the sentence has already been marked as duplicate, then prune the subtree
-    if (dupl_sents.find(tree.sentence) != dupl_sents.end()) {
-        return;
-    }
-    // Detect if the sentence is a new duplicate; even if it is, it is added among the duplicates only when closing the node
-    bool duplicate = false;
+    // If the sentence is duplicate, prune the subtree and record the sentence as duplicate
     if (sents.find(tree.sentence) != sents.end()) {
-        duplicate = true;
-    } else {
-        auto res = sents.insert(tree.sentence);
-        assert(res.second);
+        dupl_sents.insert(tree.sentence);
+        return;
     }
     // Recur
     for (const ProofTree &child : tree.children) {
@@ -172,11 +165,8 @@ static void compress_unwind_proof_tree_phase1(const ProofTree &tree,
         assert(res.second);
         refs.push_back(tree.label);
     }
-    // If needed, mark the sentence as duplicate; this could be executed twice for the same sentence
-    // if that sentence is used in its own proof, but dupl_sents is a set and gives no problem
-    if (duplicate) {
-        dupl_sents.insert(tree.sentence);
-    }
+    // Record the sentence as seen; this must be done when closing, otherwise there are problem with identical nested sentences
+    sents.insert(tree.sentence);
 }
 
 // In order to avoid inconsistencies with label numbering, it is important that phase 2 performs the same prunings as phase 1
@@ -187,19 +177,10 @@ static void compress_unwind_proof_tree_phase2(const ProofTree &tree,
                                               const set< vector< SymTok > > &dupl_sents,
                                               map< vector< SymTok >, CodeTok > &dupl_sents_map,
                                               vector< CodeTok > &codes, CodeTok &code_idx) {
-    // If the sentence has already been marked as duplicate, push the reference and prune the subtree
-    auto dupl_it = dupl_sents_map.find(tree.sentence);
-    if (dupl_it != dupl_sents_map.end()) {
-        codes.push_back(dupl_it->second);
-        return;
-    }
-    // Detect if the sentence is a new duplicate; even if it is, it is added among the duplicates only when closing the node
-    bool duplicate = false;
+    // If the sentence is duplicate, prune the subtree and recall saved sentence
     if (sents.find(tree.sentence) != sents.end()) {
-        duplicate = true;
-    } else {
-        auto res = sents.insert(tree.sentence);
-        assert(res.second);
+        codes.push_back(dupl_sents_map.at(tree.sentence));
+        return;
     }
     // Recur
     for (const ProofTree &child : tree.children) {
@@ -207,13 +188,14 @@ static void compress_unwind_proof_tree_phase2(const ProofTree &tree,
     }
     // Push this label
     codes.push_back(label_map.at(tree.label));
-    // If needed, mark the sentence as duplicate and add the save code; since the same sentence could be added twice
-    // (see above), we first check, in order not to add useless save codes
-    if (duplicate && dupl_sents_map.find(tree.sentence) == dupl_sents_map.end()) {
+    // If the sentence is known to be duplicate and has not been saved yet, save it
+    if (dupl_sents.find(tree.sentence) != dupl_sents.end() && dupl_sents_map.find(tree.sentence) == dupl_sents_map.end()) {
         auto res = dupl_sents_map.insert(make_pair(tree.sentence, code_idx++));
         assert(res.second);
         codes.push_back(0);
     }
+    // Record the sentence as seen; this must be done when closing, for same reason as above
+    sents.insert(tree.sentence);
 }
 
 const CompressedProof UncompressedProofExecutor::compress(CompressionStrategy strategy)
@@ -341,7 +323,6 @@ UncompressedProofExecutor::UncompressedProofExecutor(const LibraryInterface &lib
 ProofEngine::ProofEngine(const LibraryInterface &lib, bool gen_proof_tree) :
     lib(lib), gen_proof_tree(gen_proof_tree)
 {
-    this->tree_stack.resize(1);
 }
 
 void ProofEngine::set_gen_proof_tree(bool gen_proof_tree)

@@ -109,7 +109,7 @@ void test() {
         bool expect_success = test_pair.second;
 
         // Useful for debugging
-        /*if (filename == "big-unifier.mm") {
+        /*if (filename == "demo0.mm") {
             mmpp_abort = true;
         } else {
             continue;
