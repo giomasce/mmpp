@@ -28,9 +28,15 @@ std::shared_ptr<ProofExecutor> CompressedProof::get_executor(const LibraryInterf
     return shared_ptr< ProofExecutor >(new CompressedProofExecutor(lib, ass, *this));
 }
 
-const CompressedProof CompressedProofExecutor::compress()
+const CompressedProof CompressedProofExecutor::compress(CompressionStrategy strategy)
 {
-    return this->proof;
+    if (strategy == CS_ANY) {
+        return this->proof;
+    } else {
+        // If we want to recompress with a specified strategy, then we uncompress and compress again
+        // TODO Implement a direct algorithm
+        return this->uncompress().get_executor(this->lib, this->ass)->compress(strategy);
+    }
 }
 
 const UncompressedProof CompressedProofExecutor::uncompress()
@@ -138,9 +144,80 @@ std::shared_ptr<ProofExecutor> UncompressedProof::get_executor(const LibraryInte
     return shared_ptr< ProofExecutor >(new UncompressedProofExecutor(lib, ass, *this));
 }
 
-const CompressedProof UncompressedProofExecutor::compress()
+static void compress_unwind_proof_tree_phase1(const ProofTree &tree,
+                                              unordered_map< LabTok, CodeTok > &label_map,
+                                              vector< LabTok > &refs,
+                                              set< vector< SymTok > > &sents,
+                                              set< vector< SymTok > > &dupl_sents,
+                                              CodeTok &code_idx) {
+    // If the sentence has already been marked as duplicate, then prune the subtree
+    if (dupl_sents.find(tree.sentence) != dupl_sents.end()) {
+        return;
+    }
+    // Detect if the sentence is a new duplicate; even if it is, it is added among the duplicates only when closing the node
+    bool duplicate = false;
+    if (sents.find(tree.sentence) != sents.end()) {
+        duplicate = true;
+    } else {
+        auto res = sents.insert(tree.sentence);
+        assert(res.second);
+    }
+    // Recur
+    for (const ProofTree &child : tree.children) {
+        compress_unwind_proof_tree_phase1(child, label_map, refs, sents, dupl_sents, code_idx);
+    }
+    // If the label is new, record it
+    if (label_map.find(tree.label) == label_map.end()) {
+        auto res = label_map.insert(make_pair(tree.label, code_idx++));
+        assert(res.second);
+        refs.push_back(tree.label);
+    }
+    // If needed, mark the sentence as duplicate; this could be executed twice for the same sentence
+    // if that sentence is used in its own proof, but dupl_sents is a set and gives no problem
+    if (duplicate) {
+        dupl_sents.insert(tree.sentence);
+    }
+}
+
+// In order to avoid inconsistencies with label numbering, it is important that phase 2 performs the same prunings as phase 1
+static void compress_unwind_proof_tree_phase2(const ProofTree &tree,
+                                              const unordered_map< LabTok, CodeTok > &label_map,
+                                              const vector< LabTok > &refs,
+                                              set< vector< SymTok > > &sents,
+                                              const set< vector< SymTok > > &dupl_sents,
+                                              map< vector< SymTok >, CodeTok > &dupl_sents_map,
+                                              vector< CodeTok > &codes, CodeTok &code_idx) {
+    // If the sentence has already been marked as duplicate, push the reference and prune the subtree
+    auto dupl_it = dupl_sents_map.find(tree.sentence);
+    if (dupl_it != dupl_sents_map.end()) {
+        codes.push_back(dupl_it->second);
+        return;
+    }
+    // Detect if the sentence is a new duplicate; even if it is, it is added among the duplicates only when closing the node
+    bool duplicate = false;
+    if (sents.find(tree.sentence) != sents.end()) {
+        duplicate = true;
+    } else {
+        auto res = sents.insert(tree.sentence);
+        assert(res.second);
+    }
+    // Recur
+    for (const ProofTree &child : tree.children) {
+        compress_unwind_proof_tree_phase2(child, label_map, refs, sents, dupl_sents, dupl_sents_map, codes, code_idx);
+    }
+    // Push this label
+    codes.push_back(label_map.at(tree.label));
+    // If needed, mark the sentence as duplicate and add the save code; since the same sentence could be added twice
+    // (see above), we first check, in order not to add useless save codes
+    if (duplicate && dupl_sents_map.find(tree.sentence) == dupl_sents_map.end()) {
+        auto res = dupl_sents_map.insert(make_pair(tree.sentence, code_idx++));
+        assert(res.second);
+        codes.push_back(0);
+    }
+}
+
+const CompressedProof UncompressedProofExecutor::compress(CompressionStrategy strategy)
 {
-    // TODO use backreferences
     CodeTok code_idx = 1;
     unordered_map< LabTok, CodeTok > label_map;
     vector < LabTok > refs;
@@ -149,13 +226,29 @@ const CompressedProof UncompressedProofExecutor::compress()
         auto res = label_map.insert(make_pair(label, code_idx++));
         assert(res.second);
     }
-    for (auto &label : this->proof.labels) {
-        if (label_map.find(label) == label_map.end()) {
-            auto res = label_map.insert(make_pair(label, code_idx++));
-            assert(res.second);
-            refs.push_back(label);
+    if (strategy == CS_NO_BACKREFS) {
+        for (auto &label : this->proof.labels) {
+            if (label_map.find(label) == label_map.end()) {
+                auto res = label_map.insert(make_pair(label, code_idx++));
+                assert(res.second);
+                refs.push_back(label);
+            }
+            codes.push_back(label_map.at(label));
         }
-        codes.push_back(label_map.at(label));
+    } else if (strategy == CS_BACKREFS_ON_IDENTICAL_SENTENCE || strategy == CS_ANY) {
+        this->engine.set_gen_proof_tree(true);
+        this->execute();
+        ProofTree tree = this->engine.get_proof_tree();
+        set< vector< SymTok > > sents;
+        set< vector< SymTok > > dupl_sents;
+        map< vector< SymTok >, CodeTok > dupl_sents_map;
+        compress_unwind_proof_tree_phase1(tree, label_map, refs, sents, dupl_sents, code_idx);
+        sents.clear();
+        compress_unwind_proof_tree_phase2(tree, label_map, refs, sents, dupl_sents, dupl_sents_map, codes, code_idx);
+    } else if (strategy == CS_BACKREFS_ON_IDENTICAL_TREE) {
+        throw MMPPException("Strategy not supported");
+    } else {
+        throw MMPPException("Strategy does not exist");
     }
     return CompressedProof(refs, codes);
 }
@@ -245,9 +338,15 @@ UncompressedProofExecutor::UncompressedProofExecutor(const LibraryInterface &lib
 {
 }
 
-ProofEngine::ProofEngine(const LibraryInterface &lib) :
-    lib(lib)
+ProofEngine::ProofEngine(const LibraryInterface &lib, bool gen_proof_tree) :
+    lib(lib), gen_proof_tree(gen_proof_tree)
 {
+    this->tree_stack.resize(1);
+}
+
+void ProofEngine::set_gen_proof_tree(bool gen_proof_tree)
+{
+    this->gen_proof_tree = gen_proof_tree;
 }
 
 const std::vector<std::vector<SymTok> > &ProofEngine::get_stack() const
@@ -365,12 +464,22 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
     cerr << "    Pushing on stack: " << print_sentence(stack_thesis_sent, this->lib) << endl;
 #endif
     this->push_stack(stack_thesis_sent);
+    if (this->gen_proof_tree) {
+        vector< ProofTree > children(this->tree_stack.begin() + stack_base, this->tree_stack.end());
+        this->tree_stack.resize(stack_base);
+        this->proof_tree = {stack_thesis_sent, label, children};
+        this->tree_stack.push_back(this->proof_tree);
+    }
     this->proof.push_back(label);
 }
 
 void ProofEngine::process_sentence(const std::vector<SymTok> &sent, LabTok label)
 {
     this->push_stack(sent);
+    if (this->gen_proof_tree) {
+        this->proof_tree = {sent, label, {}};
+        this->tree_stack.push_back(this->proof_tree);
+    }
     this->proof.push_back(label);
 }
 
@@ -397,6 +506,11 @@ void ProofEngine::process_label(const LabTok label)
 const std::vector<LabTok> &ProofEngine::get_proof() const
 {
     return this->proof;
+}
+
+ProofTree ProofEngine::get_proof_tree() const
+{
+    return this->proof_tree;
 }
 
 void ProofEngine::checkpoint()

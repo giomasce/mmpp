@@ -101,7 +101,7 @@ void test() {
     }
 
     auto tests = get_tests();
-    tests = {};
+    //tests = {};
     int problems = 0;
     for (auto test_pair : tests) {
         string filename = test_pair.first;
@@ -202,7 +202,7 @@ void test() {
         test_earley();
     }
 
-    if (true) {
+    if (false) {
         cout << "Doing additional tests on set.mm..." << endl;
         FileTokenizer ft(test_basename + "/set.mm");
         Parser p(ft, false, true);
