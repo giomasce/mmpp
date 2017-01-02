@@ -65,11 +65,11 @@ public:
     bool is_theorem() const;
     bool is_modif_disc() const;
     bool is_usage_disc() const;
-    size_t get_num_floating() const;
     const std::set< std::pair< SymTok, SymTok > > &get_mand_dists() const;
     const std::set< std::pair< SymTok, SymTok > > &get_opt_dists() const;
     const std::set<std::pair<SymTok, SymTok> > get_dists() const;
-    const std::vector< LabTok > get_mand_hyps() const;
+    size_t get_mand_hyps_num() const;
+    LabTok get_mand_hyp(size_t i) const;
     const std::vector<LabTok> &get_float_hyps() const;
     const std::vector<LabTok> &get_ess_hyps() const;
     const std::set< LabTok > &get_opt_hyps() const;

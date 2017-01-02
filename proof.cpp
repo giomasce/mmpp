@@ -54,8 +54,8 @@ const UncompressedProof CompressedProofExecutor::uncompress()
         const CodeTok &code = this->proof.codes.at(i);
         if (code == 0) {
             saved.emplace_back(labels.begin() + opening_stack.back(), labels.end());
-        } else if (code <= this->ass.get_mand_hyps().size()) {
-            LabTok label = this->ass.get_mand_hyps().at(code-1);
+        } else if (code <= this->ass.get_mand_hyps_num()) {
+            LabTok label = this->ass.get_mand_hyp(code-1);
             size_t opening = labels.size();
             assert_or_throw(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
             for (size_t j = 0; j < this->get_hyp_num(label); j++) {
@@ -64,8 +64,8 @@ const UncompressedProof CompressedProofExecutor::uncompress()
             }
             opening_stack.push_back(opening);
             labels.push_back(label);
-        } else if (code <= this->ass.get_mand_hyps().size() + this->proof.refs.size()) {
-            LabTok label = this->proof.refs.at(code-this->ass.get_mand_hyps().size()-1);
+        } else if (code <= this->ass.get_mand_hyps_num() + this->proof.refs.size()) {
+            LabTok label = this->proof.refs.at(code-this->ass.get_mand_hyps_num()-1);
             size_t opening = labels.size();
             assert_or_throw(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
             for (size_t j = 0; j < this->get_hyp_num(label); j++) {
@@ -75,8 +75,8 @@ const UncompressedProof CompressedProofExecutor::uncompress()
             opening_stack.push_back(opening);
             labels.push_back(label);
         } else {
-            assert_or_throw(code <= this->ass.get_mand_hyps().size() + this->proof.refs.size() + saved.size(), "Code too big in compressed proof");
-            const vector< LabTok > &sent = saved.at(code-this->ass.get_mand_hyps().size()-this->proof.refs.size()-1);
+            assert_or_throw(code <= this->ass.get_mand_hyps_num() + this->proof.refs.size() + saved.size(), "Code too big in compressed proof");
+            const vector< LabTok > &sent = saved.at(code-this->ass.get_mand_hyps_num()-this->proof.refs.size()-1);
             size_t opening = labels.size();
             opening_stack.push_back(opening);
             copy(sent.begin(), sent.end(), back_inserter(labels));
@@ -96,15 +96,15 @@ void CompressedProofExecutor::execute()
     for (auto &code : this->proof.codes) {
         if (code == 0) {
             saved.push_back(this->get_stack().back());
-        } else if (code <= this->ass.get_mand_hyps().size()) {
-            LabTok label = this->ass.get_mand_hyps().at(code-1);
+        } else if (code <= this->ass.get_mand_hyps_num()) {
+            LabTok label = this->ass.get_mand_hyp(code-1);
             this->process_label(label);
-        } else if (code <= this->ass.get_mand_hyps().size() + this->proof.refs.size()) {
-            LabTok label = this->proof.refs.at(code-this->ass.get_mand_hyps().size()-1);
+        } else if (code <= this->ass.get_mand_hyps_num() + this->proof.refs.size()) {
+            LabTok label = this->proof.refs.at(code-this->ass.get_mand_hyps_num()-1);
             this->process_label(label);
         } else {
-            assert_or_throw(code <= this->ass.get_mand_hyps().size() + this->proof.refs.size() + saved.size(), "Code too big in compressed proof");
-            const vector< SymTok > &sent = saved.at(code-this->ass.get_mand_hyps().size()-this->proof.refs.size()-1);
+            assert_or_throw(code <= this->ass.get_mand_hyps_num() + this->proof.refs.size() + saved.size(), "Code too big in compressed proof");
+            const vector< SymTok > &sent = saved.at(code-this->ass.get_mand_hyps_num()-this->proof.refs.size()-1);
             this->process_sentence(sent);
         }
     }
@@ -126,7 +126,7 @@ bool CompressedProofExecutor::check_syntax()
         if (code == 0) {
             zero_count++;
         } else {
-            if (code > this->ass.get_mand_hyps().size() + this->proof.refs.size() + zero_count) {
+            if (code > this->ass.get_mand_hyps_num() + this->proof.refs.size() + zero_count) {
                 return false;
             }
         }
@@ -204,7 +204,11 @@ const CompressedProof UncompressedProofExecutor::compress(CompressionStrategy st
     unordered_map< LabTok, CodeTok > label_map;
     vector < LabTok > refs;
     vector < CodeTok > codes;
-    for (auto &label : this->ass.get_mand_hyps()) {
+    for (auto &label : this->ass.get_float_hyps()) {
+        auto res = label_map.insert(make_pair(label, code_idx++));
+        assert(res.second);
+    }
+    for (auto &label : this->ass.get_ess_hyps()) {
         auto res = label_map.insert(make_pair(label, code_idx++));
         assert(res.second);
     }
@@ -253,7 +257,8 @@ void UncompressedProofExecutor::execute()
 
 bool UncompressedProofExecutor::check_syntax()
 {
-    const set< LabTok > mand_hyps_set(this->ass.get_mand_hyps().begin(), this->ass.get_mand_hyps().end());
+    set< LabTok > mand_hyps_set(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end());
+    mand_hyps_set.insert(this->ass.get_ess_hyps().begin(), this->ass.get_ess_hyps().end());
     for (auto &label : this->proof.labels) {
         if (!this->lib.get_assertion(label).is_valid() && mand_hyps_set.find(label) == mand_hyps_set.end()) {
             return false;
@@ -276,7 +281,8 @@ void ProofExecutor::process_label(const LabTok label)
     const Assertion &child_ass = this->lib.get_assertion(label);
     if (!child_ass.is_valid()) {
         // In line of principle searching in a set would be faster, but since usually hypotheses are not many the vector is probably better
-        assert_or_throw(find(this->ass.get_mand_hyps().begin(), this->ass.get_mand_hyps().end(), label) != this->ass.get_mand_hyps().end() ||
+        assert_or_throw(find(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end(), label) != this->ass.get_float_hyps().end() ||
+                find(this->ass.get_ess_hyps().begin(), this->ass.get_ess_hyps().end(), label) != this->ass.get_ess_hyps().end() ||
                 find(this->ass.get_opt_hyps().begin(), this->ass.get_opt_hyps().end(), label) != this->ass.get_opt_hyps().end(),
                         "Requested label cannot be used by this theorem");
     }
@@ -286,7 +292,7 @@ void ProofExecutor::process_label(const LabTok label)
 size_t ProofExecutor::get_hyp_num(const LabTok label) const {
     const Assertion &child_ass = this->lib.get_assertion(label);
     if (child_ass.is_valid()) {
-        return child_ass.get_mand_hyps().size();
+        return child_ass.get_mand_hyps_num();
     } else {
         return 0;
     }
@@ -342,15 +348,13 @@ const std::set<std::pair<SymTok, SymTok> > &ProofEngine::get_dists() const
 
 void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 {
-    assert_or_throw(this->stack.size() >= child_ass.get_mand_hyps().size(), "Stack too small to pop hypotheses");
-    assert(child_ass.get_num_floating() <= child_ass.get_mand_hyps().size());
-    const size_t stack_base = this->stack.size() - child_ass.get_mand_hyps().size();
+    assert_or_throw(this->stack.size() >= child_ass.get_mand_hyps_num(), "Stack too small to pop hypotheses");
+    const size_t stack_base = this->stack.size() - child_ass.get_mand_hyps_num();
 
     // Use the first num_floating hypotheses to build the substitution map
     unordered_map< SymTok, vector< SymTok > > subst_map;
-    size_t i;
-    for (i = 0; i < child_ass.get_num_floating(); i++) {
-        SymTok hyp = child_ass.get_mand_hyps().at(i);
+    size_t i = 0;
+    for (auto &hyp : child_ass.get_float_hyps()) {
         const vector< SymTok > &hyp_sent = this->lib.get_sentence(hyp);
         // Some extra checks
         assert(hyp_sent.size() == 2);
@@ -363,6 +367,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 #ifndef NDEBUG
         cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
 #endif
+        i++;
     }
 
     // Keep track of the distinct variables constraints in the substitution map
@@ -394,8 +399,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
     }
 
     // Then parse the other hypotheses and check them
-    for (; i < child_ass.get_mand_hyps().size(); i++) {
-        LabTok hyp = child_ass.get_mand_hyps().at(i);
+    for (auto &hyp : child_ass.get_ess_hyps()) {
         const vector< SymTok > &hyp_sent = this->lib.get_sentence(hyp);
         assert(this->lib.is_constant(hyp_sent.at(0)));
         const vector< SymTok > &stack_hyp_sent = this->stack.at(stack_base + i);
@@ -417,6 +421,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
             }
         }
         assert_or_throw(stack_it == stack_hyp_sent.end(), "Essential hypothesis does not match stack because stack is longer");
+        i++;
     }
 
     // Build the thesis

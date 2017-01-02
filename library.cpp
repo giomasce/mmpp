@@ -113,7 +113,7 @@ std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok
         if (ass.is_usage_disc()) {
             continue;
         }
-        if (ass.get_mand_hyps().size() - ass.get_num_floating() != hypotheses.size()) {
+        if (ass.get_ess_hyps().size() != hypotheses.size()) {
             continue;
         }
         // We have to generate all the hypotheses' permutations; fortunately usually hypotheses are not many
@@ -126,7 +126,7 @@ std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok
         do {
             vector< SymTok > templ;
             for (size_t i = 0; i < hypotheses.size(); i++) {
-                auto &hyp = this->get_sentence(ass.get_mand_hyps().at(ass.get_num_floating()+perm[i]));
+                auto &hyp = this->get_sentence(ass.get_ess_hyps()[perm[i]]);
                 copy(hyp.begin(), hyp.end(), back_inserter(templ));
                 templ.push_back(0);
             }
@@ -168,7 +168,7 @@ std::vector<LabTok> Library::prove_type2(const std::vector<SymTok> &type_sent) c
     }
     for (auto &templ : this->assertions_by_type.at(type_const)) {
         const Assertion &templ_ass = this->get_assertion(templ);
-        if (templ_ass.get_num_floating() != templ_ass.get_mand_hyps().size()) {
+        if (templ_ass.get_ess_hyps().size() != 0) {
             continue;
         }
         const auto &templ_sent = this->get_sentence(templ);
@@ -266,11 +266,6 @@ bool Assertion::is_usage_disc() const
     return this->usage_disc;
 }
 
-size_t Assertion::get_num_floating() const
-{
-    return this->float_hyps.size();
-}
-
 const std::set<std::pair<SymTok, SymTok> > &Assertion::get_mand_dists() const {
     return this->mand_dists;
 }
@@ -289,12 +284,18 @@ const std::set<std::pair<SymTok, SymTok> > Assertion::get_dists() const
     return ret;
 }
 
-const std::vector<LabTok> Assertion::get_mand_hyps() const
+size_t Assertion::get_mand_hyps_num() const
 {
-    vector< LabTok > ret;
-    copy(this->float_hyps.begin(), this->float_hyps.end(), back_inserter(ret));
-    copy(this->ess_hyps.begin(), this->ess_hyps.end(), back_inserter(ret));
-    return ret;
+    return this->get_float_hyps().size() + this->get_ess_hyps().size();
+}
+
+LabTok Assertion::get_mand_hyp(size_t i) const
+{
+    if (i < this->get_float_hyps().size()) {
+        return this->get_float_hyps()[i];
+    } else {
+        return this->get_ess_hyps()[i-this->get_float_hyps().size()];
+    }
 }
 
 const std::vector<LabTok> &Assertion::get_float_hyps() const

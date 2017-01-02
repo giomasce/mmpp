@@ -57,8 +57,8 @@ bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &te
     //const unordered_map< SymTok, vector< SymTok > > full_map = this->compose_subst(ass_map, subst_map);
 
     // Compute floating hypotheses
-    for (size_t i = 0; i < ass.get_num_floating(); i++) {
-        bool res = this->classical_type_proving_helper(this->substitute(this->lib.get_sentence(ass.get_mand_hyps()[i]), ass_map), engine, types_provers);
+    for (auto &hyp : ass.get_float_hyps()) {
+        bool res = this->classical_type_proving_helper(this->substitute(this->lib.get_sentence(hyp), ass_map), engine, types_provers);
         if (!res) {
             engine.rollback();
             return false;
@@ -66,7 +66,7 @@ bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &te
     }
 
     // Compute essential hypotheses
-    for (size_t i = 0; i < ass.get_mand_hyps().size() - ass.get_num_floating(); i++) {
+    for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
         bool res = hyps_provers[perm_inv[i]](lib, engine);
         if (!res) {
             engine.rollback();
@@ -125,7 +125,7 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
     }
     for (auto &templ : this->lib.get_assertions_by_type().at(type_const)) {
         const Assertion &templ_ass = this->lib.get_assertion(templ);
-        if (templ_ass.get_num_floating() != templ_ass.get_mand_hyps().size()) {
+        if (templ_ass.get_ess_hyps().size() != 0) {
             continue;
         }
         const auto &templ_sent = this->lib.get_sentence(templ);
@@ -179,8 +179,8 @@ static void earley_type_unwind_tree(const EarleyTreeItem &tree, ProofEngine &eng
             }
         }
         assert(it == tree.children.end());
-        for (size_t k = 0; k < ass.get_num_floating(); k++) {
-            SymTok tok = lib.get_sentence(ass.get_mand_hyps()[k]).at(1);
+        for (auto &hyp : ass.get_float_hyps()) {
+            SymTok tok = lib.get_sentence(hyp).at(1);
             earley_type_unwind_tree(*children.at(tok), engine, lib);
         }
     } else {
@@ -208,7 +208,7 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
         if (!ass.is_valid()) {
             continue;
         }
-        if (ass.get_mand_hyps().size() - ass.get_num_floating() != 0) {
+        if (ass.get_ess_hyps().size() != 0) {
             continue;
         }
         if (ass.get_mand_dists().size() != 0) {
