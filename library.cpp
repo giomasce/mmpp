@@ -147,16 +147,6 @@ std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok
     return ret;
 }
 
-std::vector<LabTok> Library::prove_type(const std::vector<SymTok> &type_sent) const {
-    ProofEngine engine(*this);
-    LibraryToolbox tb(*this);
-    if (tb.classical_type_proving_helper(type_sent, engine)) {
-        return engine.get_proof_labels();
-    } else {
-        return {};
-    }
-}
-
 std::vector<LabTok> Library::prove_type2(const std::vector<SymTok> &type_sent) const
 {
     // Iterate over all propositions (maybe just axioms would be enough) with zero essential hypotheses, try to match and recur on all matches;
@@ -193,7 +183,7 @@ std::vector<LabTok> Library::prove_type2(const std::vector<SymTok> &type_sent) c
                 vector< SymTok > new_type_sent = { type };
                 // TODO This is not very efficient
                 copy(subst.begin(), subst.end(), back_inserter(new_type_sent));
-                auto res = matches.insert(make_pair(var, this->prove_type(new_type_sent)));
+                auto res = matches.insert(make_pair(var, this->prove_type2(new_type_sent)));
                 assert(res.second);
                 if (res.first->second.empty()) {
                     failed = true;
@@ -365,15 +355,6 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
     return os;
 }
 
-SentencePrinter print_sentence(const std::vector<SymTok> &sent, const LibraryInterface &lib)
-{
-    return lib.print_sentence(sent);
-}
-
-vector< SymTok > parse_sentence(const std::string &in, const LibraryInterface &lib) {
-    return lib.parse_sentence(in);
-}
-
 std::vector<SymTok> Library::parse_sentence(const string &in) const
 {
     auto toks = tokenize(in);
@@ -386,12 +367,7 @@ std::vector<SymTok> Library::parse_sentence(const string &in) const
     return res;
 }
 
-SentencePrinter Library::print_sentence(const std::vector<SymTok> &sent) const
-{
-    return SentencePrinter({ sent, *this, SentencePrinter::STYLE_PLAIN });
-}
-
-SentencePrinter Library::print_sentence_html(const std::vector<SymTok> &sent, SentencePrinter::Style style) const
+SentencePrinter Library::print_sentence(const std::vector<SymTok> &sent, SentencePrinter::Style style) const
 {
     return SentencePrinter({ sent, *this, style });
 }
@@ -443,130 +419,6 @@ const std::vector<string> Library::get_latexdefs() const
 const std::pair<string, string> Library::get_htmlstrings() const
 {
     return make_pair(this->htmlcss, this->htmlfont);
-}
-
-LibraryCache::LibraryCache(const Library &lib) :
-    lib(lib)
-{
-}
-
-std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryCache::unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first)
-{
-    const auto key = make_tuple(hypotheses, thesis, just_first);
-    if (this->cache.find(key) == this->cache.end()) {
-        this->cache[key] = this->lib.unify_assertion(hypotheses, thesis, just_first);
-    }
-    return this->cache.at(key);
-}
-
-SymTok LibraryCache::get_symbol(string s) const
-{
-    return this->lib.get_symbol(s);
-}
-
-LabTok LibraryCache::get_label(string s) const
-{
-    return this->lib.get_label(s);
-}
-
-string LibraryCache::resolve_symbol(SymTok tok) const
-{
-    return this->lib.resolve_symbol(tok);
-}
-
-string LibraryCache::resolve_label(LabTok tok) const
-{
-    return this->lib.resolve_label(tok);
-}
-
-size_t LibraryCache::get_symbol_num() const
-{
-    return this->lib.get_symbol_num();
-}
-
-size_t LibraryCache::get_label_num() const
-{
-    return this->lib.get_label_num();
-}
-
-std::vector<LabTok> LibraryCache::prove_type(const std::vector<SymTok> &type_sent) const
-{
-    return this->lib.prove_type(type_sent);
-}
-
-bool LibraryCache::is_constant(SymTok c) const
-{
-    return this->lib.is_constant(c);
-}
-
-std::vector<SymTok> LibraryCache::parse_sentence(const string &in) const
-{
-    return this->lib.parse_sentence(in);
-}
-
-SentencePrinter LibraryCache::print_sentence(const std::vector<SymTok> &sent) const
-{
-    return this->lib.print_sentence(sent);
-}
-
-SentencePrinter LibraryCache::print_sentence_html(const std::vector<SymTok> &sent, SentencePrinter::Style style) const
-{
-    return this->lib.print_sentence_html(sent, style);
-}
-
-ProofPrinter LibraryCache::print_proof(const std::vector<LabTok> &proof) const
-{
-    return this->lib.print_proof(proof);
-}
-
-const Assertion &LibraryCache::get_assertion(LabTok label) const
-{
-    return this->lib.get_assertion(label);
-}
-
-const std::vector<SymTok> &LibraryCache::get_sentence(LabTok label) const
-{
-    return this->lib.get_sentence(label);
-}
-
-const std::vector<LabTok> &LibraryCache::get_types() const
-{
-    return this->lib.get_types();
-}
-
-const std::vector<LabTok> &LibraryCache::get_types_by_var() const
-{
-    return this->lib.get_types_by_var();
-}
-
-const std::vector<Assertion> &LibraryCache::get_assertions() const
-{
-    return this->lib.get_assertions();
-}
-
-const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryCache::get_assertions_by_type() const
-{
-    return this->lib.get_assertions_by_type();
-}
-
-const std::vector<string> LibraryCache::get_htmldefs() const
-{
-    return this->lib.get_htmldefs();
-}
-
-const std::vector<string> LibraryCache::get_althtmldefs() const
-{
-    return this->lib.get_althtmldefs();
-}
-
-const std::vector<string> LibraryCache::get_latexdefs() const
-{
-    return this->lib.get_latexdefs();
-}
-
-const std::pair<string, string> LibraryCache::get_htmlstrings() const
-{
-    return this->lib.get_htmlstrings();
 }
 
 LibraryInterface::~LibraryInterface()

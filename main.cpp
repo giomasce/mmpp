@@ -213,14 +213,14 @@ void test() {
 
         if (false) {
             cout << "Generic unification test" << endl;
-            vector< SymTok > sent = parse_sentence("wff ( ph -> ( ps -> ch ) )", lib);
-            vector< SymTok > templ = parse_sentence("wff ( th -> et )", lib);
+            vector< SymTok > sent = lib.parse_sentence("wff ( ph -> ( ps -> ch ) )");
+            vector< SymTok > templ = lib.parse_sentence("wff ( th -> et )");
             auto res = unify(sent, templ, lib, false);
-            cout << "Matching:         " << print_sentence(sent, lib) << endl << "against template: " << print_sentence(templ, lib) << endl;
+            cout << "Matching:         " << lib.print_sentence(sent) << endl << "against template: " << lib.print_sentence(templ) << endl;
             for (auto &match : res) {
                 cout << "  *";
                 for (auto &var: match) {
-                    cout << " " << print_sentence({var.first}, lib) << " => " << print_sentence(var.second, lib) << "  ";
+                    cout << " " << lib.print_sentence({var.first}) << " => " << lib.print_sentence(var.second) << "  ";
                 }
                 cout << endl;
             }
@@ -230,7 +230,7 @@ void test() {
         if (false) {
             cout << "Statement unification test" << endl;
             //auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> th )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- th", lib));
-            auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> ( ph -> ps ) )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- ( ph -> ps )", lib));
+            auto res = lib.unify_assertion({ lib.parse_sentence("|- ( ch -> ( ph -> ps ) )"), lib.parse_sentence("|- ch") }, lib.parse_sentence("|- ( ph -> ps )"));
             cout << "Found " << res.size() << " matching assertions:" << endl;
             for (auto &match : res) {
                 auto &label = get<0>(match);
@@ -238,10 +238,10 @@ void test() {
                 cout << " * " << lib.resolve_label(label) << ":";
                 for (auto &hyp : ass.get_ess_hyps()) {
                     auto &hyp_sent = lib.get_sentence(hyp);
-                    cout << " & " << print_sentence(hyp_sent, lib);
+                    cout << " & " << lib.print_sentence(hyp_sent);
                 }
                 auto &thesis_sent = lib.get_sentence(ass.get_thesis());
-                cout << " => " << print_sentence(thesis_sent, lib) << endl;
+                cout << " => " << lib.print_sentence(thesis_sent) << endl;
             }
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
@@ -251,7 +251,7 @@ void test() {
             //auto sent = lib.parse_sentence("wff ph");
             auto sent = lib.parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
             cout << "Sentence is " << lib.print_sentence(sent) << endl;
-            cout << "HTML sentence is " << lib.print_sentence_html(sent, SentencePrinter::STYLE_ALTHTML) << endl;
+            cout << "HTML sentence is " << lib.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << endl;
             ProofEngine engine(lib);
             LibraryToolbox::build_classical_type_prover(sent)(lib, engine);
             auto res = engine.get_proof_labels();
@@ -420,10 +420,10 @@ void unification_loop() {
         size_t dollar_pos;
         vector< vector< SymTok > > hypotheses;
         while ((dollar_pos = line.find("$")) != string::npos) {
-            hypotheses.push_back(parse_sentence(line.substr(0, dollar_pos), lib));
+            hypotheses.push_back(lib.parse_sentence(line.substr(0, dollar_pos)));
             line = line.substr(dollar_pos+1);
         }
-        vector< SymTok > sent = parse_sentence(line, lib);
+        vector< SymTok > sent = lib.parse_sentence(line);
         /*auto sent_wff = sent;
         sent_wff[0] = lib.get_symbol("wff");
         auto res = lib.prove_type(sent_wff);
@@ -440,10 +440,10 @@ void unification_loop() {
             cout << " * " << lib.resolve_label(label) << ":";
             for (auto &hyp : ass.get_ess_hyps()) {
                 auto &hyp_sent = lib.get_sentence(hyp);
-                cout << " & " << print_sentence(hyp_sent, lib);
+                cout << " & " << lib.print_sentence(hyp_sent);
             }
             auto &thesis_sent = lib.get_sentence(ass.get_thesis());
-            cout << " => " << print_sentence(thesis_sent, lib) << endl;
+            cout << " => " << lib.print_sentence(thesis_sent) << endl;
         }
     }
 

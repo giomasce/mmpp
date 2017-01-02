@@ -293,3 +293,8 @@ Prover LibraryToolbox::build_earley_type_prover(const std::vector<SymTok> &type_
         return tb.earley_type_proving_helper(type_sent, engine, var_provers);
     };
 }
+
+Prover LibraryToolbox::build_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
+{
+    return LibraryToolbox::build_classical_type_prover(type_sent, var_provers);
+}
