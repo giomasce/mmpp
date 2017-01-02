@@ -1,0 +1,44 @@
+This is experimental code, it does not do anything sensible at the moment.
+It implements a parser and verifier for Metamath files (see
+http://us.metamath.org/index.html), together with some tools to do some
+operations with their content. For example, it can prove type assertions
+(e.g, assertion beginning with "wff", "class" or "set" in set.mm) and it
+can prove propositional calculus assertions (provided they are true).
+
+== COMPILATION ==
+
+Clone the repository and use qmake and make (you need to install them if
+you do not already have them):
+
+git clone https://github.com/giomasce/mmpp.git
+cd mmpp
+mkdir build
+cd build
+qmake ..
+make
+
+mmpp is currently developed on Debian and only tested on that. The code
+uses some pretty recent features of C++ (C++14 and maybe even C++17), so
+a fairly recent compiler is required. The code was written trying to
+depend as few as possible of any platform, but as I said no testing
+has been done so far. It depends on boost (which should be portable)
+and on libdl (which is probably Linux-specific, but the library is
+not really essential). In short, probably the program does not compile
+on Windows on Mac OS X at the moment, but it should not be difficult
+to make it do so.
+
+== RUN ==
+
+As I said, the code is proof-of-concept and does not do much. If you run
+it it will perform a lot of self tests and then exit.
+
+You will need the metamath-test suite in order to run the tests. The tests
+will be searched in "../metamath-test" (this is currently hardcoded in the
+variable test_basename in main.cpp). Continuing from the commands above:
+
+cd ..
+git clone https://github.com/david-a-wheeler/metamath-test.git
+cd build
+./mmpp
+
+Enjoy! :-)

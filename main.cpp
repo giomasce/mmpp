@@ -27,7 +27,7 @@ static inline string size_to_string(size_t size) {
 
 bool mmpp_abort = false;
 
-const string test_basename = "/home/giovanni/progetti/metamath/metamath-test";
+const string test_basename = "../metamath-test";
 const string tests_filenames = R"tests(
 fail anatomy-bad1.mm "Simple incorrect 'anatomy' test "
 fail anatomy-bad2.mm "Simple incorrect 'anatomy' test "

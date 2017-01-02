@@ -27,3 +27,6 @@ HEADERS += \
     toolbox.h \
     earley.h \
     stringcache.h
+
+DISTFILES += \
+    README
