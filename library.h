@@ -53,10 +53,10 @@ class Assertion {
 public:
     Assertion();
     Assertion(bool theorem,
-              size_t num_floating,
-              std::set< std::pair< SymTok, SymTok > > dists,
+              std::set< std::pair< SymTok, SymTok > > mand_dists,
               std::set< std::pair< SymTok, SymTok > > opt_dists,
-              std::vector< LabTok > hyps,
+              std::vector< LabTok > float_hyps,
+              std::vector< LabTok > ess_hyps,
               std::set< LabTok > opt_hyps,
               LabTok thesis,
               std::string comment = "");
@@ -69,20 +69,21 @@ public:
     const std::set< std::pair< SymTok, SymTok > > &get_mand_dists() const;
     const std::set< std::pair< SymTok, SymTok > > &get_opt_dists() const;
     const std::set<std::pair<SymTok, SymTok> > get_dists() const;
-    const std::vector< LabTok > &get_mand_hyps() const;
+    const std::vector< LabTok > get_mand_hyps() const;
+    const std::vector<LabTok> &get_float_hyps() const;
+    const std::vector<LabTok> &get_ess_hyps() const;
     const std::set< LabTok > &get_opt_hyps() const;
-    std::vector<LabTok> get_ess_hyps() const;
     LabTok get_thesis() const;
     std::shared_ptr< ProofExecutor > get_proof_executor(const Library &lib) const;
     void set_proof(std::shared_ptr<Proof> proof);
 
 private:
     bool valid;
-    size_t num_floating;
     bool theorem;
-    std::set< std::pair< SymTok, SymTok > > dists;
+    std::set< std::pair< SymTok, SymTok > > mand_dists;
     std::set< std::pair< SymTok, SymTok > > opt_dists;
-    std::vector< LabTok > hyps;
+    std::vector< LabTok > float_hyps;
+    std::vector< LabTok > ess_hyps;
     std::set< LabTok > opt_hyps;
     LabTok thesis;
     std::shared_ptr< Proof > proof;
@@ -146,8 +147,8 @@ public:
     virtual LabTok get_label(std::string s) const = 0;
     virtual std::string resolve_symbol(SymTok tok) const = 0;
     virtual std::string resolve_label(LabTok tok) const = 0;
-    virtual std::size_t get_symbol_num() const = 0;
-    virtual std::size_t get_label_num() const = 0;
+    virtual std::size_t get_symbols_num() const = 0;
+    virtual std::size_t get_labels_num() const = 0;
     virtual bool is_constant(SymTok c) const = 0;
     virtual std::vector< SymTok > parse_sentence(const std::string &in) const = 0;
     virtual SentencePrinter print_sentence(const std::vector< SymTok > &sent, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const = 0;
@@ -174,8 +175,8 @@ public:
     LabTok get_label(std::string s) const;
     std::string resolve_symbol(SymTok tok) const;
     std::string resolve_label(LabTok tok) const;
-    std::size_t get_symbol_num() const;
-    std::size_t get_label_num() const;
+    std::size_t get_symbols_num() const;
+    std::size_t get_labels_num() const;
     const std::vector<SymTok> &get_sentence(LabTok label) const;
     const Assertion &get_assertion(LabTok label) const;
     const std::vector< Assertion > &get_assertions() const;

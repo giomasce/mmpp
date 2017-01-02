@@ -74,7 +74,7 @@ private:
     std::set< SymTok > collect_opt_vars(const std::vector< LabTok > &proof, const std::set< SymTok > &mand_vars) const;
     void collect_vars_from_sentence(std::set<SymTok> &vars, const std::vector<SymTok> &sent) const;
     void collect_vars_from_proof(std::set<SymTok> &vars, const std::vector< LabTok > &proof) const;
-    std::pair< int, std::vector<LabTok> > collect_mand_hyps(std::set<SymTok> vars) const;
+    std::pair< std::vector< LabTok >, std::vector<LabTok> > collect_mand_hyps(std::set<SymTok> vars) const;
     std::set<LabTok> collect_opt_hyps(std::set<SymTok> opt_vars) const;
     std::set<std::pair<SymTok, SymTok> > collect_mand_dists(std::set<SymTok> vars) const;
     std::set<std::pair<SymTok, SymTok> > collect_opt_dists(std::set<SymTok> opt_vars, std::set<SymTok> mand_vars) const;

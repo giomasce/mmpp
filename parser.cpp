@@ -372,17 +372,15 @@ std::set<SymTok> Parser::collect_opt_vars(const std::vector<LabTok> &proof, cons
 }
 
 // Here order matters! Be careful!
-pair< int, vector< LabTok > > Parser::collect_mand_hyps(set< SymTok > vars) const {
-    vector< LabTok > hyps;
+pair< vector< LabTok >, vector< LabTok > > Parser::collect_mand_hyps(set< SymTok > vars) const {
+    vector< LabTok > float_hyps, ess_hyps;
 
     // Floating hypotheses
-    int num_floating = 0;
     for (auto &frame : this->stack) {
         for (auto &type : frame.types) {
             const auto &sent = this->lib.get_sentence(type);
             if (vars.find(sent[1]) != vars.end()) {
-                hyps.push_back(type);
-                num_floating++;
+                float_hyps.push_back(type);
             }
         }
     }
@@ -390,11 +388,11 @@ pair< int, vector< LabTok > > Parser::collect_mand_hyps(set< SymTok > vars) cons
     // Essential hypotheses
     for (auto &frame : this->stack) {
         for (auto &hyp : frame.hyps) {
-            hyps.push_back(hyp);
+            ess_hyps.push_back(hyp);
         }
     }
 
-    return make_pair(num_floating, hyps);
+    return make_pair(float_hyps, ess_hyps);
 }
 
 std::set<LabTok> Parser::collect_opt_hyps(std::set<SymTok> opt_vars) const
@@ -456,13 +454,12 @@ void Parser::parse_a()
 
     // Collect things
     set< SymTok > mand_vars = this->collect_mand_vars(tmp);
-    int num_floating;
-    vector< LabTok > mand_hyps;
-    tie(num_floating, mand_hyps) = this->collect_mand_hyps(mand_vars);
+    vector< LabTok > float_hyps, ess_hyps;
+    tie(float_hyps, ess_hyps) = this->collect_mand_hyps(mand_vars);
     set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
 
     // Finally build assertion
-    Assertion ass(false, num_floating, mand_dists, {}, mand_hyps, {}, this->label, this->last_comment);
+    Assertion ass(false, mand_dists, {}, float_hyps, ess_hyps, {}, this->label, this->last_comment);
     this->last_comment = "";
     this->lib.add_assertion(this->label, ass);
 }
@@ -530,9 +527,8 @@ void Parser::parse_p()
 
     // Collect things
     set< SymTok > mand_vars = this->collect_mand_vars(tmp);
-    int num_floating;
-    vector< LabTok > mand_hyps;
-    tie(num_floating, mand_hyps) = this->collect_mand_hyps(mand_vars);
+    vector< LabTok > float_hyps, ess_hyps;
+    tie(float_hyps, ess_hyps) = this->collect_mand_hyps(mand_vars);
     set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
     set< SymTok > opt_vars;
     if (compressed_proof < 0) {
@@ -544,7 +540,7 @@ void Parser::parse_p()
     set< pair< SymTok, SymTok > > opt_dists = this->collect_opt_dists(opt_vars, mand_vars);
 
     // Finally build assertion and attach proof
-    Assertion ass(true, num_floating, mand_dists, opt_dists, mand_hyps, opt_hyps, this->label, this->last_comment);
+    Assertion ass(true, mand_dists, opt_dists, float_hyps, ess_hyps, opt_hyps, this->label, this->last_comment);
     this->last_comment = "";
     shared_ptr< Proof > proof;
     if (compressed_proof < 0) {

@@ -49,12 +49,12 @@ string Library::resolve_label(LabTok tok) const
     return this->labels.resolve(tok);
 }
 
-size_t Library::get_symbol_num() const
+size_t Library::get_symbols_num() const
 {
     return this->syms.size();
 }
 
-size_t Library::get_label_num() const
+size_t Library::get_labels_num() const
 {
     return this->labels.size();
 }
@@ -227,13 +227,12 @@ Assertion::Assertion() :
 }
 
 Assertion::Assertion(bool theorem,
-                     size_t num_floating,
                      std::set<std::pair<SymTok, SymTok> > dists,
                      std::set<std::pair<SymTok, SymTok> > opt_dists,
-                     std::vector<LabTok> hyps, std::set<LabTok> opt_hyps,
+                     std::vector<LabTok> float_hyps, std::vector<LabTok> ess_hyps, std::set<LabTok> opt_hyps,
                      LabTok thesis, string comment) :
-    valid(true), num_floating(num_floating), theorem(theorem), dists(dists), opt_dists(opt_dists),
-    hyps(hyps), opt_hyps(opt_hyps), thesis(thesis), proof(NULL), comment(comment),
+    valid(true), theorem(theorem), mand_dists(dists), opt_dists(opt_dists),
+    float_hyps(float_hyps), ess_hyps(ess_hyps), opt_hyps(opt_hyps), thesis(thesis), proof(NULL), comment(comment),
     modif_disc(false), usage_disc(false)
 {
     if (this->comment.find("(Proof modification is discouraged.)") != string::npos) {
@@ -269,11 +268,11 @@ bool Assertion::is_usage_disc() const
 
 size_t Assertion::get_num_floating() const
 {
-    return this->num_floating;
+    return this->float_hyps.size();
 }
 
 const std::set<std::pair<SymTok, SymTok> > &Assertion::get_mand_dists() const {
-    return this->dists;
+    return this->mand_dists;
 }
 
 const std::set<std::pair<SymTok, SymTok> > &Assertion::get_opt_dists() const
@@ -290,8 +289,17 @@ const std::set<std::pair<SymTok, SymTok> > Assertion::get_dists() const
     return ret;
 }
 
-const std::vector<LabTok> &Assertion::get_mand_hyps() const {
-    return this->hyps;
+const std::vector<LabTok> Assertion::get_mand_hyps() const
+{
+    vector< LabTok > ret;
+    copy(this->float_hyps.begin(), this->float_hyps.end(), back_inserter(ret));
+    copy(this->ess_hyps.begin(), this->ess_hyps.end(), back_inserter(ret));
+    return ret;
+}
+
+const std::vector<LabTok> &Assertion::get_float_hyps() const
+{
+    return this->float_hyps;
 }
 
 const std::set<LabTok> &Assertion::get_opt_hyps() const
@@ -299,11 +307,9 @@ const std::set<LabTok> &Assertion::get_opt_hyps() const
     return this->opt_hyps;
 }
 
-std::vector<LabTok> Assertion::get_ess_hyps() const
+const std::vector<LabTok> &Assertion::get_ess_hyps() const
 {
-    vector< LabTok > ret;
-    copy(this->hyps.begin() + this->num_floating, this->hyps.end(), back_inserter(ret));
-    return ret;
+    return this->ess_hyps;
 }
 
 LabTok Assertion::get_thesis() const {

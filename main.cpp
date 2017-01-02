@@ -127,7 +127,7 @@ void test() {
             cout << "Reading library and executing all proofs..." << endl;
             p.run();
             Library lib = p.get_library();
-            cout << "Library has " << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
+            cout << "Library has " << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
 
             /*LabTok failing = 287;
             cout << "Checking proof of " << lib.resolve_label(failing) << endl;
@@ -208,7 +208,7 @@ void test() {
         Parser p(ft, false, true);
         p.run();
         Library lib = p.get_library();
-        cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
+        cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
         cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl << endl;
 
         if (false) {
@@ -409,7 +409,7 @@ void unification_loop() {
     Parser p(ft, false, true);
     p.run();
     Library lib = p.get_library();
-    cout << lib.get_symbol_num() << " symbols and " << lib.get_label_num() << " labels" << endl;
+    cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
     cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl;
     while (true) {
         string line;
