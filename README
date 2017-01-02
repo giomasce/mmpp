@@ -42,3 +42,16 @@ cd build
 ./mmpp
 
 Enjoy! :-)
+
+== LICENSE ==
+
+The code is copyright © 2015-2016 Giovanni Mascellani
+<g.mascellani@gmail.com>. It is distributed under the terms of the
+General Public License, version 2 or later. See
+
+  https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+  https://www.gnu.org/licenses/old-licenses/gpl-3.0.html
+
+Some code snippets were taken from the Internet. They are marked in the
+source code. In all cases I belive that the originals can be understood
+to be in the public domain.
