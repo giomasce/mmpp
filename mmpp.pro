@@ -25,4 +25,5 @@ HEADERS += \
     unification.h \
     memory.h \
     toolbox.h \
-    earley.h
+    earley.h \
+    stringcache.h
