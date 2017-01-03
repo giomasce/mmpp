@@ -10,7 +10,8 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
 {
     bool first = true;
     if (sp.style == SentencePrinter::STYLE_ALTHTML) {
-        os << sp.lib.get_addendum().htmlcss;
+        // TODO - HTML fixing could be done just once
+        os << fix_htmlcss_for_qt(sp.lib.get_addendum().htmlcss);
         os << "<SPAN " << sp.lib.get_addendum().htmlfont << ">";
     }
     for (auto &tok : sp.sent) {

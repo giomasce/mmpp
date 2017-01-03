@@ -58,6 +58,8 @@ struct LibraryAddendum {
     std::string althtmldir;
 };
 
+std::string fix_htmlcss_for_qt(std::string s);
+
 class Assertion {
 public:
     Assertion();

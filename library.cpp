@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <iostream>
 #include <map>
+#include <regex>
+
 using namespace std;
 
 LibraryImpl::LibraryImpl()
@@ -320,4 +322,18 @@ void LibraryImpl::set_addendum(const LibraryAddendum &add)
 
 Library::~Library()
 {
+}
+
+string fix_htmlcss_for_qt(string s)
+{
+    string tmp(s);
+    tmp = tmp + "\n\n";
+    // Qt does not recognize HTML comments in the stylesheet
+    tmp = regex_replace(tmp, regex("<!--"), "");
+    tmp = regex_replace(tmp, regex("-->"), "");
+    // Qt uses the system font (not the one provided by the CSS), so it must use the real font name
+    tmp = regex_replace(tmp, regex("XITSMath-Regular"), "XITS Math");
+    // Qt does not recognize the LINK tags and stops rendering altogether
+    tmp = regex_replace(tmp, regex("<LINK [^>]*>"), "");
+    return tmp;
 }

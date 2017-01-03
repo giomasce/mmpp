@@ -101,7 +101,7 @@ void test() {
     }
 
     auto tests = get_tests();
-    //tests = {};
+    tests = {};
     int problems = 0;
     for (auto test_pair : tests) {
         string filename = test_pair.first;
@@ -252,7 +252,9 @@ void test() {
             //auto sent = lib.parse_sentence("wff ph");
             auto sent = tb.parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
             cout << "Sentence is " << tb.print_sentence(sent) << endl;
-            cout << "HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << endl;
+            cout << "HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_HTML) << endl;
+            cout << "Alt HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << endl;
+            cout << "LaTeX sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_LATEX) << endl;
             ProofEngine engine(lib);
             LibraryToolbox::build_classical_type_prover(sent)(lib, engine);
             auto res = engine.get_proof_labels();
