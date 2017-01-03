@@ -250,7 +250,7 @@ void Parser::run () {
     this->t_comment = "";
 }
 
-const Library &Parser::get_library() const {
+const LibraryImpl &Parser::get_library() const {
     return this->lib;
 }
 

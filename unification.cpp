@@ -14,7 +14,7 @@ using namespace std;
 // This algorithm is probably not terribly efficient
 static void unify_internal(vector<SymTok>::const_iterator sent_cur, vector<SymTok>::const_iterator sent_end,
                            vector<SymTok>::const_iterator templ_cur, vector<SymTok>::const_iterator templ_end,
-                           const LibraryInterface &lib, bool allow_empty, unordered_map< SymTok, vector< SymTok > > &current_match,
+                           const Library &lib, bool allow_empty, unordered_map< SymTok, vector< SymTok > > &current_match,
                            vector< unordered_map< SymTok, vector< SymTok > > > &matches) {
 #ifndef NDEBUG
     cerr << "Entering unify_internal(" << (sent_cur != sent_end ? *sent_cur : -1) <<", .., " << (templ_cur != templ_end ? *templ_cur : -1) << ", .., .., " << allow_empty << ", .., ..)" << endl;
@@ -83,7 +83,7 @@ static void unify_internal(vector<SymTok>::const_iterator sent_cur, vector<SymTo
     }
 }
 
-std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > unify(const std::vector<SymTok> &sent, const std::vector<SymTok> &templ, const LibraryInterface &lib, bool allow_empty)
+std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > unify(const std::vector<SymTok> &sent, const std::vector<SymTok> &templ, const Library &lib, bool allow_empty)
 {
     vector< unordered_map< SymTok, vector< SymTok > > > matches;
     unordered_map< SymTok, vector< SymTok > > current_match;

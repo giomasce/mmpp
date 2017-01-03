@@ -5,7 +5,7 @@
 
 using namespace std;
 
-LibraryToolbox::LibraryToolbox(const LibraryInterface &lib) :
+LibraryToolbox::LibraryToolbox(const Library &lib) :
     lib(lib)
 {
 }
@@ -165,7 +165,7 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
     return false;
 }
 
-static void earley_type_unwind_tree(const EarleyTreeItem &tree, ProofEngine &engine, const LibraryInterface &lib) {
+static void earley_type_unwind_tree(const EarleyTreeItem &tree, ProofEngine &engine, const Library &lib) {
     // We need to sort children according to their order as floating hypotheses of this assertion
     // If this is not an assertion, then there are no children
     const Assertion &ass = lib.get_assertion(tree.label);
@@ -250,7 +250,7 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
 
 Prover LibraryToolbox::build_prover4(const std::vector<string> &templ_hyps, const string &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers)
 {
-    return [=](const LibraryInterface & lib, ProofEngine &engine){
+    return [=](const Library & lib, ProofEngine &engine){
         LibraryToolbox tb(lib);
         return tb.proving_helper4(templ_hyps, templ_thesis, types_provers, hyps_provers, engine);
     };
@@ -258,7 +258,7 @@ Prover LibraryToolbox::build_prover4(const std::vector<string> &templ_hyps, cons
 
 Prover LibraryToolbox::build_type_prover2(const std::string &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
 {
-    return [=](const LibraryInterface &lib, ProofEngine &engine){
+    return [=](const Library &lib, ProofEngine &engine){
         LibraryToolbox tb(lib);
         vector< SymTok > type_sent2 = lib.parse_sentence(type_sent);
         return tb.classical_type_proving_helper(type_sent2, engine, var_provers);
@@ -267,7 +267,7 @@ Prover LibraryToolbox::build_type_prover2(const std::string &type_sent, const st
 
 Prover LibraryToolbox::cascade_provers(const Prover &a,  const Prover &b)
 {
-    return [=](const LibraryInterface & lib, ProofEngine &engine) {
+    return [=](const Library & lib, ProofEngine &engine) {
         bool res;
         res = a(lib, engine);
         if (res) {
@@ -280,7 +280,7 @@ Prover LibraryToolbox::cascade_provers(const Prover &a,  const Prover &b)
 
 Prover LibraryToolbox::build_classical_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
 {
-    return [=](const LibraryInterface &lib, ProofEngine &engine){
+    return [=](const Library &lib, ProofEngine &engine){
         LibraryToolbox tb(lib);
         return tb.classical_type_proving_helper(type_sent, engine, var_provers);
     };
@@ -288,7 +288,7 @@ Prover LibraryToolbox::build_classical_type_prover(const std::vector<SymTok> &ty
 
 Prover LibraryToolbox::build_earley_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
 {
-    return [=](const LibraryInterface &lib, ProofEngine &engine){
+    return [=](const Library &lib, ProofEngine &engine){
         LibraryToolbox tb(lib);
         return tb.earley_type_proving_helper(type_sent, engine, var_provers);
     };

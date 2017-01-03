@@ -51,7 +51,7 @@ class Parser {
 public:
     Parser(TokenGenerator &tg, bool execute_proofs=true, bool store_comments=false);
     void run();
-    const Library &get_library() const;
+    const LibraryImpl &get_library() const;
 
 private:
     std::pair< bool, std::string > next_token();
@@ -83,7 +83,7 @@ private:
     TokenGenerator *tg;
     bool execute_proofs;
     bool store_comments;
-    Library lib;
+    LibraryImpl lib;
     LabTok label;
     std::string last_comment;
     std::vector< std::string > toks;

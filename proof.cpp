@@ -23,7 +23,7 @@ CompressedProof::CompressedProof(const std::vector<LabTok> &refs, const std::vec
 {
 }
 
-std::shared_ptr<ProofExecutor> CompressedProof::get_executor(const LibraryInterface &lib, const Assertion &ass) const
+std::shared_ptr<ProofExecutor> CompressedProof::get_executor(const Library &lib, const Assertion &ass) const
 {
     return shared_ptr< ProofExecutor >(new CompressedProofExecutor(lib, ass, *this));
 }
@@ -139,7 +139,7 @@ UncompressedProof::UncompressedProof(const std::vector<LabTok> &labels) :
 {
 }
 
-std::shared_ptr<ProofExecutor> UncompressedProof::get_executor(const LibraryInterface &lib, const Assertion &ass) const
+std::shared_ptr<ProofExecutor> UncompressedProof::get_executor(const Library &lib, const Assertion &ass) const
 {
     return shared_ptr< ProofExecutor >(new UncompressedProofExecutor(lib, ass, *this));
 }
@@ -267,7 +267,7 @@ bool UncompressedProofExecutor::check_syntax()
     return true;
 }
 
-ProofExecutor::ProofExecutor(const LibraryInterface &lib, const Assertion &ass) :
+ProofExecutor::ProofExecutor(const Library &lib, const Assertion &ass) :
     lib(lib), ass(ass), engine(lib) {
 }
 
@@ -316,17 +316,17 @@ ProofExecutor::~ProofExecutor()
 {
 }
 
-CompressedProofExecutor::CompressedProofExecutor(const LibraryInterface &lib, const Assertion &ass, const CompressedProof &proof) :
+CompressedProofExecutor::CompressedProofExecutor(const Library &lib, const Assertion &ass, const CompressedProof &proof) :
     ProofExecutor(lib, ass), proof(proof)
 {
 }
 
-UncompressedProofExecutor::UncompressedProofExecutor(const LibraryInterface &lib, const Assertion &ass, const UncompressedProof &proof) :
+UncompressedProofExecutor::UncompressedProofExecutor(const Library &lib, const Assertion &ass, const UncompressedProof &proof) :
     ProofExecutor(lib, ass), proof(proof)
 {
 }
 
-ProofEngine::ProofEngine(const LibraryInterface &lib, bool gen_proof_tree) :
+ProofEngine::ProofEngine(const Library &lib, bool gen_proof_tree) :
     lib(lib), gen_proof_tree(gen_proof_tree)
 {
 }

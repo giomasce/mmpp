@@ -9,17 +9,17 @@
 #include <map>
 using namespace std;
 
-Library::Library()
+LibraryImpl::LibraryImpl()
 {
 }
 
-SymTok Library::create_symbol(string s)
+SymTok LibraryImpl::create_symbol(string s)
 {
     assert_or_throw(is_symbol(s));
     return this->syms.get_or_create(s);
 }
 
-LabTok Library::create_label(string s)
+LabTok LibraryImpl::create_label(string s)
 {
     assert_or_throw(is_label(s));
     auto res = this->labels.get_or_create(s);
@@ -29,73 +29,73 @@ LabTok Library::create_label(string s)
     return res;
 }
 
-SymTok Library::get_symbol(string s) const
+SymTok LibraryImpl::get_symbol(string s) const
 {
     return this->syms.get(s);
 }
 
-LabTok Library::get_label(string s) const
+LabTok LibraryImpl::get_label(string s) const
 {
     return this->labels.get(s);
 }
 
-string Library::resolve_symbol(SymTok tok) const
+string LibraryImpl::resolve_symbol(SymTok tok) const
 {
     return this->syms.resolve(tok);
 }
 
-string Library::resolve_label(LabTok tok) const
+string LibraryImpl::resolve_label(LabTok tok) const
 {
     return this->labels.resolve(tok);
 }
 
-size_t Library::get_symbols_num() const
+size_t LibraryImpl::get_symbols_num() const
 {
     return this->syms.size();
 }
 
-size_t Library::get_labels_num() const
+size_t LibraryImpl::get_labels_num() const
 {
     return this->labels.size();
 }
 
-void Library::add_sentence(LabTok label, std::vector<SymTok> content) {
+void LibraryImpl::add_sentence(LabTok label, std::vector<SymTok> content) {
     //this->sentences.insert(make_pair(label, content));
     assert(label < this->sentences.size());
     this->sentences[label] = content;
 }
 
-const std::vector<SymTok> &Library::get_sentence(LabTok label) const {
+const std::vector<SymTok> &LibraryImpl::get_sentence(LabTok label) const {
     return this->sentences.at(label);
 }
 
-void Library::add_assertion(LabTok label, const Assertion &ass)
+void LibraryImpl::add_assertion(LabTok label, const Assertion &ass)
 {
     this->assertions[label] = ass;
     this->assertions_by_type[this->sentences.at(label).at(0)].push_back(label);
 }
 
-const Assertion &Library::get_assertion(LabTok label) const
+const Assertion &LibraryImpl::get_assertion(LabTok label) const
 {
     return this->assertions.at(label);
 }
 
-const std::vector<Assertion> &Library::get_assertions() const
+const std::vector<Assertion> &LibraryImpl::get_assertions() const
 {
     return this->assertions;
 }
 
-void Library::add_constant(SymTok c)
+void LibraryImpl::add_constant(SymTok c)
 {
     this->consts.insert(c);
 }
 
-bool Library::is_constant(SymTok c) const
+bool LibraryImpl::is_constant(SymTok c) const
 {
     return this->consts.find(c) != this->consts.end();
 }
 
-std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > Library::unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first) const
+std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryImpl::unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first) const
 {
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
 
@@ -147,7 +147,7 @@ std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok
     return ret;
 }
 
-std::vector<LabTok> Library::prove_type2(const std::vector<SymTok> &type_sent) const
+std::vector<LabTok> LibraryImpl::prove_type2(const std::vector<SymTok> &type_sent) const
 {
     // Iterate over all propositions (maybe just axioms would be enough) with zero essential hypotheses, try to match and recur on all matches;
     // hopefully nearly all branches die early and there is just one real long-standing branch;
@@ -210,7 +210,7 @@ std::vector<LabTok> Library::prove_type2(const std::vector<SymTok> &type_sent) c
     return {};
 }
 
-void Library::set_types(const std::vector<LabTok> &types)
+void LibraryImpl::set_types(const std::vector<LabTok> &types)
 {
     assert(this->types.empty());
     this->types = types;
@@ -317,7 +317,7 @@ LabTok Assertion::get_thesis() const {
     return this->thesis;
 }
 
-std::shared_ptr<ProofExecutor> Assertion::get_proof_executor(const Library &lib) const
+std::shared_ptr<ProofExecutor> Assertion::get_proof_executor(const LibraryImpl &lib) const
 {
     return this->proof->get_executor(lib, *this);
 }
@@ -362,7 +362,7 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
     return os;
 }
 
-std::vector<SymTok> Library::parse_sentence(const string &in) const
+std::vector<SymTok> LibraryImpl::parse_sentence(const string &in) const
 {
     auto toks = tokenize(in);
     vector< SymTok > res;
@@ -374,32 +374,32 @@ std::vector<SymTok> Library::parse_sentence(const string &in) const
     return res;
 }
 
-SentencePrinter Library::print_sentence(const std::vector<SymTok> &sent, SentencePrinter::Style style) const
+SentencePrinter LibraryImpl::print_sentence(const std::vector<SymTok> &sent, SentencePrinter::Style style) const
 {
     return SentencePrinter({ sent, *this, style });
 }
 
-ProofPrinter Library::print_proof(const std::vector<LabTok> &proof) const
+ProofPrinter LibraryImpl::print_proof(const std::vector<LabTok> &proof) const
 {
     return ProofPrinter({ proof, *this });
 }
 
-const std::vector<LabTok> &Library::get_types() const
+const std::vector<LabTok> &LibraryImpl::get_types() const
 {
     return this->types;
 }
 
-const std::vector<LabTok> &Library::get_types_by_var() const
+const std::vector<LabTok> &LibraryImpl::get_types_by_var() const
 {
     return this->types_by_var;
 }
 
-const std::unordered_map<SymTok, std::vector<LabTok> > &Library::get_assertions_by_type() const
+const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryImpl::get_assertions_by_type() const
 {
     return this->assertions_by_type;
 }
 
-void Library::set_t_comment(std::vector<string> htmldefs, std::vector<string> althtmldefs, std::vector<string> latexdefs, string htmlcss, string htmlfont)
+void LibraryImpl::set_t_comment(std::vector<string> htmldefs, std::vector<string> althtmldefs, std::vector<string> latexdefs, string htmlcss, string htmlfont)
 {
     this->htmldefs = htmldefs;
     this->althtmldefs = althtmldefs;
@@ -408,27 +408,27 @@ void Library::set_t_comment(std::vector<string> htmldefs, std::vector<string> al
     this->htmlcss = htmlcss;
 }
 
-const std::vector<string> Library::get_htmldefs() const
+const std::vector<string> LibraryImpl::get_htmldefs() const
 {
     return this->htmldefs;
 }
 
-const std::vector<string> Library::get_althtmldefs() const
+const std::vector<string> LibraryImpl::get_althtmldefs() const
 {
     return this->althtmldefs;
 }
 
-const std::vector<string> Library::get_latexdefs() const
+const std::vector<string> LibraryImpl::get_latexdefs() const
 {
     return this->latexdefs;
 }
 
-const std::pair<string, string> Library::get_htmlstrings() const
+const std::pair<string, string> LibraryImpl::get_htmlstrings() const
 {
     return make_pair(this->htmlcss, this->htmlfont);
 }
 
-LibraryInterface::~LibraryInterface()
+Library::~Library()
 {
 }
 

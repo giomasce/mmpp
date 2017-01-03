@@ -28,7 +28,7 @@ struct ProofTree {
 
 class ProofEngine {
 public:
-    ProofEngine(const LibraryInterface &lib, bool gen_proof_tree=false);
+    ProofEngine(const Library &lib, bool gen_proof_tree=false);
     void set_gen_proof_tree(bool gen_proof_tree);
     const std::vector< std::vector< SymTok > > &get_stack() const;
     const std::set< std::pair< SymTok, SymTok > > &get_dists() const;
@@ -48,7 +48,7 @@ private:
     void pop_stack();
     void check_stack_underflow();
 
-    const LibraryInterface &lib;
+    const Library &lib;
     bool gen_proof_tree;
     std::vector< std::vector< SymTok > > stack;
     std::vector< ProofTree > tree_stack;
@@ -74,13 +74,13 @@ public:
     virtual bool check_syntax() = 0;
     virtual ~ProofExecutor();
 protected:
-    ProofExecutor(const LibraryInterface &lib, const Assertion &ass);
+    ProofExecutor(const Library &lib, const Assertion &ass);
     void process_sentence(const std::vector< SymTok > &sent);
     void process_label(const LabTok label);
     size_t get_hyp_num(const LabTok label) const;
     void final_checks() const;
 
-    const LibraryInterface &lib;
+    const Library &lib;
     const Assertion &ass;
     ProofEngine engine;
 };
@@ -93,7 +93,7 @@ public:
     const UncompressedProof uncompress();
     bool check_syntax();
 private:
-    CompressedProofExecutor(const LibraryInterface &lib, const Assertion &ass, const CompressedProof &proof);
+    CompressedProofExecutor(const Library &lib, const Assertion &ass, const CompressedProof &proof);
 
     const CompressedProof &proof;
 };
@@ -106,14 +106,14 @@ public:
     const UncompressedProof uncompress();
     bool check_syntax();
 private:
-    UncompressedProofExecutor(const LibraryInterface &lib, const Assertion &ass, const UncompressedProof &proof);
+    UncompressedProofExecutor(const Library &lib, const Assertion &ass, const UncompressedProof &proof);
 
     const UncompressedProof &proof;
 };
 
 class Proof {
 public:
-    virtual std::shared_ptr< ProofExecutor > get_executor(const LibraryInterface &lib, const Assertion &ass) const = 0;
+    virtual std::shared_ptr< ProofExecutor > get_executor(const Library &lib, const Assertion &ass) const = 0;
     virtual ~Proof();
 };
 
@@ -121,7 +121,7 @@ class CompressedProof : public Proof {
     friend class CompressedProofExecutor;
 public:
     CompressedProof(const std::vector< LabTok > &refs, const std::vector< CodeTok > &codes);
-    std::shared_ptr< ProofExecutor > get_executor(const LibraryInterface &lib, const Assertion &ass) const;
+    std::shared_ptr< ProofExecutor > get_executor(const Library &lib, const Assertion &ass) const;
 private:
     const std::vector< LabTok > refs;
     const std::vector< CodeTok > codes;
@@ -131,7 +131,7 @@ class UncompressedProof : public Proof {
     friend class UncompressedProofExecutor;
 public:
     UncompressedProof(const std::vector< LabTok > &labels);
-    std::shared_ptr< ProofExecutor > get_executor(const LibraryInterface &lib, const Assertion &ass) const;
+    std::shared_ptr< ProofExecutor > get_executor(const Library &lib, const Assertion &ass) const;
 private:
     const std::vector< LabTok > labels;
 };

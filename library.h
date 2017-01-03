@@ -14,8 +14,8 @@
 
 #include <cassert>
 
-class LibraryInterface;
 class Library;
+class LibraryImpl;
 class Assertion;
 
 typedef uint16_t SymTok;
@@ -40,12 +40,12 @@ struct SentencePrinter {
         STYLE_LATEX,
     };
     const std::vector< SymTok > &sent;
-    const LibraryInterface &lib;
+    const Library &lib;
     const Style style;
 };
 struct ProofPrinter {
     const std::vector< LabTok > &proof;
-    const LibraryInterface &lib;
+    const Library &lib;
 };
 std::ostream &operator<<(std::ostream &os, const SentencePrinter &sp);
 std::ostream &operator<<(std::ostream &os, const ProofPrinter &sp);
@@ -75,7 +75,7 @@ public:
     const std::vector<LabTok> &get_ess_hyps() const;
     const std::set< LabTok > &get_opt_hyps() const;
     LabTok get_thesis() const;
-    std::shared_ptr< ProofExecutor > get_proof_executor(const Library &lib) const;
+    std::shared_ptr< ProofExecutor > get_proof_executor(const LibraryImpl &lib) const;
     void set_proof(std::shared_ptr<Proof> proof);
 
 private:
@@ -95,7 +95,7 @@ private:
     std::shared_ptr< Proof > get_proof() const;
 };
 
-class LibraryInterface {
+class Library {
 public:
     virtual SymTok get_symbol(std::string s) const = 0;
     virtual LabTok get_label(std::string s) const = 0;
@@ -104,12 +104,15 @@ public:
     virtual std::size_t get_symbols_num() const = 0;
     virtual std::size_t get_labels_num() const = 0;
     virtual bool is_constant(SymTok c) const = 0;
+
     virtual std::vector< SymTok > parse_sentence(const std::string &in) const = 0;
     virtual SentencePrinter print_sentence(const std::vector< SymTok > &sent, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const = 0;
     virtual ProofPrinter print_proof(const std::vector< LabTok > &proof) const = 0;
-    virtual const std::vector<SymTok> &get_sentence(LabTok label) const = 0;
     virtual std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true) const = 0;
+
+    virtual const std::vector<SymTok> &get_sentence(LabTok label) const = 0;
     virtual const Assertion &get_assertion(LabTok label) const = 0;
+
     virtual const std::vector< LabTok > &get_types() const = 0;
     virtual const std::vector< LabTok > &get_types_by_var() const = 0;
     virtual const std::vector< Assertion > &get_assertions() const = 0;
@@ -118,13 +121,13 @@ public:
     virtual const std::vector< std::string > get_althtmldefs() const = 0;
     virtual const std::vector< std::string > get_latexdefs() const = 0;
     virtual const std::pair< std::string, std::string > get_htmlstrings() const = 0;
-    virtual ~LibraryInterface();
+    virtual ~Library();
 };
 
-class Library : public LibraryInterface
+class LibraryImpl : public Library
 {
 public:
-    Library();
+    LibraryImpl();
     SymTok get_symbol(std::string s) const;
     LabTok get_label(std::string s) const;
     std::string resolve_symbol(SymTok tok) const;

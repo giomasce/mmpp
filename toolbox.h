@@ -7,13 +7,13 @@
 
 #include "library.h"
 
-typedef std::function< bool(const LibraryInterface&, ProofEngine&) > Prover;
-const Prover null_prover = [](const LibraryInterface&, ProofEngine&){ return false; };
+typedef std::function< bool(const Library&, ProofEngine&) > Prover;
+const Prover null_prover = [](const Library&, ProofEngine&){ return false; };
 
 class LibraryToolbox
 {
 public:
-    LibraryToolbox(const LibraryInterface &lib);
+    LibraryToolbox(const Library &lib);
     std::vector< SymTok > substitute(const std::vector< SymTok > &orig, const std::unordered_map< SymTok, std::vector< SymTok > > &subst_map) const;
     std::unordered_map< SymTok, std::vector< SymTok > > compose_subst(const std::unordered_map< SymTok, std::vector< SymTok > > &first,
                                                                       const std::unordered_map< SymTok, std::vector< SymTok > > &second) const;
@@ -43,7 +43,7 @@ private:
                          const std::vector< Prover > &hyps_provers,
                          ProofEngine &engine) const;
 private:
-    const LibraryInterface &lib;
+    const Library &lib;
 };
 
 #endif // LIBRARYTOOLBOX_H
