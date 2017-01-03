@@ -241,7 +241,7 @@ void Parser::run () {
         }
     }
     this->final_frame = this->stack.back();
-    this->lib.set_types(this->final_frame.types);
+    this->lib.set_final_stack_frame(this->final_frame);
     this->stack.pop_back();
     assert_or_throw(this->stack.empty(), "Unmatched open scoping block");
 
@@ -259,7 +259,7 @@ std::pair<bool, string> Parser::next_token()
     return this->tg->next();
 }
 
-const ParserStackFrame &Parser::get_final_frame() const
+const StackFrame &Parser::get_final_frame() const
 {
     return this->final_frame;
 }
@@ -635,11 +635,7 @@ static string decode_string(vector< pair< bool, string > >::const_iterator begin
 }
 
 void Parser::parse_t_code(const vector< vector< pair< bool, string > > > &code) {
-    std::vector< std::string > htmldefs;
-    std::vector< std::string > althtmldefs;
-    std::vector< std::string > latexdefs;
-    std::string htmlcss;
-    std::string htmlfont;
+    LibraryAddendum add;
     for (auto &tokens : code) {
         assert_or_throw(tokens.size() > 0, "empty instruction in $t comment");
         assert_or_throw(!tokens.at(0).first, "instruction in $t comment begins with a string");
@@ -651,9 +647,31 @@ void Parser::parse_t_code(const vector< vector< pair< bool, string > > > &code) 
         } else if (tokens.at(0).second == "latexdef") {
             deftype = 3;
         } else if (tokens.at(0).second == "htmlcss") {
-            htmlcss = decode_string(tokens.begin() + 1, tokens.end(), true);
+            add.htmlcss = decode_string(tokens.begin() + 1, tokens.end(), true);
         } else if (tokens.at(0).second == "htmlfont") {
-            htmlfont = decode_string(tokens.begin() + 1, tokens.end(), true);
+            add.htmlfont = decode_string(tokens.begin() + 1, tokens.end(), true);
+        } else if (tokens.at(0).second == "htmltitle") {
+            add.htmltitle = decode_string(tokens.begin() + 1, tokens.end(), true);
+        } else if (tokens.at(0).second == "htmlhome") {
+            add.htmlhome = decode_string(tokens.begin() + 1, tokens.end(), true);
+        } else if (tokens.at(0).second == "htmlbibliography") {
+            add.htmlbibliography = decode_string(tokens.begin() + 1, tokens.end(), true);
+        } else if (tokens.at(0).second == "exthtmltitle") {
+            add.exthtmltitle = decode_string(tokens.begin() + 1, tokens.end(), true);
+        } else if (tokens.at(0).second == "exthtmlhome") {
+            add.exthtmlhome = decode_string(tokens.begin() + 1, tokens.end(), true);
+        } else if (tokens.at(0).second == "exthtmllabel") {
+            add.exthtmllabel = decode_string(tokens.begin() + 1, tokens.end(), true);
+        } else if (tokens.at(0).second == "exthtmlbibliography") {
+            add.exthtmlbibliography = decode_string(tokens.begin() + 1, tokens.end(), true);
+        } else if (tokens.at(0).second == "htmlvarcolor") {
+            add.htmlvarcolor = decode_string(tokens.begin() + 1, tokens.end(), true);
+        } else if (tokens.at(0).second == "htmldir") {
+            add.htmldir = decode_string(tokens.begin() + 1, tokens.end(), true);
+        } else if (tokens.at(0).second == "althtmldir") {
+            add.althtmldir = decode_string(tokens.begin() + 1, tokens.end(), true);
+        } else {
+            throw new MMPPException("unknown command in $t comment");
         }
         if (deftype != 0) {
             assert_or_throw(tokens.size() >= 4, "*def instruction in $t comment with wrong length");
@@ -666,18 +684,18 @@ void Parser::parse_t_code(const vector< vector< pair< bool, string > > > &code) 
             SymTok tok = this->lib.get_symbol(tokens.at(1).second);
             assert_or_throw(tok != 0, "unknown symbol in *def instruction in $t comment");
             if (deftype == 1) {
-                htmldefs.resize(max(htmldefs.size(), (size_t) tok+1));
-                htmldefs[tok] = value;
+                add.htmldefs.resize(max(add.htmldefs.size(), (size_t) tok+1));
+                add.htmldefs[tok] = value;
             } else if (deftype == 2) {
-                althtmldefs.resize(max(althtmldefs.size(), (size_t) tok+1));
-                althtmldefs[tok] = value;
+                add.althtmldefs.resize(max(add.althtmldefs.size(), (size_t) tok+1));
+                add.althtmldefs[tok] = value;
             } else if (deftype == 3) {
-                latexdefs.resize(max(latexdefs.size(), (size_t) tok+1));
-                latexdefs[tok] = value;
+                add.latexdefs.resize(max(add.latexdefs.size(), (size_t) tok+1));
+                add.latexdefs[tok] = value;
             }
         }
     }
-    this->lib.set_t_comment(htmldefs, althtmldefs, latexdefs, htmlcss, htmlfont);
+    this->lib.set_addendum(add);
 }
 
 void Parser::parse_t_comment(const string &comment)

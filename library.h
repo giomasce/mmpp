@@ -32,6 +32,32 @@ typedef std::vector< LabTok > Procedure;
 #include "proof.h"
 #include "stringcache.h"
 
+struct StackFrame {
+    std::set< SymTok > vars;
+    std::set< std::pair< SymTok, SymTok > > dists;     // Must be stored ordered, for example using minmax()
+    std::vector< LabTok > types;                       // Sentence is of type (constant, variable)
+    std::set< LabTok > types_set;                      // For faster searching
+    std::vector< LabTok > hyps;
+};
+
+struct LibraryAddendum {
+    std::vector< std::string > htmldefs;
+    std::vector< std::string > althtmldefs;
+    std::vector< std::string > latexdefs;
+    std::string htmlcss;
+    std::string htmlfont;
+    std::string htmltitle;
+    std::string htmlhome;
+    std::string htmlbibliography;
+    std::string exthtmltitle;
+    std::string exthtmlhome;
+    std::string exthtmllabel;
+    std::string exthtmlbibliography;
+    std::string htmlvarcolor;
+    std::string htmldir;
+    std::string althtmldir;
+};
+
 class Assertion {
 public:
     Assertion();
@@ -95,10 +121,8 @@ public:
     virtual const std::vector< Assertion > &get_assertions() const = 0;
     virtual const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const = 0;
 
-    virtual const std::vector< std::string > get_htmldefs() const = 0;
-    virtual const std::vector< std::string > get_althtmldefs() const = 0;
-    virtual const std::vector< std::string > get_latexdefs() const = 0;
-    virtual const std::pair< std::string, std::string > get_htmlstrings() const = 0;
+    virtual const StackFrame &get_final_stack_frame() const = 0;
+    virtual const LibraryAddendum &get_addendum() const = 0;
 
     virtual ~Library();
 };
@@ -120,18 +144,16 @@ public:
     const std::vector< LabTok > &get_types() const;
     const std::vector< LabTok > &get_types_by_var() const;
     const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const;
-    const std::vector< std::string > get_htmldefs() const;
-    const std::vector< std::string > get_althtmldefs() const;
-    const std::vector< std::string > get_latexdefs() const;
-    const std::pair< std::string, std::string > get_htmlstrings() const;
+    const StackFrame &get_final_stack_frame() const;
+    const LibraryAddendum &get_addendum() const;
 
     SymTok create_symbol(std::string s);
     LabTok create_label(std::string s);
     void add_sentence(LabTok label, std::vector< SymTok > content);
     void add_assertion(LabTok label, const Assertion &ass);
     void add_constant(SymTok c);
-    void set_types(const std::vector< LabTok > &types);
-    void set_t_comment(std::vector< std::string > htmldefs, std::vector< std::string > althtmldefs, std::vector< std::string > latexdefs, std::string htmlcss, std::string htmlfont);
+    void set_final_stack_frame(const StackFrame &final_stack_frame);
+    void set_addendum(const LibraryAddendum &add);
 
 private:
     StringCache< SymTok > syms;
@@ -148,14 +170,11 @@ private:
     std::vector< LabTok > types_by_var;
     std::unordered_map< SymTok, std::vector< LabTok > > assertions_by_type;
 
-    // Data from $t comment
-    std::vector< std::string > htmldefs;
-    std::vector< std::string > althtmldefs;
-    std::vector< std::string > latexdefs;
-    std::string htmlcss;
-    std::string htmlfont;
+    StackFrame final_stack_frame;
+    LibraryAddendum addendum;
 
     std::vector< LabTok > prove_type2(const std::vector< SymTok > &type_sent) const;
+    void set_types(const std::vector< LabTok > &types);
 };
 
 #endif // LIBRARY_H

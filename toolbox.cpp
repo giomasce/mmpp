@@ -10,8 +10,8 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
 {
     bool first = true;
     if (sp.style == SentencePrinter::STYLE_ALTHTML) {
-        os << sp.lib.get_htmlstrings().first;
-        os << "<SPAN " << sp.lib.get_htmlstrings().second << ">";
+        os << sp.lib.get_addendum().htmlcss;
+        os << "<SPAN " << sp.lib.get_addendum().htmlfont << ">";
     }
     for (auto &tok : sp.sent) {
         if (first) {
@@ -22,11 +22,11 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
         if (sp.style == SentencePrinter::STYLE_PLAIN) {
             os << sp.lib.resolve_symbol(tok);
         } else if (sp.style == SentencePrinter::STYLE_HTML) {
-            os << sp.lib.get_htmldefs()[tok];
+            os << sp.lib.get_addendum().htmldefs[tok];
         } else if (sp.style == SentencePrinter::STYLE_ALTHTML) {
-            os << sp.lib.get_althtmldefs()[tok];
+            os << sp.lib.get_addendum().althtmldefs[tok];
         } else if (sp.style == SentencePrinter::STYLE_LATEX) {
-            os << sp.lib.get_latexdefs()[tok];
+            os << sp.lib.get_addendum().latexdefs[tok];
         }
     }
     if (sp.style == SentencePrinter::STYLE_ALTHTML) {
@@ -209,7 +209,7 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
     return false;
 }
 
-static void earley_type_unwind_tree(const EarleyTreeItem &tree, ProofEngine &engine, const Library &lib) {
+static void earley_type_unwind_tree(const EarleyTreeItem &tree, ProofEngine &engine, const Library &lib, const std::unordered_map<SymTok, Prover> &var_provers) {
     // We need to sort children according to their order as floating hypotheses of this assertion
     // If this is not an assertion, then there are no children
     const Assertion &ass = lib.get_assertion(tree.label);
@@ -225,7 +225,7 @@ static void earley_type_unwind_tree(const EarleyTreeItem &tree, ProofEngine &eng
         assert(it == tree.children.end());
         for (auto &hyp : ass.get_float_hyps()) {
             SymTok tok = lib.get_sentence(hyp).at(1);
-            earley_type_unwind_tree(*children.at(tok), engine, lib);
+            earley_type_unwind_tree(*children.at(tok), engine, lib, var_provers);
         }
     } else {
         assert(tree.children.size() == 0);
@@ -287,7 +287,7 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
     if (tree.label == 0) {
         return false;
     } else {
-        earley_type_unwind_tree(tree, engine, lib);
+        earley_type_unwind_tree(tree, engine, this->lib, var_provers);
         return true;
     }
 }

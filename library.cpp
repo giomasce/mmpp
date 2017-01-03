@@ -169,6 +169,13 @@ void LibraryImpl::set_types(const std::vector<LabTok> &types)
     }
 }
 
+void LibraryImpl::set_final_stack_frame(const StackFrame &final_stack_frame)
+{
+    this->final_stack_frame = final_stack_frame;
+    // TODO - Remove and implement in LibraryToolbox
+    this->set_types(this->final_stack_frame.types);
+}
+
 Assertion::Assertion() :
     valid(false)
 {
@@ -296,33 +303,19 @@ const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryImpl::get_asserti
     return this->assertions_by_type;
 }
 
-void LibraryImpl::set_t_comment(std::vector<string> htmldefs, std::vector<string> althtmldefs, std::vector<string> latexdefs, string htmlcss, string htmlfont)
+const StackFrame &LibraryImpl::get_final_stack_frame() const
 {
-    this->htmldefs = htmldefs;
-    this->althtmldefs = althtmldefs;
-    this->latexdefs = latexdefs;
-    this->htmlfont = htmlfont;
-    this->htmlcss = htmlcss;
+    return this->final_stack_frame;
 }
 
-const std::vector<string> LibraryImpl::get_htmldefs() const
+const LibraryAddendum &LibraryImpl::get_addendum() const
 {
-    return this->htmldefs;
+    return this->addendum;
 }
 
-const std::vector<string> LibraryImpl::get_althtmldefs() const
+void LibraryImpl::set_addendum(const LibraryAddendum &add)
 {
-    return this->althtmldefs;
-}
-
-const std::vector<string> LibraryImpl::get_latexdefs() const
-{
-    return this->latexdefs;
-}
-
-const std::pair<string, string> LibraryImpl::get_htmlstrings() const
-{
-    return make_pair(this->htmlcss, this->htmlfont);
+    this->addendum = add;
 }
 
 Library::~Library()

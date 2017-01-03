@@ -39,14 +39,6 @@ private:
     std::pair< bool, std::string > finalize_token(bool comment);
 };
 
-struct ParserStackFrame {
-    std::set< SymTok > vars;
-    std::set< std::pair< SymTok, SymTok > > dists;     // Must be stored ordered, for example using minmax()
-    std::vector< LabTok > types;                       // Sentence is of type (constant, variable)
-    std::set< LabTok > types_set;                      // For faster searching
-    std::vector< LabTok > hyps;
-};
-
 class Parser {
 public:
     Parser(TokenGenerator &tg, bool execute_proofs=true, bool store_comments=false);
@@ -78,7 +70,7 @@ private:
     std::set<LabTok> collect_opt_hyps(std::set<SymTok> opt_vars) const;
     std::set<std::pair<SymTok, SymTok> > collect_mand_dists(std::set<SymTok> vars) const;
     std::set<std::pair<SymTok, SymTok> > collect_opt_dists(std::set<SymTok> opt_vars, std::set<SymTok> mand_vars) const;
-    const ParserStackFrame &get_final_frame() const;
+    const StackFrame &get_final_frame() const;
 
     TokenGenerator *tg;
     bool execute_proofs;
@@ -89,8 +81,8 @@ private:
     std::vector< std::string > toks;
     std::string t_comment;
 
-    std::vector< ParserStackFrame > stack;
-    ParserStackFrame final_frame;
+    std::vector< StackFrame > stack;
+    StackFrame final_frame;
     //std::set< SymTok > consts;
 };
 
