@@ -7,8 +7,10 @@
 
 #include "library.h"
 
-typedef std::function< bool(const Library&, ProofEngine&) > Prover;
-const Prover null_prover = [](const Library&, ProofEngine&){ return false; };
+class LibraryToolbox;
+
+typedef std::function< bool(const LibraryToolbox&, ProofEngine&) > Prover;
+const Prover null_prover = [](const LibraryToolbox&, ProofEngine&){ return false; };
 
 struct SentencePrinter {
     enum Style {
@@ -31,7 +33,8 @@ std::ostream &operator<<(std::ostream &os, const ProofPrinter &sp);
 class LibraryToolbox
 {
 public:
-    LibraryToolbox(const Library &lib);
+    explicit LibraryToolbox(const Library &lib, bool compute=false);
+    const Library &get_library() const;
     std::vector< SymTok > substitute(const std::vector< SymTok > &orig, const std::unordered_map< SymTok, std::vector< SymTok > > &subst_map) const;
     std::unordered_map< SymTok, std::vector< SymTok > > compose_subst(const std::unordered_map< SymTok, std::vector< SymTok > > &first,
                                                                       const std::unordered_map< SymTok, std::vector< SymTok > > &second) const;

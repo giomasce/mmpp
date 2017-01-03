@@ -99,17 +99,17 @@ void True::get_variables(std::set<string> &vars) const
     (void) vars;
 }
 
-std::function<bool (const Library &, ProofEngine &)> True::get_truth_prover() const
+Prover True::get_truth_prover() const
 {
     return LibraryToolbox::build_prover4({}, "|- T.", {}, {});
 }
 
-std::function<bool (const Library &, ProofEngine &)> True::get_type_prover() const
+Prover True::get_type_prover() const
 {
     return LibraryToolbox::build_prover4({}, "wff T.", {}, {});
 }
 
-std::function<bool (const Library &, ProofEngine &)> True::get_imp_not_prover() const
+Prover True::get_imp_not_prover() const
 {
     return LibraryToolbox::build_prover4({}, "|- ( T. <-> T. )", {}, {});
 }
@@ -147,17 +147,17 @@ void False::get_variables(std::set<string> &vars) const
     (void) vars;
 }
 
-std::function<bool (const Library &, ProofEngine &)> False::get_falsity_prover() const
+Prover False::get_falsity_prover() const
 {
     return LibraryToolbox::build_prover4({}, "|- -. F.", {}, {});
 }
 
-std::function<bool (const Library &, ProofEngine &)> False::get_type_prover() const
+Prover False::get_type_prover() const
 {
     return LibraryToolbox::build_prover4({}, "wff F.", {}, {});
 }
 
-std::function<bool (const Library &, ProofEngine &)> False::get_imp_not_prover() const
+Prover False::get_imp_not_prover() const
 {
     return LibraryToolbox::build_prover4({}, "|- ( F. <-> F. )", {}, {});
 }
@@ -202,12 +202,12 @@ void Var::get_variables(std::set<string> &vars) const
     vars.insert(this->name);
 }
 
-std::function<bool (const Library &, ProofEngine &)> Var::get_type_prover() const
+Prover Var::get_type_prover() const
 {
     return LibraryToolbox::build_type_prover2("wff " + this->name);
 }
 
-std::function<bool (const Library &, ProofEngine &)> Var::get_imp_not_prover() const
+Prover Var::get_imp_not_prover() const
 {
     return LibraryToolbox::build_prover4({}, "|- ( " + this->name + " <-> " + this->name + " )", {{"ph", this->get_type_prover()}}, {});
 }
@@ -271,22 +271,22 @@ void Not::get_variables(std::set<string> &vars) const
     this->a->get_variables(vars);
 }
 
-std::function<bool (const Library &, ProofEngine &)> Not::get_truth_prover() const
+Prover Not::get_truth_prover() const
 {
     return this->a->get_falsity_prover();
 }
 
-std::function<bool (const Library &, ProofEngine &)> Not::get_falsity_prover() const
+Prover Not::get_falsity_prover() const
 {
     return LibraryToolbox::build_prover4({ "|- ph" }, "|- -. -. ph", {{ "ph", this->a->get_type_prover() }}, { this->a->get_truth_prover() });
 }
 
-std::function<bool (const Library &, ProofEngine &)> Not::get_type_prover() const
+Prover Not::get_type_prover() const
 {
     return LibraryToolbox::build_prover4({}, "wff -. ph", {{ "ph", this->a->get_type_prover() }}, {});
 }
 
-std::function<bool (const Library &, ProofEngine &)> Not::get_imp_not_prover() const
+Prover Not::get_imp_not_prover() const
 {
     return LibraryToolbox::build_prover4({"|- ( ph <-> ps )"}, "|- ( -. ph <-> -. ps )", {{"ph", this->a->get_type_prover()}, {"ps", this->a->imp_not_form()->get_type_prover() }}, { this->a->get_imp_not_prover() });
 }
@@ -339,14 +339,14 @@ void Imp::get_variables(std::set<string> &vars) const
     this->b->get_variables(vars);
 }
 
-std::function<bool (const Library &, ProofEngine &)> Imp::get_truth_prover() const
+Prover Imp::get_truth_prover() const
 {
     Prover first_prover = LibraryToolbox::build_prover4({ "|- ps" }, "|- ( ph -> ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, { this->b->get_truth_prover() });
     Prover second_prover = LibraryToolbox::build_prover4({ "|- -. ph" }, "|- ( ph -> ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, { this->a->get_falsity_prover() });
     return LibraryToolbox::cascade_provers(first_prover, second_prover);
 }
 
-std::function<bool (const Library &, ProofEngine &)> Imp::get_falsity_prover() const
+Prover Imp::get_falsity_prover() const
 {
     Prover theorem_prover = LibraryToolbox::build_prover4({}, "|- ( ph -> ( -. ps -> -. ( ph -> ps ) ) )", {{"ph", this->a->get_type_prover()}, {"ps", this->b->get_type_prover()}}, {});
     Prover mp_prover1 = LibraryToolbox::build_prover4({ "|- ph", "|- ( ph -> ( -. ps -> -. ( ph -> ps ) ) )"}, "|- ( -. ps -> -. ( ph -> ps ) )",
@@ -356,12 +356,12 @@ std::function<bool (const Library &, ProofEngine &)> Imp::get_falsity_prover() c
     return mp_prover2;
 }
 
-std::function<bool (const Library &, ProofEngine &)> Imp::get_type_prover() const
+Prover Imp::get_type_prover() const
 {
     return LibraryToolbox::build_prover4({}, "wff ( ph -> ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
 }
 
-std::function<bool (const Library &, ProofEngine &)> Imp::get_imp_not_prover() const
+Prover Imp::get_imp_not_prover() const
 {
     return LibraryToolbox::build_prover4({"|- ( ph <-> ps )", "|- ( ch <-> th )"}, "|- ( ( ph -> ch ) <-> ( ps -> th ) )",
         {{"ph", this->a->get_type_prover()}, {"ps", this->a->imp_not_form()->get_type_prover() }, {"ch", this->b->get_type_prover()}, {"th", this->b->imp_not_form()->get_type_prover()}},
@@ -421,12 +421,12 @@ void Biimp::get_variables(std::set<string> &vars) const
     this->b->get_variables(vars);
 }
 
-std::function<bool (const Library &, ProofEngine &)> Biimp::get_type_prover() const
+Prover Biimp::get_type_prover() const
 {
     return LibraryToolbox::build_prover4({}, "wff ( ph <-> ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
 }
 
-std::function<bool (const Library &, ProofEngine &)> Biimp::get_imp_not_prover() const
+Prover Biimp::get_imp_not_prover() const
 {
     Prover first = LibraryToolbox::build_prover4({}, "|- ( ( ph <-> ps ) <-> -. ( ( ph -> ps ) -> -. ( ps -> ph ) ) )", {{"ph", this->a->get_type_prover()}, {"ps", this->b->get_type_prover()}}, {});
     Prover second = this->half_imp_not_form()->get_imp_not_prover();
@@ -458,12 +458,12 @@ void Xor::get_variables(std::set<string> &vars) const
     this->b->get_variables(vars);
 }
 
-std::function<bool (const Library &, ProofEngine &)> Xor::get_type_prover() const
+Prover Xor::get_type_prover() const
 {
     return LibraryToolbox::build_prover4({}, "wff ( ph \\/_ ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
 }
 
-std::function<bool (const Library &, ProofEngine &)> Xor::get_imp_not_prover() const
+Prover Xor::get_imp_not_prover() const
 {
     Prover first = LibraryToolbox::build_prover4({}, "|- ( ( ph \\/_ ps ) <-> -. ( ph <-> ps ) )", {{"ph", this->a->get_type_prover()}, {"ps", this->b->get_type_prover()}}, {});
     Prover second = this->half_imp_not_form()->get_imp_not_prover();
@@ -508,12 +508,12 @@ void Nand::get_variables(std::set<string> &vars) const
     this->b->get_variables(vars);
 }
 
-std::function<bool (const Library &, ProofEngine &)> Nand::get_type_prover() const
+Prover Nand::get_type_prover() const
 {
     return LibraryToolbox::build_prover4({}, "wff ( ph -/\\ ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
 }
 
-std::function<bool (const Library &, ProofEngine &)> Nand::get_imp_not_prover() const
+Prover Nand::get_imp_not_prover() const
 {
     Prover first = LibraryToolbox::build_prover4({}, "|- ( ( ph -/\\ ps ) <-> -. ( ph /\\ ps ) )", {{"ph", this->a->get_type_prover()}, {"ps", this->b->get_type_prover()}}, {});
     Prover second = this->half_imp_not_form()->get_imp_not_prover();
@@ -558,12 +558,12 @@ void Or::get_variables(std::set<string> &vars) const
     this->b->get_variables(vars);
 }
 
-std::function<bool (const Library &, ProofEngine &)> Or::get_type_prover() const
+Prover Or::get_type_prover() const
 {
     return LibraryToolbox::build_prover4({}, "wff ( ph \\/ ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
 }
 
-std::function<bool (const Library &, ProofEngine &)> Or::get_imp_not_prover() const
+Prover Or::get_imp_not_prover() const
 {
     Prover first = LibraryToolbox::build_prover4({}, "|- ( ( ph \\/ ps ) <-> ( -. ph -> ps ) )", {{"ph", this->a->get_type_prover()}, {"ps", this->b->get_type_prover()}}, {});
     Prover second = this->half_imp_not_form()->get_imp_not_prover();
@@ -621,12 +621,12 @@ std::vector<SymTok> And::to_sentence(const Library &lib) const
     return ret;
 }
 
-std::function<bool (const Library &, ProofEngine &)> And::get_type_prover() const
+Prover And::get_type_prover() const
 {
     return LibraryToolbox::build_prover4({}, "wff ( ph /\\ ps )", {{ "ph", this->a->get_type_prover() }, { "ps", this->b->get_type_prover() }}, {});
 }
 
-std::function<bool (const Library &, ProofEngine &)> And::get_imp_not_prover() const
+Prover And::get_imp_not_prover() const
 {
     Prover first = LibraryToolbox::build_prover4({}, "|- ( ( ph /\\ ps ) <-> -. ( ph -> -. ps ) )", {{"ph", this->a->get_type_prover()}, {"ps", this->b->get_type_prover()}}, {});
     Prover second = this->half_imp_not_form()->get_imp_not_prover();
@@ -640,19 +640,19 @@ pwff ConvertibleWff::subst(string var, bool positive) const
     return this->imp_not_form()->subst(var, positive);
 }
 
-std::function<bool (const Library &, ProofEngine &)> ConvertibleWff::get_truth_prover() const
+Prover ConvertibleWff::get_truth_prover() const
 {
     //return null_prover;
     return LibraryToolbox::build_prover4({"|- ( ps <-> ph )", "|- ph"}, "|- ps", {{"ph", this->imp_not_form()->get_type_prover()}, {"ps", this->get_type_prover()}}, {this->get_imp_not_prover(), this->imp_not_form()->get_truth_prover()});
 }
 
-std::function<bool (const Library &, ProofEngine &)> ConvertibleWff::get_falsity_prover() const
+Prover ConvertibleWff::get_falsity_prover() const
 {
     //return null_prover;
     return LibraryToolbox::build_prover4({"|- ( ps <-> ph )", "|- -. ph"}, "|- -. ps", {{"ph", this->imp_not_form()->get_type_prover()}, {"ps", this->get_type_prover()}}, {this->get_imp_not_prover(), this->imp_not_form()->get_falsity_prover()});
 }
 
-std::function<bool (const Library &, ProofEngine &)> ConvertibleWff::get_type_prover() const
+Prover ConvertibleWff::get_type_prover() const
 {
     // Disabled, because ordinarily I do not want to use this generic and probably inefficient method
     return null_prover;

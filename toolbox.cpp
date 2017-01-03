@@ -50,9 +50,17 @@ ostream &operator<<(ostream &os, const ProofPrinter &sp)
     return os;
 }
 
-LibraryToolbox::LibraryToolbox(const Library &lib) :
+LibraryToolbox::LibraryToolbox(const Library &lib, bool compute) :
     lib(lib)
 {
+    if (compute) {
+        this->compute_everything();
+    }
+}
+
+const Library &LibraryToolbox::get_library() const
+{
+    return this->lib;
 }
 
 std::vector<SymTok> LibraryToolbox::substitute(const std::vector<SymTok> &orig, const std::unordered_map<SymTok, std::vector<SymTok> > &subst_map) const
@@ -70,7 +78,7 @@ std::vector<SymTok> LibraryToolbox::substitute(const std::vector<SymTok> &orig, 
     return ret;
 }
 
-// Computes second o first
+// Computes second o first (map composition)
 std::unordered_map<SymTok, std::vector<SymTok> > LibraryToolbox::compose_subst(const std::unordered_map<SymTok, std::vector<SymTok> > &first, const std::unordered_map<SymTok, std::vector<SymTok> > &second) const
 {
     std::unordered_map< SymTok, std::vector< SymTok > > ret;
@@ -112,7 +120,7 @@ bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &te
 
     // Compute essential hypotheses
     for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
-        bool res = hyps_provers[perm_inv[i]](lib, engine);
+        bool res = hyps_provers[perm_inv[i]](*this, engine);
         if (!res) {
             engine.rollback();
             return false;
@@ -159,7 +167,7 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
                     return true;
                 } else {
                     auto &prover = var_provers.at(type_var);
-                    return prover(this->lib, engine);
+                    return prover(*this, engine);
                 }
             }
         }
@@ -295,16 +303,14 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
 
 Prover LibraryToolbox::build_prover4(const std::vector<string> &templ_hyps, const string &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers)
 {
-    return [=](const Library & lib, ProofEngine &engine){
-        LibraryToolbox tb(lib);
+    return [=](const LibraryToolbox &tb, ProofEngine &engine){
         return tb.proving_helper4(templ_hyps, templ_thesis, types_provers, hyps_provers, engine);
     };
 }
 
 Prover LibraryToolbox::build_type_prover2(const std::string &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
 {
-    return [=](const Library &lib, ProofEngine &engine){
-        LibraryToolbox tb(lib);
+    return [=](const LibraryToolbox &tb, ProofEngine &engine){
         vector< SymTok > type_sent2 = tb.parse_sentence(type_sent);
         return tb.classical_type_proving_helper(type_sent2, engine, var_provers);
     };
@@ -312,13 +318,13 @@ Prover LibraryToolbox::build_type_prover2(const std::string &type_sent, const st
 
 Prover LibraryToolbox::cascade_provers(const Prover &a,  const Prover &b)
 {
-    return [=](const Library & lib, ProofEngine &engine) {
+    return [=](const LibraryToolbox &tb, ProofEngine &engine) {
         bool res;
-        res = a(lib, engine);
+        res = a(tb, engine);
         if (res) {
             return true;
         }
-        res = b(lib, engine);
+        res = b(tb, engine);
         return res;
     };
 }
@@ -463,16 +469,14 @@ const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryToolbox::get_asse
 
 Prover LibraryToolbox::build_classical_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
 {
-    return [=](const Library &lib, ProofEngine &engine){
-        LibraryToolbox tb(lib);
+    return [=](const LibraryToolbox &tb, ProofEngine &engine){
         return tb.classical_type_proving_helper(type_sent, engine, var_provers);
     };
 }
 
 Prover LibraryToolbox::build_earley_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
 {
-    return [=](const Library &lib, ProofEngine &engine){
-        LibraryToolbox tb(lib);
+    return [=](const LibraryToolbox &tb, ProofEngine &engine){
         return tb.earley_type_proving_helper(type_sent, engine, var_provers);
     };
 }

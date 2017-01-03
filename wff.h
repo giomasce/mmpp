@@ -32,9 +32,9 @@ public:
 class ConvertibleWff : public Wff {
 public:
     pwff subst(std::string var, bool positive) const;
-    std::function< bool(const Library&, ProofEngine&) > get_truth_prover() const;
-    std::function< bool(const Library&, ProofEngine&) > get_falsity_prover() const;
-    std::function< bool(const Library&, ProofEngine&) > get_type_prover() const;
+    Prover get_truth_prover() const;
+    Prover get_falsity_prover() const;
+    Prover get_type_prover() const;
 };
 
 class True : public Wff {
@@ -45,9 +45,9 @@ public:
     pwff subst(std::string var, bool positive) const;
     std::vector< SymTok > to_sentence(const Library &lib) const;
     void get_variables(std::set< std::string > &vars) const;
-    std::function< bool(const Library&, ProofEngine&) > get_truth_prover() const;
-    std::function< bool(const Library&, ProofEngine&) > get_type_prover() const;
-    std::function< bool(const Library&, ProofEngine&) > get_imp_not_prover() const;
+    Prover get_truth_prover() const;
+    Prover get_type_prover() const;
+    Prover get_imp_not_prover() const;
     Prover get_subst_prover(std::string var, bool positive) const;
 };
 
@@ -59,9 +59,9 @@ public:
     pwff subst(std::string var, bool positive) const;
     std::vector< SymTok > to_sentence(const Library &lib) const;
     void get_variables(std::set< std::string > &vars) const;
-    std::function< bool(const Library&, ProofEngine&) > get_falsity_prover() const;
-    std::function< bool(const Library&, ProofEngine&) > get_type_prover() const;
-    std::function< bool(const Library&, ProofEngine&) > get_imp_not_prover() const;
+    Prover get_falsity_prover() const;
+    Prover get_type_prover() const;
+    Prover get_imp_not_prover() const;
     Prover get_subst_prover(std::string var, bool positive) const;
 };
 
@@ -73,8 +73,8 @@ public:
   pwff subst(std::string var, bool positive) const;
   std::vector< SymTok > to_sentence(const Library &lib) const;
   void get_variables(std::set< std::string > &vars) const;
-  std::function< bool(const Library&, ProofEngine&) > get_type_prover() const;
-  std::function< bool(const Library&, ProofEngine&) > get_imp_not_prover() const;
+  Prover get_type_prover() const;
+  Prover get_imp_not_prover() const;
   Prover get_subst_prover(std::string var, bool positive) const;
 
 private:
@@ -89,10 +89,10 @@ public:
   pwff subst(std::string var, bool positive) const;
   std::vector< SymTok > to_sentence(const Library &lib) const;
   void get_variables(std::set< std::string > &vars) const;
-  std::function< bool(const Library&, ProofEngine&) > get_truth_prover() const;
-  std::function< bool(const Library&, ProofEngine&) > get_falsity_prover() const;
-  std::function< bool(const Library&, ProofEngine&) > get_type_prover() const;
-  std::function< bool(const Library&, ProofEngine&) > get_imp_not_prover() const;
+  Prover get_truth_prover() const;
+  Prover get_falsity_prover() const;
+  Prover get_type_prover() const;
+  Prover get_imp_not_prover() const;
   Prover get_subst_prover(std::string var, bool positive) const;
 
 private:
@@ -107,10 +107,10 @@ public:
   pwff subst(std::string var, bool positive) const;
   std::vector< SymTok > to_sentence(const Library &lib) const;
   void get_variables(std::set< std::string > &vars) const;
-  std::function< bool(const Library&, ProofEngine&) > get_truth_prover() const;
-  std::function< bool(const Library&, ProofEngine&) > get_falsity_prover() const;
-  std::function< bool(const Library&, ProofEngine&) > get_type_prover() const;
-  std::function< bool(const Library&, ProofEngine&) > get_imp_not_prover() const;
+  Prover get_truth_prover() const;
+  Prover get_falsity_prover() const;
+  Prover get_type_prover() const;
+  Prover get_imp_not_prover() const;
   Prover get_subst_prover(std::string var, bool positive) const;
 
 private:
@@ -125,8 +125,8 @@ public:
   pwff half_imp_not_form() const;
   std::vector< SymTok > to_sentence(const Library &lib) const;
   void get_variables(std::set< std::string > &vars) const;
-  std::function< bool(const Library&, ProofEngine&) > get_type_prover() const;
-  std::function< bool(const Library&, ProofEngine&) > get_imp_not_prover() const;
+  Prover get_type_prover() const;
+  Prover get_imp_not_prover() const;
 
 private:
   pwff a, b;
@@ -140,8 +140,8 @@ public:
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
   void get_variables(std::set< std::string > &vars) const;
-  std::function< bool(const Library&, ProofEngine&) > get_type_prover() const;
-  std::function< bool(const Library&, ProofEngine&) > get_imp_not_prover() const;
+  Prover get_type_prover() const;
+  Prover get_imp_not_prover() const;
 
 private:
   pwff a, b;
@@ -155,8 +155,8 @@ public:
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
   void get_variables(std::set< std::string > &vars) const;
-  std::function< bool(const Library&, ProofEngine&) > get_type_prover() const;
-  std::function< bool(const Library&, ProofEngine&) > get_imp_not_prover() const;
+  Prover get_type_prover() const;
+  Prover get_imp_not_prover() const;
 
 private:
   pwff a, b;
@@ -170,8 +170,8 @@ public:
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
   void get_variables(std::set< std::string > &vars) const;
-  std::function< bool(const Library&, ProofEngine&) > get_type_prover() const;
-  std::function< bool(const Library&, ProofEngine&) > get_imp_not_prover() const;
+  Prover get_type_prover() const;
+  Prover get_imp_not_prover() const;
 
 private:
   pwff a, b;
@@ -185,8 +185,8 @@ public:
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
   void get_variables(std::set< std::string > &vars) const;
-  std::function< bool(const Library&, ProofEngine&) > get_type_prover() const;
-  std::function< bool(const Library&, ProofEngine&) > get_imp_not_prover() const;
+  Prover get_type_prover() const;
+  Prover get_imp_not_prover() const;
 
 private:
   pwff a, b;
