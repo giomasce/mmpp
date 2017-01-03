@@ -74,7 +74,6 @@ const std::vector<SymTok> &LibraryImpl::get_sentence(LabTok label) const {
 void LibraryImpl::add_assertion(LabTok label, const Assertion &ass)
 {
     this->assertions[label] = ass;
-    this->assertions_by_type[this->sentences.at(label).at(0)].push_back(label);
 }
 
 const Assertion &LibraryImpl::get_assertion(LabTok label) const
@@ -97,7 +96,7 @@ bool LibraryImpl::is_constant(SymTok c) const
     return this->consts.find(c) != this->consts.end();
 }
 
-std::vector<LabTok> LibraryImpl::prove_type2(const std::vector<SymTok> &type_sent) const
+/*std::vector<LabTok> LibraryImpl::prove_type2(const std::vector<SymTok> &type_sent) const
 {
     // Iterate over all propositions (maybe just axioms would be enough) with zero essential hypotheses, try to match and recur on all matches;
     // hopefully nearly all branches die early and there is just one real long-standing branch;
@@ -158,24 +157,11 @@ std::vector<LabTok> LibraryImpl::prove_type2(const std::vector<SymTok> &type_sen
         }
     }
     return {};
-}
-
-void LibraryImpl::set_types(const std::vector<LabTok> &types)
-{
-    assert(this->types.empty());
-    this->types = types;
-    for (auto &type : types) {
-        const SymTok &var = this->sentences.at(type).at(1);
-        this->types_by_var.resize(max(this->types_by_var.size(), (size_t) var+1));
-        this->types_by_var[var] = type;
-    }
-}
+}*/
 
 void LibraryImpl::set_final_stack_frame(const StackFrame &final_stack_frame)
 {
     this->final_stack_frame = final_stack_frame;
-    // TODO - Remove and implement in LibraryToolbox
-    this->set_types(this->final_stack_frame.types);
 }
 
 Assertion::Assertion() :
@@ -288,21 +274,6 @@ void Assertion::set_proof(shared_ptr< Proof > proof)
 shared_ptr< Proof > Assertion::get_proof() const
 {
     return this->proof;
-}
-
-const std::vector<LabTok> &LibraryImpl::get_types() const
-{
-    return this->types;
-}
-
-const std::vector<LabTok> &LibraryImpl::get_types_by_var() const
-{
-    return this->types_by_var;
-}
-
-const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryImpl::get_assertions_by_type() const
-{
-    return this->assertions_by_type;
 }
 
 const StackFrame &LibraryImpl::get_final_stack_frame() const

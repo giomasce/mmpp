@@ -101,6 +101,7 @@ void test() {
     }
 
     auto tests = get_tests();
+    // Comment or uncomment the following line to disable or enable tests with metamath-test
     tests = {};
     int problems = 0;
     for (auto test_pair : tests) {

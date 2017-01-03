@@ -117,11 +117,7 @@ public:
 
     virtual const std::vector<SymTok> &get_sentence(LabTok label) const = 0;
     virtual const Assertion &get_assertion(LabTok label) const = 0;
-
-    virtual const std::vector< LabTok > &get_types() const = 0;
-    virtual const std::vector< LabTok > &get_types_by_var() const = 0;
     virtual const std::vector< Assertion > &get_assertions() const = 0;
-    virtual const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const = 0;
 
     virtual const StackFrame &get_final_stack_frame() const = 0;
     virtual const LibraryAddendum &get_addendum() const = 0;
@@ -143,9 +139,6 @@ public:
     const Assertion &get_assertion(LabTok label) const;
     const std::vector< Assertion > &get_assertions() const;
     bool is_constant(SymTok c) const;
-    const std::vector< LabTok > &get_types() const;
-    const std::vector< LabTok > &get_types_by_var() const;
-    const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const;
     const StackFrame &get_final_stack_frame() const;
     const LibraryAddendum &get_addendum() const;
 
@@ -167,16 +160,10 @@ private:
     std::vector< std::vector< SymTok > > sentences;
     std::vector< Assertion > assertions;
 
-    // These are not used in parsing or proof execution, but only for later algorithms (such as type inference)
-    std::vector< LabTok > types;
-    std::vector< LabTok > types_by_var;
-    std::unordered_map< SymTok, std::vector< LabTok > > assertions_by_type;
-
     StackFrame final_stack_frame;
     LibraryAddendum addendum;
 
-    std::vector< LabTok > prove_type2(const std::vector< SymTok > &type_sent) const;
-    void set_types(const std::vector< LabTok > &types);
+    //std::vector< LabTok > prove_type2(const std::vector< SymTok > &type_sent) const;
 };
 
 #endif // LIBRARY_H

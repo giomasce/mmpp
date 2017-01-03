@@ -54,6 +54,15 @@ public:
     ProofPrinter print_proof(const std::vector< LabTok > &proof) const;
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true) const;
 
+    void compute_everything();
+    const std::vector< LabTok > &get_types() const;
+    void compute_types_by_var();
+    const std::vector< LabTok > &get_types_by_var();
+    const std::vector< LabTok > &get_types_by_var() const;
+    void compute_assertions_by_type();
+    const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type();
+    const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const;
+
 private:
     bool proving_helper3(const std::vector< std::vector< SymTok > > &templ_hyps,
                          const std::vector< SymTok > &templ_thesis,
@@ -67,6 +76,12 @@ private:
                          ProofEngine &engine) const;
 private:
     const Library &lib;
+
+    std::vector< LabTok > types_by_var;
+    bool types_by_var_computed = false;
+
+    std::unordered_map< SymTok, std::vector< LabTok > > assertions_by_type;
+    bool assertions_by_type_computed = false;
 };
 
 #endif // LIBRARYTOOLBOX_H

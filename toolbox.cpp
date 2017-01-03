@@ -150,7 +150,7 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
     assert(type_sent.size() >= 2);
     auto &type_const = type_sent.at(0);
     if (type_sent.size() == 2) {
-        for (auto &test_type : this->lib.get_types()) {
+        for (auto &test_type : this->get_types()) {
             if (this->lib.get_sentence(test_type) == type_sent) {
                 auto &type_var = type_sent.at(1);
                 auto it = var_provers.find(type_var);
@@ -165,10 +165,10 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
         }
     }
     // If a there are no assertions for a certain type (which is possible, see for example "set" in set.mm), then processing stops here
-    if (this->lib.get_assertions_by_type().find(type_const) == this->lib.get_assertions_by_type().end()) {
+    if (this->get_assertions_by_type().find(type_const) == this->get_assertions_by_type().end()) {
         return false;
     }
-    for (auto &templ : this->lib.get_assertions_by_type().at(type_const)) {
+    for (auto &templ : this->get_assertions_by_type().at(type_const)) {
         const Assertion &templ_ass = this->lib.get_assertion(templ);
         if (templ_ass.get_ess_hyps().size() != 0) {
             continue;
@@ -178,7 +178,7 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
         vector< pair< LabTok, SymTok > > hyp_labels;
         for (auto &tok : templ_sent) {
             if (!this->lib.is_constant(tok)) {
-                hyp_labels.push_back(make_pair(this->lib.get_types_by_var()[tok], tok));
+                hyp_labels.push_back(make_pair(this->get_types_by_var()[tok], tok));
             }
         }
         sort(hyp_labels.begin(), hyp_labels.end());
@@ -189,7 +189,7 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
             for (auto &hyp_pair : hyp_labels) {
                 const SymTok &var = hyp_pair.second;
                 const vector< SymTok > &subst = unification.at(var);
-                SymTok type = this->lib.get_sentence(this->lib.get_types_by_var().at(var)).at(0);
+                SymTok type = this->lib.get_sentence(this->get_types_by_var().at(var)).at(0);
                 vector< SymTok > new_type_sent = { type };
                 // TODO This is not very efficient
                 copy(subst.begin(), subst.end(), back_inserter(new_type_sent));
@@ -245,7 +245,7 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
     // and for each $a and $p statement without essential hypotheses such that no variable
     // appears more than once and without distinct variables constraints
     std::unordered_map<SymTok, std::vector<std::pair< LabTok, std::vector<SymTok> > > > derivations;
-    for (auto &type_lab : this->lib.get_types()) {
+    for (auto &type_lab : this->get_types()) {
         auto &type_sent = this->lib.get_sentence(type_lab);
         derivations[type_sent.at(0)].push_back(make_pair(type_lab, vector<SymTok>({type_sent.at(1)})));
     }
@@ -279,7 +279,7 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
         for (size_t i = 1; i < sent.size(); i++) {
             auto tok = sent[i];
             // Variables are replaced with their types
-            sent2.push_back(this->lib.is_constant(tok) ? tok : this->lib.get_sentence(this->lib.get_types_by_var().at(tok)).at(0));
+            sent2.push_back(this->lib.is_constant(tok) ? tok : this->lib.get_sentence(this->get_types_by_var().at(tok)).at(0));
         }
         derivations[sent.at(0)].push_back(make_pair(ass.get_thesis(), sent2));
     }
@@ -395,6 +395,70 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
     }
 
     return ret;
+}
+
+void LibraryToolbox::compute_everything()
+{
+    this->compute_types_by_var();
+    this->compute_assertions_by_type();
+}
+
+const std::vector<LabTok> &LibraryToolbox::get_types() const
+{
+    return this->lib.get_final_stack_frame().types;
+}
+
+void LibraryToolbox::compute_types_by_var()
+{
+    for (auto &type : this->get_types()) {
+        const SymTok &var = this->lib.get_sentence(type).at(1);
+        this->types_by_var.resize(max(this->types_by_var.size(), (size_t) var+1));
+        this->types_by_var[var] = type;
+    }
+    this->types_by_var_computed = true;
+}
+
+const std::vector<LabTok> &LibraryToolbox::get_types_by_var()
+{
+    if (!this->types_by_var_computed) {
+        this->compute_types_by_var();
+    }
+    return this->types_by_var;
+}
+
+const std::vector<LabTok> &LibraryToolbox::get_types_by_var() const
+{
+    if (!this->types_by_var_computed) {
+        throw MMPPException("computation required on const object");
+    }
+    return this->types_by_var;
+}
+
+void LibraryToolbox::compute_assertions_by_type()
+{
+    for (auto &ass : this->lib.get_assertions()) {
+        if (ass.is_valid()) {
+            const auto &label = ass.get_thesis();
+            this->assertions_by_type[this->lib.get_sentence(label).at(0)].push_back(label);
+        }
+    }
+    this->assertions_by_type_computed = true;
+}
+
+const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryToolbox::get_assertions_by_type()
+{
+    if (!this->assertions_by_type_computed) {
+        this->compute_assertions_by_type();
+    }
+    return this->assertions_by_type;
+}
+
+const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryToolbox::get_assertions_by_type() const
+{
+    if (!this->assertions_by_type_computed) {
+        throw MMPPException("computation required on const object");
+    }
+    return this->assertions_by_type;
 }
 
 Prover LibraryToolbox::build_classical_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
