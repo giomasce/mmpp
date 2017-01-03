@@ -95,58 +95,6 @@ bool LibraryImpl::is_constant(SymTok c) const
     return this->consts.find(c) != this->consts.end();
 }
 
-std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryImpl::unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first) const
-{
-    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
-
-    vector< SymTok > sent;
-    for (auto &hyp : hypotheses) {
-        copy(hyp.begin(), hyp.end(), back_inserter(sent));
-        sent.push_back(0);
-    }
-    copy(thesis.begin(), thesis.end(), back_inserter(sent));
-
-    for (const Assertion &ass : this->assertions) {
-        if (!ass.is_valid()) {
-            continue;
-        }
-        if (ass.is_usage_disc()) {
-            continue;
-        }
-        if (ass.get_ess_hyps().size() != hypotheses.size()) {
-            continue;
-        }
-        // We have to generate all the hypotheses' permutations; fortunately usually hypotheses are not many
-        // TODO Is there a better algorithm?
-        // The i-th specified hypothesis is matched with the perm[i]-th assertion hypothesis
-        vector< size_t > perm;
-        for (size_t i = 0; i < hypotheses.size(); i++) {
-            perm.push_back(i);
-        }
-        do {
-            vector< SymTok > templ;
-            for (size_t i = 0; i < hypotheses.size(); i++) {
-                auto &hyp = this->get_sentence(ass.get_ess_hyps()[perm[i]]);
-                copy(hyp.begin(), hyp.end(), back_inserter(templ));
-                templ.push_back(0);
-            }
-            auto &th = this->get_sentence(ass.get_thesis());
-            copy(th.begin(), th.end(), back_inserter(templ));
-            auto unifications = unify(sent, templ, *this);
-            if (!unifications.empty()) {
-                for (auto &unification : unifications) {
-                    ret.emplace_back(ass.get_thesis(), perm, unification);
-                    if (just_first) {
-                        return ret;
-                    }
-                }
-            }
-        } while (next_permutation(perm.begin(), perm.end()));
-    }
-
-    return ret;
-}
-
 std::vector<LabTok> LibraryImpl::prove_type2(const std::vector<SymTok> &type_sent) const
 {
     // Iterate over all propositions (maybe just axioms would be enough) with zero essential hypotheses, try to match and recur on all matches;
@@ -333,57 +281,6 @@ shared_ptr< Proof > Assertion::get_proof() const
     return this->proof;
 }
 
-ostream &operator<<(ostream &os, const SentencePrinter &sp)
-{
-    bool first = true;
-    if (sp.style == SentencePrinter::STYLE_ALTHTML) {
-        os << sp.lib.get_htmlstrings().first;
-        os << "<SPAN " << sp.lib.get_htmlstrings().second << ">";
-    }
-    for (auto &tok : sp.sent) {
-        if (first) {
-            first = false;
-        } else {
-            os << string(" ");
-        }
-        if (sp.style == SentencePrinter::STYLE_PLAIN) {
-            os << sp.lib.resolve_symbol(tok);
-        } else if (sp.style == SentencePrinter::STYLE_HTML) {
-            os << sp.lib.get_htmldefs()[tok];
-        } else if (sp.style == SentencePrinter::STYLE_ALTHTML) {
-            os << sp.lib.get_althtmldefs()[tok];
-        } else if (sp.style == SentencePrinter::STYLE_LATEX) {
-            os << sp.lib.get_latexdefs()[tok];
-        }
-    }
-    if (sp.style == SentencePrinter::STYLE_ALTHTML) {
-        os << "</SPAN>";
-    }
-    return os;
-}
-
-std::vector<SymTok> LibraryImpl::parse_sentence(const string &in) const
-{
-    auto toks = tokenize(in);
-    vector< SymTok > res;
-    for (auto &tok : toks) {
-        auto tok_num = this->get_symbol(tok);
-        assert_or_throw(tok_num != 0);
-        res.push_back(tok_num);
-    }
-    return res;
-}
-
-SentencePrinter LibraryImpl::print_sentence(const std::vector<SymTok> &sent, SentencePrinter::Style style) const
-{
-    return SentencePrinter({ sent, *this, style });
-}
-
-ProofPrinter LibraryImpl::print_proof(const std::vector<LabTok> &proof) const
-{
-    return ProofPrinter({ proof, *this });
-}
-
 const std::vector<LabTok> &LibraryImpl::get_types() const
 {
     return this->types;
@@ -430,18 +327,4 @@ const std::pair<string, string> LibraryImpl::get_htmlstrings() const
 
 Library::~Library()
 {
-}
-
-ostream &operator<<(ostream &os, const ProofPrinter &sp)
-{
-    bool first = true;
-    for (auto &label : sp.proof) {
-        if (first) {
-            first = false;
-        } else {
-            os << string(" ");
-        }
-        os << sp.lib.resolve_label(label);
-    }
-    return os;
 }

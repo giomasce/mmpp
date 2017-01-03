@@ -2,8 +2,52 @@
 #include "statics.h"
 #include "unification.h"
 #include "earley.h"
+#include "parser.h"
 
 using namespace std;
+
+ostream &operator<<(ostream &os, const SentencePrinter &sp)
+{
+    bool first = true;
+    if (sp.style == SentencePrinter::STYLE_ALTHTML) {
+        os << sp.lib.get_htmlstrings().first;
+        os << "<SPAN " << sp.lib.get_htmlstrings().second << ">";
+    }
+    for (auto &tok : sp.sent) {
+        if (first) {
+            first = false;
+        } else {
+            os << string(" ");
+        }
+        if (sp.style == SentencePrinter::STYLE_PLAIN) {
+            os << sp.lib.resolve_symbol(tok);
+        } else if (sp.style == SentencePrinter::STYLE_HTML) {
+            os << sp.lib.get_htmldefs()[tok];
+        } else if (sp.style == SentencePrinter::STYLE_ALTHTML) {
+            os << sp.lib.get_althtmldefs()[tok];
+        } else if (sp.style == SentencePrinter::STYLE_LATEX) {
+            os << sp.lib.get_latexdefs()[tok];
+        }
+    }
+    if (sp.style == SentencePrinter::STYLE_ALTHTML) {
+        os << "</SPAN>";
+    }
+    return os;
+}
+
+ostream &operator<<(ostream &os, const ProofPrinter &sp)
+{
+    bool first = true;
+    for (auto &label : sp.proof) {
+        if (first) {
+            first = false;
+        } else {
+            os << string(" ");
+        }
+        os << sp.lib.resolve_label(label);
+    }
+    return os;
+}
 
 LibraryToolbox::LibraryToolbox(const Library &lib) :
     lib(lib)
@@ -47,7 +91,7 @@ static vector< size_t > invert_perm(const vector< size_t > &perm) {
 bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &templ_hyps, const std::vector<SymTok> &templ_thesis, const std::unordered_map<SymTok, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ProofEngine &engine) const
 {
     engine.checkpoint();
-    auto res = this->lib.unify_assertion(templ_hyps, templ_thesis, true);
+    auto res = this->unify_assertion(templ_hyps, templ_thesis, true);
     assert_or_throw(!res.empty(), "Could not find the template assertion");
     const Assertion &ass = this->lib.get_assertion(get<0>(*res.begin()));
     assert(ass.is_valid());
@@ -85,9 +129,9 @@ bool LibraryToolbox::proving_helper4(const std::vector<string> &templ_hyps, cons
 {
     std::vector<std::vector<SymTok> > templ_hyps_sent;
     for (auto &hyp : templ_hyps) {
-        templ_hyps_sent.push_back(lib.parse_sentence(hyp));
+        templ_hyps_sent.push_back(this->parse_sentence(hyp));
     }
-    std::vector<SymTok> templ_thesis_sent = lib.parse_sentence(templ_thesis);
+    std::vector<SymTok> templ_thesis_sent = this->parse_sentence(templ_thesis);
     std::unordered_map<SymTok, Prover> types_provers_sym;
     for (auto &type_pair : types_provers) {
         auto res = types_provers_sym.insert(make_pair(lib.get_symbol(type_pair.first), type_pair.second));
@@ -260,7 +304,7 @@ Prover LibraryToolbox::build_type_prover2(const std::string &type_sent, const st
 {
     return [=](const Library &lib, ProofEngine &engine){
         LibraryToolbox tb(lib);
-        vector< SymTok > type_sent2 = lib.parse_sentence(type_sent);
+        vector< SymTok > type_sent2 = tb.parse_sentence(type_sent);
         return tb.classical_type_proving_helper(type_sent2, engine, var_provers);
     };
 }
@@ -276,6 +320,80 @@ Prover LibraryToolbox::cascade_provers(const Prover &a,  const Prover &b)
         res = b(lib, engine);
         return res;
     };
+}
+
+std::vector<SymTok> LibraryToolbox::parse_sentence(const string &in) const
+{
+    auto toks = tokenize(in);
+    vector< SymTok > res;
+    for (auto &tok : toks) {
+        auto tok_num = this->lib.get_symbol(tok);
+        assert_or_throw(tok_num != 0);
+        res.push_back(tok_num);
+    }
+    return res;
+}
+
+SentencePrinter LibraryToolbox::print_sentence(const std::vector<SymTok> &sent, SentencePrinter::Style style) const
+{
+    return SentencePrinter({ sent, this->lib, style });
+}
+
+ProofPrinter LibraryToolbox::print_proof(const std::vector<LabTok> &proof) const
+{
+    return ProofPrinter({ proof, this->lib });
+}
+
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first) const
+{
+    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
+
+    vector< SymTok > sent;
+    for (auto &hyp : hypotheses) {
+        copy(hyp.begin(), hyp.end(), back_inserter(sent));
+        sent.push_back(0);
+    }
+    copy(thesis.begin(), thesis.end(), back_inserter(sent));
+
+    for (const Assertion &ass : this->lib.get_assertions()) {
+        if (!ass.is_valid()) {
+            continue;
+        }
+        if (ass.is_usage_disc()) {
+            continue;
+        }
+        if (ass.get_ess_hyps().size() != hypotheses.size()) {
+            continue;
+        }
+        // We have to generate all the hypotheses' permutations; fortunately usually hypotheses are not many
+        // TODO Is there a better algorithm?
+        // The i-th specified hypothesis is matched with the perm[i]-th assertion hypothesis
+        vector< size_t > perm;
+        for (size_t i = 0; i < hypotheses.size(); i++) {
+            perm.push_back(i);
+        }
+        do {
+            vector< SymTok > templ;
+            for (size_t i = 0; i < hypotheses.size(); i++) {
+                auto &hyp = this->lib.get_sentence(ass.get_ess_hyps()[perm[i]]);
+                copy(hyp.begin(), hyp.end(), back_inserter(templ));
+                templ.push_back(0);
+            }
+            auto &th = this->lib.get_sentence(ass.get_thesis());
+            copy(th.begin(), th.end(), back_inserter(templ));
+            auto unifications = unify(sent, templ, this->lib);
+            if (!unifications.empty()) {
+                for (auto &unification : unifications) {
+                    ret.emplace_back(ass.get_thesis(), perm, unification);
+                    if (just_first) {
+                        return ret;
+                    }
+                }
+            }
+        } while (next_permutation(perm.begin(), perm.end()));
+    }
+
+    return ret;
 }
 
 Prover LibraryToolbox::build_classical_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)

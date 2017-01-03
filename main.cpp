@@ -208,19 +208,20 @@ void test() {
         Parser p(ft, false, true);
         p.run();
         LibraryImpl lib = p.get_library();
+        LibraryToolbox tb(lib);
         cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
         cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl << endl;
 
         if (true) {
             cout << "Generic unification test" << endl;
-            vector< SymTok > sent = lib.parse_sentence("wff ( ph -> ( ps -> ch ) )");
-            vector< SymTok > templ = lib.parse_sentence("wff ( th -> et )");
+            vector< SymTok > sent = tb.parse_sentence("wff ( ph -> ( ps -> ch ) )");
+            vector< SymTok > templ = tb.parse_sentence("wff ( th -> et )");
             auto res = unify(sent, templ, lib, false);
-            cout << "Matching:         " << lib.print_sentence(sent) << endl << "against template: " << lib.print_sentence(templ) << endl;
+            cout << "Matching:         " << tb.print_sentence(sent) << endl << "against template: " << tb.print_sentence(templ) << endl;
             for (auto &match : res) {
                 cout << "  *";
                 for (auto &var: match) {
-                    cout << " " << lib.print_sentence({var.first}) << " => " << lib.print_sentence(var.second) << "  ";
+                    cout << " " << tb.print_sentence({var.first}) << " => " << tb.print_sentence(var.second) << "  ";
                 }
                 cout << endl;
             }
@@ -230,7 +231,7 @@ void test() {
         if (true) {
             cout << "Statement unification test" << endl;
             //auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> th )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- th", lib));
-            auto res = lib.unify_assertion({ lib.parse_sentence("|- ( ch -> ( ph -> ps ) )"), lib.parse_sentence("|- ch") }, lib.parse_sentence("|- ( ph -> ps )"));
+            auto res = tb.unify_assertion({ tb.parse_sentence("|- ( ch -> ( ph -> ps ) )"), tb.parse_sentence("|- ch") }, tb.parse_sentence("|- ( ph -> ps )"));
             cout << "Found " << res.size() << " matching assertions:" << endl;
             for (auto &match : res) {
                 auto &label = get<0>(match);
@@ -238,10 +239,10 @@ void test() {
                 cout << " * " << lib.resolve_label(label) << ":";
                 for (auto &hyp : ass.get_ess_hyps()) {
                     auto &hyp_sent = lib.get_sentence(hyp);
-                    cout << " & " << lib.print_sentence(hyp_sent);
+                    cout << " & " << tb.print_sentence(hyp_sent);
                 }
                 auto &thesis_sent = lib.get_sentence(ass.get_thesis());
-                cout << " => " << lib.print_sentence(thesis_sent) << endl;
+                cout << " => " << tb.print_sentence(thesis_sent) << endl;
             }
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
@@ -249,13 +250,13 @@ void test() {
         if (true) {
             cout << "Type proving test" << endl;
             //auto sent = lib.parse_sentence("wff ph");
-            auto sent = lib.parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
-            cout << "Sentence is " << lib.print_sentence(sent) << endl;
-            cout << "HTML sentence is " << lib.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << endl;
+            auto sent = tb.parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
+            cout << "Sentence is " << tb.print_sentence(sent) << endl;
+            cout << "HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << endl;
             ProofEngine engine(lib);
             LibraryToolbox::build_classical_type_prover(sent)(lib, engine);
             auto res = engine.get_proof_labels();
-            cout << "Found type proof: " << lib.print_proof(res) << endl;
+            cout << "Found type proof: " << tb.print_proof(res) << endl;
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
 
@@ -301,8 +302,8 @@ void test() {
                     ProofEngine engine(lib);
                     wff->get_type_prover()(lib, engine);
                     if (engine.get_proof_labels().size() > 0) {
-                        cout << "type proof: " << lib.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
+                        cout << "type proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
                 cout << endl;
@@ -317,16 +318,16 @@ void test() {
                     ProofEngine engine(lib);
                     wff->get_truth_prover()(lib, engine);
                     if (engine.get_proof_labels().size() > 0) {
-                        cout << "Truth proof: " << lib.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
+                        cout << "Truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
                 {
                     ProofEngine engine(lib);
                     wff->get_falsity_prover()(lib, engine);
                     if (engine.get_proof_labels().size() > 0) {
-                        cout << "Falsity proof: " << lib.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
+                        cout << "Falsity proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
                 cout << endl;
@@ -341,8 +342,8 @@ void test() {
                     ProofEngine engine(lib);
                     wff->get_imp_not_prover()(lib, engine);
                     if (engine.get_proof_labels().size() > 0) {
-                        cout << "not_imp proof: " << lib.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
+                        cout << "not_imp proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
                 cout << endl;
@@ -357,16 +358,16 @@ void test() {
                     ProofEngine engine(lib);
                     wff->get_subst_prover("ph", true)(lib, engine);
                     if (engine.get_proof_labels().size() > 0) {
-                        cout << "subst ph proof: " << lib.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
+                        cout << "subst ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
                 {
                     ProofEngine engine(lib);
                     wff->get_subst_prover("ph", false)(lib, engine);
                     if (engine.get_proof_labels().size() > 0) {
-                        cout << "subst -. ph proof: " << lib.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
+                        cout << "subst -. ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
                 cout << endl;
@@ -387,8 +388,8 @@ void test() {
                     ProofEngine engine(lib);
                     wff->get_adv_truth_prover()(lib, engine);
                     if (engine.get_proof_labels().size() > 0) {
-                        cout << "adv truth proof: " << lib.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << lib.print_sentence(engine.get_stack().back()) << endl;
+                        cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
                         cout << "proof length: " << engine.get_proof_labels().size() << endl;
                         UncompressedProof proof = engine.get_proof();
                     }
@@ -409,6 +410,7 @@ void unification_loop() {
     Parser p(ft, false, true);
     p.run();
     LibraryImpl lib = p.get_library();
+    LibraryToolbox tb(lib);
     cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
     cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl;
     while (true) {
@@ -420,10 +422,10 @@ void unification_loop() {
         size_t dollar_pos;
         vector< vector< SymTok > > hypotheses;
         while ((dollar_pos = line.find("$")) != string::npos) {
-            hypotheses.push_back(lib.parse_sentence(line.substr(0, dollar_pos)));
+            hypotheses.push_back(tb.parse_sentence(line.substr(0, dollar_pos)));
             line = line.substr(dollar_pos+1);
         }
-        vector< SymTok > sent = lib.parse_sentence(line);
+        vector< SymTok > sent = tb.parse_sentence(line);
         /*auto sent_wff = sent;
         sent_wff[0] = lib.get_symbol("wff");
         auto res = lib.prove_type(sent_wff);
@@ -432,7 +434,7 @@ void unification_loop() {
             cout << " " << lib.resolve_label(label);
         }
         cout << endl;*/
-        auto res2 = lib.unify_assertion(hypotheses, sent);
+        auto res2 = tb.unify_assertion(hypotheses, sent);
         cout << "Found " << res2.size() << " matching assertions:" << endl;
         for (auto &match : res2) {
             auto &label = get<0>(match);
@@ -440,10 +442,10 @@ void unification_loop() {
             cout << " * " << lib.resolve_label(label) << ":";
             for (auto &hyp : ass.get_ess_hyps()) {
                 auto &hyp_sent = lib.get_sentence(hyp);
-                cout << " & " << lib.print_sentence(hyp_sent);
+                cout << " & " << tb.print_sentence(hyp_sent);
             }
             auto &thesis_sent = lib.get_sentence(ass.get_thesis());
-            cout << " => " << lib.print_sentence(thesis_sent) << endl;
+            cout << " => " << tb.print_sentence(thesis_sent) << endl;
         }
     }
 
