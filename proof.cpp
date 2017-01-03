@@ -232,7 +232,7 @@ const CompressedProof UncompressedProofExecutor::compress(CompressionStrategy st
         sents.clear();
         compress_unwind_proof_tree_phase2(tree, label_map, refs, sents, dupl_sents, dupl_sents_map, codes, code_idx);
     } else if (strategy == CS_BACKREFS_ON_IDENTICAL_TREE) {
-        throw MMPPException("Strategy not supported");
+        throw MMPPException("Strategy not implemented yet");
     } else {
         throw MMPPException("Strategy does not exist");
     }
