@@ -57,7 +57,7 @@ public:
     const std::vector<LabTok> &get_ess_hyps() const;
     const std::set< LabTok > &get_opt_hyps() const;
     LabTok get_thesis() const;
-    std::shared_ptr< ProofExecutor > get_proof_executor(const LibraryImpl &lib) const;
+    std::shared_ptr< ProofExecutor > get_proof_executor(const Library &lib) const;
     void set_proof(std::shared_ptr<Proof> proof);
 
 private:
