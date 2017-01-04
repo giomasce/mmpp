@@ -351,7 +351,7 @@ ProofPrinter LibraryToolbox::print_proof(const std::vector<LabTok> &proof) const
     return ProofPrinter({ proof, this->lib });
 }
 
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first) const
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion_uncached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first) const
 {
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
 
@@ -401,6 +401,37 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
     }
 
     return ret;
+}
+
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first)
+{
+    // Cache is used only when requesting just the first result
+    if (!just_first) {
+        return this->unify_assertion_uncached(hypotheses, thesis, just_first);
+    }
+    auto idx = make_tuple(hypotheses, thesis);
+    if (this->unification_cache.find(idx) == this->unification_cache.end()) {
+        this->unification_cache[idx] = this->unify_assertion_uncached(hypotheses, thesis, just_first);
+    }
+    return this->unification_cache.at(idx);
+}
+
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first) const
+{
+    // Cache is used only when requesting just the first result
+    if (!just_first) {
+        return this->unify_assertion_uncached(hypotheses, thesis, just_first);
+    }
+    auto idx = make_tuple(hypotheses, thesis);
+    if (this->unification_cache.find(idx) == this->unification_cache.end()) {
+        return this->unify_assertion_uncached(hypotheses, thesis, just_first);
+    }
+    return this->unification_cache.at(idx);
+}
+
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first) const
+{
+    return this->unify_assertion_uncached(hypotheses, thesis, just_first);
 }
 
 void LibraryToolbox::compute_everything()
