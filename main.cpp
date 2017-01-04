@@ -338,14 +338,14 @@ void test() {
         }
 
         if (true) {
-            cout << "WFF not_imp normal form test" << endl;
+            cout << "WFF imp_not normal form test" << endl;
             for (pwff &wff : wffs) {
                 cout << "WFF: " << wff->to_string() << endl;
                 {
                     ProofEngine engine(lib);
                     wff->get_imp_not_prover(tb)(engine);
                     if (engine.get_proof_labels().size() > 0) {
-                        cout << "not_imp proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                        cout << "imp_not proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
@@ -354,7 +354,7 @@ void test() {
         }
 
         if (true) {
-            cout << "WFF subst ph test" << endl;
+            cout << "WFF subst test" << endl;
             for (pwff &wff : wffs) {
                 cout << "WFF: " << wff->to_string() << endl;
                 {
@@ -373,6 +373,22 @@ void test() {
                         cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
                     }
                 }
+                {
+                    ProofEngine engine(lib);
+                    wff->get_subst_prover("ps", true, tb)(engine);
+                    if (engine.get_proof_labels().size() > 0) {
+                        cout << "subst ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                    }
+                }
+                {
+                    ProofEngine engine(lib);
+                    wff->get_subst_prover("ps", false, tb)(engine);
+                    if (engine.get_proof_labels().size() > 0) {
+                        cout << "subst -. ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                    }
+                }
                 cout << endl;
             }
         }
@@ -383,7 +399,7 @@ void test() {
                                                 pwff(new Imp(pwff(new Var("ph")), pwff(new And(pwff(new Var("ch")), pwff(new Var("ps")))))))),
                                };
 
-        if (false) {
+        if (true) {
             cout << "WFF adv_truth test" << endl;
             for (pwff &wff : wffs2) {
                 cout << "WFF: " << wff->to_string() << endl;

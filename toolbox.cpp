@@ -97,7 +97,8 @@ static vector< size_t > invert_perm(const vector< size_t > &perm) {
     return ret;
 }
 
-bool LibraryToolbox::proving_helper4(const std::vector<string> &templ_hyps, const std::string &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ProofEngine &engine) const
+// FIXME - Either remove or deduplicate with register_prover() and friends
+bool LibraryToolbox::proving_helper(const std::vector<string> &templ_hyps, const std::string &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ProofEngine &engine) const
 {
     // Decode input strings to sentences
     std::vector<std::vector<SymTok> > templ_hyps_sent;
@@ -299,10 +300,10 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
     }
 }
 
-Prover LibraryToolbox::build_prover4(const std::vector<string> &templ_hyps, const string &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers) const
+Prover LibraryToolbox::build_prover(const std::vector<string> &templ_hyps, const string &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers) const
 {
     return [=](ProofEngine &engine){
-        return this->proving_helper4(templ_hyps, templ_thesis, types_provers, hyps_provers, engine);
+        return this->proving_helper(templ_hyps, templ_thesis, types_provers, hyps_provers, engine);
     };
 }
 

@@ -27,14 +27,29 @@ public:
     virtual Prover get_imp_not_prover(const LibraryToolbox &tb) const;
     virtual Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
     Prover get_adv_truth_prover(const LibraryToolbox &tb) const;
+
+private:
+    Prover adv_truth_internal(std::set<std::string>::iterator cur_var, std::set<std::string>::iterator end_var, const LibraryToolbox &tb) const;
+
+    static RegisteredProver adv_truth_1_rp;
+    static RegisteredProver adv_truth_2_rp;
+    static RegisteredProver adv_truth_3_rp;
+    static RegisteredProver adv_truth_4_rp;
 };
 
+/**
+ * @brief A generic Wff that uses the imp_not form to provide truth and falsity.
+ */
 class ConvertibleWff : public Wff {
 public:
     pwff subst(std::string var, bool positive) const;
     Prover get_truth_prover(const LibraryToolbox &tb) const;
     Prover get_falsity_prover(const LibraryToolbox &tb) const;
     Prover get_type_prover(const LibraryToolbox &tb) const;
+
+private:
+    static RegisteredProver truth_rp;
+    static RegisteredProver falsity_rp;
 };
 
 class True : public Wff {
@@ -53,6 +68,7 @@ private:
     static RegisteredProver truth_rp;
     static RegisteredProver type_rp;
     static RegisteredProver imp_not_rp;
+    static RegisteredProver subst_rp;
 };
 
 class False : public Wff {
@@ -67,6 +83,11 @@ public:
     Prover get_type_prover(const LibraryToolbox &tb) const;
     Prover get_imp_not_prover(const LibraryToolbox &tb) const;
     Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
+private:
+    static RegisteredProver falsity_rp;
+    static RegisteredProver type_rp;
+    static RegisteredProver imp_not_rp;
+    static RegisteredProver subst_rp;
 };
 
 class Var : public Wff {
@@ -83,6 +104,17 @@ public:
 
 private:
   std::string name;
+
+  static RegisteredProver imp_not_rp;
+  static RegisteredProver subst_pos_1_rp;
+  static RegisteredProver subst_pos_2_rp;
+  static RegisteredProver subst_pos_3_rp;
+  static RegisteredProver subst_pos_truth_rp;
+  static RegisteredProver subst_neg_1_rp;
+  static RegisteredProver subst_neg_2_rp;
+  static RegisteredProver subst_neg_3_rp;
+  static RegisteredProver subst_neg_falsity_rp;
+  static RegisteredProver subst_indep_rp;
 };
 
 class Not : public Wff {
@@ -105,6 +137,7 @@ private:
   static RegisteredProver falsity_rp;
   static RegisteredProver type_rp;
   static RegisteredProver imp_not_rp;
+  static RegisteredProver subst_rp;
 };
 
 class Imp : public Wff {
@@ -123,6 +156,15 @@ public:
 
 private:
   pwff a, b;
+
+  static RegisteredProver truth_1_rp;
+  static RegisteredProver truth_2_rp;
+  static RegisteredProver falsity_1_rp;
+  static RegisteredProver falsity_2_rp;
+  static RegisteredProver falsity_3_rp;
+  static RegisteredProver type_rp;
+  static RegisteredProver imp_not_rp;
+  static RegisteredProver subst_rp;
 };
 
 class Biimp : public ConvertibleWff {
@@ -138,6 +180,10 @@ public:
 
 private:
   pwff a, b;
+
+  static RegisteredProver type_rp;
+  static RegisteredProver imp_not_1_rp;
+  static RegisteredProver imp_not_2_rp;
 };
 
 class And : public ConvertibleWff {
@@ -153,6 +199,10 @@ public:
 
 private:
   pwff a, b;
+
+  static RegisteredProver type_rp;
+  static RegisteredProver imp_not_1_rp;
+  static RegisteredProver imp_not_2_rp;
 };
 
 class Or : public ConvertibleWff {
@@ -168,6 +218,10 @@ public:
 
 private:
   pwff a, b;
+
+  static RegisteredProver type_rp;
+  static RegisteredProver imp_not_1_rp;
+  static RegisteredProver imp_not_2_rp;
 };
 
 class Nand : public ConvertibleWff {
@@ -183,6 +237,10 @@ public:
 
 private:
   pwff a, b;
+
+  static RegisteredProver type_rp;
+  static RegisteredProver imp_not_1_rp;
+  static RegisteredProver imp_not_2_rp;
 };
 
 class Xor : public ConvertibleWff {
@@ -195,6 +253,10 @@ public:
   void get_variables(std::set< std::string > &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
+
+  static RegisteredProver type_rp;
+  static RegisteredProver imp_not_1_rp;
+  static RegisteredProver imp_not_2_rp;
 
 private:
   pwff a, b;

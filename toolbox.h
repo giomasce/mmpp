@@ -56,10 +56,6 @@ public:
     std::unordered_map< SymTok, std::vector< SymTok > > compose_subst(const std::unordered_map< SymTok, std::vector< SymTok > > &first,
                                                                       const std::unordered_map< SymTok, std::vector< SymTok > > &second) const;
 
-    Prover build_prover4(const std::vector< std::string > &templ_hyps,
-                         const std::string &templ_thesis,
-                         const std::unordered_map< std::string, Prover > &types_provers,
-                         const std::vector< Prover > &hyps_provers) const;
     Prover build_type_prover2(const std::string &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
     Prover build_classical_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
     Prover build_earley_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
@@ -90,11 +86,15 @@ public:
     void compute_registered_prover(size_t i);
 
 private:
-    bool proving_helper4(const std::vector< std::string > &templ_hyps,
+    bool proving_helper(const std::vector< std::string > &templ_hyps,
                          const std::string &templ_thesis,
                          const std::unordered_map< std::string, Prover > &types_provers,
                          const std::vector< Prover > &hyps_provers,
                          ProofEngine &engine) const;
+    Prover build_prover(const std::vector< std::string > &templ_hyps,
+                         const std::string &templ_thesis,
+                         const std::unordered_map< std::string, Prover > &types_provers,
+                         const std::vector< Prover > &hyps_provers) const;
 private:
     const Library &lib;
 
@@ -108,6 +108,7 @@ private:
                         std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > >,
                         boost::hash< std::tuple< std::vector< std::vector< SymTok > >, std::vector< SymTok > > > > unification_cache;
 
+    // This is an instance of the Construct On First Use idiom, which prevents the static initialization fiasco; see https://isocpp.org/wiki/faq/ctors#static-init-order-on-first-use-members
     static std::vector< RegisteredProverData > &registered_provers() {
         static std::vector< RegisteredProverData > *ret = new std::vector< RegisteredProverData >();
         return *ret;

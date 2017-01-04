@@ -39,40 +39,44 @@ Prover Wff::get_subst_prover(string var, bool positive, const LibraryToolbox &tb
     return null_prover;
 }
 
-static Prover adv_truth_internal(pwff wff, set< string >::iterator cur_var, set< string >::iterator end_var, const LibraryToolbox &tb) {
+RegisteredProver Wff::adv_truth_1_rp = LibraryToolbox::register_prover({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )");
+RegisteredProver Wff::adv_truth_2_rp = LibraryToolbox::register_prover({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )");
+RegisteredProver Wff::adv_truth_3_rp = LibraryToolbox::register_prover({"|- ( ph -> ps )", "|- ( -. ph -> ps )"}, "|- ps");
+Prover Wff::adv_truth_internal(set< string >::iterator cur_var, set< string >::iterator end_var, const LibraryToolbox &tb) const {
     if (cur_var == end_var) {
-        return wff->get_truth_prover(tb);
+        return this->get_truth_prover(tb);
     } else {
         string var = *cur_var++;
-        pwff pos_wff = wff->subst(var, true);
-        pwff neg_wff = wff->subst(var, false);
+        pwff pos_wff = this->subst(var, true);
+        pwff neg_wff = this->subst(var, false);
         pwff pos_antecent = pwff(new Var(var));
         pwff neg_antecent = pwff(new Not(pwff(new Var(var))));
-        Prover rec_pos_prover = adv_truth_internal(pos_wff, cur_var, end_var, tb);
-        Prover rec_neg_prover = adv_truth_internal(neg_wff, cur_var, end_var, tb);
-        Prover pos_prover = wff->get_subst_prover(var, true, tb);
-        Prover neg_prover = wff->get_subst_prover(var, false, tb);
-        Prover pos_mp_prover = tb.build_prover4({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )",
-            {{"ph", pos_antecent->get_type_prover(tb)}, {"ps", wff->get_type_prover(tb)}, {"ch", pos_wff->get_type_prover(tb)}},
+        Prover rec_pos_prover = pos_wff->adv_truth_internal(cur_var, end_var, tb);
+        Prover rec_neg_prover = neg_wff->adv_truth_internal(cur_var, end_var, tb);
+        Prover pos_prover = this->get_subst_prover(var, true, tb);
+        Prover neg_prover = this->get_subst_prover(var, false, tb);
+        Prover pos_mp_prover = tb.build_registered_prover(Wff::adv_truth_1_rp,
+            {{"ph", pos_antecent->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}, {"ch", pos_wff->get_type_prover(tb)}},
             {rec_pos_prover, pos_prover});
-        Prover neg_mp_prover = tb.build_prover4({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )",
-            {{"ph", neg_antecent->get_type_prover(tb)}, {"ps", wff->get_type_prover(tb)}, {"ch", neg_wff->get_type_prover(tb)}},
+        Prover neg_mp_prover = tb.build_registered_prover(Wff::adv_truth_2_rp,
+            {{"ph", neg_antecent->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}, {"ch", neg_wff->get_type_prover(tb)}},
             {rec_neg_prover, neg_prover});
-        Prover final = tb.build_prover4({"|- ( ph -> ps )", "|- ( -. ph -> ps )"}, "|- ps",
-            {{"ph", pos_antecent->get_type_prover(tb)}, {"ps", wff->get_type_prover(tb)}},
+        Prover final = tb.build_registered_prover(Wff::adv_truth_3_rp,
+            {{"ph", pos_antecent->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}},
             {pos_mp_prover, neg_mp_prover});
         return final;
     }
 }
 
+RegisteredProver Wff::adv_truth_4_rp = LibraryToolbox::register_prover({"|- ps", "|- ( ph <-> ps )"}, "|- ph");
 Prover Wff::get_adv_truth_prover(const LibraryToolbox &tb) const
 {
     pwff not_imp = this->imp_not_form();
     set< string > vars;
     this->get_variables(vars);
-    Prover real = adv_truth_internal(not_imp, vars.begin(), vars.end(), tb);
+    Prover real = not_imp->adv_truth_internal(vars.begin(), vars.end(), tb);
     Prover equiv = this->get_imp_not_prover(tb);
-    Prover final = tb.build_prover4({"|- ps", "|- ( ph <-> ps )"}, "|- ph", {{"ph", this->get_type_prover(tb)}, {"ps", not_imp->get_type_prover(tb)}}, {real, equiv});
+    Prover final = tb.build_registered_prover(Wff::adv_truth_4_rp, {{"ph", this->get_type_prover(tb)}, {"ps", not_imp->get_type_prover(tb)}}, {real, equiv});
     return final;
 }
 
@@ -122,9 +126,14 @@ Prover True::get_imp_not_prover(const LibraryToolbox &tb) const
     return tb.build_registered_prover(True::imp_not_rp, {}, {});
 }
 
+RegisteredProver True::subst_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( T. <-> T. ) )");
 Prover True::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, string("|- ( ") + (positive ? "" : "-. ") + var + " -> ( T. <-> T. ) )", {}, {});
+    pwff subst = pwff(new Var(var));
+    if (!positive) {
+        subst = pwff(new Not(subst));
+    }
+    return tb.build_registered_prover(True::subst_rp, {{"ph", subst->get_type_prover(tb)}}, {});
 }
 
 False::False() {
@@ -155,24 +164,32 @@ void False::get_variables(std::set<string> &vars) const
     (void) vars;
 }
 
+RegisteredProver False::falsity_rp = LibraryToolbox::register_prover({}, "|- -. F.");
 Prover False::get_falsity_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, "|- -. F.", {}, {});
+    return tb.build_registered_prover(False::falsity_rp, {}, {});
 }
 
+RegisteredProver False::type_rp = LibraryToolbox::register_prover({}, "wff F.");
 Prover False::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, "wff F.", {}, {});
+    return tb.build_registered_prover(False::type_rp, {}, {});
 }
 
+RegisteredProver False::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( F. <-> F. )");
 Prover False::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, "|- ( F. <-> F. )", {}, {});
+    return tb.build_registered_prover(False::imp_not_rp, {}, {});
 }
 
+RegisteredProver False::subst_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( F. <-> F. ) )");
 Prover False::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, string("|- ( ") + (positive ? "" : "-. ") + var + " -> ( F. <-> F. ) )", {}, {});
+    pwff subst = pwff(new Var(var));
+    if (!positive) {
+        subst = pwff(new Not(subst));
+    }
+    return tb.build_registered_prover(False::subst_rp, {{"ph", subst->get_type_prover(tb)}}, {});
 }
 
 Var::Var(string name) :
@@ -215,36 +232,45 @@ Prover Var::get_type_prover(const LibraryToolbox &tb) const
     return tb.build_type_prover2("wff " + this->name);
 }
 
+RegisteredProver Var::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( ph <-> ph )");
 Prover Var::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, "|- ( " + this->name + " <-> " + this->name + " )", {{"ph", this->get_type_prover(tb)}}, {});
+    return tb.build_registered_prover(Var::imp_not_rp, {{"ph", this->get_type_prover(tb)}}, {});
 }
 
+RegisteredProver Var::subst_pos_1_rp = LibraryToolbox::register_prover({}, "|- ( T. -> ( ph -> ( T. <-> ph ) ) )");
+RegisteredProver Var::subst_pos_2_rp = LibraryToolbox::register_prover({"|- T.", "|- ( T. -> ( ph -> ( T. <-> ph ) ) )"}, "|- ( ph -> ( T. <-> ph ) )");
+RegisteredProver Var::subst_pos_3_rp = LibraryToolbox::register_prover({"|- ( ph -> ( T. <-> ph ) )"}, "|- ( ph -> ( ph <-> T. ) )");
+RegisteredProver Var::subst_pos_truth_rp = LibraryToolbox::register_prover({}, "|- T.");
+
+RegisteredProver Var::subst_neg_1_rp = LibraryToolbox::register_prover({}, "|- ( -. F. -> ( -. ph -> ( F. <-> ph ) ) )");
+RegisteredProver Var::subst_neg_2_rp = LibraryToolbox::register_prover({"|- -. F.", "|- ( -. F. -> ( -. ph -> ( F. <-> ph ) ) )"}, "|- ( -. ph -> ( F. <-> ph ) )");
+RegisteredProver Var::subst_neg_3_rp = LibraryToolbox::register_prover({"|- ( -. ph -> ( F. <-> ph ) )"}, "|- ( -. ph -> ( ph <-> F. ) )");
+RegisteredProver Var::subst_neg_falsity_rp = LibraryToolbox::register_prover({}, "|- -. F.");
+
+RegisteredProver Var::subst_indep_rp = LibraryToolbox::register_prover({}, "|- ( ps -> ( ph <-> ph ) )");
 Prover Var::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const
 {
     if (var == this->name) {
         if (positive) {
-            string first_sent = "|- ( T. -> ( " + var + " -> ( T. <-> " + var + " ) ) )";
-            string second_sent = "|- ( " + var + " -> ( T. <-> " + var + " ) )";
-            string third_sent = "|- ( " + var + " -> ( " + var + " <-> T. ) )";
-            Prover first = tb.build_prover4({}, first_sent, {{var, this->get_type_prover(tb)}}, {});
-            Prover truth = tb.build_prover4({}, "|- T.", {}, {});
-            Prover second = tb.build_prover4({"|- T.", first_sent}, second_sent, {{var, this->get_type_prover(tb)}}, {truth, first});
-            Prover third = tb.build_prover4({second_sent}, third_sent, {{var, this->get_type_prover(tb)}}, {second});
+            Prover first = tb.build_registered_prover(Var::subst_pos_1_rp, {{"ph", this->get_type_prover(tb)}}, {});
+            Prover truth = tb.build_registered_prover(Var::subst_pos_truth_rp, {}, {});
+            Prover second = tb.build_registered_prover(Var::subst_pos_2_rp, {{"ph", this->get_type_prover(tb)}}, {truth, first});
+            Prover third = tb.build_registered_prover(Var::subst_pos_3_rp, {{"ph", this->get_type_prover(tb)}}, {second});
             return third;
         } else {
-            string first_sent = "|- ( -. F. -> ( -. " + var + " -> ( F. <-> " + var + " ) ) )";
-            string second_sent = "|- ( -. " + var + " -> ( F. <-> " + var + " ) )";
-            string third_sent = "|- ( -. " + var + " -> ( " + var + " <-> F. ) )";
-            Prover first = tb.build_prover4({}, first_sent, {{var, this->get_type_prover(tb)}}, {});
-            Prover truth = tb.build_prover4({}, "|- -. F.", {}, {});
-            Prover second = tb.build_prover4({"|- -. F.", first_sent}, second_sent, {{var, this->get_type_prover(tb)}}, {truth, first});
-            Prover third = tb.build_prover4({second_sent}, third_sent, {{var, this->get_type_prover(tb)}}, {second});
+            Prover first = tb.build_registered_prover(Var::subst_neg_1_rp, {{"ph", this->get_type_prover(tb)}}, {});
+            Prover falsity = tb.build_registered_prover(Var::subst_neg_falsity_rp, {}, {});
+            Prover second = tb.build_registered_prover(Var::subst_neg_2_rp, {{"ph", this->get_type_prover(tb)}}, {falsity, first});
+            Prover third = tb.build_registered_prover(Var::subst_neg_3_rp, {{"ph", this->get_type_prover(tb)}}, {second});
             return third;
         }
-        //return tb.build_prover4({}, string("|- ( ") + (positive ? "" : "-. ") + var + " -> ( " + this->name + " <-> " + (positive ? "T." : "F.") + " ) )", {}, {});
     } else {
-        return tb.build_prover4({}, string("|- ( ") + (positive ? "" : "-. ") + var + " -> ( " + this->name + " <-> " + this->name + " ) )", {}, {});
+        pwff ant = pwff(new Var(var));
+        if (!positive) {
+            ant = pwff(new Not(ant));
+        }
+        return tb.build_registered_prover(Var::subst_indep_rp, {{"ps", ant->get_type_prover(tb)}, {"ph", this->get_type_prover(tb)}}, {});
     }
 }
 
@@ -302,16 +328,17 @@ Prover Not::get_imp_not_prover(const LibraryToolbox &tb) const
     return tb.build_registered_prover(Not::imp_not_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->a->imp_not_form()->get_type_prover(tb) }}, { this->a->get_imp_not_prover(tb) });
 }
 
+RegisteredProver Not::subst_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ( -. ps <-> -. ch ) )");
 Prover Not::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const
 {
-    pwff antecent;
+    pwff ant;
     if (positive) {
-        antecent = pwff(new Var(var));
+        ant = pwff(new Var(var));
     } else {
-        antecent = pwff(new Not(pwff(new Var(var))));
+        ant = pwff(new Not(pwff(new Var(var))));
     }
-    return tb.build_prover4({"|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ( -. ps <-> -. ch ) )",
-        {{"ph", antecent->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}}, {this->a->get_subst_prover(var, positive, tb)});
+    return tb.build_registered_prover(Not::subst_rp,
+        {{"ph", ant->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}}, {this->a->get_subst_prover(var, positive, tb)});
 }
 
 Imp::Imp(pwff a, pwff b) :
@@ -350,45 +377,53 @@ void Imp::get_variables(std::set<string> &vars) const
     this->b->get_variables(vars);
 }
 
+RegisteredProver Imp::truth_1_rp = LibraryToolbox::register_prover({ "|- ps" }, "|- ( ph -> ps )");
+RegisteredProver Imp::truth_2_rp = LibraryToolbox::register_prover({ "|- -. ph" }, "|- ( ph -> ps )");
 Prover Imp::get_truth_prover(const LibraryToolbox &tb) const
 {
-    Prover first_prover = tb.build_prover4({ "|- ps" }, "|- ( ph -> ps )", {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, { this->b->get_truth_prover(tb) });
-    Prover second_prover = tb.build_prover4({ "|- -. ph" }, "|- ( ph -> ps )", {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, { this->a->get_falsity_prover(tb) });
+    Prover first_prover = tb.build_registered_prover(Imp::truth_1_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, { this->b->get_truth_prover(tb) });
+    Prover second_prover = tb.build_registered_prover(Imp::truth_2_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, { this->a->get_falsity_prover(tb) });
     return cascade_provers(first_prover, second_prover);
 }
 
+RegisteredProver Imp::falsity_1_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( -. ps -> -. ( ph -> ps ) ) )");
+RegisteredProver Imp::falsity_2_rp = LibraryToolbox::register_prover({ "|- ph", "|- ( ph -> ( -. ps -> -. ( ph -> ps ) ) )"}, "|- ( -. ps -> -. ( ph -> ps ) )");
+RegisteredProver Imp::falsity_3_rp = LibraryToolbox::register_prover({ "|- ( -. ps -> -. ( ph -> ps ) )", "|- -. ps"}, "|- -. ( ph -> ps )");
 Prover Imp::get_falsity_prover(const LibraryToolbox &tb) const
 {
-    Prover theorem_prover = tb.build_prover4({}, "|- ( ph -> ( -. ps -> -. ( ph -> ps ) ) )", {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
-    Prover mp_prover1 = tb.build_prover4({ "|- ph", "|- ( ph -> ( -. ps -> -. ( ph -> ps ) ) )"}, "|- ( -. ps -> -. ( ph -> ps ) )",
+    Prover theorem_prover = tb.build_registered_prover(Imp::falsity_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
+    Prover mp_prover1 = tb.build_registered_prover(Imp::falsity_2_rp,
         {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, { this->a->get_truth_prover(tb), theorem_prover });
-    Prover mp_prover2 = tb.build_prover4({ "|- ( -. ps -> -. ( ph -> ps ) )", "|- -. ps"}, "|- -. ( ph -> ps )",
+    Prover mp_prover2 = tb.build_registered_prover(Imp::falsity_3_rp,
         {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, { mp_prover1, this->b->get_falsity_prover(tb) });
     return mp_prover2;
 }
 
+RegisteredProver Imp::type_rp = LibraryToolbox::register_prover({}, "wff ( ph -> ps )");
 Prover Imp::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, "wff ( ph -> ps )", {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover(Imp::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
 }
 
+RegisteredProver Imp::imp_not_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ch <-> th )"}, "|- ( ( ph -> ch ) <-> ( ps -> th ) )");
 Prover Imp::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({"|- ( ph <-> ps )", "|- ( ch <-> th )"}, "|- ( ( ph -> ch ) <-> ( ps -> th ) )",
+    return tb.build_registered_prover(Imp::imp_not_rp,
         {{"ph", this->a->get_type_prover(tb)}, {"ps", this->a->imp_not_form()->get_type_prover(tb) }, {"ch", this->b->get_type_prover(tb)}, {"th", this->b->imp_not_form()->get_type_prover(tb)}},
     { this->a->get_imp_not_prover(tb), this->b->get_imp_not_prover(tb) });
 }
 
+RegisteredProver Imp::subst_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps <-> ch ) )", "|- ( ph -> ( th <-> ta ) )"}, "|- ( ph -> ( ( ps -> th ) <-> ( ch -> ta ) ) )");
 Prover Imp::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const
 {
-    pwff antecent;
+    pwff ant;
     if (positive) {
-        antecent = pwff(new Var(var));
+        ant = pwff(new Var(var));
     } else {
-        antecent = pwff(new Not(pwff(new Var(var))));
+        ant = pwff(new Not(pwff(new Var(var))));
     }
-    return tb.build_prover4({"|- ( ph -> ( ps <-> ch ) )", "|- ( ph -> ( th <-> ta ) )"}, "|- ( ph -> ( ( ps -> th ) <-> ( ch -> ta ) ) )",
-        {{"ph", antecent->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}, {"th", this->b->get_type_prover(tb)}, {"ta", this->b->subst(var, positive)->get_type_prover(tb)}},
+    return tb.build_registered_prover(Imp::subst_rp,
+        {{"ph", ant->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}, {"th", this->b->get_type_prover(tb)}, {"ta", this->b->subst(var, positive)->get_type_prover(tb)}},
         {this->a->get_subst_prover(var, positive, tb), this->b->get_subst_prover(var, positive, tb)});
 }
 
@@ -432,16 +467,19 @@ void Biimp::get_variables(std::set<string> &vars) const
     this->b->get_variables(vars);
 }
 
+RegisteredProver Biimp::type_rp = LibraryToolbox::register_prover({}, "wff ( ph <-> ps )");
 Prover Biimp::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, "wff ( ph <-> ps )", {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover(Biimp::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
 }
 
+RegisteredProver Biimp::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph <-> ps ) <-> -. ( ( ph -> ps ) -> -. ( ps -> ph ) ) )");
+RegisteredProver Biimp::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
 Prover Biimp::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    Prover first = tb.build_prover4({}, "|- ( ( ph <-> ps ) <-> -. ( ( ph -> ps ) -> -. ( ps -> ph ) ) )", {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
+    Prover first = tb.build_registered_prover(Biimp::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
     Prover second = this->half_imp_not_form()->get_imp_not_prover(tb);
-    Prover compose = tb.build_prover4({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )",
+    Prover compose = tb.build_registered_prover(Biimp::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
 }
@@ -469,16 +507,19 @@ void Xor::get_variables(std::set<string> &vars) const
     this->b->get_variables(vars);
 }
 
+RegisteredProver Xor::type_rp = LibraryToolbox::register_prover({}, "wff ( ph \\/_ ps )");
 Prover Xor::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, "wff ( ph \\/_ ps )", {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover(Xor::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
 }
 
+RegisteredProver Xor::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/_ ps ) <-> -. ( ph <-> ps ) )");
+RegisteredProver Xor::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
 Prover Xor::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    Prover first = tb.build_prover4({}, "|- ( ( ph \\/_ ps ) <-> -. ( ph <-> ps ) )", {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
+    Prover first = tb.build_registered_prover(Xor::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
     Prover second = this->half_imp_not_form()->get_imp_not_prover(tb);
-    Prover compose = tb.build_prover4({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )",
+    Prover compose = tb.build_registered_prover(Xor::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
 }
@@ -519,16 +560,19 @@ void Nand::get_variables(std::set<string> &vars) const
     this->b->get_variables(vars);
 }
 
+RegisteredProver Nand::type_rp = LibraryToolbox::register_prover({}, "wff ( ph -/\\ ps )");
 Prover Nand::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, "wff ( ph -/\\ ps )", {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover(Nand::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
 }
 
+RegisteredProver Nand::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph -/\\ ps ) <-> -. ( ph /\\ ps ) )");
+RegisteredProver Nand::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
 Prover Nand::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    Prover first = tb.build_prover4({}, "|- ( ( ph -/\\ ps ) <-> -. ( ph /\\ ps ) )", {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
+    Prover first = tb.build_registered_prover(Nand::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
     Prover second = this->half_imp_not_form()->get_imp_not_prover(tb);
-    Prover compose = tb.build_prover4({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )",
+    Prover compose = tb.build_registered_prover(Nand::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
 }
@@ -569,16 +613,19 @@ void Or::get_variables(std::set<string> &vars) const
     this->b->get_variables(vars);
 }
 
+RegisteredProver Or::type_rp = LibraryToolbox::register_prover({}, "wff ( ph \\/ ps )");
 Prover Or::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, "wff ( ph \\/ ps )", {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover(Or::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
 }
 
+RegisteredProver Or::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/ ps ) <-> ( -. ph -> ps ) )");
+RegisteredProver Or::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
 Prover Or::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    Prover first = tb.build_prover4({}, "|- ( ( ph \\/ ps ) <-> ( -. ph -> ps ) )", {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
+    Prover first = tb.build_registered_prover(Or::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
     Prover second = this->half_imp_not_form()->get_imp_not_prover(tb);
-    Prover compose = tb.build_prover4({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )",
+    Prover compose = tb.build_registered_prover(Or::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
 }
@@ -632,16 +679,19 @@ std::vector<SymTok> And::to_sentence(const Library &lib) const
     return ret;
 }
 
+RegisteredProver And::type_rp = LibraryToolbox::register_prover({}, "wff ( ph /\\ ps )");
 Prover And::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, "wff ( ph /\\ ps )", {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover(And::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
 }
 
+RegisteredProver And::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph /\\ ps ) <-> -. ( ph -> -. ps ) )");
+RegisteredProver And::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
 Prover And::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    Prover first = tb.build_prover4({}, "|- ( ( ph /\\ ps ) <-> -. ( ph -> -. ps ) )", {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
+    Prover first = tb.build_registered_prover(And::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
     Prover second = this->half_imp_not_form()->get_imp_not_prover(tb);
-    Prover compose = tb.build_prover4({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )",
+    Prover compose = tb.build_registered_prover(And::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
 }
@@ -651,16 +701,18 @@ pwff ConvertibleWff::subst(string var, bool positive) const
     return this->imp_not_form()->subst(var, positive);
 }
 
+RegisteredProver ConvertibleWff::truth_rp = LibraryToolbox::register_prover({"|- ( ps <-> ph )", "|- ph"}, "|- ps");
 Prover ConvertibleWff::get_truth_prover(const LibraryToolbox &tb) const
 {
     //return null_prover;
-    return tb.build_prover4({"|- ( ps <-> ph )", "|- ph"}, "|- ps", {{"ph", this->imp_not_form()->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}}, {this->get_imp_not_prover(tb), this->imp_not_form()->get_truth_prover(tb)});
+    return tb.build_registered_prover(ConvertibleWff::truth_rp, {{"ph", this->imp_not_form()->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}}, {this->get_imp_not_prover(tb), this->imp_not_form()->get_truth_prover(tb)});
 }
 
+RegisteredProver ConvertibleWff::falsity_rp = LibraryToolbox::register_prover({"|- ( ps <-> ph )", "|- -. ph"}, "|- -. ps");
 Prover ConvertibleWff::get_falsity_prover(const LibraryToolbox &tb) const
 {
     //return null_prover;
-    return tb.build_prover4({"|- ( ps <-> ph )", "|- -. ph"}, "|- -. ps", {{"ph", this->imp_not_form()->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}}, {this->get_imp_not_prover(tb), this->imp_not_form()->get_falsity_prover(tb)});
+    return tb.build_registered_prover(ConvertibleWff::falsity_rp, {{"ph", this->imp_not_form()->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}}, {this->get_imp_not_prover(tb), this->imp_not_form()->get_falsity_prover(tb)});
 }
 
 Prover ConvertibleWff::get_type_prover(const LibraryToolbox &tb) const
