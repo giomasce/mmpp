@@ -120,7 +120,7 @@ bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &te
 
     // Compute essential hypotheses
     for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
-        bool res = hyps_provers[perm_inv[i]](*this, engine);
+        bool res = hyps_provers[perm_inv[i]](engine);
         if (!res) {
             engine.rollback();
             return false;
@@ -167,7 +167,7 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
                     return true;
                 } else {
                     auto &prover = var_provers.at(type_var);
-                    return prover(*this, engine);
+                    return prover(engine);
                 }
             }
         }
@@ -301,30 +301,30 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
     }
 }
 
-Prover LibraryToolbox::build_prover4(const std::vector<string> &templ_hyps, const string &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers)
+Prover LibraryToolbox::build_prover4(const std::vector<string> &templ_hyps, const string &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers) const
 {
-    return [=](const LibraryToolbox &tb, ProofEngine &engine){
-        return tb.proving_helper4(templ_hyps, templ_thesis, types_provers, hyps_provers, engine);
+    return [=](ProofEngine &engine){
+        return this->proving_helper4(templ_hyps, templ_thesis, types_provers, hyps_provers, engine);
     };
 }
 
-Prover LibraryToolbox::build_type_prover2(const std::string &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
+Prover LibraryToolbox::build_type_prover2(const std::string &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
-    return [=](const LibraryToolbox &tb, ProofEngine &engine){
-        vector< SymTok > type_sent2 = tb.parse_sentence(type_sent);
-        return tb.classical_type_proving_helper(type_sent2, engine, var_provers);
+    return [=](ProofEngine &engine){
+        vector< SymTok > type_sent2 = this->parse_sentence(type_sent);
+        return this->classical_type_proving_helper(type_sent2, engine, var_provers);
     };
 }
 
-Prover LibraryToolbox::cascade_provers(const Prover &a,  const Prover &b)
+Prover cascade_provers(const Prover &a,  const Prover &b)
 {
-    return [=](const LibraryToolbox &tb, ProofEngine &engine) {
+    return [=](ProofEngine &engine) {
         bool res;
-        res = a(tb, engine);
+        res = a(engine);
         if (res) {
             return true;
         }
-        res = b(tb, engine);
+        res = b(engine);
         return res;
     };
 }
@@ -467,21 +467,21 @@ const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryToolbox::get_asse
     return this->assertions_by_type;
 }
 
-Prover LibraryToolbox::build_classical_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
+Prover LibraryToolbox::build_classical_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
-    return [=](const LibraryToolbox &tb, ProofEngine &engine){
-        return tb.classical_type_proving_helper(type_sent, engine, var_provers);
+    return [=](ProofEngine &engine){
+        return this->classical_type_proving_helper(type_sent, engine, var_provers);
     };
 }
 
-Prover LibraryToolbox::build_earley_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
+Prover LibraryToolbox::build_earley_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
-    return [=](const LibraryToolbox &tb, ProofEngine &engine){
-        return tb.earley_type_proving_helper(type_sent, engine, var_provers);
+    return [=](ProofEngine &engine){
+        return this->earley_type_proving_helper(type_sent, engine, var_provers);
     };
 }
 
-Prover LibraryToolbox::build_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers)
+Prover LibraryToolbox::build_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
     return LibraryToolbox::build_classical_type_prover(type_sent, var_provers);
 }

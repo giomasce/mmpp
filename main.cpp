@@ -257,7 +257,7 @@ void test() {
             cout << "Alt HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << endl;
             cout << "LaTeX sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_LATEX) << endl;
             ProofEngine engine(lib);
-            LibraryToolbox::build_type_prover(sent)(tb, engine);
+            tb.build_type_prover(sent)(engine);
             auto res = engine.get_proof_labels();
             cout << "Found type proof: " << tb.print_proof(res) << endl;
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
@@ -303,7 +303,7 @@ void test() {
                 cout << "WFF: " << wff->to_string() << endl;
                 {
                     ProofEngine engine(lib);
-                    wff->get_type_prover()(tb, engine);
+                    wff->get_type_prover(tb)(engine);
                     if (engine.get_proof_labels().size() > 0) {
                         cout << "type proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
@@ -319,7 +319,7 @@ void test() {
                 cout << "WFF: " << wff->to_string() << endl;
                 {
                     ProofEngine engine(lib);
-                    wff->get_truth_prover()(tb, engine);
+                    wff->get_truth_prover(tb)(engine);
                     if (engine.get_proof_labels().size() > 0) {
                         cout << "Truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
@@ -327,7 +327,7 @@ void test() {
                 }
                 {
                     ProofEngine engine(lib);
-                    wff->get_falsity_prover()(tb, engine);
+                    wff->get_falsity_prover(tb)(engine);
                     if (engine.get_proof_labels().size() > 0) {
                         cout << "Falsity proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
@@ -343,7 +343,7 @@ void test() {
                 cout << "WFF: " << wff->to_string() << endl;
                 {
                     ProofEngine engine(lib);
-                    wff->get_imp_not_prover()(tb, engine);
+                    wff->get_imp_not_prover(tb)(engine);
                     if (engine.get_proof_labels().size() > 0) {
                         cout << "not_imp proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
@@ -359,7 +359,7 @@ void test() {
                 cout << "WFF: " << wff->to_string() << endl;
                 {
                     ProofEngine engine(lib);
-                    wff->get_subst_prover("ph", true)(tb, engine);
+                    wff->get_subst_prover("ph", true, tb)(engine);
                     if (engine.get_proof_labels().size() > 0) {
                         cout << "subst ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
@@ -367,7 +367,7 @@ void test() {
                 }
                 {
                     ProofEngine engine(lib);
-                    wff->get_subst_prover("ph", false)(tb, engine);
+                    wff->get_subst_prover("ph", false, tb)(engine);
                     if (engine.get_proof_labels().size() > 0) {
                         cout << "subst -. ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
@@ -389,7 +389,7 @@ void test() {
                 cout << "WFF: " << wff->to_string() << endl;
                 {
                     ProofEngine engine(lib);
-                    wff->get_adv_truth_prover()(tb, engine);
+                    wff->get_adv_truth_prover(tb)(engine);
                     if (engine.get_proof_labels().size() > 0) {
                         cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                         cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
