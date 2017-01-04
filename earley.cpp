@@ -78,7 +78,7 @@ EarleyTreeItem earley(const std::vector<SymTok> &sent, SymTok type, const std::u
                 } else {
                     // Current symbol it not in the derivations, therefore is terminal: scan phase
                     // If the symbol matches the sentence, promote item to the new bucket
-                    if (symbol == sent[i]) {
+                    if (i < sent.size() && symbol == sent[i]) {
                         EarleyState new_item = { cur_state.initial, cur_state.current+1, cur_state.type, cur_state.der_lab, cur_state.der, cur_state.children };
                         if (find(state[i+1].begin(), state[i+1].end(), new_item) == state[i+1].end()) {
                             state[i+1].push_back(new_item);
@@ -160,5 +160,6 @@ void test_earley() {
     derivations[4].push_back(make_pair(116, vector< SymTok >({ 23 })));
     derivations[4].push_back(make_pair(117, vector< SymTok >({ 24 })));
     vector< SymTok > sent = { 21, 10, 14, 22, 12, 23, 11, 24, 15 };
-    earley(sent, 1, derivations);
+    auto res = earley(sent, 1, derivations);
+    assert(res.label != 0);
 }

@@ -9,21 +9,25 @@ Wff::~Wff()
 
 Prover Wff::get_truth_prover(const LibraryToolbox &tb) const
 {
+    (void) tb;
     return null_prover;
 }
 
 Prover Wff::get_falsity_prover(const LibraryToolbox &tb) const
 {
+    (void) tb;
     return null_prover;
 }
 
 Prover Wff::get_type_prover(const LibraryToolbox &tb) const
 {
+    (void) tb;
     return null_prover;
 }
 
 Prover Wff::get_imp_not_prover(const LibraryToolbox &tb) const
 {
+    (void) tb;
     return null_prover;
 }
 
@@ -31,6 +35,7 @@ Prover Wff::get_subst_prover(string var, bool positive, const LibraryToolbox &tb
 {
     (void) var;
     (void) positive;
+    (void) tb;
     return null_prover;
 }
 
