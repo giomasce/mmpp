@@ -104,19 +104,22 @@ void True::get_variables(std::set<string> &vars) const
     (void) vars;
 }
 
+RegisteredProver True::truth_rp = LibraryToolbox::register_prover({}, "|- T.");
 Prover True::get_truth_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, "|- T.", {}, {});
+    return tb.build_registered_prover(True::truth_rp, {}, {});
 }
 
+RegisteredProver True::type_rp = LibraryToolbox::register_prover({}, "wff T.");
 Prover True::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, "wff T.", {}, {});
+    return tb.build_registered_prover(True::type_rp, {}, {});
 }
 
+RegisteredProver True::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( T. <-> T. )");
 Prover True::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, "|- ( T. <-> T. )", {}, {});
+    return tb.build_registered_prover(True::imp_not_rp, {}, {});
 }
 
 Prover True::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const
@@ -281,19 +284,22 @@ Prover Not::get_truth_prover(const LibraryToolbox &tb) const
     return this->a->get_falsity_prover(tb);
 }
 
+RegisteredProver Not::falsity_rp = LibraryToolbox::register_prover({ "|- ph" }, "|- -. -. ph");
 Prover Not::get_falsity_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({ "|- ph" }, "|- -. -. ph", {{ "ph", this->a->get_type_prover(tb) }}, { this->a->get_truth_prover(tb) });
+    return tb.build_registered_prover(Not::falsity_rp, {{ "ph", this->a->get_type_prover(tb) }}, { this->a->get_truth_prover(tb) });
 }
 
+RegisteredProver Not::type_rp = LibraryToolbox::register_prover({}, "wff -. ph");
 Prover Not::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({}, "wff -. ph", {{ "ph", this->a->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover(Not::type_rp, {{ "ph", this->a->get_type_prover(tb) }}, {});
 }
 
+RegisteredProver Not::imp_not_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )"}, "|- ( -. ph <-> -. ps )");
 Prover Not::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_prover4({"|- ( ph <-> ps )"}, "|- ( -. ph <-> -. ps )", {{"ph", this->a->get_type_prover(tb)}, {"ps", this->a->imp_not_form()->get_type_prover(tb) }}, { this->a->get_imp_not_prover(tb) });
+    return tb.build_registered_prover(Not::imp_not_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->a->imp_not_form()->get_type_prover(tb) }}, { this->a->get_imp_not_prover(tb) });
 }
 
 Prover Not::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const

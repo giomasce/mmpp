@@ -97,10 +97,21 @@ static vector< size_t > invert_perm(const vector< size_t > &perm) {
     return ret;
 }
 
-bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &templ_hyps, const std::vector<SymTok> &templ_thesis, const std::unordered_map<SymTok, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ProofEngine &engine) const
+bool LibraryToolbox::proving_helper4(const std::vector<string> &templ_hyps, const std::string &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ProofEngine &engine) const
 {
-    engine.checkpoint();
-    auto res = this->unify_assertion(templ_hyps, templ_thesis, true);
+    // Decode input strings to sentences
+    std::vector<std::vector<SymTok> > templ_hyps_sent;
+    for (auto &hyp : templ_hyps) {
+        templ_hyps_sent.push_back(this->parse_sentence(hyp));
+    }
+    std::vector<SymTok> templ_thesis_sent = this->parse_sentence(templ_thesis);
+    std::unordered_map<SymTok, Prover> types_provers_sym;
+    for (auto &type_pair : types_provers) {
+        auto res = types_provers_sym.insert(make_pair(lib.get_symbol(type_pair.first), type_pair.second));
+        assert(res.second);
+    }
+
+    auto res = this->unify_assertion(templ_hyps_sent, templ_thesis_sent, true);
     assert_or_throw(!res.empty(), "Could not find the template assertion");
     const Assertion &ass = this->lib.get_assertion(get<0>(*res.begin()));
     assert(ass.is_valid());
@@ -109,9 +120,11 @@ bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &te
     const unordered_map< SymTok, vector< SymTok > > &ass_map = get<2>(*res.begin());
     //const unordered_map< SymTok, vector< SymTok > > full_map = this->compose_subst(ass_map, subst_map);
 
+    engine.checkpoint();
+
     // Compute floating hypotheses
     for (auto &hyp : ass.get_float_hyps()) {
-        bool res = this->classical_type_proving_helper(this->substitute(this->lib.get_sentence(hyp), ass_map), engine, types_provers);
+        bool res = this->classical_type_proving_helper(this->substitute(this->lib.get_sentence(hyp), ass_map), engine, types_provers_sym);
         if (!res) {
             engine.rollback();
             return false;
@@ -132,21 +145,6 @@ bool LibraryToolbox::proving_helper3(const std::vector<std::vector<SymTok> > &te
 
     engine.commit();
     return true;
-}
-
-bool LibraryToolbox::proving_helper4(const std::vector<string> &templ_hyps, const std::string &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ProofEngine &engine) const
-{
-    std::vector<std::vector<SymTok> > templ_hyps_sent;
-    for (auto &hyp : templ_hyps) {
-        templ_hyps_sent.push_back(this->parse_sentence(hyp));
-    }
-    std::vector<SymTok> templ_thesis_sent = this->parse_sentence(templ_thesis);
-    std::unordered_map<SymTok, Prover> types_provers_sym;
-    for (auto &type_pair : types_provers) {
-        auto res = types_provers_sym.insert(make_pair(lib.get_symbol(type_pair.first), type_pair.second));
-        assert(res.second);
-    }
-    return this->proving_helper3(templ_hyps_sent, templ_thesis_sent, types_provers_sym, hyps_provers, engine);
 }
 
 bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &type_sent, ProofEngine &engine, const std::unordered_map<SymTok, Prover> &var_provers) const
@@ -438,6 +436,7 @@ void LibraryToolbox::compute_everything()
 {
     this->compute_types_by_var();
     this->compute_assertions_by_type();
+    this->compute_registered_provers();
 }
 
 const std::vector<LabTok> &LibraryToolbox::get_types() const
@@ -496,6 +495,93 @@ const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryToolbox::get_asse
         throw MMPPException("computation required on const object");
     }
     return this->assertions_by_type;
+}
+
+RegisteredProver LibraryToolbox::register_prover(const std::vector<string> &templ_hyps, const string &templ_thesis)
+{
+    size_t index = LibraryToolbox::registered_provers().size();
+    auto &rps = LibraryToolbox::registered_provers();
+    rps.push_back({templ_hyps, templ_thesis});
+    //cerr << "first: " << &rps << "; size: " << rps.size() << endl;
+    return { index };
+}
+
+Prover LibraryToolbox::build_registered_prover(const RegisteredProver &prover, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers) const
+{
+    const size_t &index = prover.index;
+    if (index >= this->instance_registered_provers.size() || !this->instance_registered_provers[index].valid) {
+        throw MMPPException("cannot modify const object");
+    }
+    const RegisteredProverInstanceData &inst_data = this->instance_registered_provers[index];
+
+    return [=](ProofEngine &engine){
+        const Assertion &ass = this->lib.get_assertion(inst_data.label);
+
+        std::unordered_map<SymTok, Prover> types_provers_sym;
+        for (auto &type_pair : types_provers) {
+            auto res = types_provers_sym.insert(make_pair(lib.get_symbol(type_pair.first), type_pair.second));
+            assert(res.second);
+        }
+
+        engine.checkpoint();
+
+        // Compute floating hypotheses
+        for (auto &hyp : ass.get_float_hyps()) {
+            bool res = this->classical_type_proving_helper(this->substitute(this->lib.get_sentence(hyp), inst_data.ass_map), engine, types_provers_sym);
+            if (!res) {
+                engine.rollback();
+                return false;
+            }
+        }
+
+        // Compute essential hypotheses
+        for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
+            bool res = hyps_provers[inst_data.perm_inv[i]](engine);
+            if (!res) {
+                engine.rollback();
+                return false;
+            }
+        }
+
+        // Finally add this assertion's label
+        engine.process_label(ass.get_thesis());
+
+        engine.commit();
+        return true;
+    };
+}
+
+void LibraryToolbox::compute_registered_provers()
+{
+    for (size_t index = 0; index < LibraryToolbox::registered_provers().size(); index++) {
+        this->compute_registered_prover(index);
+    }
+}
+
+void LibraryToolbox::compute_registered_prover(size_t index)
+{
+    this->instance_registered_provers.resize(LibraryToolbox::registered_provers().size());
+    const RegisteredProverData &data = LibraryToolbox::registered_provers()[index];
+    RegisteredProverInstanceData &inst_data = this->instance_registered_provers[index];
+    if (!inst_data.valid) {
+        // Decode input strings to sentences
+        std::vector<std::vector<SymTok> > templ_hyps_sent;
+        for (auto &hyp : data.templ_hyps) {
+            templ_hyps_sent.push_back(this->parse_sentence(hyp));
+        }
+        std::vector<SymTok> templ_thesis_sent = this->parse_sentence(data.templ_thesis);
+
+        auto unification = this->unify_assertion(templ_hyps_sent, templ_thesis_sent, true);
+        assert_or_throw(!unification.empty(), "Could not find the template assertion");
+        inst_data.label = get<0>(*unification.begin());
+        const Assertion &ass = this->lib.get_assertion(inst_data.label);
+        assert(ass.is_valid());
+        const vector< size_t > &perm = get<1>(*unification.begin());
+        inst_data.perm_inv = invert_perm(perm);
+        inst_data.ass_map = get<2>(*unification.begin());
+        //const unordered_map< SymTok, vector< SymTok > > full_map = this->compose_subst(ass_map, subst_map);
+        inst_data.valid = true;
+    }
 }
 
 Prover LibraryToolbox::build_classical_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const

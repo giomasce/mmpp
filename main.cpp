@@ -383,7 +383,7 @@ void test() {
                                                 pwff(new Imp(pwff(new Var("ph")), pwff(new And(pwff(new Var("ch")), pwff(new Var("ps")))))))),
                                };
 
-        if (true) {
+        if (false) {
             cout << "WFF adv_truth test" << endl;
             for (pwff &wff : wffs2) {
                 cout << "WFF: " << wff->to_string() << endl;

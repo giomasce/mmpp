@@ -31,6 +31,22 @@ struct ProofPrinter {
 std::ostream &operator<<(std::ostream &os, const SentencePrinter &sp);
 std::ostream &operator<<(std::ostream &os, const ProofPrinter &sp);
 
+struct RegisteredProver {
+    size_t index;
+};
+
+struct RegisteredProverData {
+    std::vector<std::string> templ_hyps;
+    std::string templ_thesis;
+};
+
+struct RegisteredProverInstanceData {
+    bool valid = false;
+    LabTok label;
+    std::vector< size_t > perm_inv;
+    std::unordered_map< SymTok, std::vector< SymTok > > ass_map;
+};
+
 class LibraryToolbox
 {
 public:
@@ -68,12 +84,12 @@ public:
     const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type();
     const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const;
 
+    static RegisteredProver register_prover(const std::vector< std::string > &templ_hyps, const std::string &templ_thesis);
+    Prover build_registered_prover(const RegisteredProver &prover, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers) const;
+    void compute_registered_provers();
+    void compute_registered_prover(size_t i);
+
 private:
-    bool proving_helper3(const std::vector< std::vector< SymTok > > &templ_hyps,
-                         const std::vector< SymTok > &templ_thesis,
-                         const std::unordered_map< SymTok, Prover > &types_provers,
-                         const std::vector< Prover > &hyps_provers,
-                         ProofEngine &engine) const;
     bool proving_helper4(const std::vector< std::string > &templ_hyps,
                          const std::string &templ_thesis,
                          const std::unordered_map< std::string, Prover > &types_provers,
@@ -91,6 +107,13 @@ private:
     std::unordered_map< std::tuple< std::vector< std::vector< SymTok > >, std::vector< SymTok > >,
                         std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > >,
                         boost::hash< std::tuple< std::vector< std::vector< SymTok > >, std::vector< SymTok > > > > unification_cache;
+
+    static std::vector< RegisteredProverData > &registered_provers() {
+        static std::vector< RegisteredProverData > *ret = new std::vector< RegisteredProverData >();
+        return *ret;
+    }
+
+    std::vector< RegisteredProverInstanceData > instance_registered_provers;
 };
 
 #endif // LIBRARYTOOLBOX_H

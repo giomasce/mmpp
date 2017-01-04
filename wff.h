@@ -49,6 +49,10 @@ public:
     Prover get_type_prover(const LibraryToolbox &tb) const;
     Prover get_imp_not_prover(const LibraryToolbox &tb) const;
     Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
+private:
+    static RegisteredProver truth_rp;
+    static RegisteredProver type_rp;
+    static RegisteredProver imp_not_rp;
 };
 
 class False : public Wff {
@@ -97,6 +101,10 @@ public:
 
 private:
   pwff a;
+
+  static RegisteredProver falsity_rp;
+  static RegisteredProver type_rp;
+  static RegisteredProver imp_not_rp;
 };
 
 class Imp : public Wff {
