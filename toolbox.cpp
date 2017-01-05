@@ -390,9 +390,27 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
             auto unifications = unify(sent, templ, this->lib);
             if (!unifications.empty()) {
                 for (auto &unification : unifications) {
-                    ret.emplace_back(ass.get_thesis(), perm, unification);
-                    if (just_first) {
-                        return ret;
+                    // Here we have to check that substitutions are of the corresponding type
+                    // TODO - Here we immediately drop the type information, which probably mean that later we have to compute it again
+                    bool wrong_unification = false;
+                    for (auto &float_hyp : ass.get_float_hyps()) {
+                        const Sentence &float_hyp_sent = this->lib.get_sentence(float_hyp);
+                        Sentence type_sent;
+                        type_sent.push_back(float_hyp_sent.at(0));
+                        auto &type_main_sent = unification.at(float_hyp_sent.at(1));
+                        copy(type_main_sent.begin(), type_main_sent.end(), back_inserter(type_sent));
+                        ProofEngine engine(this->lib);
+                        if (!this->classical_type_proving_helper(type_sent, engine)) {
+                            wrong_unification = true;
+                            break;
+                        }
+                    }
+                    // If this is the case, then we have found a legitimate unification
+                    if (!wrong_unification) {
+                        ret.emplace_back(ass.get_thesis(), perm, unification);
+                        if (just_first) {
+                            return ret;
+                        }
                     }
                 }
             }

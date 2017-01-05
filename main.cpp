@@ -263,7 +263,7 @@ void test() {
             cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
         }
 
-        vector< pwff > wffs = { pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
+        vector< pwff > wffs = { /*pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
                                 pwff(new Var("ph")), pwff(new Not(pwff(new Var("ph")))),
                                 pwff(new Var("ps")), pwff(new Not(pwff(new Var("ps")))),
                                 pwff(new Imp(pwff(new True()), pwff(new True()))),
@@ -277,7 +277,15 @@ void test() {
                                 pwff(new And(pwff(new True()), pwff(new True()))),
                                 pwff(new And(pwff(new True()), pwff(new False()))),
                                 pwff(new And(pwff(new False()), pwff(new True()))),
-                                pwff(new And(pwff(new False()), pwff(new False()))),
+                                pwff(new And(pwff(new False()), pwff(new False()))),*/
+                                pwff(new And3(pwff(new True()), pwff(new True()), pwff(new True()))),
+                                pwff(new And3(pwff(new True()), pwff(new False()), pwff(new True()))),
+                                pwff(new And3(pwff(new False()), pwff(new True()), pwff(new True()))),
+                                pwff(new And3(pwff(new False()), pwff(new False()), pwff(new True()))),
+                                pwff(new And3(pwff(new True()), pwff(new True()), pwff(new False()))),
+                                pwff(new And3(pwff(new True()), pwff(new False()), pwff(new False()))),
+                                pwff(new And3(pwff(new False()), pwff(new True()), pwff(new False()))),
+                                pwff(new And3(pwff(new False()), pwff(new False()), pwff(new False()))),
                                 pwff(new Or(pwff(new True()), pwff(new True()))),
                                 pwff(new Or(pwff(new True()), pwff(new False()))),
                                 pwff(new Or(pwff(new False()), pwff(new True()))),
@@ -395,6 +403,8 @@ void test() {
 
         vector< pwff > wffs2 = { pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
                                  pwff(new Imp(pwff(new Var("ph")), pwff(new Var("ph")))),
+                                 pwff(new Or3(pwff(new Var("ph")), pwff(new True()), pwff(new False()))),
+                                 pwff(new Imp(pwff(new Var("ph")), pwff(new And3(pwff(new Var("ph")), pwff(new True()), pwff(new Var("ph")))))),
                                  pwff(new Biimp(pwff(new Nand(pwff(new Var("ph")), pwff(new Nand(pwff(new Var("ch")), pwff(new Var("ps")))))),
                                                 pwff(new Imp(pwff(new Var("ph")), pwff(new And(pwff(new Var("ch")), pwff(new Var("ps")))))))),
                                };

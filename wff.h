@@ -262,4 +262,42 @@ private:
   pwff a, b;
 };
 
+class And3 : public ConvertibleWff {
+public:
+    And3(pwff a, pwff b, pwff c);
+    std::string to_string() const;
+    std::vector<SymTok> to_sentence(const Library &lib) const;
+    pwff imp_not_form() const;
+    pwff half_imp_not_form() const;
+    void get_variables(std::set< std::string > &vars) const;
+    Prover get_type_prover(const LibraryToolbox &tb) const;
+    Prover get_imp_not_prover(const LibraryToolbox &tb) const;
+
+    static RegisteredProver type_rp;
+    static RegisteredProver imp_not_1_rp;
+    static RegisteredProver imp_not_2_rp;
+
+  private:
+    pwff a, b, c;
+};
+
+class Or3 : public ConvertibleWff {
+public:
+    Or3(pwff a, pwff b, pwff c);
+    std::string to_string() const;
+    std::vector<SymTok> to_sentence(const Library &lib) const;
+    pwff imp_not_form() const;
+    pwff half_imp_not_form() const;
+    void get_variables(std::set< std::string > &vars) const;
+    Prover get_type_prover(const LibraryToolbox &tb) const;
+    Prover get_imp_not_prover(const LibraryToolbox &tb) const;
+
+    static RegisteredProver type_rp;
+    static RegisteredProver imp_not_1_rp;
+    static RegisteredProver imp_not_2_rp;
+
+  private:
+    pwff a, b, c;
+};
+
 #endif // WFF_H

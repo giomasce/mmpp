@@ -363,7 +363,7 @@ std::vector<SymTok> Imp::to_sentence(const Library &lib) const
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("("));
     vector< SymTok > senta = this->a->to_sentence(lib);
-    vector< SymTok > sentb = this->a->to_sentence(lib);
+    vector< SymTok > sentb = this->b->to_sentence(lib);
     copy(senta.begin(), senta.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol("->"));
     copy(sentb.begin(), sentb.end(), back_inserter(ret));
@@ -453,7 +453,7 @@ std::vector<SymTok> Biimp::to_sentence(const Library &lib) const
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("("));
     vector< SymTok > senta = this->a->to_sentence(lib);
-    vector< SymTok > sentb = this->a->to_sentence(lib);
+    vector< SymTok > sentb = this->b->to_sentence(lib);
     copy(senta.begin(), senta.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol("<->"));
     copy(sentb.begin(), sentb.end(), back_inserter(ret));
@@ -529,7 +529,7 @@ std::vector<SymTok> Xor::to_sentence(const Library &lib) const
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("("));
     vector< SymTok > senta = this->a->to_sentence(lib);
-    vector< SymTok > sentb = this->a->to_sentence(lib);
+    vector< SymTok > sentb = this->b->to_sentence(lib);
     copy(senta.begin(), senta.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol("\\/_"));
     copy(sentb.begin(), sentb.end(), back_inserter(ret));
@@ -582,7 +582,7 @@ std::vector<SymTok> Nand::to_sentence(const Library &lib) const
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("("));
     vector< SymTok > senta = this->a->to_sentence(lib);
-    vector< SymTok > sentb = this->a->to_sentence(lib);
+    vector< SymTok > sentb = this->b->to_sentence(lib);
     copy(senta.begin(), senta.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol("-/\\"));
     copy(sentb.begin(), sentb.end(), back_inserter(ret));
@@ -635,7 +635,7 @@ std::vector<SymTok> Or::to_sentence(const Library &lib) const
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("("));
     vector< SymTok > senta = this->a->to_sentence(lib);
-    vector< SymTok > sentb = this->a->to_sentence(lib);
+    vector< SymTok > sentb = this->b->to_sentence(lib);
     copy(senta.begin(), senta.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol("\\/"));
     copy(sentb.begin(), sentb.end(), back_inserter(ret));
@@ -671,7 +671,7 @@ std::vector<SymTok> And::to_sentence(const Library &lib) const
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("("));
     vector< SymTok > senta = this->a->to_sentence(lib);
-    vector< SymTok > sentb = this->a->to_sentence(lib);
+    vector< SymTok > sentb = this->b->to_sentence(lib);
     copy(senta.begin(), senta.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol("/\\"));
     copy(sentb.begin(), sentb.end(), back_inserter(ret));
@@ -720,4 +720,124 @@ Prover ConvertibleWff::get_type_prover(const LibraryToolbox &tb) const
     // Disabled, because ordinarily I do not want to use this generic and probably inefficient method
     return null_prover;
     return tb.build_type_prover2("wff " + this->to_string());
+}
+
+And3::And3(pwff a, pwff b, pwff c) :
+    a(a), b(b), c(c)
+{
+}
+
+string And3::to_string() const
+{
+    return "( " + this->a->to_string() + " /\\ " + this->b->to_string() + " /\\ " + this->c->to_string() + " )";
+}
+
+std::vector<SymTok> And3::to_sentence(const Library &lib) const
+{
+    vector< SymTok > ret;
+    ret.push_back(lib.get_symbol("("));
+    vector< SymTok > senta = this->a->to_sentence(lib);
+    vector< SymTok > sentb = this->b->to_sentence(lib);
+    vector< SymTok > sentc = this->c->to_sentence(lib);
+    copy(senta.begin(), senta.end(), back_inserter(ret));
+    ret.push_back(lib.get_symbol("/\\"));
+    copy(sentb.begin(), sentb.end(), back_inserter(ret));
+    ret.push_back(lib.get_symbol("/\\"));
+    copy(sentc.begin(), sentc.end(), back_inserter(ret));
+    ret.push_back(lib.get_symbol(")"));
+    return ret;
+}
+
+pwff And3::imp_not_form() const
+{
+    return pwff(new And(pwff(new And(this->a, this->b)), this->c))->imp_not_form();
+}
+
+pwff And3::half_imp_not_form() const
+{
+    return pwff(new And(pwff(new And(this->a, this->b)), this->c));
+}
+
+void And3::get_variables(std::set<string> &vars) const
+{
+    this->a->get_variables(vars);
+    this->b->get_variables(vars);
+    this->c->get_variables(vars);
+}
+
+RegisteredProver And3::type_rp = LibraryToolbox::register_prover({}, "wff ( ph /\\ ps /\\ ch )");
+Prover And3::get_type_prover(const LibraryToolbox &tb) const
+{
+    return tb.build_registered_prover(And3::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }, { "ch", this->c->get_type_prover(tb) }}, {});
+}
+
+RegisteredProver And3::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph /\\ ps /\\ ch ) <-> ( ( ph /\\ ps ) /\\ ch ) )");
+RegisteredProver And3::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
+Prover And3::get_imp_not_prover(const LibraryToolbox &tb) const
+{
+    Prover first = tb.build_registered_prover(And3::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}, {"ch", this->c->get_type_prover(tb)}}, {});
+    Prover second = this->half_imp_not_form()->get_imp_not_prover(tb);
+    Prover compose = tb.build_registered_prover(And3::imp_not_2_rp,
+        {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
+    return compose;
+}
+
+Or3::Or3(pwff a, pwff b, pwff c) :
+    a(a), b(b), c(c)
+{
+}
+
+string Or3::to_string() const
+{
+    return "( " + this->a->to_string() + " \\/ " + this->b->to_string() + " \\/ " + this->c->to_string() + " )";
+}
+
+std::vector<SymTok> Or3::to_sentence(const Library &lib) const
+{
+    vector< SymTok > ret;
+    ret.push_back(lib.get_symbol("("));
+    vector< SymTok > senta = this->a->to_sentence(lib);
+    vector< SymTok > sentb = this->b->to_sentence(lib);
+    vector< SymTok > sentc = this->c->to_sentence(lib);
+    copy(senta.begin(), senta.end(), back_inserter(ret));
+    ret.push_back(lib.get_symbol("\\/"));
+    copy(sentb.begin(), sentb.end(), back_inserter(ret));
+    ret.push_back(lib.get_symbol("\\/"));
+    copy(sentc.begin(), sentc.end(), back_inserter(ret));
+    ret.push_back(lib.get_symbol(")"));
+    return ret;
+}
+
+pwff Or3::imp_not_form() const
+{
+    return pwff(new Or(pwff(new Or(this->a, this->b)), this->c))->imp_not_form();
+}
+
+pwff Or3::half_imp_not_form() const
+{
+    return pwff(new Or(pwff(new Or(this->a, this->b)), this->c));
+}
+
+void Or3::get_variables(std::set<string> &vars) const
+{
+    this->a->get_variables(vars);
+    this->b->get_variables(vars);
+    this->c->get_variables(vars);
+}
+
+RegisteredProver Or3::type_rp = LibraryToolbox::register_prover({}, "wff ( ph \\/ ps \\/ ch )");
+Prover Or3::get_type_prover(const LibraryToolbox &tb) const
+{
+    return tb.build_registered_prover(Or3::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }, { "ch", this->c->get_type_prover(tb) }}, {});
+}
+
+RegisteredProver Or3::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/ ps \\/ ch ) <-> ( ( ph \\/ ps ) \\/ ch ) )");
+RegisteredProver Or3::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
+Prover Or3::get_imp_not_prover(const LibraryToolbox &tb) const
+{
+    Prover first = tb.build_registered_prover(Or3::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}, {"ch", this->c->get_type_prover(tb)}}, {});
+    Prover second = this->half_imp_not_form()->get_imp_not_prover(tb);
+    Prover compose = tb.build_registered_prover(Or3::imp_not_2_rp,
+        {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
+    return compose;
 }
