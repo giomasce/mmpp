@@ -16,7 +16,24 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
+     <widget class="QLabel" name="proofThesis">
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QTreeView" name="proofTreeView"/>
+    </item>
+    <item>
+     <widget class="QWidget" name="widget" native="true">
+      <property name="minimumSize">
+       <size>
+        <width>100</width>
+        <height>100</height>
+       </size>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
@@ -40,7 +57,7 @@
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
    <property name="text">
-    <string>Open</string>
+    <string>&amp;Open</string>
    </property>
   </action>
  </widget>
