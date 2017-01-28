@@ -13,7 +13,8 @@ SOURCES += main.cpp \
     toolbox.cpp \
     earley.cpp \
     mainwindow.cpp \
-    test.cpp
+    test.cpp \
+    utils.cpp
 
 QMAKE_CXXFLAGS += -std=c++17 -march=native
 QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem
@@ -22,7 +23,6 @@ HEADERS += \
     wff.h \
     parser.h \
     library.h \
-    statics.h \
     proof.h \
     unification.h \
     memory.h \
@@ -30,7 +30,8 @@ HEADERS += \
     earley.h \
     stringcache.h \
     mainwindow.h \
-    test.h
+    test.h \
+    utils.h
 
 DISTFILES += \
     README

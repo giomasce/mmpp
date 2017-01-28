@@ -1,6 +1,6 @@
 
 #include "proof.h"
-#include "statics.h"
+#include "utils.h"
 
 #include <iostream>
 #include <algorithm>

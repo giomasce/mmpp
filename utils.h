@@ -19,50 +19,12 @@
 #include <dlfcn.h>
 #include <stdlib.h>
 
-// Taken from https://stupefydeveloper.blogspot.it/2008/10/cc-call-stack.html and partially adapted
-inline static std::vector< std::string > dump_stacktrace(size_t depth) {
-    using namespace std;
-    using namespace abi;
-
-    vector< string > ret;
-    vector< void* > trace(depth);
-    Dl_info dlinfo;
-    int status;
-    const char *symname;
-    char *demangled;
-    int trace_size = backtrace(trace.data(), depth);
-    for (int i=0; i<trace_size; ++i)
-    {
-        if(!dladdr(trace[i], &dlinfo))
-            continue;
-
-        symname = dlinfo.dli_sname;
-
-        demangled = __cxa_demangle(symname, NULL, 0, &status);
-        if(status == 0 && demangled)
-            symname = demangled;
-
-        ostringstream oss;
-        oss << "address: 0x" << trace[i] << ", object: " << dlinfo.dli_fname << ", function: " << symname;
-        ret.push_back(oss.str());
-
-        if (demangled)
-            free(demangled);
-    }
-    return ret;
-}
-
-inline static std::vector< std::string > dump_stacktrace() {
-    for (size_t depth = 10; ; depth *= 2) {
-        auto ret = dump_stacktrace(depth);
-        if (ret.size() < depth) {
-            return ret;
-        }
-    }
-}
+std::vector< std::string > dump_stacktrace(size_t depth);
+std::vector< std::string > dump_stacktrace();
 
 #else
 inline static std::vector< std::string > dump_stacktrace(int depth=0) {
+    (void) depth;
     return {};
 }
 #endif
@@ -71,28 +33,10 @@ extern bool mmpp_abort;
 
 class MMPPException {
 public:
-    MMPPException(std::string reason) : reason(reason), stacktrace(dump_stacktrace()) {
-        if (mmpp_abort) {
-            std::cerr << "Exception with message: " << reason << std::endl;
-            this->print_stacktrace(std::cerr);
-            abort();
-        }
-    }
-    const std::string &get_reason() const {
-        return this->reason;
-    }
-    const std::vector< std::string > &get_stacktrace() const {
-        return this->stacktrace;
-    }
-    void print_stacktrace(std::ostream &st) const {
-        using namespace std;
-        st << "Stack trace:" << endl;
-        for (auto &frame : this->stacktrace) {
-            st << "  * " << frame << endl;
-        }
-        st << "End of stack trace" << endl;
-        st.flush();
-    }
+    MMPPException(std::string reason);
+    const std::string &get_reason() const;
+    const std::vector< std::string > &get_stacktrace() const;
+    void print_stacktrace(std::ostream &st) const;
 
 private:
     std::string reason;
@@ -180,17 +124,6 @@ static inline std::string trimmed(std::string s) {
     return s;
 }
 
-// Partly taken from http://programanddesign.com/cpp/human-readable-file-size-in-c/
-static inline std::string size_to_string(size_t size) {
-    std::ostringstream stream;
-    int i = 0;
-    const char* units[] = {"B", "kiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};
-    while (size > 1024) {
-        size /= 1024;
-        i++;
-    }
-    stream << std::fixed << std::setprecision(2) << size << " " << units[i];
-    return stream.str();
-}
+std::string size_to_string(size_t size);
 
 #endif // STATICS_H

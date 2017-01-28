@@ -9,7 +9,7 @@
 #include "parser.h"
 #include "unification.h"
 #include "memory.h"
-#include "statics.h"
+#include "utils.h"
 #include "earley.h"
 #include "mainwindow.h"
 #include "test.h"

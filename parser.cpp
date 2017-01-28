@@ -8,9 +8,9 @@
 #include <fstream>
 
 #include "parser.h"
-#include "statics.h"
+#include "utils.h"
 #include "proof.h"
-#include "statics.h"
+#include "utils.h"
 
 using namespace std;
 using namespace boost::filesystem;
