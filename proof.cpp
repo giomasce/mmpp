@@ -23,9 +23,9 @@ CompressedProof::CompressedProof(const std::vector<LabTok> &refs, const std::vec
 {
 }
 
-std::shared_ptr<ProofExecutor> CompressedProof::get_executor(const Library &lib, const Assertion &ass) const
+std::shared_ptr<ProofExecutor> CompressedProof::get_executor(const Library &lib, const Assertion &ass, bool gen_proof_tree) const
 {
-    return shared_ptr< ProofExecutor >(new CompressedProofExecutor(lib, ass, *this));
+    return shared_ptr< ProofExecutor >(new CompressedProofExecutor(lib, ass, *this, gen_proof_tree));
 }
 
 const CompressedProof CompressedProofExecutor::compress(CompressionStrategy strategy)
@@ -139,9 +139,9 @@ UncompressedProof::UncompressedProof(const std::vector<LabTok> &labels) :
 {
 }
 
-std::shared_ptr<ProofExecutor> UncompressedProof::get_executor(const Library &lib, const Assertion &ass) const
+std::shared_ptr<ProofExecutor> UncompressedProof::get_executor(const Library &lib, const Assertion &ass, bool gen_proof_tree) const
 {
-    return shared_ptr< ProofExecutor >(new UncompressedProofExecutor(lib, ass, *this));
+    return shared_ptr< ProofExecutor >(new UncompressedProofExecutor(lib, ass, *this, gen_proof_tree));
 }
 
 static void compress_unwind_proof_tree_phase1(const ProofTree &tree,
@@ -156,8 +156,8 @@ static void compress_unwind_proof_tree_phase1(const ProofTree &tree,
         return;
     }
     // Recur
-    for (const ProofTree &child : tree.children) {
-        compress_unwind_proof_tree_phase1(child, label_map, refs, sents, dupl_sents, code_idx);
+    for (const ProofTree *child : tree.children) {
+        compress_unwind_proof_tree_phase1(*child, label_map, refs, sents, dupl_sents, code_idx);
     }
     // If the label is new, record it
     if (label_map.find(tree.label) == label_map.end()) {
@@ -183,8 +183,8 @@ static void compress_unwind_proof_tree_phase2(const ProofTree &tree,
         return;
     }
     // Recur
-    for (const ProofTree &child : tree.children) {
-        compress_unwind_proof_tree_phase2(child, label_map, refs, sents, dupl_sents, dupl_sents_map, codes, code_idx);
+    for (const ProofTree *child : tree.children) {
+        compress_unwind_proof_tree_phase2(*child, label_map, refs, sents, dupl_sents, dupl_sents_map, codes, code_idx);
     }
     // Push this label
     codes.push_back(label_map.at(tree.label));
@@ -224,13 +224,14 @@ const CompressedProof UncompressedProofExecutor::compress(CompressionStrategy st
     } else if (strategy == CS_BACKREFS_ON_IDENTICAL_SENTENCE || strategy == CS_ANY) {
         this->engine.set_gen_proof_tree(true);
         this->execute();
-        ProofTree tree = this->engine.get_proof_tree();
+        const ProofTree *tree = this->engine.get_proof_tree();
         set< vector< SymTok > > sents;
         set< vector< SymTok > > dupl_sents;
         map< vector< SymTok >, CodeTok > dupl_sents_map;
-        compress_unwind_proof_tree_phase1(tree, label_map, refs, sents, dupl_sents, code_idx);
+        compress_unwind_proof_tree_phase1(*tree, label_map, refs, sents, dupl_sents, code_idx);
         sents.clear();
-        compress_unwind_proof_tree_phase2(tree, label_map, refs, sents, dupl_sents, dupl_sents_map, codes, code_idx);
+        compress_unwind_proof_tree_phase2(*tree, label_map, refs, sents, dupl_sents, dupl_sents_map, codes, code_idx);
+        delete tree;
     } else if (strategy == CS_BACKREFS_ON_IDENTICAL_TREE) {
         throw MMPPException("Strategy not implemented yet");
     } else {
@@ -267,8 +268,8 @@ bool UncompressedProofExecutor::check_syntax()
     return true;
 }
 
-ProofExecutor::ProofExecutor(const Library &lib, const Assertion &ass) :
-    lib(lib), ass(ass), engine(lib) {
+ProofExecutor::ProofExecutor(const Library &lib, const Assertion &ass, bool gen_proof_tree) :
+    lib(lib), ass(ass), engine(lib, gen_proof_tree) {
 }
 
 void ProofExecutor::process_sentence(const vector<SymTok> &sent)
@@ -312,17 +313,22 @@ const std::vector<std::vector<SymTok> > &ProofExecutor::get_stack() const
     return this->engine.get_stack();
 }
 
+ProofTree *ProofExecutor::get_proof_tree() const
+{
+    return this->engine.get_proof_tree();
+}
+
 ProofExecutor::~ProofExecutor()
 {
 }
 
-CompressedProofExecutor::CompressedProofExecutor(const Library &lib, const Assertion &ass, const CompressedProof &proof) :
-    ProofExecutor(lib, ass), proof(proof)
+CompressedProofExecutor::CompressedProofExecutor(const Library &lib, const Assertion &ass, const CompressedProof &proof, bool gen_proof_tree) :
+    ProofExecutor(lib, ass, gen_proof_tree), proof(proof)
 {
 }
 
-UncompressedProofExecutor::UncompressedProofExecutor(const Library &lib, const Assertion &ass, const UncompressedProof &proof) :
-    ProofExecutor(lib, ass), proof(proof)
+UncompressedProofExecutor::UncompressedProofExecutor(const Library &lib, const Assertion &ass, const UncompressedProof &proof, bool gen_proof_tree) :
+    ProofExecutor(lib, ass, gen_proof_tree), proof(proof)
 {
 }
 
@@ -451,9 +457,9 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 #endif
     this->push_stack(stack_thesis_sent);
     if (this->gen_proof_tree) {
-        vector< ProofTree > children(this->tree_stack.begin() + stack_base, this->tree_stack.end());
+        vector< ProofTree* > children(this->tree_stack.begin() + stack_base, this->tree_stack.end());
         this->tree_stack.resize(stack_base);
-        this->proof_tree = {stack_thesis_sent, label, children};
+        this->proof_tree = new ProofTree(stack_thesis_sent, label, children);
         this->tree_stack.push_back(this->proof_tree);
     }
     this->proof.push_back(label);
@@ -463,7 +469,7 @@ void ProofEngine::process_sentence(const std::vector<SymTok> &sent, LabTok label
 {
     this->push_stack(sent);
     if (this->gen_proof_tree) {
-        this->proof_tree = {sent, label, {}};
+        this->proof_tree = new ProofTree(sent, label, {});
         this->tree_stack.push_back(this->proof_tree);
     }
     this->proof.push_back(label);
@@ -499,7 +505,7 @@ UncompressedProof ProofEngine::get_proof() const
     return { this->get_proof_labels() };
 }
 
-ProofTree ProofEngine::get_proof_tree() const
+ProofTree *ProofEngine::get_proof_tree() const
 {
     return this->proof_tree;
 }

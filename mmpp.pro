@@ -14,7 +14,8 @@ SOURCES += main.cpp \
     earley.cpp \
     mainwindow.cpp \
     test.cpp \
-    utils.cpp
+    utils.cpp \
+    prooftreemodel.cpp
 
 QMAKE_CXXFLAGS += -std=c++17 -march=native
 QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem
@@ -31,7 +32,8 @@ HEADERS += \
     stringcache.h \
     mainwindow.h \
     test.h \
-    utils.h
+    utils.h \
+    prooftreemodel.h
 
 DISTFILES += \
     README

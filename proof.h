@@ -23,7 +23,22 @@ class ProofExecutor;
 struct ProofTree {
     std::vector< SymTok > sentence;
     LabTok label;
-    std::vector< ProofTree > children;
+    std::vector< ProofTree* > children;
+    ProofTree *parent;
+
+    ProofTree() :
+        label(0), parent(NULL)
+    {
+    }
+    ProofTree(const std::vector< SymTok > &sentence, LabTok label, const std::vector< ProofTree* > &children) :
+        sentence(sentence), label(label), children(children), parent(NULL)
+    {
+    }
+    ~ProofTree() {
+        for (auto &ptr : children) {
+            delete ptr;
+        }
+    }
 };
 
 class ProofEngine {
@@ -37,7 +52,7 @@ public:
     void process_label(const LabTok label);
     const std::vector< LabTok > &get_proof_labels() const;
     UncompressedProof get_proof() const;
-    ProofTree get_proof_tree() const;
+    ProofTree *get_proof_tree() const;
     void checkpoint();
     void commit();
     void rollback();
@@ -51,8 +66,8 @@ private:
     const Library &lib;
     bool gen_proof_tree;
     std::vector< std::vector< SymTok > > stack;
-    std::vector< ProofTree > tree_stack;
-    ProofTree proof_tree;
+    std::vector< ProofTree* > tree_stack;
+    ProofTree *proof_tree;
     std::set< std::pair< SymTok, SymTok > > dists;
     std::vector< LabTok > proof;
     std::vector< std::tuple< size_t, std::set< std::pair< SymTok, SymTok > >, size_t > > checkpoints;
@@ -68,13 +83,14 @@ public:
     };
 
     const std::vector< std::vector< SymTok > > &get_stack() const;
+    ProofTree *get_proof_tree() const;
     virtual void execute() = 0;
     virtual const CompressedProof compress(CompressionStrategy strategy=CS_ANY) = 0;
     virtual const UncompressedProof uncompress() = 0;
     virtual bool check_syntax() = 0;
     virtual ~ProofExecutor();
 protected:
-    ProofExecutor(const Library &lib, const Assertion &ass);
+    ProofExecutor(const Library &lib, const Assertion &ass, bool gen_proof_tree);
     void process_sentence(const std::vector< SymTok > &sent);
     void process_label(const LabTok label);
     size_t get_hyp_num(const LabTok label) const;
@@ -93,7 +109,7 @@ public:
     const UncompressedProof uncompress();
     bool check_syntax();
 private:
-    CompressedProofExecutor(const Library &lib, const Assertion &ass, const CompressedProof &proof);
+    CompressedProofExecutor(const Library &lib, const Assertion &ass, const CompressedProof &proof, bool gen_proof_tree=false);
 
     const CompressedProof &proof;
 };
@@ -106,14 +122,14 @@ public:
     const UncompressedProof uncompress();
     bool check_syntax();
 private:
-    UncompressedProofExecutor(const Library &lib, const Assertion &ass, const UncompressedProof &proof);
+    UncompressedProofExecutor(const Library &lib, const Assertion &ass, const UncompressedProof &proof, bool gen_proof_tree=false);
 
     const UncompressedProof &proof;
 };
 
 class Proof {
 public:
-    virtual std::shared_ptr< ProofExecutor > get_executor(const Library &lib, const Assertion &ass) const = 0;
+    virtual std::shared_ptr< ProofExecutor > get_executor(const Library &lib, const Assertion &ass, bool gen_proof_tree=false) const = 0;
     virtual ~Proof();
 };
 
@@ -121,7 +137,7 @@ class CompressedProof : public Proof {
     friend class CompressedProofExecutor;
 public:
     CompressedProof(const std::vector< LabTok > &refs, const std::vector< CodeTok > &codes);
-    std::shared_ptr< ProofExecutor > get_executor(const Library &lib, const Assertion &ass) const;
+    std::shared_ptr< ProofExecutor > get_executor(const Library &lib, const Assertion &ass, bool gen_proof_tree=false) const;
 private:
     const std::vector< LabTok > refs;
     const std::vector< CodeTok > codes;
@@ -131,7 +147,7 @@ class UncompressedProof : public Proof {
     friend class UncompressedProofExecutor;
 public:
     UncompressedProof(const std::vector< LabTok > &labels);
-    std::shared_ptr< ProofExecutor > get_executor(const Library &lib, const Assertion &ass) const;
+    std::shared_ptr< ProofExecutor > get_executor(const Library &lib, const Assertion &ass, bool gen_proof_tree=false) const;
 private:
     const std::vector< LabTok > labels;
 };

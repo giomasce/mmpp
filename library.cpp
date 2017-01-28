@@ -260,9 +260,9 @@ LabTok Assertion::get_thesis() const {
     return this->thesis;
 }
 
-std::shared_ptr<ProofExecutor> Assertion::get_proof_executor(const Library &lib) const
+std::shared_ptr<ProofExecutor> Assertion::get_proof_executor(const Library &lib, bool gen_proof_tree) const
 {
-    return this->proof->get_executor(lib, *this);
+    return this->proof->get_executor(lib, *this, gen_proof_tree);
 }
 
 void Assertion::set_proof(shared_ptr< Proof > proof)
