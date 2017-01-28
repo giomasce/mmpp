@@ -1,7 +1,7 @@
+
+QT       += core gui
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TEMPLATE = app
-CONFIG += console
-CONFIG -= app_bundle
-CONFIG -= qt
 
 SOURCES += main.cpp \
     parser.cpp \
@@ -11,7 +11,9 @@ SOURCES += main.cpp \
     memory.c \
     wff.cpp \
     toolbox.cpp \
-    earley.cpp
+    earley.cpp \
+    mainwindow.cpp \
+    test.cpp
 
 QMAKE_CXXFLAGS += -std=c++17 -march=native
 QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem
@@ -26,7 +28,12 @@ HEADERS += \
     memory.h \
     toolbox.h \
     earley.h \
-    stringcache.h
+    stringcache.h \
+    mainwindow.h \
+    test.h
 
 DISTFILES += \
     README
+
+FORMS += \
+    mainwindow.ui

@@ -11,6 +11,7 @@
 #include <cctype>
 #include <locale>
 #include <functional>
+#include <iomanip>
 
 #ifdef __GNUG__
 #include <execinfo.h>
@@ -177,6 +178,19 @@ static inline std::string rtrimmed(std::string s) {
 static inline std::string trimmed(std::string s) {
     trim(s);
     return s;
+}
+
+// Partly taken from http://programanddesign.com/cpp/human-readable-file-size-in-c/
+static inline std::string size_to_string(size_t size) {
+    std::ostringstream stream;
+    int i = 0;
+    const char* units[] = {"B", "kiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};
+    while (size > 1024) {
+        size /= 1024;
+        i++;
+    }
+    stream << std::fixed << std::setprecision(2) << size << " " << units[i];
+    return stream.str();
 }
 
 #endif // STATICS_H
