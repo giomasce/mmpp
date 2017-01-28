@@ -42,7 +42,7 @@ void MainWindow::load_proof(string label)
     executor->execute();
     const ProofTree &tree = executor->get_proof_tree();
     ProofTreeModel *model = new ProofTreeModel(tree, *this->ctx->tb, this->ui->proofTreeView);
-    //this->ui->proofThesis->setText(this->ctx->tb->print_sentence(tree.sentence, SentencePrinter::STYLE_ALTHTML).to_string().c_str());
+    this->ui->proofThesis->setText(this->ctx->tb->print_sentence(tree.sentence, SentencePrinter::STYLE_ALTHTML).to_string().c_str());
     this->sentence = tree.sentence;
     this->ui->proofTreeView->setModel(model);
     this->update();
@@ -50,7 +50,7 @@ void MainWindow::load_proof(string label)
 
 // Experiement
 void MainWindow::paintEvent(QPaintEvent *event) {
-    if (this->ctx == NULL) {
+    /*if (this->ctx == NULL) {
         return;
     }
     QPainter painter(this);
@@ -65,7 +65,7 @@ void MainWindow::paintEvent(QPaintEvent *event) {
     painter.translate(rect.topLeft());
     painter.setClipRect(rect.translated(-rect.topLeft()));
     doc.documentLayout()->draw(&painter, ctx);
-    painter.restore();
+    painter.restore();*/
 }
 
 Context::~Context()
