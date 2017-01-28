@@ -23,22 +23,7 @@ class ProofExecutor;
 struct ProofTree {
     std::vector< SymTok > sentence;
     LabTok label;
-    std::vector< ProofTree* > children;
-    ProofTree *parent;
-
-    ProofTree() :
-        label(0), parent(NULL)
-    {
-    }
-    ProofTree(const std::vector< SymTok > &sentence, LabTok label, const std::vector< ProofTree* > &children) :
-        sentence(sentence), label(label), children(children), parent(NULL)
-    {
-    }
-    ~ProofTree() {
-        for (auto &ptr : children) {
-            delete ptr;
-        }
-    }
+    std::vector< ProofTree > children;
 };
 
 class ProofEngine {
@@ -52,7 +37,7 @@ public:
     void process_label(const LabTok label);
     const std::vector< LabTok > &get_proof_labels() const;
     UncompressedProof get_proof() const;
-    ProofTree *get_proof_tree() const;
+    const ProofTree &get_proof_tree() const;
     void checkpoint();
     void commit();
     void rollback();
@@ -66,8 +51,8 @@ private:
     const Library &lib;
     bool gen_proof_tree;
     std::vector< std::vector< SymTok > > stack;
-    std::vector< ProofTree* > tree_stack;
-    ProofTree *proof_tree;
+    std::vector< ProofTree > tree_stack;
+    ProofTree proof_tree;
     std::set< std::pair< SymTok, SymTok > > dists;
     std::vector< LabTok > proof;
     std::vector< std::tuple< size_t, std::set< std::pair< SymTok, SymTok > >, size_t > > checkpoints;
@@ -83,7 +68,7 @@ public:
     };
 
     const std::vector< std::vector< SymTok > > &get_stack() const;
-    ProofTree *get_proof_tree() const;
+    const ProofTree &get_proof_tree() const;
     virtual void execute() = 0;
     virtual const CompressedProof compress(CompressionStrategy strategy=CS_ANY) = 0;
     virtual const UncompressedProof uncompress() = 0;

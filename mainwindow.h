@@ -5,10 +5,15 @@
 
 #include "library.h"
 #include "toolbox.h"
+#include "parser.h"
+#include "htmldelegate.h"
 
 struct Context {
-    LibraryImpl lib;
-    LibraryToolbox tb;
+    Parser *parser = NULL;
+    const Library *lib = NULL;
+    LibraryToolbox *tb = NULL;
+
+    ~Context();
 
     static Context *create_from_filename(std::string filename);
 };
@@ -31,6 +36,7 @@ private slots:
 private:
     Ui::MainWindow *ui;
     QSharedPointer<Context> ctx;
+    HtmlDelegate *html_delegate;
 
     void load_proof(std::string label);
 };

@@ -15,7 +15,8 @@ SOURCES += main.cpp \
     mainwindow.cpp \
     test.cpp \
     utils.cpp \
-    prooftreemodel.cpp
+    prooftreemodel.cpp \
+    htmldelegate.cpp
 
 QMAKE_CXXFLAGS += -std=c++17 -march=native
 QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem
@@ -33,7 +34,8 @@ HEADERS += \
     mainwindow.h \
     test.h \
     utils.h \
-    prooftreemodel.h
+    prooftreemodel.h \
+    htmldelegate.h
 
 DISTFILES += \
     README

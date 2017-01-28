@@ -23,10 +23,14 @@ struct SentencePrinter {
     const std::vector< SymTok > &sent;
     const Library &lib;
     const Style style;
+
+    std::string to_string() const;
 };
 struct ProofPrinter {
     const std::vector< LabTok > &proof;
     const Library &lib;
+
+    std::string to_string() const;
 };
 std::ostream &operator<<(std::ostream &os, const SentencePrinter &sp);
 std::ostream &operator<<(std::ostream &os, const ProofPrinter &sp);

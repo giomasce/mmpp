@@ -4,14 +4,29 @@
 #include <QAbstractItemModel>
 
 #include "proof.h"
+#include "toolbox.h"
+
+class ProofTreeModelItem {
+    friend class ProofTreeModel;
+public:
+    ProofTreeModelItem(const ProofTree &pt, ProofTreeModelItem *parent = NULL, size_t num = 0);
+    ~ProofTreeModelItem();
+private:
+    Sentence sentence;
+    LabTok label;
+    std::vector< ProofTreeModelItem* > children;
+    size_t num;  // the index among the parent's children
+    ProofTreeModelItem *parent;
+};
 
 class ProofTreeModel : public QAbstractItemModel
 {
     Q_OBJECT
 public:
-    explicit ProofTreeModel(ProofTree &proof_tree, QObject *parent = NULL);
+    explicit ProofTreeModel(const ProofTree &proof_tree, const LibraryToolbox &tb, QObject *parent = NULL);
     ~ProofTreeModel();
 
+    ProofTreeModelItem *get_ptmi(const QModelIndex &index) const;
     QVariant data(const QModelIndex &index, int role) const override;
     QModelIndex index(int row, int column, const QModelIndex &parent) const override;
     QModelIndex parent(const QModelIndex &child) const override;
@@ -19,7 +34,8 @@ public:
     int columnCount(const QModelIndex &parent) const override;
 
 private:
-    ProofTree &proof_tree;
+    const LibraryToolbox &tb;
+    ProofTreeModelItem *ptmi;
 };
 
 #endif // PROOFTREEMODEL_H

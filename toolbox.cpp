@@ -621,3 +621,10 @@ Prover LibraryToolbox::build_type_prover(const std::vector<SymTok> &type_sent, c
 {
     return LibraryToolbox::build_classical_type_prover(type_sent, var_provers);
 }
+
+string SentencePrinter::to_string() const
+{
+    ostringstream buf;
+    buf << *this;
+    return buf.str();
+}
