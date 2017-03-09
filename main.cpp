@@ -73,12 +73,34 @@ int qt_main(int argc, char *argv[]) {
     return a.exec();
 }
 
+int test_all_main(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    test();
+    return 0;
+}
+
+int test_one_main(int argc, char *argv[]) {
+    if (argc != 2) {
+        cerr << "Provide file name as argument, please" << endl;
+        return 1;
+    }
+    string filename(argv[1]);
+    return test_one(filename) ? 0 : 1;
+}
+
+int unification_loop_main(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    unification_loop();
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
-
-    //test();
-    //unification_loop();
-    //return 0;
-
-    return qt_main(argc, argv);
-
+    return test_one_main(argc, argv);
+    //return test_all_main(argc, argv);
+    //return unification_loop_main(argc, argv);
+    //return qt_main(argc, argv);
 }
