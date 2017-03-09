@@ -34,6 +34,10 @@ pass ql.mm
 pass set.2010-08-29.mm
 pass set.mm
 fail set-dist.mm
+pass lof.mm
+pass lofmathbox.mm
+pass lofset.mm
+pass set(lof).mm
 )tests";
 
 static vector< pair < string, bool > > get_tests() {
@@ -150,7 +154,7 @@ void test() {
 
     auto tests = get_tests();
     // Comment or uncomment the following line to disable or enable tests with metamath-test
-    tests = {};
+    //tests = {};
     int problems = 0;
     for (auto test_pair : tests) {
         string filename = test_pair.first;
