@@ -13,6 +13,8 @@
 #include "earley.h"
 #include "mainwindow.h"
 #include "test.h"
+#include "httpd.h"
+#include "webendpoint.h"
 
 using namespace std;
 
@@ -98,9 +100,32 @@ int unification_loop_main(int argc, char *argv[]) {
     return 0;
 }
 
+int httpd_main(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    cout << "Reading set.mm..." << endl;
+    FileTokenizer ft("../set.mm/set.mm");
+    Parser p(ft, false, true);
+    p.run();
+    LibraryImpl lib = p.get_library();
+    LibraryToolbox tb(lib, true);
+    cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
+    cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl;
+
+    WebEndpoint endpoint(lib);
+
+    HTTPD_microhttpd httpd(8888, endpoint);
+    httpd.start();
+    getchar();
+    httpd.stop();
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
-    return test_one_main(argc, argv);
+    //return test_one_main(argc, argv);
     //return test_all_main(argc, argv);
     //return unification_loop_main(argc, argv);
     //return qt_main(argc, argv);
+    return httpd_main(argc, argv);
 }

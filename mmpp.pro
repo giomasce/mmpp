@@ -2,6 +2,8 @@
 QT       += core gui
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TEMPLATE = app
+CONFIG += link_pkgconfig
+PKGCONFIG += jsoncpp
 
 SOURCES += main.cpp \
     parser.cpp \
@@ -16,10 +18,12 @@ SOURCES += main.cpp \
     test.cpp \
     utils.cpp \
     prooftreemodel.cpp \
-    htmldelegate.cpp
+    htmldelegate.cpp \
+    httpd.cpp \
+    webendpoint.cpp
 
 QMAKE_CXXFLAGS += -std=c++17 -march=native
-QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem
+QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lmicrohttpd
 
 HEADERS += \
     wff.h \
@@ -35,7 +39,9 @@ HEADERS += \
     test.h \
     utils.h \
     prooftreemodel.h \
-    htmldelegate.h
+    htmldelegate.h \
+    httpd.h \
+    webendpoint.h
 
 DISTFILES += \
     README
