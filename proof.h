@@ -41,6 +41,7 @@ public:
     void checkpoint();
     void commit();
     void rollback();
+    void set_debug_output(const std::string &debug_output);
 
 private:
     void push_stack(const std::vector< SymTok > sent);
@@ -56,6 +57,7 @@ private:
     std::set< std::pair< SymTok, SymTok > > dists;
     std::vector< LabTok > proof;
     std::vector< std::tuple< size_t, std::set< std::pair< SymTok, SymTok > >, size_t > > checkpoints;
+    std::string debug_output;
 };
 
 class ProofExecutor {
@@ -69,6 +71,7 @@ public:
 
     const std::vector< std::vector< SymTok > > &get_stack() const;
     const ProofTree &get_proof_tree() const;
+    void set_debug_output(std::string debug_output);
     virtual void execute() = 0;
     virtual const CompressedProof compress(CompressionStrategy strategy=CS_ANY) = 0;
     virtual const UncompressedProof uncompress() = 0;

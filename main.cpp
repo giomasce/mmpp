@@ -99,8 +99,8 @@ int unification_loop_main(int argc, char *argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-    //return test_one_main(argc, argv);
-    return test_all_main(argc, argv);
+    return test_one_main(argc, argv);
+    //return test_all_main(argc, argv);
     //return unification_loop_main(argc, argv);
     //return qt_main(argc, argv);
 }

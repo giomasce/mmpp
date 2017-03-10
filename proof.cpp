@@ -317,6 +317,11 @@ const ProofTree &ProofExecutor::get_proof_tree() const
     return this->engine.get_proof_tree();
 }
 
+void ProofExecutor::set_debug_output(string debug_output)
+{
+    this->engine.set_debug_output(debug_output);
+}
+
 ProofExecutor::~ProofExecutor()
 {
 }
@@ -369,7 +374,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
         assert_or_throw(hyp_sent.at(0) == stack_hyp_sent.at(0), "Floating hypothesis does not match stack");
 #ifndef NDEBUG
         if (stack_hyp_sent.size() == 1) {
-            cerr << "Matching an empty sentence" << endl;
+            cerr << "[" << this->debug_output << "] Matching an empty sentence" << endl;
         }
 #endif
         auto res = subst_map.insert(make_pair(hyp_sent.at(1), vector< SymTok >(stack_hyp_sent.begin()+1, stack_hyp_sent.end())));
@@ -530,6 +535,11 @@ void ProofEngine::rollback()
     this->dists = get<1>(this->checkpoints.back());
     this->proof.resize(get<2>(this->checkpoints.back()));
     this->checkpoints.pop_back();
+}
+
+void ProofEngine::set_debug_output(const string &debug_output)
+{
+    this->debug_output = debug_output;
 }
 
 void ProofEngine::push_stack(const std::vector<SymTok> sent)

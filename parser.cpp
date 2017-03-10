@@ -553,6 +553,7 @@ void Parser::parse_p()
     assert_or_throw(pe->check_syntax(), "Syntax check failed for proof of $p statement");
     if (this->execute_proofs) {
         pe = ass.get_proof_executor(this->lib);
+        pe->set_debug_output("executing " + lib.resolve_label(this->label));
         pe->execute();
     }
     this->lib.add_assertion(this->label, ass);
