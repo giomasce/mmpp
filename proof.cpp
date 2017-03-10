@@ -367,6 +367,11 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
         assert(!this->lib.is_constant(hyp_sent.at(1)));
         const vector< SymTok > &stack_hyp_sent = this->stack.at(stack_base + i);
         assert_or_throw(hyp_sent.at(0) == stack_hyp_sent.at(0), "Floating hypothesis does not match stack");
+#ifndef NDEBUG
+        if (stack_hyp_sent.size() == 1) {
+            cerr << "Matching an empty sentence" << endl;
+        }
+#endif
         auto res = subst_map.insert(make_pair(hyp_sent.at(1), vector< SymTok >(stack_hyp_sent.begin()+1, stack_hyp_sent.end())));
         assert(res.second);
 #ifndef NDEBUG
