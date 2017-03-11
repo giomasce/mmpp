@@ -51,6 +51,11 @@ void HTTPD_microhttpd::join()
     }
 }
 
+bool HTTPD_microhttpd::is_running()
+{
+    return this->daemon != NULL;
+}
+
 HTTPD_microhttpd::~HTTPD_microhttpd()
 {
     this->stop();

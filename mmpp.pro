@@ -1,9 +1,15 @@
 
-QT       += core gui
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+CONFIG -= qt
+
+CONFIG(qt) {
+    QT       += core gui
+    greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+    DEFINES += USE_QT
+}
+
 TEMPLATE = app
 CONFIG += link_pkgconfig
-PKGCONFIG += jsoncpp
+PKGCONFIG += jsoncpp libmicrohttpd
 
 SOURCES += main.cpp \
     parser.cpp \
@@ -14,16 +20,19 @@ SOURCES += main.cpp \
     wff.cpp \
     toolbox.cpp \
     earley.cpp \
-    mainwindow.cpp \
     test.cpp \
     utils.cpp \
-    prooftreemodel.cpp \
-    htmldelegate.cpp \
     httpd.cpp \
-    webendpoint.cpp
+    web.cpp
+
+CONFIG(qt) {
+SOURCES +=  mainwindow.cpp \
+    prooftreemodel.cpp \
+    htmldelegate.cpp
+}
 
 QMAKE_CXXFLAGS += -std=c++17 -march=native
-QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lmicrohttpd
+QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem
 
 HEADERS += \
     wff.h \
@@ -35,13 +44,16 @@ HEADERS += \
     toolbox.h \
     earley.h \
     stringcache.h \
-    mainwindow.h \
     test.h \
     utils.h \
-    prooftreemodel.h \
-    htmldelegate.h \
     httpd.h \
-    webendpoint.h
+    web.h
+
+CONFIG(qt) {
+HEADERS +=  mainwindow.h \
+    prooftreemodel.h \
+    htmldelegate.h
+}
 
 DISTFILES += \
     README

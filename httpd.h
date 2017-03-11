@@ -4,6 +4,7 @@
 #include <string>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 
 #include <microhttpd.h>
 
@@ -14,6 +15,7 @@ public:
     virtual void start() = 0;
     virtual void stop() = 0;
     virtual void join() = 0;
+    virtual bool is_running() = 0;
 };
 
 class HTTPCallback {
@@ -32,6 +34,7 @@ public:
     void start();
     void stop();
     void join();
+    bool is_running();
     ~HTTPD_microhttpd();
 protected:
     static int accept_wrapper(void *cls, const struct sockaddr *addr, socklen_t addrlen);
@@ -46,7 +49,7 @@ private:
     int port;
     std::mutex daemon_mutex;
     std::condition_variable daemon_cv;
-    MHD_Daemon *daemon;
+    std::atomic< MHD_Daemon* > daemon;
     HTTPTarget &target;
 };
 

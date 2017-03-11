@@ -4,6 +4,8 @@
 #include "httpd.h"
 #include "library.h"
 
+int httpd_main(int argc, char *argv[]);
+
 class WebEndpoint : public HTTPTarget {
 public:
     WebEndpoint(const Library &lib);
