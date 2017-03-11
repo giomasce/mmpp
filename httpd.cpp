@@ -101,7 +101,7 @@ int HTTPD_microhttpd::answer_wrapper(void *cls, MHD_Connection *connection, cons
     auto object = reinterpret_cast< HTTPD_microhttpd* >(cls);
     HTTPCallback_microhttpd *cb;
     if (*con_cls == NULL) {
-        cb = new HTTPCallback_microhttpd();
+        cb = new HTTPCallback_microhttpd(connection);
         *con_cls = cb;
     } else {
         cb = reinterpret_cast< HTTPCallback_microhttpd* >(*con_cls);
@@ -115,8 +115,10 @@ int HTTPD_microhttpd::answer_wrapper(void *cls, MHD_Connection *connection, cons
     struct MHD_Response *response;
     int ret;
     response = MHD_create_response_from_buffer (content.size(), (void*) content.c_str(), MHD_RESPMEM_MUST_COPY);
-    MHD_add_response_header (response, "Content-Type", "application/json");
-    ret = MHD_queue_response (connection, MHD_HTTP_OK, response);
+    for (auto header : cb->get_headers()) {
+        MHD_add_response_header (response, header.first.c_str(), header.second.c_str());
+    }
+    ret = MHD_queue_response (connection, cb->get_status_code(), response);
     MHD_destroy_response (response);
     return ret;
 }
@@ -129,6 +131,58 @@ HTTPCallback::~HTTPCallback()
 {
 }
 
-HTTPCallback_microhttpd::HTTPCallback_microhttpd()
+HTTPCallback_microhttpd::HTTPCallback_microhttpd(MHD_Connection *connection) :
+    connection(connection), status_code(200), req_headers_extracted(false), cookies_extracted(false)
+{
+}
+
+void HTTPCallback_microhttpd::set_status_code(unsigned int status_code)
+{
+    this->status_code = status_code;
+}
+
+void HTTPCallback_microhttpd::add_header(string header, string content)
+{
+    this->headers.push_back(make_pair(header, content));
+}
+
+const std::unordered_map<string, string> &HTTPCallback_microhttpd::get_request_headers()
+{
+    if (!this->req_headers_extracted) {
+        this->req_headers_extracted = true;
+        MHD_get_connection_values(this->connection, MHD_HEADER_KIND, this->iterator_wrapper, &this->req_headers);
+    }
+    return this->req_headers;
+}
+
+const std::unordered_map<string, string> &HTTPCallback_microhttpd::get_cookies()
+{
+    if (!this->cookies_extracted) {
+        this->cookies_extracted = true;
+        MHD_get_connection_values(this->connection, MHD_COOKIE_KIND, this->iterator_wrapper, &this->cookies);
+    }
+    return this->cookies;
+}
+
+unsigned int HTTPCallback_microhttpd::get_status_code() const
+{
+    return this->status_code;
+}
+
+const std::vector<std::pair<string, string> > &HTTPCallback_microhttpd::get_headers() const
+{
+    return this->headers;
+}
+
+int HTTPCallback_microhttpd::iterator_wrapper(void *cls, MHD_ValueKind kind, const char *key, const char *value)
+{
+    (void) kind;
+
+    auto map = reinterpret_cast< std::unordered_map< std::string, std::string >* >(cls);
+    (*map)[string(key)] = string(value);
+    return MHD_YES;
+}
+
+HTTPTarget::~HTTPTarget()
 {
 }

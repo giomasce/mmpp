@@ -6,12 +6,17 @@
 
 int httpd_main(int argc, char *argv[]);
 
+class Session {
+public:
+    Session();
+};
+
 class WebEndpoint : public HTTPTarget {
 public:
-    WebEndpoint(const Library &lib);
+    WebEndpoint();
     std::string answer(HTTPCallback &cb, std::string url, std::string method, std::string version);
 private:
-    const Library &lib;
+    std::unordered_map< std::string, Session > sessions;
 };
 
 #endif // WEBENDPOINT_H
