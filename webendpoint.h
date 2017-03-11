@@ -7,7 +7,7 @@
 class WebEndpoint : public HTTPTarget {
 public:
     WebEndpoint(const Library &lib);
-    std::string answer();
+    std::string answer(HTTPCallback &cb, std::string url, std::string method, std::string version);
 private:
     const Library &lib;
 };
