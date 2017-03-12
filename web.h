@@ -4,11 +4,20 @@
 #include "httpd.h"
 #include "library.h"
 
+const std::string RESOURCES_BASE = "./resources";
+
 int httpd_main(int argc, char *argv[]);
+
+class Workset {
+public:
+    Workset();
+};
 
 class Session {
 public:
     Session();
+private:
+    std::vector< Workset > worksets;
 };
 
 class WebEndpoint : public HTTPTarget {

@@ -155,7 +155,7 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
     string static_url = "/static/";
     if (method == "GET" && equal(static_url.begin(), static_url.end(), url.begin())) {
         // FIXME Sanitize URL
-        string filename = string(url.begin() + 1, url.end());
+        string filename = RESOURCES_BASE + string(url.begin(), url.end());
         ifstream infile(filename, ios::binary);
         if (infile.rdstate() && ios::failbit) {
             cb.set_status_code(404);
