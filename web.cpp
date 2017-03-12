@@ -88,8 +88,33 @@ WebEndpoint::WebEndpoint()
 {
 }
 
+vector< pair< string, string > > content_types = {
+    { "css", "text/css" },
+    { "gif", "image/gif" },
+    { "htm", "text/html" },
+    { "html", "text/html" },
+    { "ico", "image/x-icon" },
+    { "jpeg", "image/jpeg" },
+    { "jpg", "image/jpeg" },
+    { "js", "application/javascript" },
+    { "json", "application/json" },
+    { "pdf", "application/pdf" },
+    { "png", "image/png" },
+    { "svg", "image/svg+xml" },
+};
+string guess_content_type(string url) {
+    for (const auto &pair : content_types) {
+        if (url.size() >= pair.first.size() && equal(pair.first.rbegin(), pair.first.rend(), url.rbegin())) {
+            return pair.second;
+        }
+    }
+    return "application/octet-stream";
+}
+
 string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string version)
 {
+    (void) version;
+
     // Receive session ticket
     string cookie_name = "mmpp_session_id";
     string ticket_url = "/ticket/";
@@ -118,6 +143,38 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
         return "403 Forbidden";
     }
     Session &session = this->sessions.at(cb.get_cookies().at(cookie_name));
+
+    // Redirect to the main app
+    if (method == "GET" && url == "/") {
+        cb.add_header("Location", "/static/index.html");
+        cb.set_status_code(302);
+        return "";
+    }
+
+    // Serve static files (FIXME this code is terrible from security POV)
+    string static_url = "/static/";
+    if (method == "GET" && equal(static_url.begin(), static_url.end(), url.begin())) {
+        // FIXME Sanitize URL
+        string filename = string(url.begin() + 1, url.end());
+        ifstream infile(filename, ios::binary);
+        if (infile.rdstate() && ios::failbit) {
+            cb.set_status_code(404);
+            cb.add_header("Content-Type", "text/plain");
+            return "404 Not Found";
+        }
+        string content;
+        try {
+            content = string(istreambuf_iterator< char >(infile), istreambuf_iterator< char >());
+        } catch(exception &e) {
+            (void) e;
+            cb.set_status_code(404);
+            cb.add_header("Content-Type", "text/plain");
+            return "404 Not Found";
+        }
+        cb.set_status_code(200);
+        cb.add_header("Content-Type", guess_content_type(url));
+        return content;
+    }
 
     cb.add_header("Content-Type", "application/json");
     Json::Value res;
