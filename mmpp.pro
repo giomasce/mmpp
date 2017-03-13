@@ -32,7 +32,7 @@ SOURCES +=  mainwindow.cpp \
 }
 
 QMAKE_CXXFLAGS += -std=c++17 -march=native
-QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem
+QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lpthread
 
 HEADERS += \
     wff.h \

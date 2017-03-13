@@ -1,6 +1,4 @@
 
-#include <json/json.h>
-
 #include <atomic>
 #include <iostream>
 #include <csignal>
@@ -119,6 +117,7 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
     string cookie_name = "mmpp_session_id";
     string ticket_url = "/ticket/";
     if (method == "GET" && equal(ticket_url.begin(), ticket_url.end(), url.begin())) {
+        unique_lock< shared_mutex > lock(this->sessions_mutex);
         string ticket = string(url.begin() + ticket_url.size(), url.end());
         if (this->session_tickets.find(ticket) != this->session_tickets.end()) {
             // The ticket is valid, we set the session and remove the ticket
@@ -136,13 +135,14 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
     }
 
     // Check auth cookie and recover session
-    if (cb.get_cookies().find(cookie_name) == cb.get_cookies().end()
-            || this->sessions.find(cb.get_cookies().at(cookie_name)) == this->sessions.end()) {
+    shared_ptr< Session > session;
+    try {
+        session = this->get_session(cb.get_cookies().at(cookie_name));
+    } catch (out_of_range e) {
         cb.set_status_code(403);
         cb.add_header("Content-Type", "text/plain");
         return "403 Forbidden";
     }
-    Session &session = this->sessions.at(cb.get_cookies().at(cookie_name));
 
     // Redirect to the main app
     if (method == "GET" && url == "/") {
@@ -176,25 +176,91 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
         return content;
     }
 
-    cb.add_header("Content-Type", "application/json");
-    Json::Value res;
-    /*for (SymTok tok = 1; tok < this->lib.get_symbols_num(); tok++) {
-        res["symbols"][tok][0] = this->lib.resolve_symbol(tok);
-        //res["symbols"][tok][1] = this->lib.get_addendum().althtmldefs[tok];
-    }*/
-    Json::FastWriter writer;
-    return writer.write(res);
+    // Serve API requests
+    string api_url = "/api/v1/";
+    if (equal(api_url.begin(), api_url.end(), url.begin())) {
+        string path = string(url.begin() + api_url.size(), url.end());
+
+        if (path == "info") {
+            try {
+                Json::Value res = this->answer_apiv1(cb, path, method);
+                Json::FastWriter writer;
+                cb.add_header("Content-Type", "application/json");
+                cb.set_status_code(200);
+                return writer.write(res);
+            } catch (SendError se) {
+                cb.add_header("Content-Type", "text/plain");
+                cb.set_status_code(se.get_status_code());
+                return to_string(se.get_status_code()) + " " + se.get_descr();
+            }
+        }
+    }
+
+    // If nothing has serviced the request yet, then this is a 404
+    cb.set_status_code(404);
+    cb.add_header("Content-Type", "text/plain");
+    return "404 Not Found";
+}
+
+Json::Value WebEndpoint::answer_apiv1(HTTPCallback &cb, string path, string method)
+{
+    if (path == "info") {
+        Json::Value res;
+        res["program"] = "mmpp";
+        res["api_version"] = "1";
+        return res;
+    }
+    throw SendError(404);
 }
 
 string WebEndpoint::create_session_and_ticket()
 {
+    unique_lock< shared_mutex > lock(this->sessions_mutex);
     string session_id = generate_id();
     string ticket_id = generate_id();
     this->session_tickets[ticket_id] = session_id;
-    this->sessions[session_id] = Session();
+    this->sessions[session_id] = {};
     return ticket_id;
+}
+
+shared_ptr< Session > WebEndpoint::get_session(string session_id)
+{
+    shared_lock< shared_mutex > lock(this->sessions_mutex);
+    return this->sessions.at(session_id);
 }
 
 Session::Session()
 {
+}
+
+std::pair<size_t, std::shared_ptr<Workset> > Session::create_workset()
+{
+    unique_lock< shared_mutex > lock(this->worksets_mutex);
+    size_t id = this->worksets.size();
+    this->worksets.emplace_back();
+    return { id, this->worksets.at(id) };
+}
+
+std::shared_ptr<Workset> Session::get_workset(size_t id)
+{
+    shared_lock< shared_mutex > lock(this->worksets_mutex);
+    return this->worksets.at(id);
+}
+
+Workset::Workset()
+{
+}
+
+SendError::SendError(unsigned int status_code) : status_code(status_code)
+{
+}
+
+unsigned int SendError::get_status_code()
+{
+    return this->status_code;
+}
+
+string SendError::get_descr()
+{
+    return this->errors.at(this->get_status_code());
 }
