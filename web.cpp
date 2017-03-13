@@ -4,6 +4,8 @@
 #include <csignal>
 #include <random>
 
+#include <boost/tokenizer.hpp>
+
 #include "parser.h"
 #include "memory.h"
 #include "utils.h"
@@ -176,23 +178,35 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
         return content;
     }
 
-    // Serve API requests
-    string api_url = "/api/v1/";
-    if (equal(api_url.begin(), api_url.end(), url.begin())) {
-        string path = string(url.begin() + api_url.size(), url.end());
+    // Expose API version
+    string api_version_url = "/api/version";
+    if (url == api_version_url) {
+        Json::Value res;
+        res["application"] = "mmpp";
+        res["min_version"] = 1;
+        res["max_version"] = 1;
+        Json::FastWriter writer;
+        cb.add_header("Content-Type", "application/json");
+        cb.set_status_code(200);
+        return writer.write(res);
+    }
 
-        if (path == "info") {
-            try {
-                Json::Value res = this->answer_apiv1(cb, path, method);
-                Json::FastWriter writer;
-                cb.add_header("Content-Type", "application/json");
-                cb.set_status_code(200);
-                return writer.write(res);
-            } catch (SendError se) {
-                cb.add_header("Content-Type", "text/plain");
-                cb.set_status_code(se.get_status_code());
-                return to_string(se.get_status_code()) + " " + se.get_descr();
-            }
+    // Serve API requests
+    string api_url = "/api/1/";
+    if (equal(api_url.begin(), api_url.end(), url.begin())) {
+        boost::char_separator< char > sep("/");
+        boost::tokenizer< boost::char_separator< char > > tokens(url.begin() + api_url.size(), url.end(), sep);
+        const vector< string > path(tokens.begin(), tokens.end());
+        try {
+            Json::Value res = session->answer_api1(cb, path.begin(), path.end(), method);
+            Json::FastWriter writer;
+            cb.add_header("Content-Type", "application/json");
+            cb.set_status_code(200);
+            return writer.write(res);
+        } catch (SendError se) {
+            cb.add_header("Content-Type", "text/plain");
+            cb.set_status_code(se.get_status_code());
+            return to_string(se.get_status_code()) + " " + se.get_descr();
         }
     }
 
@@ -202,53 +216,89 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
     return "404 Not Found";
 }
 
-Json::Value WebEndpoint::answer_apiv1(HTTPCallback &cb, string path, string method)
-{
-    if (path == "info") {
-        Json::Value res;
-        res["program"] = "mmpp";
-        res["api_version"] = "1";
-        return res;
-    }
-    throw SendError(404);
-}
-
 string WebEndpoint::create_session_and_ticket()
 {
     unique_lock< shared_mutex > lock(this->sessions_mutex);
     string session_id = generate_id();
     string ticket_id = generate_id();
     this->session_tickets[ticket_id] = session_id;
-    this->sessions[session_id] = {};
+    this->sessions[session_id] = make_shared< Session >();
     return ticket_id;
 }
 
 shared_ptr< Session > WebEndpoint::get_session(string session_id)
 {
     shared_lock< shared_mutex > lock(this->sessions_mutex);
-    return this->sessions.at(session_id);
+    try {
+        return this->sessions.at(session_id);
+    } catch(out_of_range e) {
+        (void) e;
+        throw SendError(404);
+    }
 }
 
 Session::Session()
 {
 }
 
+Json::Value Session::answer_api1(HTTPCallback &cb, vector< string >::const_iterator path_begin, vector< string >::const_iterator path_end, string method)
+{
+    if (path_begin != path_end && *path_begin == "workset") {
+        path_begin++;
+        if (path_begin == path_end) {
+            throw SendError(404);
+        }
+
+        if (*path_begin == "create") {
+            path_begin++;
+            if (path_begin != path_end) {
+                throw SendError(404);
+            }
+            auto res = this->create_workset();
+            Json::Value ret;
+            ret["id"] = Json::Value::Int(res.first);
+            ret["object"] = res.second->to_json();
+            return ret;
+        } else {
+            size_t id = safe_stoi(*path_begin);
+            path_begin++;
+            if (path_begin != path_end) {
+                throw SendError(404);
+            }
+            Json::Value ret = this->get_workset(id)->to_json();
+            return ret;
+        }
+    }
+    throw SendError(404);
+}
+
 std::pair<size_t, std::shared_ptr<Workset> > Session::create_workset()
 {
     unique_lock< shared_mutex > lock(this->worksets_mutex);
     size_t id = this->worksets.size();
-    this->worksets.emplace_back();
+    this->worksets.push_back(make_shared< Workset >());
     return { id, this->worksets.at(id) };
 }
 
 std::shared_ptr<Workset> Session::get_workset(size_t id)
 {
     shared_lock< shared_mutex > lock(this->worksets_mutex);
-    return this->worksets.at(id);
+    try {
+        return this->worksets.at(id);
+    } catch(out_of_range e) {
+        (void) e;
+        throw SendError(404);
+    }
 }
 
 Workset::Workset()
 {
+}
+
+Json::Value Workset::to_json() const
+{
+    Json::Value ret;
+    return ret;
 }
 
 SendError::SendError(unsigned int status_code) : status_code(status_code)
@@ -263,4 +313,17 @@ unsigned int SendError::get_status_code()
 string SendError::get_descr()
 {
     return this->errors.at(this->get_status_code());
+}
+
+int safe_stoi(string s)
+{
+    try {
+        return stoi(s);
+    } catch (invalid_argument e) {
+        (void) e;
+        throw SendError(404);
+    } catch (out_of_range e) {
+        (void) e;
+        throw SendError(404);
+    }
 }
