@@ -31,6 +31,18 @@ SOURCES +=  mainwindow.cpp \
     htmldelegate.cpp
 }
 
+# Experiments with clang
+#QMAKE_CC = clang
+#QMAKE_CXX = clang++
+#QMAKE_LINK = clang++
+#QMAKE_LIBS += -ldl -rdynamic -lboost_system -lboost_filesystem -lpthread -fsanitize=undefined
+
+# Experiments with undefined behavior checking
+#QMAKE_CFLAGS += -fsanitize=undefined -fno-sanitize-recover=all
+#QMAKE_CXXFLAGS += -std=c++17 -march=native -fsanitize=undefined -fno-sanitize-recover=all
+#QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lpthread -fsanitize=undefined -fno-sanitize-recover=all
+
+QMAKE_CFLAGS += -std=c11
 QMAKE_CXXFLAGS += -std=c++17 -march=native
 QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lpthread
 
