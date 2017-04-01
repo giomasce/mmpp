@@ -5,10 +5,15 @@
   <title>MMPP</title>
   <script src="js/jquery-3.1.1.js"></script>
   <script src="js/mmpp.js"></script>
+  <link rel="stylesheet" type="text/css" href="css/mmpp.css"></link>
 </head>
 
 <body>
-  <div id="version">
+  <div class="piece" id="version"></div>
+  <div class="piece" id="create_workset"><button onclick="create_workset()">Create workset</button></div>
+  <div class="piece" id="workset">
+    <div id="workset_status"></div>
+    <div id="commands"><button onclick="load_setmm()">Load set.mm</button></div>
   </div>
 </body>
 

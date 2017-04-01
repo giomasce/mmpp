@@ -32,7 +32,9 @@ int safe_stoi(std::string s);
 class Workset {
 public:
     Workset();
-    Json::Value to_json() const;
+    Json::Value answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end, std::string method);
+private:
+    std::unique_ptr< Library > library;
 };
 
 class Session {

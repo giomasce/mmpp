@@ -257,16 +257,11 @@ Json::Value Session::answer_api1(HTTPCallback &cb, vector< string >::const_itera
             auto res = this->create_workset();
             Json::Value ret;
             ret["id"] = Json::Value::Int(res.first);
-            ret["object"] = res.second->to_json();
             return ret;
         } else {
             size_t id = safe_stoi(*path_begin);
             path_begin++;
-            if (path_begin != path_end) {
-                throw SendError(404);
-            }
-            Json::Value ret = this->get_workset(id)->to_json();
-            return ret;
+            return this->get_workset(id)->answer_api1(cb, path_begin, path_end, method);
         }
     }
     throw SendError(404);
@@ -295,10 +290,23 @@ Workset::Workset()
 {
 }
 
-Json::Value Workset::to_json() const
+Json::Value Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end, std::string method)
 {
-    Json::Value ret;
-    return ret;
+    if (path_begin == path_end) {
+        Json::Value ret = Json::objectValue;
+        return ret;
+    }
+    if (*path_begin == "load") {
+        FileTokenizer ft("../set.mm/set.mm");
+        Parser p(ft, false, true);
+        p.run();
+        this->library = make_unique< LibraryImpl >(p.get_library());
+        Json::Value ret;
+        ret["symbols_num"] = Json::Value::Int(this->library->get_symbols_num());
+        ret["labels_num"] = Json::Value::Int(this->library->get_labels_num());
+        return ret;
+    }
+    throw SendError(404);
 }
 
 SendError::SendError(unsigned int status_code) : status_code(status_code)
