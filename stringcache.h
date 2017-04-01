@@ -1,6 +1,9 @@
 #ifndef STRINGCACHE_H
 #define STRINGCACHE_H
 
+#include <unordered_map>
+#include <vector>
+
 template< typename Tok >
 class StringCache {
 public:
@@ -20,8 +23,8 @@ public:
             assert(this->next_id != std::numeric_limits< Tok >::max());
             tie(it, res) = this->dir.insert(make_pair(s, this->next_id));
             assert(res);
-            std::tie(std::ignore, res) = this->inv.insert(make_pair(this->next_id, s));
-            assert(res);
+            assert(this->inv.size() == this->next_id);
+            this->inv.push_back(s);
             this->next_id++;
             return it->second;
         } else {
@@ -42,10 +45,14 @@ public:
     std::size_t size() const {
         return this->dir.size();
     }
+    const std::vector< std::string > &get_cache() const {
+        return this->inv;
+    }
+
 private:
     Tok next_id = 1;
     std::unordered_map< std::string, Tok > dir;
-    std::unordered_map< Tok, std::string > inv;
+    std::vector< std::string > inv = std::vector< std::string >(1);
 };
 
 #endif // STRINGCACHE_H

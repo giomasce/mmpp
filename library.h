@@ -59,6 +59,7 @@ struct LibraryAddendum {
 };
 
 std::string fix_htmlcss_for_qt(std::string s);
+std::string fix_htmlcss_for_web(std::string s);
 
 class Assertion {
 public:
@@ -113,9 +114,11 @@ public:
     virtual std::string resolve_label(LabTok tok) const = 0;
     virtual std::size_t get_symbols_num() const = 0;
     virtual std::size_t get_labels_num() const = 0;
+    virtual const std::vector< std::string > &get_symbols_cache() const = 0;
+    virtual const std::vector< std::string > &get_labels_cache() const = 0;
     virtual bool is_constant(SymTok c) const = 0;
 
-    virtual const std::vector<SymTok> &get_sentence(LabTok label) const = 0;
+    virtual const Sentence &get_sentence(LabTok label) const = 0;
     virtual const Assertion &get_assertion(LabTok label) const = 0;
     virtual const std::vector< Assertion > &get_assertions() const = 0;
 
@@ -135,6 +138,8 @@ public:
     std::string resolve_label(LabTok tok) const;
     std::size_t get_symbols_num() const;
     std::size_t get_labels_num() const;
+    const std::vector< std::string > &get_symbols_cache() const;
+    const std::vector< std::string > &get_labels_cache() const;
     const std::vector<SymTok> &get_sentence(LabTok label) const;
     const Assertion &get_assertion(LabTok label) const;
     const std::vector< Assertion > &get_assertions() const;

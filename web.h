@@ -1,11 +1,11 @@
 #ifndef WEBENDPOINT_H
 #define WEBENDPOINT_H
 
-#include <json/json.h>
-
 #include <memory>
 #include <shared_mutex>
 #include <unordered_map>
+
+#include "json.h"
 
 #include "httpd.h"
 #include "library.h"
@@ -32,7 +32,7 @@ int safe_stoi(std::string s);
 class Workset {
 public:
     Workset();
-    Json::Value answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end, std::string method);
+    nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end, std::string method);
 private:
     std::unique_ptr< Library > library;
 };
@@ -40,7 +40,7 @@ private:
 class Session {
 public:
     Session();
-    Json::Value answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end, std::string method);
+    nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end, std::string method);
 private:
     std::pair< size_t, std::shared_ptr< Workset > > create_workset();
     std::shared_ptr< Workset > get_workset(size_t id);

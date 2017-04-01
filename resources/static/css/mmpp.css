@@ -2,3 +2,9 @@
 .piece {
   display: none;
 }
+
+.undefinedToken {
+  background-color: yellow;
+  color: red;
+  font-family: Inconsolata, monospace;
+}

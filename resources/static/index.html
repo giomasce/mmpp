@@ -10,10 +10,19 @@
 
 <body>
   <div class="piece" id="version"></div>
-  <div class="piece" id="create_workset"><button onclick="create_workset()">Create workset</button></div>
+  <div class="piece" id="create_workset">
+    <button onclick="create_workset()">Create workset</button>
+    <button onclick="load_workset_0()">Load workset 0</button>
+  </div>
   <div class="piece" id="workset">
     <div id="workset_status"></div>
-    <div id="commands"><button onclick="load_setmm()">Load set.mm</button></div>
+    <div id="commands">
+      <button onclick="load_setmm()">Load database</button>
+      <input type="text" id="statement_label"></input>
+      <button onclick="show_statement()">Show statement</button>
+    </div>
+    <div id="current_statement" style="font-size: 300%;"></div>
+    <input type="text" id="editor" oninput="editor_changed()" style="font-size: 200%; font-family: Inconsolata, monopace; width: 100%;"></input>
   </div>
 </body>
 

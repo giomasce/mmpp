@@ -61,6 +61,16 @@ size_t LibraryImpl::get_labels_num() const
     return this->labels.size();
 }
 
+const std::vector<string> &LibraryImpl::get_symbols_cache() const
+{
+    return this->syms.get_cache();
+}
+
+const std::vector<string> &LibraryImpl::get_labels_cache() const
+{
+    return this->labels.get_cache();
+}
+
 void LibraryImpl::add_sentence(LabTok label, std::vector<SymTok> content) {
     //this->sentences.insert(make_pair(label, content));
     assert(label < this->sentences.size());
@@ -305,6 +315,17 @@ string fix_htmlcss_for_qt(string s)
     // Qt uses the system font (not the one provided by the CSS), so it must use the real font name
     tmp = regex_replace(tmp, regex("XITSMath-Regular"), "XITS Math");
     // Qt does not recognize the LINK tags and stops rendering altogether
+    tmp = regex_replace(tmp, regex("<LINK [^>]*>"), "");
+    return tmp;
+}
+
+string fix_htmlcss_for_web(string s)
+{
+    string tmp(s);
+    tmp = tmp + "\n\n";
+    // We need to fix the link to the WOFF
+    tmp = regex_replace(tmp, regex("xits-math.woff"), "woff/xits-math.woff");
+    // We are not providing the additional stylesheets at the moment, so let us avoid a couple of errors
     tmp = regex_replace(tmp, regex("<LINK [^>]*>"), "");
     return tmp;
 }

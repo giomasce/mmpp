@@ -9,7 +9,7 @@ CONFIG(qt) {
 
 TEMPLATE = app
 CONFIG += link_pkgconfig
-PKGCONFIG += jsoncpp libmicrohttpd
+PKGCONFIG += libmicrohttpd
 
 SOURCES += main.cpp \
     parser.cpp \
@@ -59,7 +59,8 @@ HEADERS += \
     test.h \
     utils.h \
     httpd.h \
-    web.h
+    web.h \
+    json.h
 
 CONFIG(qt) {
 HEADERS +=  mainwindow.h \
