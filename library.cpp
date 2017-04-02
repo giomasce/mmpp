@@ -318,14 +318,3 @@ string fix_htmlcss_for_qt(string s)
     tmp = regex_replace(tmp, regex("<LINK [^>]*>"), "");
     return tmp;
 }
-
-string fix_htmlcss_for_web(string s)
-{
-    string tmp(s);
-    tmp = tmp + "\n\n";
-    // We need to fix the link to the WOFF
-    tmp = regex_replace(tmp, regex("xits-math.woff"), "woff/xits-math.woff");
-    // We are not providing the additional stylesheets at the moment, so let us avoid a couple of errors
-    tmp = regex_replace(tmp, regex("<LINK [^>]*>"), "");
-    return tmp;
-}

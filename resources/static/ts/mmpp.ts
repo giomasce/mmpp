@@ -49,9 +49,10 @@ function invert_list(list : string[]) : object {
 function get_context() {
   jsonAjax(`/api/1/workset/${workset_id}/get_context`).done(function(data) {
     workset_context = data;
-    workset_context["symbols_inv"] = invert_list(workset_context["symbols"]);
-    workset_context["labels_inv"] = invert_list(workset_context["labels"]);
-    $("#current_statement").append(workset_context["htmlcss"]);
+    if (workset_context["status"] === "loaded") {
+      workset_context["symbols_inv"] = invert_list(workset_context["symbols"]);
+      workset_context["labels_inv"] = invert_list(workset_context["labels"]);
+    }
   })
 }
 
@@ -61,33 +62,59 @@ function load_setmm() {
   });
 }
 
-function show_statement() {
-  let label : string = $("#statement_label").val();
-  let label_tok : number = workset_context["labels_inv"][label];
-  jsonAjax(`/api/1/workset/${workset_id}/get_sentence/${label_tok}`).done(function(data) {
-    let statement_html : string = workset_context["htmlcss"] + "<span class=\"math\">";
-    let statement_text : string = "";
-    for (let tok of data["sentence"]) {
-      statement_html += workset_context["althtmldefs"][tok];
-      statement_text += workset_context["symbols"][tok] + " ";
-    }
-    statement_html += "</span>";
-    $("#current_statement").html(statement_html);
-    $("#editor").val(statement_text);
-  })
+function build_html_statements(tokens : number[]) : [string, string, string] {
+  let statement_text : string = "";
+  let statement_html : string = workset_context["htmlcss"] + "<span class=\"math\">";
+  let statement_html_alt : string = workset_context["htmlcss"] + "<span class=\"math\">";
+  for (let tok of tokens) {
+    statement_html += workset_context["htmldefs"][tok];
+    statement_html_alt += workset_context["althtmldefs"][tok];
+    statement_text += workset_context["symbols"][tok] + " ";
+  }
+  statement_html += "</span>";
+  statement_html_alt += "</span>";
+  statement_text = statement_text.slice(0, -1);
+  return [statement_text, statement_html, statement_html_alt];
 }
 
-function editor_changed() {
-  let tokens : string[] = $("#editor").val().split(" ");
+function build_html_statements_from_input(tokens : string[]) : [string, string] {
   let statement_html : string = workset_context["htmlcss"] + "<span class=\"math\">";
+  let statement_html_alt : string = workset_context["htmlcss"] + "<span class=\"math\">";
   for (let tok of tokens) {
     let resolved = workset_context["symbols_inv"][tok];
     if (resolved === undefined) {
       statement_html += ` <span class=\"undefinedToken\">${tok}</span> `;
+      statement_html_alt += ` <span class=\"undefinedToken\">${tok}</span> `;
     } else {
-      statement_html += workset_context["althtmldefs"][resolved];
+      statement_html += workset_context["htmldefs"][resolved];
+      statement_html_alt += workset_context["althtmldefs"][resolved];
     }
   }
   statement_html += "</span>";
+  statement_html_alt += "</span>";
+  return [statement_html, statement_html_alt];
+}
+
+function show_statement() {
+  if (workset_context["status"] !== "loaded") {
+    return;
+  }
+  let label : string = $("#statement_label").val();
+  let label_tok : number = workset_context["labels_inv"][label];
+  jsonAjax(`/api/1/workset/${workset_id}/get_sentence/${label_tok}`).done(function(data) {
+    let [statement_text, statement_html, statement_html_alt] = build_html_statements(data["sentence"]);
+    $("#editor").val(statement_text);
+    $("#current_statement").html(statement_html);
+    $("#current_statement_alt").html(statement_html_alt);
+  })
+}
+
+function editor_changed() {
+  if (workset_context["status"] !== "loaded") {
+    return;
+  }
+  let tokens : string[] = $("#editor").val().split(" ");
+  let [statement_html, statement_html_alt] = build_html_statements_from_input(tokens);
   $("#current_statement").html(statement_html);
+  $("#current_statement_alt").html(statement_html_alt);
 }

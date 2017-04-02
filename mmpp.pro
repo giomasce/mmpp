@@ -23,7 +23,9 @@ SOURCES += main.cpp \
     test.cpp \
     utils.cpp \
     httpd.cpp \
-    web.cpp
+    web.cpp \
+    platform.cpp \
+    workset.cpp
 
 CONFIG(qt) {
 SOURCES +=  mainwindow.cpp \
@@ -60,7 +62,9 @@ HEADERS += \
     utils.h \
     httpd.h \
     web.h \
-    json.h
+    json.h \
+    platform.h \
+    workset.h
 
 CONFIG(qt) {
 HEADERS +=  mainwindow.h \

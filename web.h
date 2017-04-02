@@ -8,9 +8,7 @@
 #include "json.h"
 
 #include "httpd.h"
-#include "library.h"
-
-const std::string RESOURCES_BASE = "./resources";
+#include "workset.h"
 
 int httpd_main(int argc, char *argv[]);
 
@@ -28,14 +26,6 @@ private:
 };
 
 int safe_stoi(std::string s);
-
-class Workset {
-public:
-    Workset();
-    nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end, std::string method);
-private:
-    std::unique_ptr< Library > library;
-};
 
 class Session {
 public:

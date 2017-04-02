@@ -1,7 +1,5 @@
 
-#include <atomic>
 #include <iostream>
-#include <csignal>
 #include <random>
 
 #include <boost/tokenizer.hpp>
@@ -10,6 +8,7 @@
 #include "memory.h"
 #include "utils.h"
 #include "web.h"
+#include "platform.h"
 
 using namespace std;
 using namespace nlohmann;
@@ -31,49 +30,27 @@ string generate_id() {
     return string(id.begin(), id.end());
 }
 
-atomic< bool > signalled;
-void int_handler(int signal) {
-    (void) signal;
-    signalled = true;
-}
-
 int httpd_main(int argc, char *argv[]) {
-    (void) argc;
-    (void) argv;
+    if (!platform_init(argc, argv)) {
+        return 1;
+    }
 
     init_random();
-
-    /*cout << "Reading set.mm..." << endl;
-    FileTokenizer ft("../set.mm/set.mm");
-    //FileTokenizer ft("../metamath/ql.mm");
-    Parser p(ft, false, true);
-    p.run();
-    LibraryImpl lib = p.get_library();
-    //LibraryToolbox tb(lib, true);
-    cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
-    cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl;*/
 
     WebEndpoint endpoint;
 
     int port = 8888;
     HTTPD_microhttpd httpd(port, endpoint);
 
-    struct sigaction act;
-    act.sa_handler = int_handler;
-    act.sa_flags = 0;
-    sigfillset(&act.sa_mask);
-    sigaction(SIGINT, &act, NULL);
-    sigaction(SIGTERM, &act, NULL);
-
     httpd.start();
 
     // Generate a session and pass it to the browser
     string ticket_id = endpoint.create_session_and_ticket();
     string browser_url = "http://127.0.0.1:" + to_string(port) + "/ticket/" + ticket_id;
-    system(("xdg-open " + browser_url).c_str());
+    platform_open_browser(browser_url);
 
     while (true) {
-        if (signalled) {
+        if (platform_should_stop()) {
             cerr << "Signal received, stopping..." << endl;
             httpd.stop();
             break;
@@ -158,7 +135,7 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
     string static_url = "/static/";
     if (method == "GET" && equal(static_url.begin(), static_url.end(), url.begin())) {
         // FIXME Sanitize URL
-        string filename = RESOURCES_BASE + string(url.begin(), url.end());
+        string filename = platform_get_resources_base() + string(url.begin(), url.end());
         ifstream infile(filename, ios::binary);
         if (infile.rdstate() && ios::failbit) {
             cb.set_status_code(404);
@@ -259,7 +236,8 @@ json Session::answer_api1(HTTPCallback &cb, vector< string >::const_iterator pat
         } else {
             size_t id = safe_stoi(*path_begin);
             path_begin++;
-            return this->get_workset(id)->answer_api1(cb, path_begin, path_end, method);
+            auto workset = this->get_workset(id);
+            return workset->answer_api1(cb, path_begin, path_end, method);
         }
     }
     throw SendError(404);
@@ -282,68 +260,6 @@ std::shared_ptr<Workset> Session::get_workset(size_t id)
         (void) e;
         throw SendError(404);
     }
-}
-
-Workset::Workset()
-{
-}
-
-json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end, std::string method)
-{
-    (void) cb;
-    (void) method;
-    if (path_begin == path_end) {
-        json ret = json::object();
-        return ret;
-    }
-    if (*path_begin == "load") {
-        FileTokenizer ft(RESOURCES_BASE + "/library.mm");
-        Parser p(ft, false, true);
-        p.run();
-        this->library = make_unique< LibraryImpl >(p.get_library());
-        json ret = { { "status", "ok" } };
-        return ret;
-    } else if (*path_begin == "get_context") {
-        json ret;
-        if (this->library == NULL) {
-            return ret;
-        }
-        ret["symbols"] = this->library->get_symbols_cache();
-        ret["labels"] = this->library->get_labels_cache();
-        const auto &addendum = this->library->get_addendum();
-        ret["htmldefs"] = addendum.htmldefs;
-        ret["althtmldefs"] = addendum.althtmldefs;
-        ret["latexdef"] = addendum.latexdefs;
-        ret["htmlcss"] = fix_htmlcss_for_web(addendum.htmlcss);
-        ret["htmlfont"] = addendum.htmlfont;
-        ret["htmltitle"] = addendum.htmltitle;
-        ret["htmlhome"] = addendum.htmlhome;
-        ret["htmlbibliography"] = addendum.htmlbibliography;
-        ret["exthtmltitle"] = addendum.exthtmltitle;
-        ret["exthtmlhome"] = addendum.exthtmlhome;
-        ret["exthtmllabel"] = addendum.exthtmllabel;
-        ret["exthtmlbibliography"] = addendum.exthtmlbibliography;
-        ret["htmlvarcolor"] = addendum.htmlvarcolor;
-        ret["htmldir"] = addendum.htmldir;
-        ret["althtmldir"] = addendum.althtmldir;
-        return ret;
-    } else if (*path_begin == "get_sentence") {
-        path_begin++;
-        if (path_begin == path_end) {
-            throw SendError(404);
-        }
-        int tok = safe_stoi(*path_begin);
-        try {
-            const Sentence &sent = this->library->get_sentence(tok);
-            json ret;
-            ret["sentence"] = sent;
-            return ret;
-        } catch (out_of_range e) {
-            (void) e;
-            throw SendError(404);
-        }
-    }
-    throw SendError(404);
 }
 
 SendError::SendError(unsigned int status_code) : status_code(status_code)
