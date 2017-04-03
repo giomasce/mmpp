@@ -56,8 +56,8 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             return ret;
         }
         ret["status"] = "loaded";
-        ret["symbols"] = this->library->get_symbols_cache();
-        ret["labels"] = this->library->get_labels_cache();
+        ret["symbols"] = this->library->get_symbols();
+        ret["labels"] = this->library->get_labels();
         const auto &addendum = this->library->get_addendum();
         ret["htmldefs"] = fix_htmldefs_for_web(addendum.htmldefs);
         ret["althtmldefs"] = addendum.althtmldefs;

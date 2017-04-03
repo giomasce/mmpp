@@ -256,7 +256,13 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
         auto &type_sent = this->lib.get_sentence(type_lab);
         derivations[type_sent.at(0)].push_back(make_pair(type_lab, vector<SymTok>({type_sent.at(1)})));
     }
-    for (const Assertion &ass : this->lib.get_assertions()) {
+    auto assertions_gen = this->lib.list_assertions();
+    while (true) {
+        const Assertion *ass2 = assertions_gen();
+        if (ass2 == NULL) {
+            break;
+        }
+        const Assertion &ass = *ass2;
         if (!ass.is_valid()) {
             continue;
         }
@@ -361,7 +367,13 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
     }
     copy(thesis.begin(), thesis.end(), back_inserter(sent));
 
-    for (const Assertion &ass : this->lib.get_assertions()) {
+    auto assertions_gen = this->lib.list_assertions();
+    while (true) {
+        const Assertion *ass2 = assertions_gen();
+        if (ass2 == NULL) {
+            break;
+        }
+        const Assertion &ass = *ass2;
         if (!ass.is_valid()) {
             continue;
         }
@@ -491,7 +503,13 @@ const std::vector<LabTok> &LibraryToolbox::get_types_by_var() const
 
 void LibraryToolbox::compute_assertions_by_type()
 {
-    for (auto &ass : this->lib.get_assertions()) {
+    auto assertions_gen = this->lib.list_assertions();
+    while (true) {
+        const Assertion *ass2 = assertions_gen();
+        if (ass2 == NULL) {
+            break;
+        }
+        const Assertion &ass = *ass2;
         if (ass.is_valid()) {
             const auto &label = ass.get_thesis();
             this->assertions_by_type[this->lib.get_sentence(label).at(0)].push_back(label);

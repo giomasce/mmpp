@@ -9,6 +9,7 @@
 #include <set>
 #include <type_traits>
 #include <memory>
+#include <functional>
 
 #include <boost/functional/hash.hpp>
 
@@ -59,7 +60,6 @@ struct LibraryAddendum {
 };
 
 std::string fix_htmlcss_for_qt(std::string s);
-std::string fix_htmlcss_for_web(std::string s);
 
 class Assertion {
 public:
@@ -73,12 +73,28 @@ public:
               LabTok thesis,
               std::string comment = "");
     ~Assertion();
-    bool is_valid() const;
-    bool is_theorem() const;
-    bool is_modif_disc() const;
-    bool is_usage_disc() const;
-    const std::set< std::pair< SymTok, SymTok > > &get_mand_dists() const;
-    const std::set< std::pair< SymTok, SymTok > > &get_opt_dists() const;
+    bool is_valid() const
+    {
+        return this->valid;
+    }
+    bool is_theorem() const {
+        return this->theorem;
+    }
+    bool is_modif_disc() const
+    {
+        return this->modif_disc;
+    }
+    bool is_usage_disc() const
+    {
+        return this->usage_disc;
+    }
+    const std::set< std::pair< SymTok, SymTok > > &get_mand_dists() const {
+        return this->mand_dists;
+    }
+    const std::set< std::pair< SymTok, SymTok > > &get_opt_dists() const
+    {
+        return this->opt_dists;
+    }
     const std::set<std::pair<SymTok, SymTok> > get_dists() const;
     size_t get_mand_hyps_num() const;
     LabTok get_mand_hyp(size_t i) const;
@@ -112,23 +128,29 @@ public:
     virtual LabTok get_label(std::string s) const = 0;
     virtual std::string resolve_symbol(SymTok tok) const = 0;
     virtual std::string resolve_label(LabTok tok) const = 0;
-    virtual std::size_t get_symbols_num() const = 0;
-    virtual std::size_t get_labels_num() const = 0;
-    virtual const std::vector< std::string > &get_symbols_cache() const = 0;
-    virtual const std::vector< std::string > &get_labels_cache() const = 0;
+    virtual const std::vector< std::string > &get_symbols() const = 0;
+    virtual const std::vector< std::string > &get_labels() const = 0;
     virtual bool is_constant(SymTok c) const = 0;
 
     virtual const Sentence &get_sentence(LabTok label) const = 0;
     virtual const Assertion &get_assertion(LabTok label) const = 0;
-    virtual const std::vector< Assertion > &get_assertions() const = 0;
+    virtual std::function< const Assertion*() > list_assertions() const = 0;
 
     virtual const StackFrame &get_final_stack_frame() const = 0;
+
     virtual const LibraryAddendum &get_addendum() const = 0;
 
     virtual ~Library();
 };
 
-class LibraryImpl : public Library
+class ExtendedLibrary : public Library {
+public:
+    virtual std::size_t get_symbols_num() const = 0;
+    virtual std::size_t get_labels_num() const = 0;
+    virtual const std::vector< Assertion > &get_assertions() const = 0;
+};
+
+class LibraryImpl : public ExtendedLibrary
 {
 public:
     LibraryImpl();
@@ -138,14 +160,15 @@ public:
     std::string resolve_label(LabTok tok) const;
     std::size_t get_symbols_num() const;
     std::size_t get_labels_num() const;
-    const std::vector< std::string > &get_symbols_cache() const;
-    const std::vector< std::string > &get_labels_cache() const;
+    const std::vector< std::string > &get_symbols() const;
+    const std::vector< std::string > &get_labels() const;
     const std::vector<SymTok> &get_sentence(LabTok label) const;
     const Assertion &get_assertion(LabTok label) const;
     const std::vector< Assertion > &get_assertions() const;
     bool is_constant(SymTok c) const;
     const StackFrame &get_final_stack_frame() const;
     const LibraryAddendum &get_addendum() const;
+    std::function< const Assertion*() > list_assertions() const;
 
     SymTok create_symbol(std::string s);
     LabTok create_label(std::string s);
@@ -167,8 +190,6 @@ private:
 
     StackFrame final_stack_frame;
     LibraryAddendum addendum;
-
-    //std::vector< LabTok > prove_type2(const std::vector< SymTok > &type_sent) const;
 };
 
 #endif // LIBRARY_H

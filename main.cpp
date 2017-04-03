@@ -2,6 +2,8 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <vector>
+#include <utility>
 
 #ifdef USE_QT
 #include <QApplication>
@@ -109,10 +111,28 @@ int unification_loop_main(int argc, char *argv[]) {
     return 0;
 }
 
+const unordered_map< string, function< int(int, char*[]) > > MAIN_FUNCTIONS = {
+    { "mmpp_test_one", test_one_main },
+    { "mmpp_test_all", test_all_main },
+    { "unificator", unification_loop_main },
+    { "webmmpp", httpd_main },
+#ifdef USE_QT
+    { "qmmpp", qt_main },
+#endif
+};
+
 int main(int argc, char *argv[]) {
-    //return test_one_main(argc, argv);
-    //return test_all_main(argc, argv);
-    //return unification_loop_main(argc, argv);
-    //return qt_main(argc, argv);
-    return httpd_main(argc, argv);
+    char *tmp = strdup(argv[0]);
+    string bname(basename(tmp));
+    // string constructor should have made a copy
+    free(tmp);
+    function< int(int, char*[]) > main_func;
+    try {
+        main_func = MAIN_FUNCTIONS.at(bname);
+    } catch (out_of_range e) {
+        (void) e;
+        // Return a default one
+        main_func = httpd_main;
+    }
+    return main_func(argc, argv);
 }

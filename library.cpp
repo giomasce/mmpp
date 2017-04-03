@@ -61,12 +61,12 @@ size_t LibraryImpl::get_labels_num() const
     return this->labels.size();
 }
 
-const std::vector<string> &LibraryImpl::get_symbols_cache() const
+const std::vector<string> &LibraryImpl::get_symbols() const
 {
     return this->syms.get_cache();
 }
 
-const std::vector<string> &LibraryImpl::get_labels_cache() const
+const std::vector<string> &LibraryImpl::get_labels() const
 {
     return this->labels.get_cache();
 }
@@ -200,34 +200,6 @@ Assertion::~Assertion()
 {
 }
 
-bool Assertion::is_valid() const
-{
-    return this->valid;
-}
-
-bool Assertion::is_theorem() const {
-    return this->theorem;
-}
-
-bool Assertion::is_modif_disc() const
-{
-    return this->modif_disc;
-}
-
-bool Assertion::is_usage_disc() const
-{
-    return this->usage_disc;
-}
-
-const std::set<std::pair<SymTok, SymTok> > &Assertion::get_mand_dists() const {
-    return this->mand_dists;
-}
-
-const std::set<std::pair<SymTok, SymTok> > &Assertion::get_opt_dists() const
-{
-    return this->opt_dists;
-}
-
 const std::set<std::pair<SymTok, SymTok> > Assertion::get_dists() const
 {
     std::set<std::pair<SymTok, SymTok> > ret;
@@ -294,6 +266,19 @@ const StackFrame &LibraryImpl::get_final_stack_frame() const
 const LibraryAddendum &LibraryImpl::get_addendum() const
 {
     return this->addendum;
+}
+
+std::function<const Assertion *()> LibraryImpl::list_assertions() const {
+    vector< Assertion >::const_iterator it = this->assertions.begin();
+    return [&]()->const Assertion* {
+        if (it != this->assertions.end()) {
+            auto it2 = it;
+            it++;
+            return &*it2;
+        } else {
+            return NULL;
+        }
+    };
 }
 
 void LibraryImpl::set_addendum(const LibraryAddendum &add)
