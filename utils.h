@@ -125,5 +125,6 @@ static inline std::string trimmed(std::string s) {
 }
 
 std::string size_to_string(size_t size);
+bool starts_with(std::string a, std::string b);
 
 #endif // STATICS_H

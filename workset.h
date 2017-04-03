@@ -13,7 +13,7 @@ public:
     Workset();
     nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end, std::string method);
 private:
-    std::unique_ptr< Library > library;
+    std::unique_ptr< ExtendedLibrary > library;
     std::mutex global_mutex;
 };
 

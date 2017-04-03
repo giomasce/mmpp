@@ -48,6 +48,7 @@ int httpd_main(int argc, char *argv[]) {
     string ticket_id = endpoint.create_session_and_ticket();
     string browser_url = "http://127.0.0.1:" + to_string(port) + "/ticket/" + ticket_id;
     platform_open_browser(browser_url);
+    cout << "A browser session was spawned; if you cannot see it, go to " << browser_url << endl;
 
     while (true) {
         if (platform_should_stop()) {
@@ -79,6 +80,7 @@ vector< pair< string, string > > content_types = {
     { "pdf", "application/pdf" },
     { "png", "image/png" },
     { "svg", "image/svg+xml" },
+    { "woff", "application/font-woff" },
 };
 string guess_content_type(string url) {
     for (const auto &pair : content_types) {
@@ -96,7 +98,7 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
     // Receive session ticket
     string cookie_name = "mmpp_session_id";
     string ticket_url = "/ticket/";
-    if (method == "GET" && equal(ticket_url.begin(), ticket_url.end(), url.begin())) {
+    if (method == "GET" && starts_with(url, ticket_url)) {
         unique_lock< shared_mutex > lock(this->sessions_mutex);
         string ticket = string(url.begin() + ticket_url.size(), url.end());
         if (this->session_tickets.find(ticket) != this->session_tickets.end()) {
@@ -133,7 +135,7 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
 
     // Serve static files (FIXME this code is terrible from security POV)
     string static_url = "/static/";
-    if (method == "GET" && equal(static_url.begin(), static_url.end(), url.begin())) {
+    if (method == "GET" && starts_with(url, static_url)) {
         // FIXME Sanitize URL
         string filename = platform_get_resources_base() + string(url.begin(), url.end());
         ifstream infile(filename, ios::binary);
@@ -170,7 +172,7 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
 
     // Serve API requests
     string api_url = "/api/1/";
-    if (equal(api_url.begin(), api_url.end(), url.begin())) {
+    if (starts_with(url, api_url)) {
         boost::char_separator< char > sep("/");
         boost::tokenizer< boost::char_separator< char > > tokens(url.begin() + api_url.size(), url.end(), sep);
         const vector< string > path(tokens.begin(), tokens.end());

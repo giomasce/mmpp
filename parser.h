@@ -31,7 +31,7 @@ public:
     ~FileTokenizer();
 private:
     FileTokenizer(std::string filename, boost::filesystem::path base_path);
-    std::fstream fin;
+    std::ifstream fin;
     boost::filesystem::path base_path;
     FileTokenizer *cascade;
     bool white;

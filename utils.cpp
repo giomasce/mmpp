@@ -87,3 +87,10 @@ void MMPPException::print_stacktrace(ostream &st) const {
     st << "End of stack trace" << endl;
     st.flush();
 }
+
+bool starts_with(string a, string b) {
+    if (b.size() > a.size()) {
+        return false;
+    }
+    return equal(b.begin(), b.end(), a.begin());
+}
