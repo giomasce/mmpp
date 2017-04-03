@@ -41,7 +41,108 @@ struct StackFrame {
     std::vector< LabTok > hyps;
 };
 
-struct LibraryAddendum {
+class LibraryAddendum {
+public:
+    virtual const std::string &get_htmldef(SymTok tok) const = 0;
+    virtual const std::string &get_althtmldef(SymTok tok) const = 0;
+    virtual const std::string &get_latexdef(SymTok tok) const = 0;
+    virtual const std::string &get_htmlcss() const = 0;
+    virtual const std::string &get_htmlfont() const = 0;
+    virtual const std::string &get_htmltitle() const = 0;
+    virtual const std::string &get_htmlhome() const = 0;
+    virtual const std::string &get_htmlbibliography() const = 0;
+    virtual const std::string &get_exthtmltitle() const = 0;
+    virtual const std::string &get_exthtmlhome() const = 0;
+    virtual const std::string &get_exthtmllabel() const = 0;
+    virtual const std::string &get_exthtmlbibliography() const = 0;
+    virtual const std::string &get_htmlvarcolor() const = 0;
+    virtual const std::string &get_htmldir() const = 0;
+    virtual const std::string &get_althtmldir() const = 0;
+};
+
+class ExtendedLibraryAddendum : public LibraryAddendum {
+public:
+    virtual const std::vector< std::string > &get_htmldefs() const = 0;
+    virtual const std::vector< std::string > &get_althtmldefs() const= 0;
+    virtual const std::vector< std::string > &get_latexdefs() const = 0;
+};
+
+class LibraryAddendumImpl : public ExtendedLibraryAddendum {
+    friend class Parser;
+public:
+    virtual const std::string &get_htmldef(SymTok tok) const
+    {
+        return this->htmldefs.at(tok);
+    }
+    virtual const std::string &get_althtmldef(SymTok tok) const
+    {
+        return this->althtmldefs.at(tok);
+    }
+    virtual const std::string &get_latexdef(SymTok tok) const
+    {
+        return this->latexdefs.at(tok);
+    }
+    const std::vector< std::string > &get_htmldefs() const
+    {
+        return this->htmldefs;
+    }
+    const std::vector< std::string > &get_althtmldefs() const
+    {
+        return this->althtmldefs;
+    }
+    const std::vector< std::string > &get_latexdefs() const
+    {
+        return this->latexdefs;
+    }
+    const std::string &get_htmlcss() const
+    {
+        return this->htmlcss;
+    }
+    const std::string &get_htmlfont() const
+    {
+        return this->htmlfont;
+    }
+    const std::string &get_htmltitle() const
+    {
+        return this->htmltitle;
+    }
+    const std::string &get_htmlhome() const
+    {
+        return this->htmlhome;
+    }
+    const std::string &get_htmlbibliography() const
+    {
+        return this->htmlbibliography;
+    }
+    const std::string &get_exthtmltitle() const
+    {
+        return this->exthtmltitle;
+    }
+    const std::string &get_exthtmlhome() const
+    {
+        return this->exthtmlhome;
+    }
+    const std::string &get_exthtmllabel() const
+    {
+        return this->exthtmllabel;
+    }
+    const std::string &get_exthtmlbibliography() const
+    {
+        return this->exthtmlbibliography;
+    }
+    const std::string &get_htmlvarcolor() const
+    {
+        return this->htmlvarcolor;
+    }
+    const std::string &get_htmldir() const
+    {
+        return this->htmldir;
+    }
+    const std::string &get_althtmldir() const
+    {
+        return this->althtmldir;
+    }
+private:
     std::vector< std::string > htmldefs;
     std::vector< std::string > althtmldefs;
     std::vector< std::string > latexdefs;
@@ -129,15 +230,11 @@ public:
     virtual std::string resolve_symbol(SymTok tok) const = 0;
     virtual std::string resolve_label(LabTok tok) const = 0;
     virtual bool is_constant(SymTok c) const = 0;
-
     virtual const Sentence &get_sentence(LabTok label) const = 0;
     virtual const Assertion &get_assertion(LabTok label) const = 0;
     virtual std::function< const Assertion*() > list_assertions() const = 0;
-
     virtual const StackFrame &get_final_stack_frame() const = 0;
-
     virtual const LibraryAddendum &get_addendum() const = 0;
-
     virtual ~Library();
 };
 
@@ -148,6 +245,7 @@ public:
     virtual const std::vector< std::string > &get_symbols() const = 0;
     virtual const std::vector< std::string > &get_labels() const = 0;
     virtual const std::vector< Assertion > &get_assertions() const = 0;
+    const ExtendedLibraryAddendum &get_addendum() const = 0;
 };
 
 class LibraryImpl : public ExtendedLibrary
@@ -167,7 +265,7 @@ public:
     const std::vector< Assertion > &get_assertions() const;
     bool is_constant(SymTok c) const;
     const StackFrame &get_final_stack_frame() const;
-    const LibraryAddendum &get_addendum() const;
+    const LibraryAddendumImpl &get_addendum() const;
     std::function< const Assertion*() > list_assertions() const;
 
     SymTok create_symbol(std::string s);
@@ -176,7 +274,7 @@ public:
     void add_assertion(LabTok label, const Assertion &ass);
     void add_constant(SymTok c);
     void set_final_stack_frame(const StackFrame &final_stack_frame);
-    void set_addendum(const LibraryAddendum &add);
+    void set_addendum(const LibraryAddendumImpl &add);
 
 private:
     StringCache< SymTok > syms;
@@ -189,7 +287,7 @@ private:
     std::vector< Assertion > assertions;
 
     StackFrame final_stack_frame;
-    LibraryAddendum addendum;
+    LibraryAddendumImpl addendum;
 };
 
 #endif // LIBRARY_H

@@ -263,7 +263,7 @@ const StackFrame &LibraryImpl::get_final_stack_frame() const
     return this->final_stack_frame;
 }
 
-const LibraryAddendum &LibraryImpl::get_addendum() const
+const LibraryAddendumImpl &LibraryImpl::get_addendum() const
 {
     return this->addendum;
 }
@@ -274,13 +274,14 @@ public:
         it(ref.begin()), ref(ref) {
     }
     const Assertion *operator()() {
-        if (this->it != this->ref.end()) {
+        while (this->it != this->ref.end()) {
             auto it2 = this->it;
             this->it++;
-            return &*it2;
-        } else {
-            return NULL;
+            if (it2->is_valid()) {
+                return &*it2;
+            }
         }
+        return NULL;
     }
 
 private:
@@ -292,7 +293,7 @@ function<const Assertion *()> LibraryImpl::list_assertions() const {
     return AssertionGenerator(this->assertions);
 }
 
-void LibraryImpl::set_addendum(const LibraryAddendum &add)
+void LibraryImpl::set_addendum(const LibraryAddendumImpl &add)
 {
     this->addendum = add;
 }

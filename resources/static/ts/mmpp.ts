@@ -64,8 +64,8 @@ function load_setmm() {
 
 function build_html_statements(tokens : number[]) : [string, string, string] {
   let statement_text : string = "";
-  let statement_html : string = workset_context["htmlcss"] + "<span class=\"math\">";
-  let statement_html_alt : string = workset_context["htmlcss"] + "<span class=\"math\">";
+  let statement_html : string = "<span>";
+  let statement_html_alt : string = workset_context["htmlcss"] + "<span " + workset_context["htmlfont"] + ">";
   for (let tok of tokens) {
     statement_html += workset_context["htmldefs"][tok];
     statement_html_alt += workset_context["althtmldefs"][tok];
@@ -78,8 +78,8 @@ function build_html_statements(tokens : number[]) : [string, string, string] {
 }
 
 function build_html_statements_from_input(tokens : string[]) : [string, string] {
-  let statement_html : string = workset_context["htmlcss"] + "<span class=\"math\">";
-  let statement_html_alt : string = workset_context["htmlcss"] + "<span class=\"math\">";
+  let statement_html : string = "<span>";
+  let statement_html_alt : string = workset_context["htmlcss"] + "<span " + workset_context["htmlfont"] + ">";
   for (let tok of tokens) {
     let resolved = workset_context["symbols_inv"][tok];
     if (resolved === undefined) {

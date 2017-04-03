@@ -11,8 +11,8 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
     bool first = true;
     if (sp.style == SentencePrinter::STYLE_ALTHTML) {
         // TODO - HTML fixing could be done just once
-        os << fix_htmlcss_for_qt(sp.lib.get_addendum().htmlcss);
-        os << "<SPAN " << sp.lib.get_addendum().htmlfont << ">";
+        os << fix_htmlcss_for_qt(sp.lib.get_addendum().get_htmlcss());
+        os << "<SPAN " << sp.lib.get_addendum().get_htmlfont() << ">";
     }
     for (auto &tok : sp.sent) {
         if (first) {
@@ -23,11 +23,11 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
         if (sp.style == SentencePrinter::STYLE_PLAIN) {
             os << sp.lib.resolve_symbol(tok);
         } else if (sp.style == SentencePrinter::STYLE_HTML) {
-            os << sp.lib.get_addendum().htmldefs[tok];
+            os << sp.lib.get_addendum().get_htmldef(tok);
         } else if (sp.style == SentencePrinter::STYLE_ALTHTML) {
-            os << sp.lib.get_addendum().althtmldefs[tok];
+            os << sp.lib.get_addendum().get_althtmldef(tok);
         } else if (sp.style == SentencePrinter::STYLE_LATEX) {
-            os << sp.lib.get_addendum().latexdefs[tok];
+            os << sp.lib.get_addendum().get_latexdef(tok);
         }
     }
     if (sp.style == SentencePrinter::STYLE_ALTHTML) {
@@ -263,9 +263,6 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
             break;
         }
         const Assertion &ass = *ass2;
-        if (!ass.is_valid()) {
-            continue;
-        }
         if (ass.get_ess_hyps().size() != 0) {
             continue;
         }
@@ -374,9 +371,6 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
             break;
         }
         const Assertion &ass = *ass2;
-        if (!ass.is_valid()) {
-            continue;
-        }
         if (ass.is_usage_disc()) {
             continue;
         }
@@ -510,10 +504,8 @@ void LibraryToolbox::compute_assertions_by_type()
             break;
         }
         const Assertion &ass = *ass2;
-        if (ass.is_valid()) {
-            const auto &label = ass.get_thesis();
-            this->assertions_by_type[this->lib.get_sentence(label).at(0)].push_back(label);
-        }
+        const auto &label = ass.get_thesis();
+        this->assertions_by_type[this->lib.get_sentence(label).at(0)].push_back(label);
     }
     this->assertions_by_type_computed = true;
 }

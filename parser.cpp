@@ -636,7 +636,7 @@ static string decode_string(vector< pair< bool, string > >::const_iterator begin
 }
 
 void Parser::parse_t_code(const vector< vector< pair< bool, string > > > &code) {
-    LibraryAddendum add;
+    LibraryAddendumImpl add;
     for (auto &tokens : code) {
         assert_or_throw(tokens.size() > 0, "empty instruction in $t comment");
         assert_or_throw(!tokens.at(0).first, "instruction in $t comment begins with a string");
