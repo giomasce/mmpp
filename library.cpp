@@ -268,17 +268,28 @@ const LibraryAddendum &LibraryImpl::get_addendum() const
     return this->addendum;
 }
 
-std::function<const Assertion *()> LibraryImpl::list_assertions() const {
-    vector< Assertion >::const_iterator it = this->assertions.begin();
-    return [&]()->const Assertion* {
-        if (it != this->assertions.end()) {
-            auto it2 = it;
-            it++;
+class AssertionGenerator {
+public:
+    AssertionGenerator(const vector< Assertion > &ref) :
+        it(ref.begin()), ref(ref) {
+    }
+    const Assertion *operator()() {
+        if (this->it != this->ref.end()) {
+            auto it2 = this->it;
+            this->it++;
             return &*it2;
         } else {
             return NULL;
         }
-    };
+    }
+
+private:
+    vector< Assertion >::const_iterator it;
+    const vector< Assertion > &ref;
+};
+
+function<const Assertion *()> LibraryImpl::list_assertions() const {
+    return AssertionGenerator(this->assertions);
 }
 
 void LibraryImpl::set_addendum(const LibraryAddendum &add)

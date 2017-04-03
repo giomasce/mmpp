@@ -2,8 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <vector>
-#include <utility>
+#include <unordered_map>
 
 #ifdef USE_QT
 #include <QApplication>
@@ -121,6 +120,8 @@ const unordered_map< string, function< int(int, char*[]) > > MAIN_FUNCTIONS = {
 #endif
 };
 
+const function< int(int, char*[]) > DEFAULT_MAIN_FUNCTION = test_all_main;
+
 int main(int argc, char *argv[]) {
     char *tmp = strdup(argv[0]);
     string bname(basename(tmp));
@@ -132,7 +133,7 @@ int main(int argc, char *argv[]) {
     } catch (out_of_range e) {
         (void) e;
         // Return a default one
-        main_func = httpd_main;
+        main_func = DEFAULT_MAIN_FUNCTION;
     }
     return main_func(argc, argv);
 }
