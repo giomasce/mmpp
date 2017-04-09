@@ -247,52 +247,7 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
     SymTok type = type_sent[0];
     vector< SymTok > sent;
     copy(type_sent.begin()+1, type_sent.end(), back_inserter(sent));
-
-    // Build the derivation rules; a derivation is created for each $f statement
-    // and for each $a and $p statement without essential hypotheses such that no variable
-    // appears more than once and without distinct variables constraints
-    std::unordered_map<SymTok, std::vector<std::pair< LabTok, std::vector<SymTok> > > > derivations;
-    for (auto &type_lab : this->get_types()) {
-        auto &type_sent = this->lib.get_sentence(type_lab);
-        derivations[type_sent.at(0)].push_back(make_pair(type_lab, vector<SymTok>({type_sent.at(1)})));
-    }
-    auto assertions_gen = this->lib.list_assertions();
-    while (true) {
-        const Assertion *ass2 = assertions_gen();
-        if (ass2 == NULL) {
-            break;
-        }
-        const Assertion &ass = *ass2;
-        if (ass.get_ess_hyps().size() != 0) {
-            continue;
-        }
-        if (ass.get_mand_dists().size() != 0) {
-            continue;
-        }
-        auto &sent = this->lib.get_sentence(ass.get_thesis());
-        set< SymTok > symbols;
-        bool duplicate = false;
-        for (auto &tok : sent) {
-            if (this->lib.is_constant(tok)) {
-                continue;
-            }
-            if (symbols.find(tok) != symbols.end()) {
-                duplicate = true;
-                break;
-            }
-            symbols.insert(tok);
-        }
-        if (duplicate) {
-            continue;
-        }
-        vector< SymTok > sent2;
-        for (size_t i = 1; i < sent.size(); i++) {
-            auto tok = sent[i];
-            // Variables are replaced with their types
-            sent2.push_back(this->lib.is_constant(tok) ? tok : this->lib.get_sentence(this->get_types_by_var().at(tok)).at(0));
-        }
-        derivations[sent.at(0)].push_back(make_pair(ass.get_thesis(), sent2));
-    }
+    auto derivations = this->get_derivations();
 
     EarleyTreeItem tree = earley(sent, type, derivations);
     if (tree.label == 0) {
@@ -303,6 +258,22 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
     }
 }
 
+const std::unordered_map<SymTok, std::vector<std::pair<LabTok, std::vector<SymTok> > > > &LibraryToolbox::get_derivations()
+{
+    if (!this->derivations_computed) {
+        this->compute_derivations();
+    }
+    return this->derivations;
+}
+
+const std::unordered_map<SymTok, std::vector<std::pair<LabTok, std::vector<SymTok> > > > &LibraryToolbox::get_derivations() const
+{
+    if (!this->derivations_computed) {
+        throw MMPPException("computation required on const object");
+    }
+    return this->derivations;
+}
+
 Prover LibraryToolbox::build_prover(const std::vector<string> &templ_hyps, const string &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers) const
 {
     return [=](ProofEngine &engine){
@@ -310,7 +281,7 @@ Prover LibraryToolbox::build_prover(const std::vector<string> &templ_hyps, const
     };
 }
 
-Prover LibraryToolbox::build_type_prover2(const std::string &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
+Prover LibraryToolbox::build_type_prover_from_strings(const std::string &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
     return [=](ProofEngine &engine){
         vector< SymTok > type_sent2 = this->parse_sentence(type_sent);
@@ -462,6 +433,7 @@ void LibraryToolbox::compute_everything()
     this->compute_types_by_var();
     this->compute_assertions_by_type();
     this->compute_registered_provers();
+    this->compute_derivations();
 }
 
 const std::vector<LabTok> &LibraryToolbox::get_types() const
@@ -524,6 +496,55 @@ const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryToolbox::get_asse
         throw MMPPException("computation required on const object");
     }
     return this->assertions_by_type;
+}
+
+void LibraryToolbox::compute_derivations()
+{
+    // Build the derivation rules; a derivation is created for each $f statement
+    // and for each $a and $p statement without essential hypotheses such that no variable
+    // appears more than once and without distinct variables constraints
+    for (auto &type_lab : this->get_types()) {
+        auto &type_sent = this->lib.get_sentence(type_lab);
+        this->derivations[type_sent.at(0)].push_back(make_pair(type_lab, vector<SymTok>({type_sent.at(1)})));
+    }
+    auto assertions_gen = this->lib.list_assertions();
+    while (true) {
+        const Assertion *ass2 = assertions_gen();
+        if (ass2 == NULL) {
+            break;
+        }
+        const Assertion &ass = *ass2;
+        if (ass.get_ess_hyps().size() != 0) {
+            continue;
+        }
+        if (ass.get_mand_dists().size() != 0) {
+            continue;
+        }
+        const auto &sent = this->lib.get_sentence(ass.get_thesis());
+        set< SymTok > symbols;
+        bool duplicate = false;
+        for (const auto &tok : sent) {
+            if (this->lib.is_constant(tok)) {
+                continue;
+            }
+            auto res = symbols.insert(tok);
+            if (!res.second) {
+                duplicate = true;
+                break;
+            }
+        }
+        if (duplicate) {
+            continue;
+        }
+        vector< SymTok > sent2;
+        for (size_t i = 1; i < sent.size(); i++) {
+            const auto &tok = sent[i];
+            // Variables are replaced with their types, which act as variables of the context-free grammar
+            sent2.push_back(this->lib.is_constant(tok) ? tok : this->lib.get_sentence(this->get_types_by_var().at(tok)).at(0));
+        }
+        this->derivations[sent.at(0)].push_back(make_pair(ass.get_thesis(), sent2));
+    }
+    this->derivations_computed = true;
 }
 
 RegisteredProver LibraryToolbox::register_prover(const std::vector<string> &templ_hyps, const string &templ_thesis)

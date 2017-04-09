@@ -9,6 +9,11 @@
 
 class LibraryToolbox;
 
+struct SentenceTree {
+    LabTok label;
+    std::vector< SentenceTree > children;
+};
+
 typedef std::function< bool(ProofEngine&) > Prover;
 const Prover null_prover = [](ProofEngine&){ return false; };
 Prover cascade_provers(const Prover &a, const Prover &b);
@@ -60,7 +65,7 @@ public:
     std::unordered_map< SymTok, std::vector< SymTok > > compose_subst(const std::unordered_map< SymTok, std::vector< SymTok > > &first,
                                                                       const std::unordered_map< SymTok, std::vector< SymTok > > &second) const;
 
-    Prover build_type_prover2(const std::string &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
+    Prover build_type_prover_from_strings(const std::string &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
     Prover build_classical_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
     Prover build_earley_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
     Prover build_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
@@ -83,6 +88,9 @@ public:
     void compute_assertions_by_type();
     const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type();
     const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const;
+    void compute_derivations();
+    const std::unordered_map<SymTok, std::vector<std::pair< LabTok, std::vector<SymTok> > > > &get_derivations();
+    const std::unordered_map<SymTok, std::vector<std::pair<LabTok, std::vector<SymTok> > > > &get_derivations() const;
 
     static RegisteredProver register_prover(const std::vector< std::string > &templ_hyps, const std::string &templ_thesis);
     Prover build_registered_prover(const RegisteredProver &prover, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers) const;
@@ -107,6 +115,9 @@ private:
 
     std::unordered_map< SymTok, std::vector< LabTok > > assertions_by_type;
     bool assertions_by_type_computed = false;
+
+    std::unordered_map<SymTok, std::vector<std::pair< LabTok, std::vector<SymTok> > > > derivations;
+    bool derivations_computed = false;
 
     std::unordered_map< std::tuple< std::vector< std::vector< SymTok > >, std::vector< SymTok > >,
                         std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > >,

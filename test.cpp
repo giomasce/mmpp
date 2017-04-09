@@ -152,47 +152,6 @@ void test() {
         cout << "Finished. Memory usage: " << size_to_string(getCurrentRSS()) << endl << endl;
     }
 
-    auto tests = get_tests();
-    // Comment or uncomment the following line to disable or enable tests with metamath-test
-    //tests = {};
-    int problems = 0;
-    for (auto test_pair : tests) {
-        string filename = test_pair.first;
-        bool expect_success = test_pair.second;
-        cout << "Testing file " << filename << " from " << test_basename << ", which is expected to " << (expect_success ? "pass" : "fail" ) << "..." << endl;
-
-        // Useful for debugging
-        /*if (filename == "demo0.mm") {
-            mmpp_abort = true;
-        } else {
-            continue;
-            mmpp_abort = false;
-        }*/
-        /*if (filename == "nf.mm") {
-            break;
-        }*/
-
-        bool success = test_one(filename, expect_success);
-        if (success) {
-            if (expect_success) {
-                cout << "Good, it worked!" << endl;
-            } else {
-                cout << "Bad, it should have been failed!" << endl;
-                problems++;
-            }
-        } else {
-            if (expect_success) {
-                cout << "Bad, this was NOT expected!" << endl;
-                problems++;
-            } else {
-                cout << "Good, this was expected!" << endl;
-            }
-        }
-
-        cout << "-------" << endl << endl;
-    }
-    cout << "Found " << problems << " problems" << endl;
-
     if (true) {
         cout << "Generic Earley parser test" << endl;
         test_earley();
@@ -422,6 +381,47 @@ void test() {
             }
         }
     }
+
+    auto tests = get_tests();
+    // Comment or uncomment the following line to disable or enable tests with metamath-test
+    //tests = {};
+    int problems = 0;
+    for (auto test_pair : tests) {
+        string filename = test_pair.first;
+        bool expect_success = test_pair.second;
+        cout << "Testing file " << filename << " from " << test_basename << ", which is expected to " << (expect_success ? "pass" : "fail" ) << "..." << endl;
+
+        // Useful for debugging
+        /*if (filename == "demo0.mm") {
+            mmpp_abort = true;
+        } else {
+            continue;
+            mmpp_abort = false;
+        }*/
+        /*if (filename == "nf.mm") {
+            break;
+        }*/
+
+        bool success = test_one(filename, expect_success);
+        if (success) {
+            if (expect_success) {
+                cout << "Good, it worked!" << endl;
+            } else {
+                cout << "Bad, it should have been failed!" << endl;
+                problems++;
+            }
+        } else {
+            if (expect_success) {
+                cout << "Bad, this was NOT expected!" << endl;
+                problems++;
+            } else {
+                cout << "Good, this was expected!" << endl;
+            }
+        }
+
+        cout << "-------" << endl << endl;
+    }
+    cout << "Found " << problems << " problems" << endl;
 
     cout << "Maximum memory usage: " << size_to_string(getPeakRSS()) << endl;
 
