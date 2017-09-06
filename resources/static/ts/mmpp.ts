@@ -64,7 +64,7 @@ function load_setmm() {
 
 function build_html_statements(tokens : number[]) : [string, string, string] {
   let statement_text : string = "";
-  let statement_html : string = "<span>";
+  let statement_html : string = "<style type=\"text/css\">img { margin-bottom: -4px; }</style><span>";
   let statement_html_alt : string = workset_context["addendum"]["htmlcss"] + "<span " + workset_context["addendum"]["htmlfont"] + ">";
   for (let tok of tokens) {
     statement_html += workset_context["addendum"]["htmldefs"][tok];
