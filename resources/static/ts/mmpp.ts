@@ -65,10 +65,10 @@ function load_setmm() {
 function build_html_statements(tokens : number[]) : [string, string, string] {
   let statement_text : string = "";
   let statement_html : string = "<span>";
-  let statement_html_alt : string = workset_context["htmlcss"] + "<span " + workset_context["htmlfont"] + ">";
+  let statement_html_alt : string = workset_context["addendum"]["htmlcss"] + "<span " + workset_context["addendum"]["htmlfont"] + ">";
   for (let tok of tokens) {
-    statement_html += workset_context["htmldefs"][tok];
-    statement_html_alt += workset_context["althtmldefs"][tok];
+    statement_html += workset_context["addendum"]["htmldefs"][tok];
+    statement_html_alt += workset_context["addendum"]["althtmldefs"][tok];
     statement_text += workset_context["symbols"][tok] + " ";
   }
   statement_html += "</span>";
@@ -79,15 +79,15 @@ function build_html_statements(tokens : number[]) : [string, string, string] {
 
 function build_html_statements_from_input(tokens : string[]) : [string, string] {
   let statement_html : string = "<span>";
-  let statement_html_alt : string = workset_context["htmlcss"] + "<span " + workset_context["htmlfont"] + ">";
+  let statement_html_alt : string = workset_context["addendum"]["htmlcss"] + "<span " + workset_context["addendum"]["htmlfont"] + ">";
   for (let tok of tokens) {
     let resolved = workset_context["symbols_inv"][tok];
     if (resolved === undefined) {
       statement_html += ` <span class=\"undefinedToken\">${tok}</span> `;
       statement_html_alt += ` <span class=\"undefinedToken\">${tok}</span> `;
     } else {
-      statement_html += workset_context["htmldefs"][resolved];
-      statement_html_alt += workset_context["althtmldefs"][resolved];
+      statement_html += workset_context["addendum"]["htmldefs"][resolved];
+      statement_html_alt += workset_context["addendum"]["althtmldefs"][resolved];
     }
   }
   statement_html += "</span>";

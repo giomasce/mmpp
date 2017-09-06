@@ -25,7 +25,8 @@ SOURCES += main.cpp \
     httpd.cpp \
     web.cpp \
     platform.cpp \
-    workset.cpp
+    workset.cpp \
+    jsonize.cpp
 
 CONFIG(qt) {
 SOURCES +=  mainwindow.cpp \
@@ -64,7 +65,8 @@ HEADERS += \
     web.h \
     json.h \
     platform.h \
-    workset.h
+    workset.h \
+    jsonize.h
 
 CONFIG(qt) {
 HEADERS +=  mainwindow.h \
