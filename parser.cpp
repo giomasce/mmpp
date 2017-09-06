@@ -487,10 +487,14 @@ void Parser::parse_p()
             assert(this->check_const(tok) || this->check_var(tok));
             tmp.push_back(tok);
         } else {
+            assert_or_throw(compressed_proof != 3, "Additional tokens in an incomplete proof");
             if (compressed_proof == 0) {
                 if (stok == "(") {
                     compressed_proof = 1;
                     continue;
+                } else if (stok == "?") {
+                    // The proof is marked incomplete, we record a dummy one
+                    compressed_proof = 3;
                 } else {
                     // The proof is not in compressed form, processing continues below
                     compressed_proof = -1;
@@ -522,7 +526,7 @@ void Parser::parse_p()
         }
     }
     assert_or_throw(this->check_const(tmp[0]), "First symbol of $p statement is not a constant");
-    assert(compressed_proof == -1 || compressed_proof == 2);
+    assert(compressed_proof == -1 || compressed_proof == 2 || compressed_proof == 3);
     this->lib.add_sentence(this->label, tmp);
 
     // Collect things
@@ -531,9 +535,9 @@ void Parser::parse_p()
     tie(float_hyps, ess_hyps) = this->collect_mand_hyps(mand_vars);
     set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
     set< SymTok > opt_vars;
-    if (compressed_proof < 0) {
+    if (compressed_proof == -1) {
         opt_vars = this->collect_opt_vars(proof_labels, mand_vars);
-    } else {
+    } else if (compressed_proof == 2) {
         opt_vars = this->collect_opt_vars(proof_refs, mand_vars);
     }
     set< LabTok > opt_hyps = this->collect_opt_hyps(opt_vars);
@@ -542,19 +546,21 @@ void Parser::parse_p()
     // Finally build assertion and attach proof
     Assertion ass(true, mand_dists, opt_dists, float_hyps, ess_hyps, opt_hyps, this->label, this->last_comment);
     this->last_comment = "";
-    shared_ptr< Proof > proof;
-    if (compressed_proof < 0) {
-        proof = shared_ptr< Proof > (new UncompressedProof(proof_labels));
-    } else {
-        proof = shared_ptr< Proof > (new CompressedProof(proof_refs, proof_codes));
-    }
-    ass.set_proof(proof);
-    auto pe = ass.get_proof_executor(this->lib);
-    assert_or_throw(pe->check_syntax(), "Syntax check failed for proof of $p statement");
-    if (this->execute_proofs) {
-        pe = ass.get_proof_executor(this->lib);
-        pe->set_debug_output("executing " + lib.resolve_label(this->label));
-        pe->execute();
+    if (compressed_proof != 3) {
+        shared_ptr< Proof > proof;
+        if (compressed_proof < 0) {
+            proof = shared_ptr< Proof > (new UncompressedProof(proof_labels));
+        } else {
+            proof = shared_ptr< Proof > (new CompressedProof(proof_refs, proof_codes));
+        }
+        ass.set_proof(proof);
+        auto pe = ass.get_proof_executor(this->lib);
+        assert_or_throw(pe->check_syntax(), "Syntax check failed for proof of $p statement");
+        if (this->execute_proofs) {
+            pe = ass.get_proof_executor(this->lib);
+            pe->set_debug_output("executing " + lib.resolve_label(this->label));
+            pe->execute();
+        }
     }
     this->lib.add_assertion(this->label, ass);
 }

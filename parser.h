@@ -15,7 +15,6 @@ std::vector< std::string > tokenize(const std::string &in);
 /*
  * Some notes on this Metamath parser:
  *  + It does not require that label tokens do not match any math token.
- *  + It does not support unknown points ("?") in proofs.
  */
 
 class TokenGenerator {
