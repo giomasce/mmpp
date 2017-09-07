@@ -8,3 +8,8 @@
   color: red;
   font-family: Inconsolata, monospace;
 }
+
+#console_text {
+  width: 100%;
+  height: 300px;
+}

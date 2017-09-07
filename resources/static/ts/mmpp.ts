@@ -1,12 +1,37 @@
 /// <reference path="jquery.d.ts"/>
+/// <reference path="mustache.d.ts"/>
 
 let workset_id : number = undefined;
 let workset_context : object = undefined;
 
-function jsonAjax(url : string) {
-  return $.ajax(url, {
-    "dataType": "json"
+interface Doneable {
+  done(consumer): void;
+}
+
+function jsonAjax(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : Doneable {
+  let ret : JQueryXHR =  $.ajax({
+    url: url,
+    dataType: "json",
+    async: async,
   });
+  return { done: function(consumer) {
+    ret.done(function(data) {
+      if (dump) {
+        $("#console_text").append("\n\nRequested: " + url);
+        if (dump_content) {
+          $("#console_text").append("\nReceived: " + JSON.stringify(data));
+        } else {
+          $("#console_text").append("\nReceived: [hidden]");
+        }
+        $('#console_text').scrollTop($('#console_text')[0].scrollHeight);
+      }
+      consumer(data);
+    });
+  }};
+}
+
+function dump_to_console(log : string) {
+  $("#console_text").append("\n" + log);
 }
 
 $(function() {
@@ -47,7 +72,7 @@ function invert_list(list : string[]) : object {
 }
 
 function get_context() {
-  jsonAjax(`/api/1/workset/${workset_id}/get_context`).done(function(data) {
+  jsonAjax(`/api/1/workset/${workset_id}/get_context`, true, false).done(function(data) {
     workset_context = data;
     if (workset_context["status"] === "loaded") {
       workset_context["symbols_inv"] = invert_list(workset_context["symbols"]);
@@ -78,7 +103,7 @@ function build_html_statements(tokens : number[]) : [string, string, string] {
 }
 
 function build_html_statements_from_input(tokens : string[]) : [string, string] {
-  let statement_html : string = "<span>";
+  let statement_html : string = "<style type=\"text/css\">img { margin-bottom: -4px; }</style><span>";
   let statement_html_alt : string = workset_context["addendum"]["htmlcss"] + "<span " + workset_context["addendum"]["htmlfont"] + ">";
   for (let tok of tokens) {
     let resolved = workset_context["symbols_inv"][tok];
@@ -106,7 +131,40 @@ function show_statement() {
     $("#editor").val(statement_text);
     $("#current_statement").html(statement_html);
     $("#current_statement_alt").html(statement_html_alt);
-  })
+  });
+  $("#show_statement_div").css('display', 'block');
+}
+
+function retrieve_sentence(label_tok : number) : number[] {
+  let sentence : number[];
+  jsonAjax(`/api/1/workset/${workset_id}/get_sentence/${label_tok}`, true, true, false).done(function(data) {
+    sentence = data["sentence"];
+  });
+  return sentence;
+}
+
+function show_assertion() {
+  if (workset_context["status"] !== "loaded") {
+    return;
+  }
+  let label : string = $("#statement_label").val();
+  let label_tok : number = workset_context["labels_inv"][label];
+  jsonAjax(`/api/1/workset/${workset_id}/get_assertion/${label_tok}`).done(function(data) {
+    let assertion = data["assertion"];
+    $("#show_assertion_div").html(Mustache.render($('#assertion_templ').html(), {
+      thesis: build_html_statements(retrieve_sentence(assertion["thesis"]))[2],
+      ess_hyps: assertion["ess_hyps"].map(function(el) {
+        return build_html_statements(retrieve_sentence(el))[2];
+      }),
+      float_hyps: assertion["float_hyps"].map(function(el) {
+        return build_html_statements(retrieve_sentence(el))[2];
+      }),
+      dists: assertion["dists"].map(function(el) {
+        return workset_context["addendum"]["althtmldefs"][el[0]] + ", " + workset_context["addendum"]["althtmldefs"][el[1]];
+      })
+    }));
+  });
+  $("#show_assertion_div").css('display', 'block');
 }
 
 function editor_changed() {

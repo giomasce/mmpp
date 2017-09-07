@@ -4,8 +4,28 @@
 <head>
   <title>MMPP</title>
   <script src="js/jquery-3.1.1.js"></script>
+  <script src="js/mustache.js"></script>
   <script src="js/mmpp.js"></script>
   <link rel="stylesheet" type="text/css" href="css/mmpp.css"></link>
+
+  <script id="assertion_templ" type="x-tmpl-mustache">
+    Floating hypotheses:<ol>
+    {{ #float_hyps }}
+    <li>{{{ . }}}</li>
+    {{ /float_hyps }}
+    </ol>
+    Essential hypotheses:<ol>
+    {{ #ess_hyps }}
+    <li>{{{ . }}}</li>
+    {{ /ess_hyps }}
+    </ol>
+    Distinct variables:<ol>
+    {{ #dists }}
+    <li>{{{ . }}}</li>
+    {{ /dists }}
+    </ol>
+    Thesis: {{{ thesis }}}
+  </script>
 </head>
 
 <body>
@@ -20,10 +40,18 @@
       <button onclick="load_setmm()">Load database</button>
       <input type="text" id="statement_label"></input>
       <button onclick="show_statement()">Show statement</button>
+      <button onclick="show_assertion()">Show assertion</button>
     </div>
-    <div id="current_statement_alt" style="font-size: 200%;"></div>
-    <div id="current_statement"></div>
-    <input type="text" id="editor" oninput="editor_changed()" style="font-size: 200%; font-family: Inconsolata, monopace; width: 100%;"></input>
+    <div class="piece" id="show_statement_div">
+      <div id="current_statement_alt"></div>
+      <div id="current_statement"></div>
+      <input type="text" id="editor" oninput="editor_changed()" style="font-family: Inconsolata, monospace; width: 100%;"></input>
+    </div>
+    <div class="piece" id="show_assertion_div">
+    </div>
+  </div>
+  <div id="console">
+    <textarea id="console_text">DEBUG CONSOLE</textarea>
   </div>
 </body>
 

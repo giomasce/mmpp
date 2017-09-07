@@ -5,5 +5,6 @@
 #include "library.h"
 
 nlohmann::json jsonize(const ExtendedLibraryAddendum &addendum);
+nlohmann::json jsonize(const Assertion &assertion);
 
 #endif // JSONIZE_H

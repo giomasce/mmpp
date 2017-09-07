@@ -25,6 +25,14 @@ vector< string > fix_htmldefs_for_web(const vector< string > &htmldefs) {
     return ret;
 }
 
+// Support for serializing pairs
+namespace nlohmann {
+    template< typename A, typename B >
+    void to_json(json &j, const pair< A, B > &p) {
+        j = { p.first, p.second };
+    }
+}
+
 json jsonize(const ExtendedLibraryAddendum &addendum)
 {
     json ret;
@@ -43,5 +51,21 @@ json jsonize(const ExtendedLibraryAddendum &addendum)
     ret["htmlvarcolor"] = addendum.get_htmlvarcolor();
     ret["htmldir"] = addendum.get_htmldir();
     ret["althtmldir"] = addendum.get_althtmldir();
+    return ret;
+}
+
+json jsonize(const Assertion &assertion)
+{
+    json ret;
+    ret["valid"] = assertion.is_valid();
+    ret["theorem"] = assertion.is_theorem();
+    ret["usage_disc"] = assertion.is_usage_disc();
+    ret["modif_disc"] = assertion.is_modif_disc();
+    ret["thesis"] = assertion.get_thesis();
+    ret["ess_hyps"] = assertion.get_ess_hyps();
+    ret["float_hyps"] = assertion.get_float_hyps();
+    ret["opt_hyps"] = assertion.get_opt_hyps();
+    ret["dists"] = assertion.get_dists();
+    ret["opt_dists"] = assertion.get_opt_dists();
     return ret;
 }

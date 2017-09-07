@@ -56,6 +56,21 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             (void) e;
             throw SendError(404);
         }
+    } else if (*path_begin == "get_assertion") {
+        path_begin++;
+        if (path_begin == path_end) {
+            throw SendError(404);
+        }
+        int tok = safe_stoi(*path_begin);
+        try {
+            const Assertion &ass = this->library->get_assertion(tok);
+            json ret;
+            ret["assertion"] = jsonize(ass);
+            return ret;
+        } catch (out_of_range e) {
+            (void) e;
+            throw SendError(404);
+        }
     }
     throw SendError(404);
 }
