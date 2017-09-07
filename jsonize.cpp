@@ -69,3 +69,15 @@ json jsonize(const Assertion &assertion)
     ret["opt_dists"] = assertion.get_opt_dists();
     return ret;
 }
+
+json jsonize(const ProofTree &proof_tree) {
+    json ret;
+    ret["label"] = proof_tree.label;
+    ret["sentence"] = proof_tree.sentence;
+    ret["children"] = json::array();
+    for (const auto &child : proof_tree.children) {
+        ret["children"].push_back(jsonize(child));
+    }
+    ret["dists"] = proof_tree.dists;
+    return ret;
+}

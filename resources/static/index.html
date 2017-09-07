@@ -24,7 +24,26 @@
     <li>{{{ . }}}</li>
     {{ /dists }}
     </ol>
-    Thesis: {{{ thesis }}}
+    Thesis: {{{ thesis }}}<br>
+    Proof:<br>
+    <center><table summary="Proof of theorem" cellspacing="0" border="" bgcolor="#EEFFFA">
+    <caption><b>Proof of theorem <b>{{ label }}</b></caption>
+    <tbody>
+    <tr><th>Step</th><th>Hyp</th><th>Ref</th><th>Expression</th><th>Dists</th></tr>
+    {{{ proof }}}
+    </tbody>
+    </table></center>
+  </script>
+
+  <script id="proof_templ" type="x-tmpl-mustache">
+    {{{ children }}}
+    <tr>
+    <td></td>
+    <td></td>
+    <td>{{ label }}</td>
+    <td><small>{{{ indentation }}}</small> {{{ sentence }}}</td>
+    <td>{{ #dists }}{{{ . }}}; {{ /dists }}</td>
+    </tr>
   </script>
 </head>
 

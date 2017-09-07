@@ -24,6 +24,7 @@ struct ProofTree {
     std::vector< SymTok > sentence;
     LabTok label;
     std::vector< ProofTree > children;
+    std::set< std::pair< SymTok, SymTok > > dists;
 };
 
 class ProofEngine {

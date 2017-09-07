@@ -37,9 +37,8 @@ int httpd_main(int argc, char *argv[]) {
 
     init_random();
 
-    WebEndpoint endpoint;
-
     int port = 8888;
+    WebEndpoint endpoint(port);
     HTTPD_microhttpd httpd(port, endpoint);
 
     httpd.start();
@@ -63,7 +62,8 @@ int httpd_main(int argc, char *argv[]) {
     return 0;
 }
 
-WebEndpoint::WebEndpoint()
+WebEndpoint::WebEndpoint(int port) :
+    port(port)
 {
 }
 
@@ -168,6 +168,18 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
         cb.add_header("Content-Type", "application/json");
         cb.set_status_code(200);
         return res.dump();
+    }
+
+    // Backdoor for easily creating tickets (FIXME disable in production)
+    if (true) {
+        string api_create_ticket = "/api/create_ticket";
+        if (url == api_create_ticket) {
+            cb.add_header("Content-Type", "text/plain");
+            cb.set_status_code(200);
+            string ticket_id = this->create_session_and_ticket();
+            string browser_url = "http://127.0.0.1:" + to_string(this->port) + "/ticket/" + ticket_id;
+            return browser_url;
+        }
     }
 
     // Serve API requests

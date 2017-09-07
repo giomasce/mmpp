@@ -8,26 +8,23 @@ interface Doneable {
   done(consumer): void;
 }
 
-function jsonAjax(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : Doneable {
-  let ret : JQueryXHR =  $.ajax({
+function jsonAjax(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : JQueryPromise<any> {
+  return $.ajax({
     url: url,
     dataType: "json",
     async: async,
-  });
-  return { done: function(consumer) {
-    ret.done(function(data) {
-      if (dump) {
-        $("#console_text").append("\n\nRequested: " + url);
-        if (dump_content) {
-          $("#console_text").append("\nReceived: " + JSON.stringify(data));
-        } else {
-          $("#console_text").append("\nReceived: [hidden]");
-        }
-        $('#console_text').scrollTop($('#console_text')[0].scrollHeight);
+  }).then(function(data) {
+    if (dump) {
+      $("#console_text").append("\n\nRequested: " + url);
+      if (dump_content) {
+        $("#console_text").append("\nReceived: " + JSON.stringify(data));
+      } else {
+        $("#console_text").append("\nReceived: [hidden]");
       }
-      consumer(data);
-    });
-  }};
+      $('#console_text').scrollTop($('#console_text')[0].scrollHeight);
+    }
+    return data;
+  });
 }
 
 function dump_to_console(log : string) {
@@ -143,28 +140,55 @@ function retrieve_sentence(label_tok : number) : number[] {
   return sentence;
 }
 
+function push_and_get_index<T>(array : T[], object : T) : number {
+  let index : number = array.length;
+  array.push(object);
+  return index;
+}
+
+function render_proof(proof_tree, depth : number = 0) : string {
+  return Mustache.render($('#proof_templ').html(), {
+    label: workset_context["labels"][proof_tree.label],
+    sentence: build_html_statements(proof_tree.sentence)[2],
+    children: proof_tree.children.map(function (el) { return render_proof(el, depth+1); }),
+    dists: proof_tree["dists"].map(function(el) { return workset_context["addendum"]["althtmldefs"][el[0]] + ", " + workset_context["addendum"]["althtmldefs"][el[1]]; }),
+    indentation: ".".repeat(depth) + (depth+1).toString(),
+  });
+}
+
 function show_assertion() {
   if (workset_context["status"] !== "loaded") {
     return;
   }
+
+  // Resolve the label and request the corresponding assertion
   let label : string = $("#statement_label").val();
   let label_tok : number = workset_context["labels_inv"][label];
   jsonAjax(`/api/1/workset/${workset_id}/get_assertion/${label_tok}`).done(function(data) {
     let assertion = data["assertion"];
-    $("#show_assertion_div").html(Mustache.render($('#assertion_templ').html(), {
-      thesis: build_html_statements(retrieve_sentence(assertion["thesis"]))[2],
-      ess_hyps: assertion["ess_hyps"].map(function(el) {
-        return build_html_statements(retrieve_sentence(el))[2];
-      }),
-      float_hyps: assertion["float_hyps"].map(function(el) {
-        return build_html_statements(retrieve_sentence(el))[2];
-      }),
-      dists: assertion["dists"].map(function(el) {
-        return workset_context["addendum"]["althtmldefs"][el[0]] + ", " + workset_context["addendum"]["althtmldefs"][el[1]];
-      })
-    }));
+
+    // Request all the interesting things for the proof
+    let requests : JQueryXHR[] = [];
+    let requests_map = {
+      thesis: push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset_id}/get_sentence/${assertion["thesis"]}`)),
+      proof_tree: push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset_id}/get_proof_tree/${assertion["thesis"]}`)),
+      ess_hyps: assertion["ess_hyps"].map(function (el) { return push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset_id}/get_sentence/${el}`)); }),
+      float_hyps: assertion["float_hyps"].map(function (el) { return push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset_id}/get_sentence/${el}`)); }),
+    };
+
+    // Fire all the requests and then feed the results to the template
+    $.when.apply($, requests).done(function() {
+      let responses = arguments;
+      $("#show_assertion_div").html(Mustache.render($('#assertion_templ').html(), {
+        thesis: build_html_statements(responses[requests_map["thesis"]]["sentence"])[2],
+        ess_hyps: requests_map["ess_hyps"].map(function(el) { return build_html_statements(responses[el]["sentence"])[2]; }),
+        float_hyps: requests_map["float_hyps"].map(function(el) { return build_html_statements(responses[el]["sentence"])[2]; }),
+        dists: assertion["dists"].map(function(el) { return workset_context["addendum"]["althtmldefs"][el[0]] + ", " + workset_context["addendum"]["althtmldefs"][el[1]]; }),
+        proof: render_proof(responses[requests_map["proof_tree"]]["proof_tree"]),
+      }));
+      $("#show_assertion_div").css('display', 'block');
+    });
   });
-  $("#show_assertion_div").css('display', 'block');
 }
 
 function editor_changed() {

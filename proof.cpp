@@ -468,7 +468,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
     if (this->gen_proof_tree) {
         vector< ProofTree > children(this->tree_stack.begin() + stack_base, this->tree_stack.end());
         this->tree_stack.resize(stack_base);
-        this->proof_tree = { stack_thesis_sent, label, children };
+        this->proof_tree = { stack_thesis_sent, label, children, this->dists };
         this->tree_stack.push_back(this->proof_tree);
     }
     this->proof.push_back(label);
@@ -478,7 +478,7 @@ void ProofEngine::process_sentence(const std::vector<SymTok> &sent, LabTok label
 {
     this->push_stack(sent);
     if (this->gen_proof_tree) {
-        this->proof_tree = { sent, label, {} };
+        this->proof_tree = { sent, label, {}, this->dists };
         this->tree_stack.push_back(this->proof_tree);
     }
     this->proof.push_back(label);
