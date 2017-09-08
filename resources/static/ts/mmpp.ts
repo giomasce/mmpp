@@ -4,9 +4,11 @@
 let workset_id : number = undefined;
 let workset_context : object = undefined;
 
-interface Doneable {
-  done(consumer): void;
-}
+// Whether to use html or althtml symbols
+let use_alt : boolean = true;
+
+// Whether to include non essential steps or not
+let include_non_essentials : boolean = false;
 
 function jsonAjax(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : JQueryPromise<any> {
   return $.ajax({
@@ -74,6 +76,11 @@ function get_context() {
     if (workset_context["status"] === "loaded") {
       workset_context["symbols_inv"] = invert_list(workset_context["symbols"]);
       workset_context["labels_inv"] = invert_list(workset_context["labels"]);
+      if (use_alt) {
+        $("#local_style").html(workset_context["addendum"]["htmlcss"]);
+      } else {
+        $("#local_style").html(".gifmath img { margin-bottom: -4px; };");
+      }
     }
   })
 }
@@ -86,8 +93,8 @@ function load_setmm() {
 
 function build_html_statements(tokens : number[]) : [string, string, string] {
   let statement_text : string = "";
-  let statement_html : string = "<style type=\"text/css\">img { margin-bottom: -4px; }</style><span>";
-  let statement_html_alt : string = workset_context["addendum"]["htmlcss"] + "<span " + workset_context["addendum"]["htmlfont"] + ">";
+  let statement_html : string = "<span class=\"gifmath\">";
+  let statement_html_alt : string = "<span " + workset_context["addendum"]["htmlfont"] + ">";
   for (let tok of tokens) {
     statement_html += workset_context["addendum"]["htmldefs"][tok];
     statement_html_alt += workset_context["addendum"]["althtmldefs"][tok];
@@ -99,9 +106,13 @@ function build_html_statements(tokens : number[]) : [string, string, string] {
   return [statement_text, statement_html, statement_html_alt];
 }
 
+function build_html_statement(tokens : number[]) : string {
+  return build_html_statements(tokens)[use_alt ? 2 : 1];
+}
+
 function build_html_statements_from_input(tokens : string[]) : [string, string] {
-  let statement_html : string = "<style type=\"text/css\">img { margin-bottom: -4px; }</style><span>";
-  let statement_html_alt : string = workset_context["addendum"]["htmlcss"] + "<span " + workset_context["addendum"]["htmlfont"] + ">";
+  let statement_html : string = "<span class=\"gifmath\">";
+  let statement_html_alt : string = "<span " + workset_context["addendum"]["htmlfont"] + ">";
   for (let tok of tokens) {
     let resolved = workset_context["symbols_inv"][tok];
     if (resolved === undefined) {
@@ -146,15 +157,31 @@ function push_and_get_index<T>(array : T[], object : T) : number {
   return index;
 }
 
-function render_proof(proof_tree, depth : number = 0) : string {
-  return Mustache.render($('#proof_templ').html(), {
-    label: workset_context["labels"][proof_tree.label],
-    sentence: build_html_statements(proof_tree.sentence)[2],
-    children: proof_tree.children.map(function (el) { return render_proof(el, depth+1); }),
-    dists: proof_tree["dists"].map(function(el) { return workset_context["addendum"]["althtmldefs"][el[0]] + ", " + workset_context["addendum"]["althtmldefs"][el[1]]; }),
-    indentation: ".".repeat(depth) + (depth+1).toString(),
-    essential: proof_tree["essential"],
+function render_proof_internal(proof_tree, depth : number, step : number) : [string, number] {
+  let children : [string, number][] = proof_tree.children.filter(function(el) {
+    return include_non_essentials ? true : el["essential"];
+  }).map(function (el) {
+    let proof : string;
+    [proof, step] = render_proof_internal(el, depth+1, step);
+    return [proof, step];
   });
+  step += 1;
+  return [Mustache.render($('#proof_templ').html(), {
+    label: workset_context["labels"][proof_tree.label],
+    label_num: proof_tree.label > 0 ? proof_tree.label.toString() : "",
+    label_color: spectrum_to_rgb(proof_tree.label, workset_context["labels"].length),
+    sentence: build_html_statement(proof_tree.sentence),
+    children: children.map(function(el) { return el[0]; }),
+    children_steps: children.map(function(el) { return el[1]; }),
+    dists: proof_tree["dists"].map(function(el) { return build_html_statement([el[0]]) + ", " + build_html_statement([el[1]]); }),
+    indentation: ". ".repeat(depth) + (depth+1).toString(),
+    essential: proof_tree["essential"],
+    step: step,
+  }), step];
+}
+
+function render_proof(proof_tree) {
+  return render_proof_internal(proof_tree, 0, 0)[0];
 }
 
 function show_assertion() {
@@ -181,10 +208,10 @@ function show_assertion() {
     $.when.apply($, requests).done(function() {
       let responses = arguments;
       $("#show_assertion_div").html(Mustache.render($('#assertion_templ').html(), {
-        thesis: build_html_statements(responses[requests_map["thesis"]]["sentence"])[2],
-        ess_hyps: requests_map["ess_hyps"].map(function(el) { return build_html_statements(responses[el]["sentence"])[2]; }),
-        float_hyps: requests_map["float_hyps"].map(function(el) { return build_html_statements(responses[el]["sentence"])[2]; }),
-        dists: assertion["dists"].map(function(el) { return workset_context["addendum"]["althtmldefs"][el[0]] + ", " + workset_context["addendum"]["althtmldefs"][el[1]]; }),
+        thesis: build_html_statement(responses[requests_map["thesis"]]["sentence"]),
+        ess_hyps: requests_map["ess_hyps"].map(function(el) { return build_html_statement(responses[el]["sentence"]); }),
+        float_hyps: requests_map["float_hyps"].map(function(el) { return build_html_statement(responses[el]["sentence"]); }),
+        dists: assertion["dists"].map(function(el) { return build_html_statement([el[0]]) + ", " + build_html_statement([el[1]]); }),
         proof: render_proof(responses[requests_map["proof_tree"]]["proof_tree"]),
       }));
       $("#show_assertion_div").css('display', 'block');
@@ -200,4 +227,52 @@ function editor_changed() {
   let [statement_html, statement_html_alt] = build_html_statements_from_input(tokens);
   $("#current_statement").html(statement_html);
   $("#current_statement_alt").html(statement_html_alt);
+}
+
+/* Implementation of the the function spectrumToRGB() in the official metamath;
+   the color codes are copied from there, under the label "L53 empirical". */
+let COLORS : number[][] = [
+  [251, 0, 0],
+  [247, 12, 0],
+  [238, 44, 0],
+  [222, 71, 0],
+  [203, 89, 0],
+  [178, 108, 0],
+  [154, 122, 0],
+  [127, 131, 0],
+  [110, 136, 0],
+  [86, 141, 0],
+  [60, 144, 0],
+  [30, 147, 0],
+  [0, 148, 22],
+  [0, 145, 61],
+  [0, 145, 94],
+  [0, 143, 127],
+  [0, 140, 164],
+  [0, 133, 218],
+  [3, 127, 255],
+  [71, 119, 255],
+  [110, 109, 255],
+  [137, 99, 255],
+  [169, 78, 255],
+  [186, 57, 255],
+  [204, 33, 249],
+  [213, 16, 235],
+  [221, 0, 222],
+  [233, 0, 172],
+  [239, 0, 132],
+];
+
+function spectrum_to_rgb(color : number, max_color : number) : string {
+  if (color === 0) {
+    return "rgb(0, 0, 0)";
+  }
+  let fraction : number = (color - 1) / max_color;
+  let partition : number = Math.floor(fraction * (COLORS.length-1));
+  let frac_in_part : number = (fraction - partition) / (COLORS.length-1);
+  let red : number = (1.0 - frac_in_part) * COLORS[partition][0] + frac_in_part * COLORS[partition+1][0];
+  let green : number = (1.0 - frac_in_part) * COLORS[partition][1] + frac_in_part * COLORS[partition+1][1];
+  let blue : number = (1.0 - frac_in_part) * COLORS[partition][2] + frac_in_part * COLORS[partition+1][2];
+  //return "#" + Math.floor(red).toString(16) + Math.floor(green).toString(16) + Math.floor(blue).toString(16);
+  return "rgb(" + Math.floor(red).toString() + ", " + Math.floor(green).toString() + ", " + Math.floor(blue).toString() + ")";
 }

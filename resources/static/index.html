@@ -7,6 +7,7 @@
   <script src="js/mustache.js"></script>
   <script src="js/mmpp.js"></script>
   <link rel="stylesheet" type="text/css" href="css/mmpp.css"></link>
+  <style id="local_style"></style>
 
   <script id="assertion_templ" type="x-tmpl-mustache">
     Floating hypotheses:<ol>
@@ -36,16 +37,16 @@
   </script>
 
   <script id="proof_templ" type="x-tmpl-mustache">
-    {{{ children }}}
-    {{ #essential }}
+    {{ #children }}
+    {{{ . }}}
+    {{ /children }}
     <tr>
-    <td></td>
-    <td></td>
-    <td>{{ label }}</td>
-    <td><small>{{{ indentation }}}</small> {{{ sentence }}}</td>
+    <td>{{ step }}</td>
+    <td>{{ #children_steps }}{{ . }}, {{ /children_steps }}</td>
+    <td>{{ label }} <span class="r" style="color: {{ label_color }}">{{ label_num }}</span></td>
+    <td><span class="i">{{{ indentation }}}</span> {{{ sentence }}}</td>
     <td>{{ #dists }}{{{ . }}}; {{ /dists }}</td>
     </tr>
-    {{ /essential }}
   </script>
 </head>
 
