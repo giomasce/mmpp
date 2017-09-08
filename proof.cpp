@@ -353,13 +353,15 @@ const std::vector<std::vector<SymTok> > &ProofEngine::get_stack() const
 
 const std::set<std::pair<SymTok, SymTok> > &ProofEngine::get_dists() const
 {
-    return this->dists;
+    return *(this->dists_stack.end()-1);
 }
 
 void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 {
     assert_or_throw(this->stack.size() >= child_ass.get_mand_hyps_num(), "Stack too small to pop hypotheses");
     const size_t stack_base = this->stack.size() - child_ass.get_mand_hyps_num();
+    //this->dists.clear();
+    set< pair< SymTok, SymTok > > dists;
 
     // Use the first num_floating hypotheses to build the substitution map
     unordered_map< SymTok, vector< SymTok > > subst_map;
@@ -371,6 +373,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
         assert(this->lib.is_constant(hyp_sent.at(0)));
         assert(!this->lib.is_constant(hyp_sent.at(1)));
         const vector< SymTok > &stack_hyp_sent = this->stack.at(stack_base + i);
+        assert(this->dists_stack.at(stack_base + i).empty());
         assert_or_throw(hyp_sent.at(0) == stack_hyp_sent.at(0), "Floating hypothesis does not match stack");
 #ifndef NDEBUG
         if (stack_hyp_sent.size() == 1) {
@@ -382,6 +385,33 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 #ifndef NDEBUG
         cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
 #endif
+        i++;
+    }
+
+    // Then parse the other hypotheses and check them
+    for (auto &hyp : child_ass.get_ess_hyps()) {
+        const vector< SymTok > &hyp_sent = this->lib.get_sentence(hyp);
+        assert(this->lib.is_constant(hyp_sent.at(0)));
+        const vector< SymTok > &stack_hyp_sent = this->stack.at(stack_base + i);
+        copy(this->dists_stack.at(stack_base + i).begin(), this->dists_stack.at(stack_base + i).end(), inserter(dists, dists.begin()));
+#ifndef NDEBUG
+        cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
+#endif
+        auto stack_it = stack_hyp_sent.begin();
+        for (auto it = hyp_sent.begin(); it != hyp_sent.end(); it++) {
+            const SymTok &tok = *it;
+            if (this->lib.is_constant(tok)) {
+                assert_or_throw(tok == *stack_it, "Essential hypothesis does not match stack beacuse of wrong constant");
+                stack_it++;
+            } else {
+                const vector< SymTok > &subst = subst_map.at(tok);
+                assert(distance(stack_it, stack_hyp_sent.end()) >= 0);
+                assert_or_throw(subst.size() <= (size_t) distance(stack_it, stack_hyp_sent.end()), "Essential hypothesis does not match stack because stack is shorter");
+                assert_or_throw(equal(subst.begin(), subst.end(), stack_it), "Essential hypothesis does not match stack because of wrong variable substitution");
+                stack_it += subst.size();
+            }
+        }
+        assert_or_throw(stack_it == stack_hyp_sent.end(), "Essential hypothesis does not match stack because stack is longer");
         i++;
     }
 
@@ -406,37 +436,11 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
                             continue;
                         }
                         assert_or_throw(tok1 != tok2, "Distinct variable constraint violated");
-                        this->dists.insert(minmax(tok1, tok2));
+                        dists.insert(minmax(tok1, tok2));
                     }
                 }
             }
         }
-    }
-
-    // Then parse the other hypotheses and check them
-    for (auto &hyp : child_ass.get_ess_hyps()) {
-        const vector< SymTok > &hyp_sent = this->lib.get_sentence(hyp);
-        assert(this->lib.is_constant(hyp_sent.at(0)));
-        const vector< SymTok > &stack_hyp_sent = this->stack.at(stack_base + i);
-#ifndef NDEBUG
-        cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
-#endif
-        auto stack_it = stack_hyp_sent.begin();
-        for (auto it = hyp_sent.begin(); it != hyp_sent.end(); it++) {
-            const SymTok &tok = *it;
-            if (this->lib.is_constant(tok)) {
-                assert_or_throw(tok == *stack_it, "Essential hypothesis does not match stack beacuse of wrong constant");
-                stack_it++;
-            } else {
-                const vector< SymTok > &subst = subst_map.at(tok);
-                assert(distance(stack_it, stack_hyp_sent.end()) >= 0);
-                assert_or_throw(subst.size() <= (size_t) distance(stack_it, stack_hyp_sent.end()), "Essential hypothesis does not match stack because stack is shorter");
-                assert_or_throw(equal(subst.begin(), subst.end(), stack_it), "Essential hypothesis does not match stack because of wrong variable substitution");
-                stack_it += subst.size();
-            }
-        }
-        assert_or_throw(stack_it == stack_hyp_sent.end(), "Essential hypothesis does not match stack because stack is longer");
-        i++;
     }
 
     // Build the thesis
@@ -464,11 +468,15 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 #ifndef NDEBUG
     cerr << "    Pushing on stack: " << print_sentence(stack_thesis_sent, this->lib) << endl;
 #endif
-    this->push_stack(stack_thesis_sent);
+    this->push_stack(stack_thesis_sent, dists);
     if (this->gen_proof_tree) {
+        // Mark as non essential all the hypotheses that are not
+        for (auto it = this->tree_stack.begin() + stack_base; it != this->tree_stack.begin() + stack_base + child_ass.get_float_hyps().size(); it++) {
+            it->essential = false;
+        }
         vector< ProofTree > children(this->tree_stack.begin() + stack_base, this->tree_stack.end());
         this->tree_stack.resize(stack_base);
-        this->proof_tree = { stack_thesis_sent, label, children, this->dists };
+        this->proof_tree = { stack_thesis_sent, label, children, dists, true };
         this->tree_stack.push_back(this->proof_tree);
     }
     this->proof.push_back(label);
@@ -476,9 +484,9 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 
 void ProofEngine::process_sentence(const std::vector<SymTok> &sent, LabTok label)
 {
-    this->push_stack(sent);
+    this->push_stack(sent, {});
     if (this->gen_proof_tree) {
-        this->proof_tree = { sent, label, {}, this->dists };
+    this->proof_tree = { sent, label, {}, {}, true };
         this->tree_stack.push_back(this->proof_tree);
     }
     this->proof.push_back(label);
@@ -521,7 +529,7 @@ const ProofTree &ProofEngine::get_proof_tree() const
 
 void ProofEngine::checkpoint()
 {
-    this->checkpoints.emplace_back(this->stack.size(), this->dists, this->proof.size());
+    this->checkpoints.emplace_back(this->stack.size(), this->proof.size());
 }
 
 void ProofEngine::commit()
@@ -532,8 +540,8 @@ void ProofEngine::commit()
 void ProofEngine::rollback()
 {
     this->stack.resize(get<0>(this->checkpoints.back()));
-    this->dists = get<1>(this->checkpoints.back());
-    this->proof.resize(get<2>(this->checkpoints.back()));
+    this->dists_stack.resize(get<0>(this->checkpoints.back()));
+    this->proof.resize(get<1>(this->checkpoints.back()));
     this->checkpoints.pop_back();
 }
 
@@ -542,20 +550,23 @@ void ProofEngine::set_debug_output(const string &debug_output)
     this->debug_output = debug_output;
 }
 
-void ProofEngine::push_stack(const std::vector<SymTok> sent)
+void ProofEngine::push_stack(const std::vector<SymTok> &sent, const std::set< std::pair< SymTok, SymTok > > &dists)
 {
     this->stack.push_back(sent);
+    this->dists_stack.push_back(dists);
 }
 
 void ProofEngine::stack_resize(size_t size)
 {
     this->stack.resize(size);
+    this->dists_stack.resize(size);
     this->check_stack_underflow();
 }
 
 void ProofEngine::pop_stack()
 {
     this->stack.pop_back();
+    this->dists_stack.pop_back();
     this->check_stack_underflow();
 }
 

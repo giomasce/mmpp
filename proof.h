@@ -25,6 +25,7 @@ struct ProofTree {
     LabTok label;
     std::vector< ProofTree > children;
     std::set< std::pair< SymTok, SymTok > > dists;
+    bool essential;
 };
 
 class ProofEngine {
@@ -45,7 +46,7 @@ public:
     void set_debug_output(const std::string &debug_output);
 
 private:
-    void push_stack(const std::vector< SymTok > sent);
+    void push_stack(const std::vector<SymTok> &sent, const std::set<std::pair<SymTok, SymTok> > &dists);
     void stack_resize(size_t size);
     void pop_stack();
     void check_stack_underflow();
@@ -53,11 +54,13 @@ private:
     const Library &lib;
     bool gen_proof_tree;
     std::vector< std::vector< SymTok > > stack;
+    std::vector< std::set< std::pair< SymTok, SymTok > > > dists_stack;
     std::vector< ProofTree > tree_stack;
     ProofTree proof_tree;
-    std::set< std::pair< SymTok, SymTok > > dists;
+    //std::set< std::pair< SymTok, SymTok > > dists;
     std::vector< LabTok > proof;
-    std::vector< std::tuple< size_t, std::set< std::pair< SymTok, SymTok > >, size_t > > checkpoints;
+    //std::vector< std::tuple< size_t, std::set< std::pair< SymTok, SymTok > >, size_t > > checkpoints;
+    std::vector< std::tuple< size_t, size_t > > checkpoints;
     std::string debug_output;
 };
 

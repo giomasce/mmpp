@@ -153,6 +153,7 @@ function render_proof(proof_tree, depth : number = 0) : string {
     children: proof_tree.children.map(function (el) { return render_proof(el, depth+1); }),
     dists: proof_tree["dists"].map(function(el) { return workset_context["addendum"]["althtmldefs"][el[0]] + ", " + workset_context["addendum"]["althtmldefs"][el[1]]; }),
     indentation: ".".repeat(depth) + (depth+1).toString(),
+    essential: proof_tree["essential"],
   });
 }
 

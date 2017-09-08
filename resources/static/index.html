@@ -37,6 +37,7 @@
 
   <script id="proof_templ" type="x-tmpl-mustache">
     {{{ children }}}
+    {{ #essential }}
     <tr>
     <td></td>
     <td></td>
@@ -44,6 +45,7 @@
     <td><small>{{{ indentation }}}</small> {{{ sentence }}}</td>
     <td>{{ #dists }}{{{ . }}}; {{ /dists }}</td>
     </tr>
+    {{ /essential }}
   </script>
 </head>
 

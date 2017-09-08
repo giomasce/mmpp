@@ -79,5 +79,6 @@ json jsonize(const ProofTree &proof_tree) {
         ret["children"].push_back(jsonize(child));
     }
     ret["dists"] = proof_tree.dists;
+    ret["essential"] = proof_tree.essential;
     return ret;
 }
