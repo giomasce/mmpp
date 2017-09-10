@@ -26,3 +26,24 @@
   font-size: x-small;
   color: gray;
 }
+
+.step {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.step_sent_row {
+  width: 100%;
+}
+
+.step_label {
+  background-color: rgb(255, 255, 204);
+  font-size: small;
+}
+
+.step_sent {
+}
+
+.step_children {
+  margin-left: 30px;
+}

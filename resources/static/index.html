@@ -57,11 +57,11 @@
 
   <script id="modifier_step_templ" type="x-tmpl-mustache">
     <div id="step_{{ id }}" class="step">
-      <div id="step_{{ id }}_sent" class="step_sent" style="width: 100%;">
-        <span style="background-color: rgb(255, 255, 204);">{{ label }} <span class="r" style="color: {{ number_color }}">{{ number }}</span></span>
-        <span>{{{ sentence }}}</span>
+      <div id="step_{{ id }}_sent" class="step_sent_row">
+        <span class="step_label">{{ label }} <span class="r" style="color: {{ number_color }}">{{ number }}</span></span>
+        <span class="step_sent">{{{ sentence }}}</span>
       </div>
-      <div id="step_{{ id }}_children" class="step_children" style="margin-left: 30px;"></div>
+      <div id="step_{{ id }}_children" class="step_children"></div>
     </div>
   </script>
 </head>

@@ -7,6 +7,7 @@ import { create_workset, load_workset, Workset, Renderer, RenderingStyles } from
 
 let workset : Workset;
 let renderer : Renderer;
+const DEFAULT_STYLE : RenderingStyles = RenderingStyles.ALT_HTML;
 
 // Whether to include non essential steps or not
 let include_non_essentials : boolean = false;
@@ -20,25 +21,20 @@ $(function() {
 });
 
 export function ui_create_workset() {
-  create_workset(function (new_workset : Workset) {
-    workset = new_workset;
-    renderer = new Renderer(RenderingStyles.ALT_HTML, workset);
-    workset_loaded();
-  });
+  create_workset(workset_loaded);
 }
 
 export function ui_load_workset_0() {
-  load_workset(0, function (new_workset : Workset) {
-    workset = new_workset;
-    renderer = new Renderer(RenderingStyles.ALT_HTML, workset);
-    workset_loaded();
-  });
+  load_workset(0, workset_loaded);
 }
 
-function workset_loaded() {
+function workset_loaded(new_workset : Workset) {
+  workset = new_workset;
+  renderer = new Renderer(DEFAULT_STYLE, workset);
   $("#workset_status").text(`Workset ${workset.id} loaded!`);
   $("#create_workset").css("display", "none");
   $("#workset").css("display", "block");
+  $("#local_style").html(renderer.get_global_style());
 }
 
 export function ui_load_data() {
