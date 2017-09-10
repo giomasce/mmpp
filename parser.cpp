@@ -161,7 +161,8 @@ FileTokenizer::~FileTokenizer()
 }
 
 Parser::Parser(TokenGenerator &tg, bool execute_proofs, bool store_comments) :
-    tg(&tg), execute_proofs(execute_proofs), store_comments(store_comments)
+    tg(&tg), execute_proofs(execute_proofs), store_comments(store_comments),
+    number(1)
 {
 }
 
@@ -242,6 +243,7 @@ void Parser::run () {
     }
     this->final_frame = this->stack.back();
     this->lib.set_final_stack_frame(this->final_frame);
+    this->lib.set_max_number(this->number-1);
     this->stack.pop_back();
     assert_or_throw(this->stack.empty(), "Unmatched open scoping block");
 
@@ -459,7 +461,8 @@ void Parser::parse_a()
     set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
 
     // Finally build assertion
-    Assertion ass(false, mand_dists, {}, float_hyps, ess_hyps, {}, this->label, this->last_comment);
+    Assertion ass(false, mand_dists, {}, float_hyps, ess_hyps, {}, this->label, this->number, this->last_comment);
+    this->number++;
     this->last_comment = "";
     this->lib.add_assertion(this->label, ass);
 }
@@ -544,7 +547,8 @@ void Parser::parse_p()
     set< pair< SymTok, SymTok > > opt_dists = this->collect_opt_dists(opt_vars, mand_vars);
 
     // Finally build assertion and attach proof
-    Assertion ass(true, mand_dists, opt_dists, float_hyps, ess_hyps, opt_hyps, this->label, this->last_comment);
+    Assertion ass(true, mand_dists, opt_dists, float_hyps, ess_hyps, opt_hyps, this->label, this->number, this->last_comment);
+    this->number++;
     this->last_comment = "";
     if (compressed_proof != 3) {
         shared_ptr< Proof > proof;

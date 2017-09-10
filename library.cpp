@@ -174,6 +174,11 @@ void LibraryImpl::set_final_stack_frame(const StackFrame &final_stack_frame)
     this->final_stack_frame = final_stack_frame;
 }
 
+void LibraryImpl::set_max_number(LabTok max_number)
+{
+    this->max_number = max_number;
+}
+
 Assertion::Assertion() :
     valid(false)
 {
@@ -183,10 +188,10 @@ Assertion::Assertion(bool theorem,
                      std::set<std::pair<SymTok, SymTok> > dists,
                      std::set<std::pair<SymTok, SymTok> > opt_dists,
                      std::vector<LabTok> float_hyps, std::vector<LabTok> ess_hyps, std::set<LabTok> opt_hyps,
-                     LabTok thesis, string comment) :
+                     LabTok thesis, LabTok number, string comment) :
     valid(true), theorem(theorem), mand_dists(dists), opt_dists(opt_dists),
-    float_hyps(float_hyps), ess_hyps(ess_hyps), opt_hyps(opt_hyps), thesis(thesis), proof(NULL), comment(comment),
-    modif_disc(false), usage_disc(false)
+    float_hyps(float_hyps), ess_hyps(ess_hyps), opt_hyps(opt_hyps), thesis(thesis), number(number), proof(NULL),
+    comment(comment), modif_disc(false), usage_disc(false)
 {
     if (this->comment.find("(Proof modification is discouraged.)") != string::npos) {
         this->modif_disc = true;
@@ -291,6 +296,11 @@ private:
 
 function<const Assertion *()> LibraryImpl::list_assertions() const {
     return AssertionGenerator(this->assertions);
+}
+
+LabTok LibraryImpl::get_max_number() const
+{
+    return this->max_number;
 }
 
 void LibraryImpl::set_addendum(const LibraryAddendumImpl &add)

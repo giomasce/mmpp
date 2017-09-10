@@ -67,6 +67,8 @@ json jsonize(const Assertion &assertion)
     ret["opt_hyps"] = assertion.get_opt_hyps();
     ret["dists"] = assertion.get_dists();
     ret["opt_dists"] = assertion.get_opt_dists();
+    ret["number"] = assertion.get_number();
+    ret["comment"] = assertion.get_comment();
     return ret;
 }
 
@@ -80,5 +82,6 @@ json jsonize(const ProofTree &proof_tree) {
     }
     ret["dists"] = proof_tree.dists;
     ret["essential"] = proof_tree.essential;
+    ret["number"] = proof_tree.number;
     return ret;
 }

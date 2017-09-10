@@ -5,20 +5,22 @@
   <title>MMPP</title>
   <script src="js/jquery-3.1.1.js"></script>
   <script src="js/mustache.js"></script>
-  <script src="js/mmpp.js"></script>
+  <script src="js/system.js"></script>
+  <script src="js/glue.js"></script>
+
   <link rel="stylesheet" type="text/css" href="css/mmpp.css"></link>
   <style id="local_style"></style>
 
   <script id="assertion_templ" type="x-tmpl-mustache">
     Floating hypotheses:<ol>
-    {{ #float_hyps }}
+    {{ #float_hyps_sent }}
     <li>{{{ . }}}</li>
-    {{ /float_hyps }}
+    {{ /float_hyps_sent }}
     </ol>
     Essential hypotheses:<ol>
-    {{ #ess_hyps }}
+    {{ #ess_hyps_sent }}
     <li>{{{ . }}}</li>
-    {{ /ess_hyps }}
+    {{ /ess_hyps_sent }}
     </ol>
     Distinct variables:<ol>
     {{ #dists }}
@@ -43,31 +45,46 @@
     <tr>
     <td>{{ step }}</td>
     <td>{{ #children_steps }}{{ . }}, {{ /children_steps }}</td>
-    <td>{{ label }} <span class="r" style="color: {{ label_color }}">{{ label_num }}</span></td>
+    <td>{{ label }} <span class="r" style="color: {{ number_color }}">{{ number }}</span></td>
     <td><span class="i">{{{ indentation }}}</span> {{{ sentence }}}</td>
     <td>{{ #dists }}{{{ . }}}; {{ /dists }}</td>
     </tr>
+  </script>
+
+  <script id="modifier_templ" type="x-tmpl-mustache">
+    <div id="modifier"></div>
+  </script>
+
+  <script id="modifier_step_templ" type="x-tmpl-mustache">
+    <div id="step_{{ id }}" class="step">
+      <div id="step_{{ id }}_sent" class="step_sent" style="width: 100%;">
+        <span style="background-color: rgb(255, 255, 204);">{{ label }} <span class="r" style="color: {{ number_color }}">{{ number }}</span></span>
+        <span>{{{ sentence }}}</span>
+      </div>
+      <div id="step_{{ id }}_children" class="step_children" style="margin-left: 30px;"></div>
+    </div>
   </script>
 </head>
 
 <body>
   <div class="piece" id="version"></div>
   <div class="piece" id="create_workset">
-    <button onclick="create_workset()">Create workset</button>
-    <button onclick="load_workset_0()">Load workset 0</button>
+    <button onclick="mmpp.ui_create_workset()">Create workset</button>
+    <button onclick="mmpp.ui_load_workset_0()">Load workset 0</button>
   </div>
   <div class="piece" id="workset">
     <div id="workset_status"></div>
     <div id="commands">
-      <button onclick="load_setmm()">Load database</button>
+      <button onclick="mmpp.ui_load_data()">Load database</button>
       <input type="text" id="statement_label"></input>
-      <button onclick="show_statement()">Show statement</button>
-      <button onclick="show_assertion()">Show assertion</button>
+      <button onclick="mmpp.show_statement()">Show statement</button>
+      <button onclick="mmpp.show_assertion()">Show assertion</button>
+      <button onclick="mmpp.show_modifier()">Show modifier</button>
     </div>
     <div class="piece" id="show_statement_div">
       <div id="current_statement_alt"></div>
       <div id="current_statement"></div>
-      <input type="text" id="editor" oninput="editor_changed()" style="font-family: Inconsolata, monospace; width: 100%;"></input>
+      <input type="text" id="editor" oninput="mmpp.editor_changed()" style="font-family: Inconsolata, monospace; width: 100%;"></input>
     </div>
     <div class="piece" id="show_assertion_div">
     </div>

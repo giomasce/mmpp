@@ -26,6 +26,9 @@ struct ProofTree {
     std::vector< ProofTree > children;
     std::set< std::pair< SymTok, SymTok > > dists;
     bool essential;
+
+    // FIXME: Duplicated data
+    LabTok number;
 };
 
 class ProofEngine {

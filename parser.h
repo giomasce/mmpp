@@ -76,6 +76,7 @@ private:
     bool store_comments;
     LibraryImpl lib;
     LabTok label;
+    LabTok number;
     std::string last_comment;
     std::vector< std::string > toks;
     std::string t_comment;

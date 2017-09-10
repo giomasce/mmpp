@@ -40,6 +40,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         ret["labels"] = this->library->get_labels();
         const auto &addendum = this->library->get_addendum();
         ret["addendum"] = jsonize(addendum);
+        ret["max_number"] = this->library->get_max_number();
         return ret;
     } else if (*path_begin == "get_sentence") {
         path_begin++;

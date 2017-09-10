@@ -172,6 +172,7 @@ public:
               std::vector< LabTok > ess_hyps,
               std::set< LabTok > opt_hyps,
               LabTok thesis,
+              LabTok number,
               std::string comment = "");
     ~Assertion();
     bool is_valid() const
@@ -196,6 +197,12 @@ public:
     {
         return this->opt_dists;
     }
+    LabTok get_number() const {
+        return this->number;
+    }
+    const std::string &get_comment() const {
+        return this->comment;
+    }
     const std::set<std::pair<SymTok, SymTok> > get_dists() const;
     size_t get_mand_hyps_num() const;
     LabTok get_mand_hyp(size_t i) const;
@@ -215,6 +222,7 @@ private:
     std::vector< LabTok > ess_hyps;
     std::set< LabTok > opt_hyps;
     LabTok thesis;
+    LabTok number;
     std::shared_ptr< Proof > proof;
     std::string comment;
     bool modif_disc;
@@ -246,6 +254,7 @@ public:
     virtual const std::vector< std::string > &get_labels() const = 0;
     virtual const std::vector< Assertion > &get_assertions() const = 0;
     const ExtendedLibraryAddendum &get_addendum() const = 0;
+    virtual LabTok get_max_number() const = 0;
 };
 
 class LibraryImpl : public ExtendedLibrary
@@ -267,6 +276,7 @@ public:
     const StackFrame &get_final_stack_frame() const;
     const LibraryAddendumImpl &get_addendum() const;
     std::function< const Assertion*() > list_assertions() const;
+    virtual LabTok get_max_number() const;
 
     SymTok create_symbol(std::string s);
     LabTok create_label(std::string s);
@@ -274,6 +284,7 @@ public:
     void add_assertion(LabTok label, const Assertion &ass);
     void add_constant(SymTok c);
     void set_final_stack_frame(const StackFrame &final_stack_frame);
+    void set_max_number(LabTok max_number);
     void set_addendum(const LibraryAddendumImpl &add);
 
 private:
@@ -288,6 +299,8 @@ private:
 
     StackFrame final_stack_frame;
     LibraryAddendumImpl addendum;
+
+    LabTok max_number;
 };
 
 #endif // LIBRARY_H
