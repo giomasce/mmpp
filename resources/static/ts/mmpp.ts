@@ -2,7 +2,7 @@
 /// <reference path="mustache.d.ts"/>
 
 import { jsonAjax, get_serial, spectrum_to_rgb, push_and_get_index } from "./utils";
-import { Editor } from "./editor";
+import { Editor, Step } from "./editor";
 import { create_workset, load_workset, Workset, Renderer, RenderingStyles } from "./workset";
 
 let workset : Workset;
@@ -136,6 +136,16 @@ function modifier_render_proof(proof_tree, parent_div : string) {
   for (let child of proof_tree.children) {
     modifier_render_proof(child, `step_${id}_children`);
   }
+}
+
+let editor : Editor;
+export function create_editor() {
+  editor = new Editor("show_assertion_div");
+  $("#show_assertion_div").css('display', 'block');
+}
+
+export function get_editor() {
+  return editor;
 }
 
 export function show_modifier() {
