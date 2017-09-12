@@ -32,7 +32,7 @@
   margin-bottom: 10px;
 }
 
-.step_sent_row {
+.step_row {
   width: 100%;
 }
 
@@ -41,9 +41,16 @@
   font-size: small;
 }
 
-.step_sent {
+.step_data {
+  display: inline-block;
+  vertical-align: top;
 }
 
 .step_children {
   margin-left: 30px;
+}
+
+.step_handle {
+  display: inline-block;
+  vertical-align: top;
 }

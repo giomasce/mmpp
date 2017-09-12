@@ -121,31 +121,42 @@ export function show_assertion() {
   });
 }
 
-function modifier_render_proof(proof_tree, parent_div : string) {
+let editor : Editor;
+export function create_editor() {
+  editor = new Editor("show_assertion_div");
+  $("#show_assertion_div").css('display', 'block');
+  editor.create_step(editor.root_step.id, 0);
+  editor.create_step(editor.root_step.id, 0);
+  editor.create_step(editor.root_step.id, 0);
+  editor.create_step(editor.root_step.id, 0);
+  editor.create_step(editor.root_step.id, 0);
+  editor.create_step(editor.root_step.id, 0);
+  editor.create_step(editor.root_step.children[2].id, 0);
+  editor.create_step(editor.root_step.children[2].id, 0);
+  editor.create_step(editor.root_step.children[2].id, 0);
+  editor.create_step(editor.root_step.children[4].id, 0);
+  editor.create_step(editor.root_step.children[4].id, 0);
+  editor.create_step(editor.root_step.children[4].id, 0);
+}
+
+export function get_editor() {
+  return editor;
+}
+
+function modifier_render_proof(proof_tree, editor : Editor, parent : string) {
   if (!proof_tree["essential"] && !include_non_essentials) {
     return;
   }
-  let id : string = get_serial();
-  $("#" + parent_div).append(Mustache.render($("#modifier_step_templ").html(), {
-    id: id,
+  let step = editor.create_step(parent, -1);
+  step.get_data_element().append(Mustache.render($("#modifier_step_templ").html(), {
     sentence: renderer.render_from_codes(proof_tree.sentence),
     label: workset.labels[proof_tree.label],
     number: proof_tree.number > 0 ? proof_tree.number.toString() : "",
     number_color: spectrum_to_rgb(proof_tree.number, workset.max_number),
   }));
   for (let child of proof_tree.children) {
-    modifier_render_proof(child, `step_${id}_children`);
+    modifier_render_proof(child, editor, step.id);
   }
-}
-
-let editor : Editor;
-export function create_editor() {
-  editor = new Editor("show_assertion_div");
-  $("#show_assertion_div").css('display', 'block');
-}
-
-export function get_editor() {
-  return editor;
 }
 
 export function show_modifier() {
@@ -173,8 +184,8 @@ export function show_modifier() {
     // Fire all the requests and then feed the results to the template
     $.when.apply($, requests).done(function() {
       let responses = arguments;
-      $("#show_assertion_div").html(Mustache.render($('#modifier_templ').html(), {}));
-      modifier_render_proof(responses[requests_map["proof_tree"]]["proof_tree"], "modifier");
+      editor = new Editor("show_assertion_div");
+      modifier_render_proof(responses[requests_map["proof_tree"]]["proof_tree"], editor, editor.root_step.id);
       $("#show_assertion_div").css('display', 'block');
     });
   });
