@@ -57,6 +57,9 @@ export class Renderer {
   }
 
   get_global_style() : string {
+    if (this.workset.status !== "loaded") {
+      return "";
+    }
     if (this.style === RenderingStyles.ALT_HTML) {
       return this.workset.addendum.htmlcss;
     } else if (this.style == RenderingStyles.HTML) {

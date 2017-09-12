@@ -40,6 +40,7 @@ function workset_loaded(new_workset : Workset) {
 export function ui_load_data() {
   workset.load_data(function() {
     $("#workset_status").text("Library data loaded!");
+    $("#local_style").html(renderer.get_global_style());
   });
 }
 
