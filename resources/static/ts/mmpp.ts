@@ -2,7 +2,7 @@
 /// <reference path="mustache.d.ts"/>
 
 import { jsonAjax, get_serial, spectrum_to_rgb, push_and_get_index } from "./utils";
-import { Editor, Step } from "./editor";
+import { CellDelegate, Editor, Step } from "./editor";
 import { create_workset, load_workset, Workset, Renderer, RenderingStyles } from "./workset";
 
 let workset : Workset;
@@ -126,35 +126,100 @@ let editor : Editor;
 export function create_editor() {
   editor = new Editor("show_assertion_div");
   $("#show_assertion_div").css('display', 'block');
-  editor.create_step(editor.root_step.id, 0);
-  editor.create_step(editor.root_step.id, 0);
-  editor.create_step(editor.root_step.id, 0);
-  editor.create_step(editor.root_step.id, 0);
-  editor.create_step(editor.root_step.id, 0);
-  editor.create_step(editor.root_step.id, 0);
-  editor.create_step(editor.root_step.children[2].id, 0);
-  editor.create_step(editor.root_step.children[2].id, 0);
-  editor.create_step(editor.root_step.children[2].id, 0);
-  editor.create_step(editor.root_step.children[4].id, 0);
-  editor.create_step(editor.root_step.children[4].id, 0);
-  editor.create_step(editor.root_step.children[4].id, 0);
+  editor.create_step(editor.root_step.id, 0, null);
+  editor.create_step(editor.root_step.id, 0, null);
+  editor.create_step(editor.root_step.id, 0, null);
+  editor.create_step(editor.root_step.id, 0, null);
+  editor.create_step(editor.root_step.id, 0, null);
+  editor.create_step(editor.root_step.id, 0, null);
+  editor.create_step(editor.root_step.children[2].id, 0, null);
+  editor.create_step(editor.root_step.children[2].id, 0, null);
+  editor.create_step(editor.root_step.children[2].id, 0, null);
+  editor.create_step(editor.root_step.children[4].id, 0, null);
+  editor.create_step(editor.root_step.children[4].id, 0, null);
+  editor.create_step(editor.root_step.children[4].id, 0, null);
 }
 
 export function get_editor() {
   return editor;
 }
 
+class ProofStepCellDelegate implements CellDelegate {
+  proof_tree;
+  step : Step;
+  suggestion_ready : boolean = false;
+
+  constructor(proof_tree) {
+    this.proof_tree = proof_tree;
+  }
+
+  set_step(step : Step) : void {
+    this.step = step;
+  }
+
+  show_suggestion() : void {
+    $(`#${this.step.get_id()}_suggestion`).fadeIn();
+  }
+
+  get_suggestion() : void {
+    let self = this;
+    if (this.suggestion_ready) {
+      this.show_suggestion();
+      return;
+    }
+    let label : number = this.proof_tree["label"];
+    jsonAjax(`/api/1/workset/${workset.id}/get_assertion/${label}`).done(function(data) {
+      let assertion = data["assertion"];
+
+      // Request all the interesting things for the proof
+      let requests : JQueryXHR[] = [];
+      let requests_map = {
+        thesis: push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset.id}/get_sentence/${assertion["thesis"]}`)),
+        ess_hyps_sent: assertion["ess_hyps"].map(function (el) { return push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset.id}/get_sentence/${el}`)); }),
+        float_hyps_sent: assertion["float_hyps"].map(function (el) { return push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset.id}/get_sentence/${el}`)); }),
+      };
+
+      // Fire all the requests and then feed the results to the template
+      $.when.apply($, requests).done(function() {
+        let responses = arguments;
+        $(`#${self.step.get_id()}_suggestion`).html(Mustache.render(SUGGESTION_TEMPL, {
+          thesis: renderer.render_from_codes(responses[requests_map["thesis"]]["sentence"]),
+          ess_hyps_sent: requests_map["ess_hyps_sent"].map(function(el) { return renderer.render_from_codes(responses[el]["sentence"]); }),
+          float_hyps_sent: requests_map["float_hyps_sent"].map(function(el) { return renderer.render_from_codes(responses[el]["sentence"]); }),
+          dists: assertion["dists"].map(function(el) { return renderer.render_from_codes([el[0]]) + ", " + renderer.render_from_codes([el[1]]); }),
+        }));
+        self.suggestion_ready = true;
+        self.show_suggestion();
+      });
+    });
+  }
+
+  cell_ready() : void {
+    let self = this;
+    let params = {
+      cell_id: this.step.get_id(),
+      sentence: renderer.render_from_codes(this.proof_tree.sentence),
+      label: workset.labels[this.proof_tree.label],
+      number: this.proof_tree.number > 0 ? this.proof_tree.number.toString() : "",
+      number_color: spectrum_to_rgb(this.proof_tree.number, workset.max_number),
+      dists: this.proof_tree["dists"].map(function(el) { return renderer.render_from_codes([el[0]]) + ", " + renderer.render_from_codes([el[1]]); }).join("; "),
+    };
+    this.step.get_data1_element().append(Mustache.render(DATA1_TEMPL, params));
+    this.step.get_data2_element().append(Mustache.render(DATA2_TEMPL, params));
+    $(`#${this.step.get_id()}_label`).hover(function() {
+      self.get_suggestion();
+    }, function() {
+      $(`#${self.step.get_id()}_suggestion`).fadeOut();
+    });
+  }
+}
+
 function modifier_render_proof(proof_tree, editor : Editor, parent : string) {
   if (!proof_tree["essential"] && !include_non_essentials) {
     return;
   }
-  let step = editor.create_step(parent, -1);
-  step.get_data_element().append(Mustache.render($("#modifier_step_templ").html(), {
-    sentence: renderer.render_from_codes(proof_tree.sentence),
-    label: workset.labels[proof_tree.label],
-    number: proof_tree.number > 0 ? proof_tree.number.toString() : "",
-    number_color: spectrum_to_rgb(proof_tree.number, workset.max_number),
-  }));
+  let cell_delegate = new ProofStepCellDelegate(proof_tree);
+  let step = editor.create_step(parent, -1, cell_delegate);
   for (let child of proof_tree.children) {
     modifier_render_proof(child, editor, step.id);
   }
@@ -208,3 +273,28 @@ export function editor_changed() {
   });
   return sentence;
 }*/
+
+const DATA1_TEMPL = `
+  <span id="{{ cell_id }}_label" class="label" style="position: relative;">
+    {{ label }} <span class="r" style="color: {{ number_color }}">{{ number }}</span>
+    <div class="outer_above">
+      <div style="display: none;" id="{{ cell_id }}_suggestion" class="inner_above suggestion"></div>
+    </div>
+  </span>
+  <span class="sentence">{{{ sentence }}}</span>
+`;
+
+const DATA2_TEMPL = `
+  <span>Distinct variables: {{{ dists }}}</span>
+`;
+
+const SUGGESTION_TEMPL = `
+  &#8658; {{{ thesis }}}<br>
+  {{ #ess_hyps_sent }}
+  {{{ . }}}<br>
+  {{ /ess_hyps_sent }}
+  Distinct variables:
+  {{ #dists }}
+  {{{ . }}};
+  {{ /dists }}
+`;

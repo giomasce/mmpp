@@ -36,11 +36,6 @@
   width: 100%;
 }
 
-.step_label {
-  background-color: rgb(255, 255, 204);
-  font-size: small;
-}
-
 .step_data {
   display: inline-block;
   vertical-align: top;
@@ -53,4 +48,41 @@
 .step_handle {
   display: inline-block;
   vertical-align: top;
+}
+
+.label {
+  background-color: rgb(255, 255, 204);
+  font-size: small;
+}
+
+.sentence {
+}
+
+.suggestion {
+  width: 500px;
+  background-color: rgb(255, 255, 255);
+  border-style: outset;
+  border-width: 1px;
+  border-color: rgb(0, 0, 0);
+  padding: 2px;
+}
+
+.mini_button {
+  padding: 0px;
+  border-width: 1px;
+  width: 10px;
+  height: 10px;
+  vertical-align: middle;
+}
+
+.outer_above {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+}
+
+.inner_above {
+  position: absolute;
+  bottom: 5px;
+  left: 0px;
 }

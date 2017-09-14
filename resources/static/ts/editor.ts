@@ -3,52 +3,110 @@
 
 import { gen_random_id } from "./utils";
 
+export interface CellDelegate {
+  set_step(step : Step) : void;
+  cell_ready() : void;
+}
+
+class TrivialCellDelegate implements CellDelegate {
+  set_step(step : Step) : void {
+  }
+  cell_ready() : void {
+  }
+}
+
 export class Step {
   id : string;
-  eid : string;
+  editor : Editor;
   parent : Step;
+  cell_delegate : CellDelegate;
   children : Array< Step >;
-  open : boolean = true;
+  children_open : boolean = true;
+  data2_open : boolean = false;
 
-  constructor(id : string, eid : string, parent : Step) {
+  constructor(id : string, editor : Editor, parent : Step, cell_delegate : CellDelegate) {
     this.id = id;
-    this.eid = eid;
+    this.editor = editor;
     this.parent = parent;
+    if (cell_delegate === null) {
+      cell_delegate = new TrivialCellDelegate();
+    }
+    this.cell_delegate = cell_delegate;
     this.children = new Array();
+    this.cell_delegate.set_step(this);
   }
 
-  get_data_element() : JQuery {
-    return $(`#${this.eid}_step_${this.id}_data`);
+  get_id() : string {
+    return `${this.editor.id}_step_${this.id}`;
+  }
+
+  get_data1_element() : JQuery {
+    return $(`#${this.editor.id}_step_${this.id}_data1`);
+  }
+
+  get_data2_element() : JQuery {
+    return $(`#${this.editor.id}_step_${this.id}_data2`);
   }
 
   just_created() : void {
-    $(`#${this.eid}_step_${this.id}_handle`).html("O").click(this.toggle.bind(this));
+    let self = this;
+    $(`#${this.editor.id}_step_${this.id}_btn_toggle_children`).css("background-color", "green").click(this.toggle_children.bind(this));
+    $(`#${this.editor.id}_step_${this.id}_btn_toggle_data2`).css("background-color", "red").click(this.toggle_data2.bind(this));
+    $(`#${this.editor.id}_step_${this.id}_btn_close_all_children`).click(function() {
+      self.open_children();
+      for (let child of self.children) {
+        child.close_children();
+      }
+    });
+    this.cell_delegate.cell_ready();
   }
 
-  toggle() : void {
-    if (this.open) {
-      $(`#${this.eid}_step_${this.id}_handle`).html("C");
-      $(`#${this.eid}_step_${this.id}_children`).slideUp();
-      this.open = false;
+  toggle_children() : void {
+    if (this.children_open) {
+      $(`#${this.editor.id}_step_${this.id}_btn_toggle_children`).css("background-color", "red");
+      $(`#${this.editor.id}_step_${this.id}_children`).slideUp();
+      this.children_open = false;
     } else {
-      $(`#${this.eid}_step_${this.id}_handle`).html("O");
-      $(`#${this.eid}_step_${this.id}_children`).slideDown();
-      this.open = true;
+      $(`#${this.editor.id}_step_${this.id}_btn_toggle_children`).css("background-color", "green");
+      $(`#${this.editor.id}_step_${this.id}_children`).slideDown();
+      this.children_open = true;
     }
   }
 
-  render() : void {
-    let content = this.get_content();
-    $(`#${this.eid}_step_${this.id}_data`).html(content);
-    let self = this;
-    $(`#${this.eid}_step_${this.id}_row`).click(function() {
-      console.log(this);
-      console.log(self.get_content());
-    });
+  open_children() : void {
+    if (!this.children_open) {
+      this.toggle_children();
+    }
   }
 
-  get_content() : string {
-    return `${this.eid}<br>${this.id}`;
+  close_children() : void {
+    if (this.children_open) {
+      this.toggle_children();
+    }
+  }
+
+  toggle_data2() : void {
+    if (this.data2_open) {
+      $(`#${this.editor.id}_step_${this.id}_btn_toggle_data2`).css("background-color", "red");
+      $(`#${this.editor.id}_step_${this.id}_data2`).slideUp();
+      this.data2_open = false;
+    } else {
+      $(`#${this.editor.id}_step_${this.id}_btn_toggle_data2`).css("background-color", "green");
+      $(`#${this.editor.id}_step_${this.id}_data2`).slideDown();
+      this.data2_open = true;
+    }
+  }
+
+  open_data2() : void {
+    if (!this.data2_open) {
+      this.toggle_data2();
+    }
+  }
+
+  close_data2() : void {
+    if (this.data2_open) {
+      this.toggle_data2();
+    }
   }
 }
 
@@ -65,22 +123,22 @@ export class Editor {
 
     // Construct a dummy root step, with some glue DOM code
     let root_id = gen_random_id();
-    this.root_step = new Step(root_id, this.id, null);
+    this.root_step = new Step(root_id, this, null, null);
     this.steps_map[root_id] = this.root_step;
-    let html_code = Mustache.render(STEP_TMPL, {
+    let html_code = Mustache.render(STEP_ROOT_TMPL, {
       eid: this.id,
       id: root_id,
     });
     $(`#${parent_div}`).html(html_code);
   }
 
-  create_step(parent : string, index : number) : Step {
+  create_step(parent : string, index : number, cell_delegate : CellDelegate) : Step {
     let parent_step = this.steps_map[parent];
     if (index === -1) {
       index = parent_step.children.length;
     }
     let new_id = gen_random_id();
-    let new_step = new Step(new_id, this.id, parent_step);
+    let new_step = new Step(new_id, this, parent_step, cell_delegate);
     this.steps_map[new_id] = new_step;
     parent_step.children.splice(index, 0, new_step);
 
@@ -120,11 +178,24 @@ export class Editor {
   }
 }
 
+const STEP_ROOT_TMPL = `
+<div id="{{ eid }}_step_{{ id }}" class="step">
+  <div id="{{ eid }}_step_{{ id }}_children"></div>
+</div>
+`;
+
 const STEP_TMPL = `
 <div id="{{ eid }}_step_{{ id }}" class="step">
   <div id="{{ eid }}_step_{{ id }}_row" class="step_row">
-    <div id="{{ eid }}_step_{{ id }}_handle" class="step_handle"></div>
-    <div id="{{ eid }}_step_{{ id }}_data" class="step_data"></div>
+    <div id="{{ eid }}_step_{{ id }}_handle" class="step_handle">
+      <button id="{{ eid }}_step_{{ id }}_btn_toggle_children" class="mini_button"></button>
+      <button id="{{ eid }}_step_{{ id }}_btn_toggle_data2" class="mini_button"></button>
+      <button id="{{ eid }}_step_{{ id }}_btn_close_all_children" class="mini_button"></button>
+    </div>
+    <div id="{{ eid }}_step_{{ id }}_data" class="step_data">
+      <div id="{{ eid }}_step_{{ id }}_data1" class="step_data1"></div>
+      <div id="{{ eid }}_step_{{ id }}_data2" class="step_data2" style="display: none;"></div>
+    </div>
   </div>
   <div id="{{ eid }}_step_{{ id }}_children" class="step_children"></div>
 </div>
