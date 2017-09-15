@@ -594,7 +594,12 @@ Prover LibraryToolbox::build_registered_prover(const RegisteredProver &prover, c
         }
 
         // Finally add this assertion's label
-        engine.process_label(ass.get_thesis());
+        try {
+            engine.process_label(ass.get_thesis());
+        } catch (const ProofException&) {
+            engine.rollback();
+            return false;
+        }
 
         engine.commit();
         return true;

@@ -26,7 +26,8 @@ SOURCES += main.cpp \
     web.cpp \
     platform.cpp \
     workset.cpp \
-    jsonize.cpp
+    jsonize.cpp \
+    z3prover.cpp
 
 CONFIG(qt) {
 SOURCES +=  mainwindow.cpp \
@@ -47,7 +48,7 @@ SOURCES +=  mainwindow.cpp \
 
 QMAKE_CFLAGS += -std=c11
 QMAKE_CXXFLAGS += -std=c++17 -march=native
-QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lpthread
+QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lpthread -lz3
 
 HEADERS += \
     wff.h \
@@ -66,7 +67,8 @@ HEADERS += \
     json.h \
     platform.h \
     workset.h \
-    jsonize.h
+    jsonize.h \
+    z3prover.h
 
 CONFIG(qt) {
 HEADERS +=  mainwindow.h \

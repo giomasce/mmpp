@@ -358,7 +358,7 @@ const std::set<std::pair<SymTok, SymTok> > &ProofEngine::get_dists() const
 
 void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 {
-    assert_or_throw(this->stack.size() >= child_ass.get_mand_hyps_num(), "Stack too small to pop hypotheses");
+    assert_or_throw_pe(this->stack.size() >= child_ass.get_mand_hyps_num(), "Stack too small to pop hypotheses");
     const size_t stack_base = this->stack.size() - child_ass.get_mand_hyps_num();
     //this->dists.clear();
     set< pair< SymTok, SymTok > > dists;
@@ -374,7 +374,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
         assert(!this->lib.is_constant(hyp_sent.at(1)));
         const vector< SymTok > &stack_hyp_sent = this->stack.at(stack_base + i);
         assert(this->dists_stack.at(stack_base + i).empty());
-        assert_or_throw(hyp_sent.at(0) == stack_hyp_sent.at(0), "Floating hypothesis does not match stack");
+        assert_or_throw_pe(hyp_sent.at(0) == stack_hyp_sent.at(0), "Floating hypothesis does not match stack");
 #ifndef NDEBUG
         if (stack_hyp_sent.size() == 1) {
             cerr << "[" << this->debug_output << "] Matching an empty sentence" << endl;
@@ -401,17 +401,17 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
         for (auto it = hyp_sent.begin(); it != hyp_sent.end(); it++) {
             const SymTok &tok = *it;
             if (this->lib.is_constant(tok)) {
-                assert_or_throw(tok == *stack_it, "Essential hypothesis does not match stack beacuse of wrong constant");
+                assert_or_throw_pe(tok == *stack_it, "Essential hypothesis does not match stack beacuse of wrong constant");
                 stack_it++;
             } else {
                 const vector< SymTok > &subst = subst_map.at(tok);
                 assert(distance(stack_it, stack_hyp_sent.end()) >= 0);
-                assert_or_throw(subst.size() <= (size_t) distance(stack_it, stack_hyp_sent.end()), "Essential hypothesis does not match stack because stack is shorter");
-                assert_or_throw(equal(subst.begin(), subst.end(), stack_it), "Essential hypothesis does not match stack because of wrong variable substitution");
+                assert_or_throw_pe(subst.size() <= (size_t) distance(stack_it, stack_hyp_sent.end()), "Essential hypothesis does not match stack because stack is shorter");
+                assert_or_throw_pe(equal(subst.begin(), subst.end(), stack_it), "Essential hypothesis does not match stack because of wrong variable substitution");
                 stack_it += subst.size();
             }
         }
-        assert_or_throw(stack_it == stack_hyp_sent.end(), "Essential hypothesis does not match stack because stack is longer");
+        assert_or_throw_pe(stack_it == stack_hyp_sent.end(), "Essential hypothesis does not match stack because stack is longer");
         i++;
     }
 
@@ -435,7 +435,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
                         if (this->lib.is_constant(tok2)) {
                             continue;
                         }
-                        assert_or_throw(tok1 != tok2, "Distinct variable constraint violated");
+                        assert_or_throw_pe(tok1 != tok2, "Distinct variable constraint violated");
                         dists.insert(minmax(tok1, tok2));
                     }
                 }
@@ -575,4 +575,14 @@ void ProofEngine::check_stack_underflow()
     if (!this->checkpoints.empty() && this->stack.size() < get<0>(this->checkpoints.back())) {
         throw MMPPException("Checkpointed context exited without committing or rolling back");
     }
+}
+
+ProofException::ProofException(string reason) :
+    reason(reason)
+{
+}
+
+const string &ProofException::get_reason() const
+{
+    return this->reason;
 }

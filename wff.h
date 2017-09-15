@@ -101,6 +101,9 @@ public:
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
   Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
+  std::string get_name() {
+      return this->name;
+  }
 
 private:
   std::string name;
@@ -130,6 +133,9 @@ public:
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
   Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
+  pwff get_a() {
+      return this->a;
+  }
 
 private:
   pwff a;
@@ -153,6 +159,12 @@ public:
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
   Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
+  pwff get_a() {
+      return this->a;
+  }
+  pwff get_b() {
+      return this->b;
+  }
 
 private:
   pwff a, b;
@@ -177,6 +189,12 @@ public:
   void get_variables(std::set< std::string > &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
+  pwff get_a() {
+      return this->a;
+  }
+  pwff get_b() {
+      return this->b;
+  }
 
 private:
   pwff a, b;
@@ -196,6 +214,12 @@ public:
   void get_variables(std::set< std::string > &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
+  pwff get_a() {
+      return this->a;
+  }
+  pwff get_b() {
+      return this->b;
+  }
 
 private:
   pwff a, b;
@@ -215,6 +239,12 @@ public:
   void get_variables(std::set< std::string > &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
+  pwff get_a() {
+      return this->a;
+  }
+  pwff get_b() {
+      return this->b;
+  }
 
 private:
   pwff a, b;
@@ -234,6 +264,12 @@ public:
   void get_variables(std::set< std::string > &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
+  pwff get_a() {
+      return this->a;
+  }
+  pwff get_b() {
+      return this->b;
+  }
 
 private:
   pwff a, b;
@@ -253,13 +289,19 @@ public:
   void get_variables(std::set< std::string > &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
+  pwff get_a() {
+      return this->a;
+  }
+  pwff get_b() {
+      return this->b;
+  }
+
+private:
+  pwff a, b;
 
   static RegisteredProver type_rp;
   static RegisteredProver imp_not_1_rp;
   static RegisteredProver imp_not_2_rp;
-
-private:
-  pwff a, b;
 };
 
 class And3 : public ConvertibleWff {
@@ -272,13 +314,22 @@ public:
     void get_variables(std::set< std::string > &vars) const;
     Prover get_type_prover(const LibraryToolbox &tb) const;
     Prover get_imp_not_prover(const LibraryToolbox &tb) const;
+    pwff get_a() {
+        return this->a;
+    }
+    pwff get_b() {
+        return this->b;
+    }
+    pwff get_c() {
+        return this->c;
+    }
+
+  private:
+    pwff a, b, c;
 
     static RegisteredProver type_rp;
     static RegisteredProver imp_not_1_rp;
     static RegisteredProver imp_not_2_rp;
-
-  private:
-    pwff a, b, c;
 };
 
 class Or3 : public ConvertibleWff {
@@ -291,13 +342,22 @@ public:
     void get_variables(std::set< std::string > &vars) const;
     Prover get_type_prover(const LibraryToolbox &tb) const;
     Prover get_imp_not_prover(const LibraryToolbox &tb) const;
+    pwff get_a() {
+        return this->a;
+    }
+    pwff get_b() {
+        return this->b;
+    }
+    pwff get_c() {
+        return this->c;
+    }
+
+  private:
+    pwff a, b, c;
 
     static RegisteredProver type_rp;
     static RegisteredProver imp_not_1_rp;
     static RegisteredProver imp_not_2_rp;
-
-  private:
-    pwff a, b, c;
 };
 
 #endif // WFF_H

@@ -20,6 +20,21 @@ class ProofExecutor;
 
 #include "library.h"
 
+class ProofException {
+public:
+    ProofException(std::string reason);
+    const std::string &get_reason() const;
+
+private:
+    std::string reason;
+};
+
+inline static void assert_or_throw_pe(bool cond, std::string reason="") {
+    if (!cond) {
+        throw ProofException(reason);
+    }
+}
+
 struct ProofTree {
     std::vector< SymTok > sentence;
     LabTok label;

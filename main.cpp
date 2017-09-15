@@ -19,6 +19,7 @@
 #include "test.h"
 #include "httpd.h"
 #include "web.h"
+#include "z3prover.h"
 
 #ifdef USE_QT
 #include "mainwindow.h"
@@ -113,6 +114,7 @@ int unification_loop_main(int argc, char *argv[]) {
 const unordered_map< string, function< int(int, char*[]) > > MAIN_FUNCTIONS = {
     { "mmpp_test_one", test_one_main },
     { "mmpp_test_all", test_all_main },
+    { "mmpp_test_z3", test_z3_main },
     { "unificator", unification_loop_main },
     { "webmmpp", httpd_main },
 #ifdef USE_QT
@@ -120,7 +122,7 @@ const unordered_map< string, function< int(int, char*[]) > > MAIN_FUNCTIONS = {
 #endif
 };
 
-const function< int(int, char*[]) > DEFAULT_MAIN_FUNCTION = httpd_main;
+const function< int(int, char*[]) > DEFAULT_MAIN_FUNCTION = test_z3_main;
 
 int main(int argc, char *argv[]) {
     char *tmp = strdup(argv[0]);
