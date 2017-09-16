@@ -26,6 +26,7 @@ public:
     virtual Prover get_type_prover(const LibraryToolbox &tb) const;
     virtual Prover get_imp_not_prover(const LibraryToolbox &tb) const;
     virtual Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
+    virtual bool operator==(const Wff &x) const = 0;
     Prover get_adv_truth_prover(const LibraryToolbox &tb) const;
 
 private:
@@ -64,6 +65,8 @@ public:
     Prover get_type_prover(const LibraryToolbox &tb) const;
     Prover get_imp_not_prover(const LibraryToolbox &tb) const;
     Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
+    bool operator==(const Wff &x) const;
+
 private:
     static RegisteredProver truth_rp;
     static RegisteredProver type_rp;
@@ -83,6 +86,8 @@ public:
     Prover get_type_prover(const LibraryToolbox &tb) const;
     Prover get_imp_not_prover(const LibraryToolbox &tb) const;
     Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
+    bool operator==(const Wff &x) const;
+
 private:
     static RegisteredProver falsity_rp;
     static RegisteredProver type_rp;
@@ -101,7 +106,8 @@ public:
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
   Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
-  std::string get_name() {
+  bool operator==(const Wff &x) const;
+  std::string get_name() const {
       return this->name;
   }
 
@@ -133,7 +139,8 @@ public:
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
   Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
-  pwff get_a() {
+  bool operator==(const Wff &x) const;
+  pwff get_a() const {
       return this->a;
   }
 
@@ -159,10 +166,11 @@ public:
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
   Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
-  pwff get_a() {
+  bool operator==(const Wff &x) const;
+  pwff get_a() const {
       return this->a;
   }
-  pwff get_b() {
+  pwff get_b() const {
       return this->b;
   }
 
@@ -189,10 +197,11 @@ public:
   void get_variables(std::set< std::string > &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
-  pwff get_a() {
+  bool operator==(const Wff &x) const;
+  pwff get_a() const {
       return this->a;
   }
-  pwff get_b() {
+  pwff get_b() const {
       return this->b;
   }
 
@@ -214,10 +223,11 @@ public:
   void get_variables(std::set< std::string > &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
-  pwff get_a() {
+  bool operator==(const Wff &x) const;
+  pwff get_a() const {
       return this->a;
   }
-  pwff get_b() {
+  pwff get_b() const {
       return this->b;
   }
 
@@ -239,10 +249,11 @@ public:
   void get_variables(std::set< std::string > &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
-  pwff get_a() {
+  bool operator==(const Wff &x) const;
+  pwff get_a() const {
       return this->a;
   }
-  pwff get_b() {
+  pwff get_b() const {
       return this->b;
   }
 
@@ -264,10 +275,11 @@ public:
   void get_variables(std::set< std::string > &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
-  pwff get_a() {
+  bool operator==(const Wff &x) const;
+  pwff get_a() const {
       return this->a;
   }
-  pwff get_b() {
+  pwff get_b() const {
       return this->b;
   }
 
@@ -289,10 +301,11 @@ public:
   void get_variables(std::set< std::string > &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
-  pwff get_a() {
+  bool operator==(const Wff &x) const;
+  pwff get_a() const {
       return this->a;
   }
-  pwff get_b() {
+  pwff get_b() const {
       return this->b;
   }
 
@@ -314,13 +327,14 @@ public:
     void get_variables(std::set< std::string > &vars) const;
     Prover get_type_prover(const LibraryToolbox &tb) const;
     Prover get_imp_not_prover(const LibraryToolbox &tb) const;
-    pwff get_a() {
+    bool operator==(const Wff &x) const;
+    pwff get_a() const {
         return this->a;
     }
-    pwff get_b() {
+    pwff get_b() const {
         return this->b;
     }
-    pwff get_c() {
+    pwff get_c() const {
         return this->c;
     }
 
@@ -342,13 +356,14 @@ public:
     void get_variables(std::set< std::string > &vars) const;
     Prover get_type_prover(const LibraryToolbox &tb) const;
     Prover get_imp_not_prover(const LibraryToolbox &tb) const;
-    pwff get_a() {
+    bool operator==(const Wff &x) const;
+    pwff get_a() const {
         return this->a;
     }
-    pwff get_b() {
+    pwff get_b() const {
         return this->b;
     }
-    pwff get_c() {
+    pwff get_c() const {
         return this->c;
     }
 

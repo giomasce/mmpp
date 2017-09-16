@@ -1,4 +1,6 @@
 
+#include <unordered_map>
+
 #include <z3++.h>
 
 #include "z3prover.h"
@@ -24,7 +26,7 @@ pwff parse_expr(expr e) {
         assert(e.num_args() == 0);
         return make_shared< False >();
     case Z3_OP_EQ:
-        // Interpreted as biimplication; is this correct?
+        // Interpreted as biimplication; why does Z3 generates equalities between formulae?
         assert(e.num_args() == 2);
         return make_shared< Biimp >(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
     case Z3_OP_AND:
@@ -81,6 +83,9 @@ RegisteredProver ass_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ph )")
 RegisteredProver mp1_rp = LibraryToolbox::register_prover({"|- ( ph -> ps )", "|- ( ph -> ( ps -> ch ) )"}, "|- ( ph -> ch )");
 RegisteredProver mp2_rp = LibraryToolbox::register_prover({"|- ( ph -> ps )", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ch )");
 RegisteredProver tr_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps <-> ch ) )", "|- ( ph -> ( ch <-> th ) )"}, "|- ( ph -> ( ps <-> th ) )");
+RegisteredProver a1i_rp = LibraryToolbox::register_prover({"|- ps"}, "|- ( ph -> ps )");
+RegisteredProver biidd_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( ps <-> ps ) )");
+RegisteredProver mono_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps <-> ch ) )", "|- ( ph -> ( th <-> ta ) )"}, "|- ( ph -> ( ( ps <-> th ) <-> ( ch <-> ta ) ) )");
 
 Prover iterate_expr(pwff w, expr e, const LibraryToolbox &tb, int depth = 0, expr *parent = NULL) {
     using z3::sort;
@@ -98,10 +103,9 @@ Prover iterate_expr(pwff w, expr e, const LibraryToolbox &tb, int depth = 0, exp
 
             switch (kind) {
             case Z3_OP_PR_ASSERTED:
-                cout << "asserted fact";
                 assert(num_args == 1);
                 assert(arity == 1);
-                assert(w->to_string() == parse_expr(e.arg(0))->to_string());
+                assert(*w == *parse_expr(e.arg(0)));
                 //cout << "EXPR: " << e.arg(0) << endl;
                 //cout << "WFF: " << parse_expr(e.arg(0))->to_string() << endl;
                 return tb.build_registered_prover(ass_rp, {{"ph", w->get_type_prover(tb)}}, {});
@@ -121,16 +125,21 @@ Prover iterate_expr(pwff w, expr e, const LibraryToolbox &tb, int depth = 0, exp
                     return cascade_provers(mp1, mp2);
                 }
                 break;
-            /*case Z3_OP_PR_REWRITE:
-                cout << "rewrite";
+            case Z3_OP_PR_REWRITE:
                 assert(num_args == 1);
                 assert(arity == 1);
                 //cout << endl << "EXPR: " << e.arg(0);
-                cout << endl << "WFF: " << parse_expr(e.arg(0))->to_string();
+                //cout << endl << "WFF: " << parse_expr(e.arg(0))->to_string();
                 //prove_and_print(parse_expr(e.arg(0)), tb);
-                break;*/
+                {
+                    // The thesis should be true independently of ph
+                    pwff thesis = parse_expr(e.arg(0));
+                    cout << "ORACLE for '" << thesis->to_string() << "'!" << endl;
+                    Prover p1 = thesis->get_adv_truth_prover(tb);
+                    return tb.build_registered_prover(a1i_rp, {{"ph", w->get_type_prover(tb)}, {"ps", thesis->get_type_prover(tb)}}, {p1});
+                }
+                break;
             case Z3_OP_PR_TRANSITIVITY:
-                cout << "transitivity";
                 assert(num_args == 3);
                 assert(arity == 3);
                 //cout << endl << "EXPR: " << e.arg(2);
@@ -143,22 +152,58 @@ Prover iterate_expr(pwff w, expr e, const LibraryToolbox &tb, int depth = 0, exp
                     shared_ptr< Biimp > w1 = dynamic_pointer_cast< Biimp >(parse_expr(extract_thesis(e.arg(0))));
                     shared_ptr< Biimp > w2 = dynamic_pointer_cast< Biimp >(parse_expr(extract_thesis(e.arg(1))));
                     assert(w1 != NULL && w2 != NULL);
-                    assert(w1->get_b()->to_string() == w2->get_a()->to_string());
+                    assert(*w1->get_b() == *w2->get_a());
                     pwff ps = w1->get_a();
                     pwff ch = w1->get_b();
                     pwff th = w2->get_b();
                     return tb.build_registered_prover(tr_rp, {{"ph", w->get_type_prover(tb)}, {"ps", ps->get_type_prover(tb)}, {"ch", ch->get_type_prover(tb)}, {"th", th->get_type_prover(tb)}}, {p1, p2});
                 }
                 break;
-            /*case Z3_OP_PR_MONOTONICITY:
-                cout << "monotonicity";
+            case Z3_OP_PR_MONOTONICITY:
                 assert(num_args == 2);
                 assert(arity == 2);
-                //cout << endl << "EXPR: " << e.arg(2);
-                cout << endl << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string();
-                //cout << endl << "TH: " << parse_expr(e.arg(1))->to_string();
+                /*cout << "EXPR: " << e.arg(num_args-1) << endl;
+                cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;
+                cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;*/
+                {
+                    // Recognize the monotonic operation
+                    expr thesis = e.arg(num_args-1);
+                    switch (thesis.decl().decl_kind()) {
+                    /*case Z3_OP_EQ:
+                        break;*/
+                    case Z3_OP_IFF: {
+                        assert(thesis.num_args() == 2);
+                        expr th_left = thesis.arg(0);
+                        expr th_right = thesis.arg(1);
+                        assert(th_left.decl().decl_kind() == th_right.decl().decl_kind());
+                        assert(th_left.num_args() == th_right.num_args());
+                        assert(th_left.decl().decl_kind() == Z3_OP_IFF);
+                        assert(th_left.num_args() == 2);
+                        vector< Prover > hyps_prover;
+                        vector< Prover > wffs_prover;
+                        bool used = false;
+                        for (size_t i = 0; i < 2; i++) {
+                            if (eq(th_left.arg(i), th_right.arg(i))) {
+                                hyps_prover.push_back(tb.build_registered_prover(biidd_rp, {{"ph", w->get_type_prover(tb)}, {"ps", parse_expr(th_left.arg(i))->get_type_prover(tb)}}, {}));
+                            } else {
+                                assert(!used);
+                                hyps_prover.push_back(iterate_expr(w, e.arg(0), tb, depth+1, &e));
+                                used = true;
+                            }
+                            wffs_prover.push_back(parse_expr(th_left.arg(i))->get_type_prover(tb));
+                            wffs_prover.push_back(parse_expr(th_right.arg(i))->get_type_prover(tb));
+                        }
+                        assert(hyps_prover.size() == 2);
+                        assert(used);
+                        return tb.build_registered_prover(mono_rp, {{"ph", w->get_type_prover(tb)}, {"ps", wffs_prover[0]}, {"ch", wffs_prover[1]}, {"th", wffs_prover[2]}, {"ta", wffs_prover[3]}}, hyps_prover);
+                        break; }
+                    default:
+                        throw "Unsupported operation";
+                        break;
+                    }
+                }
                 break;
-            case Z3_OP_PR_UNIT_RESOLUTION:
+            /*case Z3_OP_PR_UNIT_RESOLUTION:
                 cout << "unit resolution";
                 break;
             case Z3_OP_PR_DEF_AXIOM:
@@ -202,16 +247,14 @@ Prover iterate_expr(pwff w, expr e, const LibraryToolbox &tb, int depth = 0, exp
                 cout << endl << "WFF: " << parse_expr(e.arg(0))->to_string();
                 break;*/
             default:
-                cout << "ORACLE!" << endl;
-                prove_and_print(make_shared< Imp >(w, parse_expr(extract_thesis(e))), tb);
+                cout << "ORACLE for '" << make_shared< Imp >(w, parse_expr(extract_thesis(e)))->to_string() << "'!" << endl;
+                //prove_and_print(make_shared< Imp >(w, parse_expr(extract_thesis(e))), tb);
                 return make_shared< Imp >(w, parse_expr(extract_thesis(e)))->get_adv_truth_prover(tb);
                 break;
             }
-        } else if ((Z3_OP_TRUE <= kind && kind < Z3_OP_TRUE + 0x100) || kind == Z3_OP_UNINTERPRETED) {
-            // Logic formulae, we just ignore
         } else {
             cout << "unknown kind " << kind;
-            throw "Unkown kind";
+            throw "Unknown kind";
         }
 
         /*for (unsigned i = 0; i < num_args; i++) {

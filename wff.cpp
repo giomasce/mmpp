@@ -136,6 +136,16 @@ Prover True::get_subst_prover(string var, bool positive, const LibraryToolbox &t
     return tb.build_registered_prover(True::subst_rp, {{"ph", subst->get_type_prover(tb)}}, {});
 }
 
+bool True::operator==(const Wff &x) const
+{
+    auto px = dynamic_cast< const True* >(&x);
+    if (px == NULL) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 False::False() {
 }
 
@@ -190,6 +200,16 @@ Prover False::get_subst_prover(string var, bool positive, const LibraryToolbox &
         subst = pwff(new Not(subst));
     }
     return tb.build_registered_prover(False::subst_rp, {{"ph", subst->get_type_prover(tb)}}, {});
+}
+
+bool False::operator==(const Wff &x) const
+{
+    auto px = dynamic_cast< const False* >(&x);
+    if (px == NULL) {
+        return false;
+    } else {
+        return true;
+    }
 }
 
 Var::Var(string name) :
@@ -274,6 +294,16 @@ Prover Var::get_subst_prover(string var, bool positive, const LibraryToolbox &tb
     }
 }
 
+bool Var::operator==(const Wff &x) const
+{
+    auto px = dynamic_cast< const Var* >(&x);
+    if (px == NULL) {
+        return false;
+    } else {
+        return this->get_name() == px->get_name();
+    }
+}
+
 Not::Not(pwff a) :
     a(a) {
 }
@@ -338,7 +368,17 @@ Prover Not::get_subst_prover(string var, bool positive, const LibraryToolbox &tb
         ant = pwff(new Not(pwff(new Var(var))));
     }
     return tb.build_registered_prover(Not::subst_rp,
-        {{"ph", ant->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}}, {this->a->get_subst_prover(var, positive, tb)});
+    {{"ph", ant->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}}, {this->a->get_subst_prover(var, positive, tb)});
+}
+
+bool Not::operator==(const Wff &x) const
+{
+    auto px = dynamic_cast< const Not* >(&x);
+    if (px == NULL) {
+        return false;
+    } else {
+        return *this->get_a() == *px->get_a();
+    }
 }
 
 Imp::Imp(pwff a, pwff b) :
@@ -424,7 +464,17 @@ Prover Imp::get_subst_prover(string var, bool positive, const LibraryToolbox &tb
     }
     return tb.build_registered_prover(Imp::subst_rp,
         {{"ph", ant->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}, {"th", this->b->get_type_prover(tb)}, {"ta", this->b->subst(var, positive)->get_type_prover(tb)}},
-        {this->a->get_subst_prover(var, positive, tb), this->b->get_subst_prover(var, positive, tb)});
+    {this->a->get_subst_prover(var, positive, tb), this->b->get_subst_prover(var, positive, tb)});
+}
+
+bool Imp::operator==(const Wff &x) const
+{
+    auto px = dynamic_cast< const Imp* >(&x);
+    if (px == NULL) {
+        return false;
+    } else {
+        return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
+    }
 }
 
 Biimp::Biimp(pwff a, pwff b) :
@@ -484,6 +534,16 @@ Prover Biimp::get_imp_not_prover(const LibraryToolbox &tb) const
     return compose;
 }
 
+bool Biimp::operator==(const Wff &x) const
+{
+    auto px = dynamic_cast< const Biimp* >(&x);
+    if (px == NULL) {
+        return false;
+    } else {
+        return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
+    }
+}
+
 Xor::Xor(pwff a, pwff b) :
     a(a), b(b) {
 }
@@ -522,6 +582,16 @@ Prover Xor::get_imp_not_prover(const LibraryToolbox &tb) const
     Prover compose = tb.build_registered_prover(Xor::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
+}
+
+bool Xor::operator==(const Wff &x) const
+{
+    auto px = dynamic_cast< const Xor* >(&x);
+    if (px == NULL) {
+        return false;
+    } else {
+        return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
+    }
 }
 
 std::vector<SymTok> Xor::to_sentence(const Library &lib) const
@@ -577,6 +647,16 @@ Prover Nand::get_imp_not_prover(const LibraryToolbox &tb) const
     return compose;
 }
 
+bool Nand::operator==(const Wff &x) const
+{
+    auto px = dynamic_cast< const Nand* >(&x);
+    if (px == NULL) {
+        return false;
+    } else {
+        return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
+    }
+}
+
 std::vector<SymTok> Nand::to_sentence(const Library &lib) const
 {
     vector< SymTok > ret;
@@ -628,6 +708,16 @@ Prover Or::get_imp_not_prover(const LibraryToolbox &tb) const
     Prover compose = tb.build_registered_prover(Or::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
+}
+
+bool Or::operator==(const Wff &x) const
+{
+    auto px = dynamic_cast< const Or* >(&x);
+    if (px == NULL) {
+        return false;
+    } else {
+        return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
+    }
 }
 
 std::vector<SymTok> Or::to_sentence(const Library &lib) const
@@ -694,6 +784,16 @@ Prover And::get_imp_not_prover(const LibraryToolbox &tb) const
     Prover compose = tb.build_registered_prover(And::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
+}
+
+bool And::operator==(const Wff &x) const
+{
+    auto px = dynamic_cast< const And* >(&x);
+    if (px == NULL) {
+        return false;
+    } else {
+        return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
+    }
 }
 
 pwff ConvertibleWff::subst(string var, bool positive) const
@@ -782,6 +882,16 @@ Prover And3::get_imp_not_prover(const LibraryToolbox &tb) const
     return compose;
 }
 
+bool And3::operator==(const Wff &x) const
+{
+    auto px = dynamic_cast< const And3* >(&x);
+    if (px == NULL) {
+        return false;
+    } else {
+        return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b() && *this->get_c() == *px->get_c();
+    }
+}
+
 Or3::Or3(pwff a, pwff b, pwff c) :
     a(a), b(b), c(c)
 {
@@ -840,4 +950,14 @@ Prover Or3::get_imp_not_prover(const LibraryToolbox &tb) const
     Prover compose = tb.build_registered_prover(Or3::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
+}
+
+bool Or3::operator==(const Wff &x) const
+{
+    auto px = dynamic_cast< const Or3* >(&x);
+    if (px == NULL) {
+        return false;
+    } else {
+        return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b() && *this->get_c() == *px->get_c();
+    }
 }

@@ -137,5 +137,13 @@ int main(int argc, char *argv[]) {
         // Return a default one
         main_func = DEFAULT_MAIN_FUNCTION;
     }
-    return main_func(argc, argv);
+    try {
+        return main_func(argc, argv);
+    } catch (const MMPPException &e) {
+        cerr << "Dying because of MMPPException with reason '" << e.get_reason() << "'..." << endl;
+        return 1;
+    } catch (const char* &e) {
+        cerr << "Dying because of string exception '" << e << "'..." << endl;
+        return 1;
+    }
 }
