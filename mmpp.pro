@@ -82,6 +82,6 @@ DISTFILES += \
 FORMS += \
     mainwindow.ui
 
-create_links.commands = for i in mmpp_test_one mmpp_test_all unificator webmmpp qmmpp ; do ln -s mmpp \$\$i 2>/dev/null || true ; done
+create_links.commands = for i in mmpp_test_one mmpp_test_all unificator webmmpp qmmpp unification_test mmpp_test_z3 ; do ln -s mmpp \$\$i 2>/dev/null || true ; done
 QMAKE_EXTRA_TARGETS += create_links
 POST_TARGETDEPS += create_links

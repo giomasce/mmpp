@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iomanip>
 #include <unordered_map>
+#include <chrono>
 
 #ifdef USE_QT
 #include <QApplication>
@@ -26,8 +27,52 @@
 #endif
 
 using namespace std;
+using namespace chrono;
 
 bool mmpp_abort = false;
+
+void unification_test() {
+
+    cout << "Reading set.mm..." << endl;
+    FileTokenizer ft("../set.mm/set.mm");
+    Parser p(ft, false, true);
+    p.run();
+    LibraryImpl lib = p.get_library();
+    LibraryToolbox tb(lib, true);
+    cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
+    cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl;
+    vector< string > tests = { "|- ( ( A e. CC /\\ B e. CC /\\ N e. NN0 ) -> ( ( A + B ) ^ N ) = sum_ k e. ( 0 ... N ) ( ( N _C k ) x. ( ( A ^ ( N - k ) ) x. ( B ^ k ) ) ) )",
+                               "|- ( ph -> ( ps <-> ps ) )",
+                               "|- ( ph -> ph )" };
+    int reps = 30;
+    for (const auto &test : tests) {
+        Sentence sent = tb.parse_sentence(test);
+        auto res2 = tb.unify_assertion({}, sent, false, true);
+        cout << "Trying to unify " << test << endl;
+        cout << "Found " << res2.size() << " matching assertions:" << endl;
+        for (auto &match : res2) {
+            auto &label = get<0>(match);
+            const Assertion &ass = lib.get_assertion(label);
+            cout << " * " << lib.resolve_label(label) << ":";
+            for (auto &hyp : ass.get_ess_hyps()) {
+                auto &hyp_sent = lib.get_sentence(hyp);
+                cout << " & " << tb.print_sentence(hyp_sent);
+            }
+            auto &thesis_sent = lib.get_sentence(ass.get_thesis());
+            cout << " => " << tb.print_sentence(thesis_sent) << endl;
+        }
+
+        // Do actual time measurement
+        auto begin = steady_clock::now();
+        for (int i = 0; i < reps; i++) {
+            res2 = tb.unify_assertion({}, sent, false, true);
+        }
+        auto end = steady_clock::now();
+        auto usecs = duration_cast< microseconds >(end - begin).count();
+        cout << "It took " << usecs << " microseconds to repeat the unification " << reps << " times, which is " << (usecs / reps) << " microsecond per execution" << endl;
+    }
+
+}
 
 void unification_loop() {
 
@@ -100,7 +145,7 @@ int test_one_main(int argc, char *argv[]) {
         return 1;
     }
     string filename(argv[1]);
-    return test_one(filename) ? 0 : 1;
+    return test_one(filename, true) ? 0 : 1;
 }
 
 int unification_loop_main(int argc, char *argv[]) {
@@ -111,11 +156,20 @@ int unification_loop_main(int argc, char *argv[]) {
     return 0;
 }
 
+int unification_test_main(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    unification_test();
+    return 0;
+}
+
 const unordered_map< string, function< int(int, char*[]) > > MAIN_FUNCTIONS = {
     { "mmpp_test_one", test_one_main },
     { "mmpp_test_all", test_all_main },
     { "mmpp_test_z3", test_z3_main },
     { "unificator", unification_loop_main },
+    { "unification_test", unification_test_main },
     { "webmmpp", httpd_main },
 #ifdef USE_QT
     { "qmmpp", qt_main },
@@ -137,6 +191,7 @@ int main(int argc, char *argv[]) {
         // Return a default one
         main_func = DEFAULT_MAIN_FUNCTION;
     }
+    //return main_func(argc, argv);
     try {
         return main_func(argc, argv);
     } catch (const MMPPException &e) {

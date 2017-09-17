@@ -83,10 +83,44 @@ static void unify_internal(vector<SymTok>::const_iterator sent_cur, vector<SymTo
     }
 }
 
+/*
+ * Perform a first test to check that the template, without its variables, is a substring of the sentence.
+ *
+ * This can be used to quickly exclude most uninteresting results, and run the actual (and slow) unification
+ * algorithm on much less sentences in the library. After quick measurements, it seems that there is
+ * a noticeable (~ 30%) speedup on simple sentences and an order-of-magnitude one on complex sentences.
+ */
+static bool unify_internal_quick(vector<SymTok>::const_iterator sent_cur, vector<SymTok>::const_iterator sent_end,
+                                 vector<SymTok>::const_iterator templ_cur, vector<SymTok>::const_iterator templ_end,
+                                 const Library &lib) {
+    while (templ_cur != templ_end) {
+        if (!lib.is_constant(*templ_cur)) {
+            templ_cur++;
+        } else {
+            while (true) {
+                if (sent_cur == sent_end) {
+                    return false;
+                } else {
+                    if (*sent_cur == *templ_cur) {
+                        sent_cur++;
+                        templ_cur++;
+                        break;
+                    } else {
+                        sent_cur++;
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
+
 std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > unify(const std::vector<SymTok> &sent, const std::vector<SymTok> &templ, const Library &lib, bool allow_empty)
 {
     vector< unordered_map< SymTok, vector< SymTok > > > matches;
     unordered_map< SymTok, vector< SymTok > > current_match;
-    unify_internal(sent.begin(), sent.end(), templ.begin(), templ.end(), lib, allow_empty, current_match, matches);
+    if (unify_internal_quick(sent.begin(), sent.end(), templ.begin(), templ.end(), lib)) {
+        unify_internal(sent.begin(), sent.end(), templ.begin(), templ.end(), lib, allow_empty, current_match, matches);
+    }
     return matches;
 }

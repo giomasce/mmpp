@@ -110,9 +110,12 @@ bool test_one(string filename, bool advanced_tests) {
         }
 
         cout << "Finished. Memory usage: " << size_to_string(getCurrentRSS()) << endl;
-    } catch (MMPPException e) {
+    } catch (const MMPPException &e) {
         cout << "An exception with message '" << e.get_reason() << "' was thrown!" << endl;
         e.print_stacktrace(cout);
+        success = false;
+    } catch (const ProofException &e) {
+        cout << "An exception with message '" << e.get_reason() << "' was thrown!" << endl;
         success = false;
     }
 
@@ -159,7 +162,7 @@ void test() {
 
     if (true) {
         cout << "Doing additional tests on set.mm..." << endl;
-        FileTokenizer ft(test_basename + "/set.mm");
+        FileTokenizer ft("../set.mm/set.mm");
         Parser p(ft, false, true);
         p.run();
         LibraryImpl lib = p.get_library();

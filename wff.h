@@ -20,6 +20,7 @@ public:
     virtual pwff imp_not_form() const = 0;
     virtual pwff subst(std::string var, bool positive) const = 0;
     virtual std::vector< SymTok > to_sentence(const Library &lib) const = 0;
+    Sentence to_asserted_sentence(const Library &lib) const;
     virtual void get_variables(std::set< std::string > &vars) const = 0;
     virtual Prover get_truth_prover(const LibraryToolbox &tb) const;
     virtual Prover get_falsity_prover(const LibraryToolbox &tb) const;

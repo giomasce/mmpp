@@ -7,6 +7,14 @@ Wff::~Wff()
 {
 }
 
+// FIXME Terribly inefficient, but to_sentence() is inefficient too
+Sentence Wff::to_asserted_sentence(const Library &lib) const
+{
+    auto ret = this->to_sentence(lib);
+    ret.insert(ret.begin(), lib.get_symbol("|-"));
+    return ret;
+}
+
 Prover Wff::get_truth_prover(const LibraryToolbox &tb) const
 {
     (void) tb;
