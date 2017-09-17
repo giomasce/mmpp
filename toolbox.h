@@ -16,7 +16,7 @@ struct SentenceTree {
 
 typedef std::function< bool(ProofEngine&) > Prover;
 const Prover null_prover = [](ProofEngine&){ return false; };
-Prover cascade_provers(const Prover &a, const Prover &b);
+//Prover cascade_provers(const Prover &a, const Prover &b);
 
 struct SentencePrinter {
     enum Style {
@@ -42,6 +42,10 @@ std::ostream &operator<<(std::ostream &os, const ProofPrinter &sp);
 
 struct RegisteredProver {
     size_t index;
+
+    // Just for debug
+    std::vector<std::string> templ_hyps;
+    std::string templ_thesis;
 };
 
 struct RegisteredProverData {
@@ -54,6 +58,9 @@ struct RegisteredProverInstanceData {
     LabTok label;
     std::vector< size_t > perm_inv;
     std::unordered_map< SymTok, std::vector< SymTok > > ass_map;
+
+    // Just for debug
+    std::string label_str;
 };
 
 class LibraryToolbox

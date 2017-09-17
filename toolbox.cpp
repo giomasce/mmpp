@@ -291,7 +291,7 @@ Prover LibraryToolbox::build_type_prover_from_strings(const std::string &type_se
     };
 }
 
-Prover cascade_provers(const Prover &a,  const Prover &b)
+/*Prover cascade_provers(const Prover &a,  const Prover &b)
 {
     return [=](ProofEngine &engine) {
         bool res;
@@ -302,7 +302,7 @@ Prover cascade_provers(const Prover &a,  const Prover &b)
         res = b(engine);
         return res;
     };
-}
+}*/
 
 std::vector<SymTok> LibraryToolbox::parse_sentence(const string &in) const
 {
@@ -558,7 +558,7 @@ RegisteredProver LibraryToolbox::register_prover(const std::vector<string> &temp
     auto &rps = LibraryToolbox::registered_provers();
     rps.push_back({templ_hyps, templ_thesis});
     //cerr << "first: " << &rps << "; size: " << rps.size() << endl;
-    return { index };
+    return { index, templ_hyps, templ_thesis };
 }
 
 Prover LibraryToolbox::build_registered_prover(const RegisteredProver &prover, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers) const
@@ -584,6 +584,7 @@ Prover LibraryToolbox::build_registered_prover(const RegisteredProver &prover, c
         for (auto &hyp : ass.get_float_hyps()) {
             bool res = this->classical_type_proving_helper(this->substitute(this->lib.get_sentence(hyp), inst_data.ass_map), engine, types_provers_sym);
             if (!res) {
+                cerr << "Applying " << inst_data.label_str << " a floating hypothesis failed..." << endl;
                 engine.rollback();
                 return false;
             }
@@ -593,6 +594,7 @@ Prover LibraryToolbox::build_registered_prover(const RegisteredProver &prover, c
         for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
             bool res = hyps_provers[inst_data.perm_inv[i]](engine);
             if (!res) {
+                cerr << "Applying " << inst_data.label_str << " an essential hypothesis failed..." << endl;
                 engine.rollback();
                 return false;
             }
@@ -602,6 +604,7 @@ Prover LibraryToolbox::build_registered_prover(const RegisteredProver &prover, c
         try {
             engine.process_label(ass.get_thesis());
         } catch (const ProofException&) {
+            cerr << "Applying " << inst_data.label_str << " the proof executor signalled an error..." << endl;
             engine.rollback();
             return false;
         }
@@ -634,6 +637,7 @@ void LibraryToolbox::compute_registered_prover(size_t index)
         auto unification = this->unify_assertion(templ_hyps_sent, templ_thesis_sent, true);
         assert_or_throw(!unification.empty(), "Could not find the template assertion");
         inst_data.label = get<0>(*unification.begin());
+        inst_data.label_str = this->lib.resolve_label(inst_data.label);
         const Assertion &ass = this->lib.get_assertion(inst_data.label);
         assert(ass.is_valid());
         const vector< size_t > &perm = get<1>(*unification.begin());

@@ -21,10 +21,20 @@ Prover Wff::get_truth_prover(const LibraryToolbox &tb) const
     return null_prover;
 }
 
+bool Wff::is_true() const
+{
+    return false;
+}
+
 Prover Wff::get_falsity_prover(const LibraryToolbox &tb) const
 {
     (void) tb;
     return null_prover;
+}
+
+bool Wff::is_false() const
+{
+    return false;
 }
 
 Prover Wff::get_type_prover(const LibraryToolbox &tb) const
@@ -122,6 +132,11 @@ Prover True::get_truth_prover(const LibraryToolbox &tb) const
     return tb.build_registered_prover(True::truth_rp, {}, {});
 }
 
+bool True::is_true() const
+{
+    return true;
+}
+
 RegisteredProver True::type_rp = LibraryToolbox::register_prover({}, "wff T.");
 Prover True::get_type_prover(const LibraryToolbox &tb) const
 {
@@ -186,6 +201,11 @@ RegisteredProver False::falsity_rp = LibraryToolbox::register_prover({}, "|- -. 
 Prover False::get_falsity_prover(const LibraryToolbox &tb) const
 {
     return tb.build_registered_prover(False::falsity_rp, {}, {});
+}
+
+bool False::is_false() const
+{
+    return true;
 }
 
 RegisteredProver False::type_rp = LibraryToolbox::register_prover({}, "wff F.");
@@ -348,10 +368,20 @@ Prover Not::get_truth_prover(const LibraryToolbox &tb) const
     return this->a->get_falsity_prover(tb);
 }
 
+bool Not::is_true() const
+{
+    return this->a->is_false();
+}
+
 RegisteredProver Not::falsity_rp = LibraryToolbox::register_prover({ "|- ph" }, "|- -. -. ph");
 Prover Not::get_falsity_prover(const LibraryToolbox &tb) const
 {
     return tb.build_registered_prover(Not::falsity_rp, {{ "ph", this->a->get_type_prover(tb) }}, { this->a->get_truth_prover(tb) });
+}
+
+bool Not::is_false() const
+{
+    return this->a->is_true();
 }
 
 RegisteredProver Not::type_rp = LibraryToolbox::register_prover({}, "wff -. ph");
@@ -429,9 +459,19 @@ RegisteredProver Imp::truth_1_rp = LibraryToolbox::register_prover({ "|- ps" }, 
 RegisteredProver Imp::truth_2_rp = LibraryToolbox::register_prover({ "|- -. ph" }, "|- ( ph -> ps )");
 Prover Imp::get_truth_prover(const LibraryToolbox &tb) const
 {
-    Prover first_prover = tb.build_registered_prover(Imp::truth_1_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, { this->b->get_truth_prover(tb) });
-    Prover second_prover = tb.build_registered_prover(Imp::truth_2_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, { this->a->get_falsity_prover(tb) });
-    return cascade_provers(first_prover, second_prover);
+    if (this->b->is_true()) {
+        return tb.build_registered_prover(Imp::truth_1_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, { this->b->get_truth_prover(tb) });
+    }
+    if (this->a->is_false()) {
+        return tb.build_registered_prover(Imp::truth_2_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, { this->a->get_falsity_prover(tb) });
+    }
+    return null_prover;
+    //return cascade_provers(first_prover, second_prover);
+}
+
+bool Imp::is_true() const
+{
+    return this->b->is_true() || this->a->is_false();
 }
 
 RegisteredProver Imp::falsity_1_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( -. ps -> -. ( ph -> ps ) ) )");
@@ -445,6 +485,11 @@ Prover Imp::get_falsity_prover(const LibraryToolbox &tb) const
     Prover mp_prover2 = tb.build_registered_prover(Imp::falsity_3_rp,
         {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, { mp_prover1, this->b->get_falsity_prover(tb) });
     return mp_prover2;
+}
+
+bool Imp::is_false() const
+{
+    return this->a->is_true() && this->b->is_false();
 }
 
 RegisteredProver Imp::type_rp = LibraryToolbox::register_prover({}, "wff ( ph -> ps )");
@@ -816,11 +861,21 @@ Prover ConvertibleWff::get_truth_prover(const LibraryToolbox &tb) const
     return tb.build_registered_prover(ConvertibleWff::truth_rp, {{"ph", this->imp_not_form()->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}}, {this->get_imp_not_prover(tb), this->imp_not_form()->get_truth_prover(tb)});
 }
 
+bool ConvertibleWff::is_true() const
+{
+    return this->imp_not_form()->is_true();
+}
+
 RegisteredProver ConvertibleWff::falsity_rp = LibraryToolbox::register_prover({"|- ( ps <-> ph )", "|- -. ph"}, "|- -. ps");
 Prover ConvertibleWff::get_falsity_prover(const LibraryToolbox &tb) const
 {
     //return null_prover;
     return tb.build_registered_prover(ConvertibleWff::falsity_rp, {{"ph", this->imp_not_form()->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}}, {this->get_imp_not_prover(tb), this->imp_not_form()->get_falsity_prover(tb)});
+}
+
+bool ConvertibleWff::is_false() const
+{
+    return this->imp_not_form()->is_false();
 }
 
 Prover ConvertibleWff::get_type_prover(const LibraryToolbox &tb) const
