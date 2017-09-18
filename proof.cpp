@@ -397,21 +397,22 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 #ifndef NDEBUG
         cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
 #endif
+        ProofError err = { stack_hyp_sent, hyp_sent, subst_map };
         auto stack_it = stack_hyp_sent.begin();
         for (auto it = hyp_sent.begin(); it != hyp_sent.end(); it++) {
             const SymTok &tok = *it;
             if (this->lib.is_constant(tok)) {
-                assert_or_throw_pe(tok == *stack_it, "Essential hypothesis does not match stack beacuse of wrong constant");
+                assert_or_throw_pe(tok == *stack_it, "Essential hypothesis does not match stack beacuse of wrong constant", err);
                 stack_it++;
             } else {
                 const vector< SymTok > &subst = subst_map.at(tok);
                 assert(distance(stack_it, stack_hyp_sent.end()) >= 0);
-                assert_or_throw_pe(subst.size() <= (size_t) distance(stack_it, stack_hyp_sent.end()), "Essential hypothesis does not match stack because stack is shorter");
-                assert_or_throw_pe(equal(subst.begin(), subst.end(), stack_it), "Essential hypothesis does not match stack because of wrong variable substitution");
+                assert_or_throw_pe(subst.size() <= (size_t) distance(stack_it, stack_hyp_sent.end()), "Essential hypothesis does not match stack because stack is shorter", err);
+                assert_or_throw_pe(equal(subst.begin(), subst.end(), stack_it), "Essential hypothesis does not match stack because of wrong variable substitution", err);
                 stack_it += subst.size();
             }
         }
-        assert_or_throw_pe(stack_it == stack_hyp_sent.end(), "Essential hypothesis does not match stack because stack is longer");
+        assert_or_throw_pe(stack_it == stack_hyp_sent.end(), "Essential hypothesis does not match stack because stack is longer", err);
         i++;
     }
 
@@ -577,12 +578,17 @@ void ProofEngine::check_stack_underflow()
     }
 }
 
-ProofException::ProofException(string reason) :
-    reason(reason)
+ProofException::ProofException(string reason, ProofError error) :
+    reason(reason), error(error)
 {
 }
 
 const string &ProofException::get_reason() const
 {
     return this->reason;
+}
+
+const ProofError &ProofException::get_error() const
+{
+    return this->error;
 }

@@ -115,6 +115,9 @@ bool LibraryToolbox::proving_helper(const std::vector<Sentence> &templ_hyps, con
     }
 
     auto res = this->unify_assertion(templ_hyps_sent, templ_thesis_sent, true);
+    if (res.empty()) {
+        cerr << string("Could not find the template assertion: ") + this->print_sentence(templ_thesis_sent).to_string() << endl;
+    }
     assert_or_throw(!res.empty(), string("Could not find the template assertion: ") + this->print_sentence(templ_thesis_sent).to_string());
     const Assertion &ass = this->lib.get_assertion(get<0>(*res.begin()));
     assert(ass.is_valid());
@@ -603,8 +606,15 @@ Prover LibraryToolbox::build_registered_prover(const RegisteredProver &prover, c
         // Finally add this assertion's label
         try {
             engine.process_label(ass.get_thesis());
-        } catch (const ProofException&) {
+        } catch (const ProofException &e) {
             cerr << "Applying " << inst_data.label_str << " the proof executor signalled an error..." << endl;
+            cerr << "The reason was " << e.get_reason() << endl;
+            cerr << "On stack there was: " << this->print_sentence(e.get_error().on_stack) << endl;
+            cerr << "Has to match with: " << this->print_sentence(e.get_error().to_subst) << endl;
+            cerr << "Substitution map:" << endl;
+            for (const auto &it : e.get_error().subst_map) {
+                cerr << this->lib.resolve_symbol(it.first) << ": " << this->print_sentence(it.second) << endl;
+            }
             engine.rollback();
             return false;
         }
@@ -672,4 +682,22 @@ string SentencePrinter::to_string() const
     ostringstream buf;
     buf << *this;
     return buf.str();
+}
+
+string test_prover(Prover prover, const LibraryToolbox &tb) {
+    ProofEngine engine(tb.get_library());
+    bool res = prover(engine);
+    if (!res) {
+        return "(prover failed)";
+    } else {
+        if (engine.get_stack().size() == 0) {
+            return "(prover did not produce a result)";
+        } else {
+            string ret = tb.print_sentence(engine.get_stack().back()).to_string();
+            if (engine.get_stack().size() > 1) {
+                ret += " (prover did produce other stack entries)";
+            }
+            return ret;
+        }
+    }
 }

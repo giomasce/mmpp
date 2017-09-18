@@ -20,18 +20,26 @@ class ProofExecutor;
 
 #include "library.h"
 
+struct ProofError {
+    Sentence on_stack;
+    Sentence to_subst;
+    std::unordered_map< SymTok, Sentence > subst_map;
+};
+
 class ProofException {
 public:
-    ProofException(std::string reason);
+    ProofException(std::string reason, ProofError error);
     const std::string &get_reason() const;
+    const ProofError &get_error() const;
 
 private:
     std::string reason;
+    ProofError error;
 };
 
-inline static void assert_or_throw_pe(bool cond, std::string reason="") {
+inline static void assert_or_throw_pe(bool cond, std::string reason="", ProofError error={}) {
     if (!cond) {
-        throw ProofException(reason);
+        throw ProofException(reason, error);
     }
 }
 

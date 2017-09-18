@@ -18,6 +18,8 @@ typedef std::function< bool(ProofEngine&) > Prover;
 const Prover null_prover = [](ProofEngine&){ return false; };
 //Prover cascade_provers(const Prover &a, const Prover &b);
 
+std::string test_prover(Prover prover, const LibraryToolbox &tb);
+
 struct SentencePrinter {
     enum Style {
         STYLE_PLAIN,
