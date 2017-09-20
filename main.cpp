@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
         // Return a default one
         main_func = DEFAULT_MAIN_FUNCTION;
     }
-    //return main_func(argc, argv);
+    return main_func(argc, argv);
     try {
         return main_func(argc, argv);
     } catch (const MMPPException &e) {

@@ -100,25 +100,17 @@ static vector< size_t > invert_perm(const vector< size_t > &perm) {
 // FIXME - Either remove or deduplicate with register_prover() and friends
 bool LibraryToolbox::proving_helper(const std::vector<Sentence> &templ_hyps, const Sentence &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ProofEngine &engine) const
 {
-    // Decode input strings to sentences
-    /*std::vector<std::vector<SymTok> > templ_hyps_sent;
-    for (auto &hyp : templ_hyps) {
-        templ_hyps_sent.push_back(this->parse_sentence(hyp));
-    }
-    std::vector<SymTok> templ_thesis_sent = this->parse_sentence(templ_thesis);*/
-    auto &templ_hyps_sent = templ_hyps;
-    auto &templ_thesis_sent = templ_thesis;
     std::unordered_map<SymTok, Prover> types_provers_sym;
     for (auto &type_pair : types_provers) {
         auto res = types_provers_sym.insert(make_pair(lib.get_symbol(type_pair.first), type_pair.second));
         assert(res.second);
     }
 
-    auto res = this->unify_assertion(templ_hyps_sent, templ_thesis_sent, true);
+    auto res = this->unify_assertion(templ_hyps, templ_thesis, true);
     if (res.empty()) {
-        cerr << string("Could not find the template assertion: ") + this->print_sentence(templ_thesis_sent).to_string() << endl;
+        cerr << string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string() << endl;
     }
-    assert_or_throw(!res.empty(), string("Could not find the template assertion: ") + this->print_sentence(templ_thesis_sent).to_string());
+    assert_or_throw(!res.empty(), string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
     const Assertion &ass = this->lib.get_assertion(get<0>(*res.begin()));
     assert(ass.is_valid());
     const vector< size_t > &perm = get<1>(*res.begin());
@@ -281,8 +273,51 @@ const std::unordered_map<SymTok, std::vector<std::pair<LabTok, std::vector<SymTo
 
 Prover LibraryToolbox::build_prover(const std::vector<Sentence> &templ_hyps, const Sentence &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers) const
 {
+    auto res = this->unify_assertion(templ_hyps, templ_thesis, true);
+    if (res.empty()) {
+        cerr << string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string() << endl;
+    }
+    assert_or_throw(!res.empty(), string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
+    const auto &res1 = res[0];
     return [=](ProofEngine &engine){
-        return this->proving_helper(templ_hyps, templ_thesis, types_provers, hyps_provers, engine);
+        std::unordered_map<SymTok, Prover> types_provers_sym;
+        for (auto &type_pair : types_provers) {
+            auto res = types_provers_sym.insert(make_pair(lib.get_symbol(type_pair.first), type_pair.second));
+            assert(res.second);
+        }
+
+        const Assertion &ass = this->lib.get_assertion(get<0>(res1));
+        assert(ass.is_valid());
+        const vector< size_t > &perm = get<1>(res1);
+        const vector< size_t > perm_inv = invert_perm(perm);
+        const unordered_map< SymTok, vector< SymTok > > &ass_map = get<2>(res1);
+        //const unordered_map< SymTok, vector< SymTok > > full_map = this->compose_subst(ass_map, subst_map);
+
+        engine.checkpoint();
+
+        // Compute floating hypotheses
+        for (auto &hyp : ass.get_float_hyps()) {
+            bool res = this->classical_type_proving_helper(this->substitute(this->lib.get_sentence(hyp), ass_map), engine, types_provers_sym);
+            if (!res) {
+                engine.rollback();
+                return false;
+            }
+        }
+
+        // Compute essential hypotheses
+        for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
+            bool res = hyps_provers[perm_inv[i]](engine);
+            if (!res) {
+                engine.rollback();
+                return false;
+            }
+        }
+
+        // Finally add this assertion's label
+        engine.process_label(ass.get_thesis());
+
+        engine.commit();
+        return true;
     };
 }
 

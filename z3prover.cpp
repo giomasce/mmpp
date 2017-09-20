@@ -191,14 +191,15 @@ RegisteredProver bibi12d_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps 
 RegisteredProver imbi12d_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps <-> ch ) )", "|- ( ph -> ( th <-> ta ) )"}, "|- ( ph -> ( ( ps -> th ) <-> ( ch -> ta ) ) )");
 RegisteredProver anbi12d_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps <-> ch ) )", "|- ( ph -> ( th <-> ta ) )"}, "|- ( ph -> ( ( ps /\\ th ) <-> ( ch /\\ ta ) ) )");
 RegisteredProver orbi12d_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps <-> ch ) )", "|- ( ph -> ( th <-> ta ) )"}, "|- ( ph -> ( ( ps \\/ th ) <-> ( ch \\/ ta ) ) )");
+RegisteredProver notbid_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ( -. ps <-> -. ch ) )");
 RegisteredProver urt_rp = LibraryToolbox::register_prover({"|- ( ph -> -. ps )"}, "|- ( ph -> ( ps -> F. ) )");
 RegisteredProver urf_rp = LibraryToolbox::register_prover({"|- ( ph -> ps )"}, "|- ( ph -> ( -. ps -> F. ) )");
 RegisteredProver idd_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( ps -> ps ) )");
 RegisteredProver mpd_rp = LibraryToolbox::register_prover({"|- ( ph -> ps )", "|- ( ph -> ( ps -> ch ) )"}, "|- ( ph -> ch )");
 RegisteredProver syl_rp = LibraryToolbox::register_prover({"|- ( ph -> ps )", "|- ( ps -> ch )"}, "|- ( ph -> ch )");
 RegisteredProver bifald_rp = LibraryToolbox::register_prover({"|- ( ph -> -. ps )"}, "|- ( ph -> ( ps <-> F. ) )");
-//RegisteredProver url_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps \\/ ch ) )", "|- ( ph -> -. ch )"}, "|- ( ph -> ps )");
-//RegisteredProver urf_rp = LibraryToolbox::register_prover({"|- ( ph -> ps )", "|- ( ph -> -. ps )"}, "|- ( ph -> F. )");
+RegisteredProver orsild_rp = LibraryToolbox::register_prover({"|- ( ph -> -. ( ps \\/ ch ) )"}, "|- ( ph -> -. ps )");
+RegisteredProver orsird_rp = LibraryToolbox::register_prover({"|- ( ph -> -. ( ps \\/ ch ) )"}, "|- ( ph -> -. ch )");
 
 Prover iterate_expr(const Z3Adapter &adapter, expr e, int depth = 0, expr *parent = NULL) {
     using z3::sort;
@@ -234,6 +235,7 @@ Prover iterate_expr(const Z3Adapter &adapter, expr e, int depth = 0, expr *paren
                     pwff left = and_hyp->get_a();
                     pwff right = and_hyp->get_b();
                     if (*and_hyp->get_b() == *w) {
+                        cur_hyp = and_hyp->get_b();
                         ret = adapter.tb.build_registered_prover(simprd_rp, {{"ph", adapter.abs->get_type_prover(adapter.tb)}, {"ps", left->get_type_prover(adapter.tb)}, {"ch", right->get_type_prover(adapter.tb)}}, {ret});
                         break;
                     }
@@ -321,38 +323,56 @@ Prover iterate_expr(const Z3Adapter &adapter, expr e, int depth = 0, expr *paren
                     case Z3_OP_IFF:
                     case Z3_OP_IMPLIES: {
                         RegisteredProver rp;
+                        std::function< pwff(pwff, pwff) > combiner = [](pwff, pwff)->pwff { throw "Should not arrive here"; };
                         switch (th_left.decl().decl_kind()) {
-                        case Z3_OP_AND: rp = anbi12d_rp; break;
-                        case Z3_OP_OR: rp = orbi12d_rp; break;
+                        case Z3_OP_AND: rp = anbi12d_rp; combiner = [](pwff a, pwff b) { return make_shared< And >(a, b); }; break;
+                        case Z3_OP_OR: rp = orbi12d_rp; combiner = [](pwff a, pwff b) { return make_shared< Or >(a, b); }; break;
                         case Z3_OP_IFF: rp = bibi12d_rp; break;
                         case Z3_OP_IMPLIES: rp = imbi12d_rp; break;
                         default: throw "Should not arrive here"; break;
                         }
                         assert(th_left.num_args() >= 2);
-                        vector< Prover > hyps_prover;
-                        vector< Prover > wffs_prover;
+                        vector< Prover > hyp_provers;
+                        vector< pwff > left_wffs;
+                        vector< pwff > right_wffs;
+                        //vector< Prover > wffs_prover;
                         size_t used = 0;
                         for (size_t i = 0; i < th_left.num_args(); i++) {
                             if (eq(th_left.arg(i), th_right.arg(i))) {
-                                hyps_prover.push_back(adapter.tb.build_registered_prover(biidd_rp, {{"ph", adapter.abs->get_type_prover(adapter.tb)}, {"ps", parse_expr(th_left.arg(i))->get_type_prover(adapter.tb)}}, {}));
+                                hyp_provers.push_back(adapter.tb.build_registered_prover(biidd_rp, {{"ph", adapter.abs->get_type_prover(adapter.tb)}, {"ps", parse_expr(th_left.arg(i))->get_type_prover(adapter.tb)}}, {}));
                             } else {
                                 assert(!used);
-                                hyps_prover.push_back(iterate_expr(adapter, e.arg(0), depth+1, &e));
+                                hyp_provers.push_back(iterate_expr(adapter, e.arg(0), depth+1, &e));
                                 used++;
                             }
-                            wffs_prover.push_back(parse_expr(th_left.arg(i))->get_type_prover(adapter.tb));
-                            wffs_prover.push_back(parse_expr(th_right.arg(i))->get_type_prover(adapter.tb));
+                            left_wffs.push_back(parse_expr(th_left.arg(i)));
+                            right_wffs.push_back(parse_expr(th_right.arg(i)));
                         }
-                        assert(hyps_prover.size() == th_left.num_args());
+                        assert(hyp_provers.size() == th_left.num_args());
                         assert(used == num_args - 1);
-                        if (th_left.num_args() > 2) {
-                            cout << "MONOTONICITY ORACLE for '" << make_shared< Imp >(adapter.abs, parse_expr(extract_thesis(e)))->to_string() << "'!" << endl;
-                            return make_shared< Imp >(adapter.abs, parse_expr(extract_thesis(e)))->get_adv_truth_prover(adapter.tb);
-                        } else {
-                            return adapter.tb.build_registered_prover(rp, {{"ph", adapter.abs->get_type_prover(adapter.tb)}, {"ps", wffs_prover[0]}, {"ch", wffs_prover[1]}, {"th", wffs_prover[2]}, {"ta", wffs_prover[3]}}, hyps_prover);
+                        Prover ret = hyp_provers[0];
+                        pwff left_wff = left_wffs[0];
+                        pwff right_wff = right_wffs[0];
+                        for (size_t i = 1; i < th_left.num_args(); i++) {
+                            ret = adapter.tb.build_registered_prover(rp, {{"ph", adapter.abs->get_type_prover(adapter.tb)},
+                                                                          {"ps", left_wff->get_type_prover(adapter.tb)}, {"ch", right_wff->get_type_prover(adapter.tb)},
+                                                                          {"th", left_wffs[i]->get_type_prover(adapter.tb)}, {"ta", right_wffs[i]->get_type_prover(adapter.tb)}}, {ret, hyp_provers[i]});
+                            if (th_left.decl().decl_kind() == Z3_OP_AND || th_left.decl().decl_kind() == Z3_OP_OR) {
+                                left_wff = combiner(left_wff, left_wffs[i]);
+                                right_wff = combiner(right_wff, right_wffs[i]);
+                            }
                         }
+                        return ret;
+                        break; }
+                    case Z3_OP_NOT: {
+                        pwff left_wff = parse_expr(th_left.arg(0));
+                        pwff right_wff = parse_expr(th_right.arg(0));
+                        Prover ret = iterate_expr(adapter, e.arg(0), depth+1, &e);
+                        return adapter.tb.build_registered_prover(notbid_rp, {{"ph", adapter.abs->get_type_prover(adapter.tb)},
+                                                                              {"ps", left_wff->get_type_prover(adapter.tb)}, {"ch", right_wff->get_type_prover(adapter.tb)}}, {ret});
                         break; }
                     default:
+                        cerr << "Unsupported operation " << th_left.decl().decl_kind() << endl;
                         throw "Unsupported operation";
                         break;
                     }
@@ -455,15 +475,36 @@ Prover iterate_expr(const Z3Adapter &adapter, expr e, int depth = 0, expr *paren
                 Prover p1 = thesis->get_adv_truth_prover(adapter.tb);
                 return adapter.tb.build_registered_prover(a1i_rp, {{"ph", adapter.abs->get_type_prover(adapter.tb)}, {"ps", thesis->get_type_prover(adapter.tb)}}, {p1});
                 break; }
-            case Z3_OP_PR_NOT_OR_ELIM:
+            case Z3_OP_PR_NOT_OR_ELIM: {
                 assert(num_args == 2);
                 assert(arity == 2);
                 //cout << endl << "EXPR: " << e.arg(2);
-                cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;;
-                cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;
-                cout << "NOT-OR-ELIM ORACLE for '" << make_shared< Imp >(adapter.abs, parse_expr(extract_thesis(e)))->to_string() << "'!" << endl;
-                return make_shared< Imp >(adapter.abs, parse_expr(extract_thesis(e)))->get_adv_truth_prover(adapter.tb);
-                break;
+                /*cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;;
+                cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;*/
+                expr not_expr = extract_thesis(e.arg(0));
+                assert(not_expr.decl().decl_kind() == Z3_OP_NOT);
+                assert(not_expr.num_args() == 1);
+                expr or_expr = not_expr.arg(0);
+                assert(or_expr.decl().decl_kind() == Z3_OP_OR);
+                expr not_target_expr = e.arg(1);
+                assert(not_target_expr.decl().decl_kind() == Z3_OP_NOT);
+                assert(not_target_expr.num_args() == 1);
+                pwff target_wff = parse_expr(not_target_expr.arg(0));
+                Prover ret = iterate_expr(adapter, e.arg(0), depth+1, &e);
+                pwff wff = parse_expr(or_expr);
+                for (size_t i = 0; i < or_expr.num_args()-1; i++) {
+                    auto wff_or = dynamic_pointer_cast< Or >(wff);
+                    assert(wff != NULL);
+                    if (*wff_or->get_b() == *target_wff) {
+                        return adapter.tb.build_registered_prover(orsird_rp, {{"ph", adapter.abs->get_type_prover(adapter.tb)}, {"ps", wff_or->get_a()->get_type_prover(adapter.tb)}, {"ch", wff_or->get_b()->get_type_prover(adapter.tb)}}, {ret});
+                    } else {
+                        ret = adapter.tb.build_registered_prover(orsild_rp, {{"ph", adapter.abs->get_type_prover(adapter.tb)}, {"ps", wff_or->get_a()->get_type_prover(adapter.tb)}, {"ch", wff_or->get_b()->get_type_prover(adapter.tb)}}, {ret});
+                        wff = wff_or->get_a();
+                    }
+                }
+                assert(*wff == *target_wff);
+                return ret;
+                break; }
             case Z3_OP_PR_IFF_FALSE: {
                 assert(num_args == 2);
                 assert(arity == 2);
@@ -532,7 +573,7 @@ int test_z3_main(int argc, char *argv[])
     cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
     cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl;
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 3; i++) {
         set_param("proof", true);
         context c;
 
@@ -546,6 +587,12 @@ int test_z3_main(int argc, char *argv[])
         }
 
         if (i == 1) {
+            expr ph = c.bool_const("ph");
+            expr ps = c.bool_const("ps");
+            adapter.add_formula((ph || ps ) == (ps || ph), false);
+        }
+
+        if (i == 2) {
             expr ph = c.bool_const("ph");
             expr ps = c.bool_const("ps");
             expr ch = c.bool_const("ch");
