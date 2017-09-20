@@ -517,16 +517,16 @@ Prover iterate_expr(const Z3Adapter &adapter, expr e, int depth = 0, expr *paren
                 assert(hyp_not != NULL);
                 return adapter.tb.build_registered_prover(bifald_rp, {{"ph", adapter.abs->get_type_prover(adapter.tb)}, {"ps", hyp_not->get_a()->get_type_prover(adapter.tb)}}, {hyp_prover});
                 break; }
-            /*case Z3_OP_PR_LEMMA:
-                cout << "lemma";
+            case Z3_OP_PR_LEMMA: {
                 assert(num_args == 2);
                 assert(arity == 2);
-                //cout << endl << "EXPR: " << e.arg(2);
-                cout << endl << "FULL: " << e;
-                cout << endl << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string();
-                cout << endl << "TH: " << parse_expr(e.arg(1))->to_string();
-                break;
-            case Z3_OP_PR_HYPOTHESIS:
+                //cout << "FULL: " << e << endl;
+                cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;
+                cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;
+                cout << "LEMMA ORACLE for '" << make_shared< Imp >(adapter.abs, parse_expr(extract_thesis(e)))->to_string() << "'!" << endl;
+                return make_shared< Imp >(adapter.abs, parse_expr(extract_thesis(e)))->get_adv_truth_prover(adapter.tb);
+                break; }
+            /*case Z3_OP_PR_HYPOTHESIS:
                 cout << "hypothesis";
                 assert(num_args == 1);
                 assert(arity == 1);
