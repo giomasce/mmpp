@@ -123,45 +123,46 @@ bool test_one(string filename, bool advanced_tests) {
 }
 
 void test_parser() {
-    /* Describe the grammar at http://loup-vaillant.fr/tutorials/earley-parsing/recogniser with:
-     *   1: Sum
-     *   2: Product
-     *   3: Factor
-     *   4: Number
-     *   10: +
-     *   11: -
-     *   12: *
-     *   13: /
-     *   14: (
-     *   15: )
-     *   20: 0
-     *   21: 1
-     *   ...
-     *   29: 9
-     * Only digit up to 4 are supported at the moment.
+    /* Describe the grammar at http://loup-vaillant.fr/tutorials/earley-parsing/recogniser.
+     * Only digit up to 4 are used to keep tables small and debugging easy.
      */
-    std::unordered_map<SymTok, std::vector<std::pair< LabTok, std::vector<SymTok> > > > derivations;
-    derivations[1].push_back(make_pair(100, vector< SymTok >({ 1, 10, 2 })));
-    derivations[1].push_back(make_pair(101, vector< SymTok >({ 1, 11, 2 })));
-    derivations[1].push_back(make_pair(102, vector< SymTok >({ 2 })));
-    derivations[2].push_back(make_pair(103, vector< SymTok >({ 2, 12, 3 })));
-    derivations[2].push_back(make_pair(104, vector< SymTok >({ 2, 13, 3 })));
-    derivations[2].push_back(make_pair(105, vector< SymTok >({ 3 })));
-    derivations[3].push_back(make_pair(106, vector< SymTok >({ 14, 1, 15 })));
-    derivations[3].push_back(make_pair(107, vector< SymTok >({ 4 })));
-    derivations[4].push_back(make_pair(108, vector< SymTok >({ 20, 4 })));
-    derivations[4].push_back(make_pair(109, vector< SymTok >({ 21, 4 })));
-    derivations[4].push_back(make_pair(110, vector< SymTok >({ 22, 4 })));
-    derivations[4].push_back(make_pair(111, vector< SymTok >({ 23, 4 })));
-    derivations[4].push_back(make_pair(112, vector< SymTok >({ 24, 4 })));
-    derivations[4].push_back(make_pair(113, vector< SymTok >({ 20 })));
-    derivations[4].push_back(make_pair(114, vector< SymTok >({ 21 })));
-    derivations[4].push_back(make_pair(115, vector< SymTok >({ 22 })));
-    derivations[4].push_back(make_pair(116, vector< SymTok >({ 23 })));
-    derivations[4].push_back(make_pair(117, vector< SymTok >({ 24 })));
-    vector< SymTok > sent = { 21, 10, 14, 22, 12, 23, 11, 24, 15 };
-    auto res = earley(sent, 1, derivations);
+    std::unordered_map<string, std::vector<std::pair< size_t, std::vector<string> > > > derivations;
+    derivations["Sum"].push_back(make_pair(100, vector< string >({ "Sum", "+", "Product" })));
+    derivations["Sum"].push_back(make_pair(101, vector< string >({ "Sum", "-", "Product" })));
+    derivations["Sum"].push_back(make_pair(102, vector< string >({ "Product" })));
+    derivations["Product"].push_back(make_pair(103, vector< string >({ "Product", "*", "Product" })));
+    derivations["Product"].push_back(make_pair(104, vector< string >({ "Product", "/", "Product" })));
+    derivations["Product"].push_back(make_pair(105, vector< string >({ "Factor" })));
+    derivations["Factor"].push_back(make_pair(106, vector< string >({ "(", "Sum", ")" })));
+    derivations["Factor"].push_back(make_pair(107, vector< string >({ "Number" })));
+    derivations["Number"].push_back(make_pair(108, vector< string >({ "0", "Number" })));
+    derivations["Number"].push_back(make_pair(109, vector< string >({ "1", "Number" })));
+    derivations["Number"].push_back(make_pair(110, vector< string >({ "2", "Number" })));
+    derivations["Number"].push_back(make_pair(111, vector< string >({ "3", "Number" })));
+    derivations["Number"].push_back(make_pair(112, vector< string >({ "4", "Number" })));
+    derivations["Number"].push_back(make_pair(113, vector< string >({ "0" })));
+    derivations["Number"].push_back(make_pair(114, vector< string >({ "1" })));
+    derivations["Number"].push_back(make_pair(115, vector< string >({ "2" })));
+    derivations["Number"].push_back(make_pair(116, vector< string >({ "3" })));
+    derivations["Number"].push_back(make_pair(117, vector< string >({ "4" })));
+    vector< string > sent = { "1", "+", "(", "2", "*", "3", "-", "4", ")" };
+    auto res = earley< string, size_t >(sent, "Sum", derivations);
     assert(res.label != 0);
+}
+
+void test_parser2() {
+    /* Describe the grammar at https://web.cs.dal.ca/~sjackson/lalr1.html.
+     */
+    std::unordered_map<char, std::vector<std::pair< size_t, std::vector<char> > > > derivations;
+    derivations['S'].push_back(make_pair(1, vector< char >({ 'N' })));
+    derivations['N'].push_back(make_pair(2, vector< char >({ 'V', '=', 'E' })));
+    derivations['N'].push_back(make_pair(3, vector< char >({ 'E' })));
+    derivations['E'].push_back(make_pair(4, vector< char >({ 'V' })));
+    derivations['V'].push_back(make_pair(5, vector< char >({ 'x' })));
+    derivations['V'].push_back(make_pair(6, vector< char >({ '*', 'E' })));
+    vector< char > sent = { 'x', '=', '*', 'x' };
+    auto res = earley< char, size_t >(sent, 'S', derivations);
+    assert(res.label == 1);
 }
 
 void test() {
@@ -200,6 +201,7 @@ void test() {
     if (true) {
         cout << "Generic parser test" << endl;
         test_parser();
+        test_parser2();
     }
     return;
 
