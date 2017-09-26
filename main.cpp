@@ -176,8 +176,8 @@ const unordered_map< string, function< int(int, char*[]) > > MAIN_FUNCTIONS = {
 #endif
 };
 
-const function< int(int, char*[]) > DEFAULT_MAIN_FUNCTION = test_z3_main;
-//const function< int(int, char*[]) > DEFAULT_MAIN_FUNCTION = test_all_main;
+//const function< int(int, char*[]) > DEFAULT_MAIN_FUNCTION = test_z3_main;
+const function< int(int, char*[]) > DEFAULT_MAIN_FUNCTION = test_all_main;
 
 int main(int argc, char *argv[]) {
     char *tmp = strdup(argv[0]);

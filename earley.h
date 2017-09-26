@@ -12,6 +12,5 @@ struct EarleyTreeItem {
 };
 
 EarleyTreeItem earley(const std::vector<SymTok> &sent, SymTok type, const std::unordered_map<SymTok, std::vector<std::pair<LabTok, std::vector<SymTok> > > > &derivations);
-void test_earley();
 
 #endif // EARLEY_H

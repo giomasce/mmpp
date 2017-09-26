@@ -466,11 +466,10 @@ struct Z3Adapter {
                     return ret;
                     break; }
                 case Z3_OP_PR_DEF_AXIOM: {
-                    //cout << "Tseitin's axiom";
                     assert(num_args == 1);
                     assert(arity == 1);
-                    //cout << endl << "EXPR: " << e.arg(0);
-                    //cout << endl << "WFF: " << parse_expr(e.arg(0))->to_string();
+                    cout << "EXPR: " << e.arg(0) << endl;
+                    cout << "WFF: " << parse_expr(e.arg(0))->to_string() << endl;
                     pwff thesis = parse_expr(extract_thesis(e));
                     cout << "AXIOM ORACLE for '" << thesis->to_string() << "'!" << endl;
                     Prover p1 = thesis->get_adv_truth_prover(this->tb);
@@ -522,9 +521,9 @@ struct Z3Adapter {
                     assert(num_args == 2);
                     assert(arity == 2);
                     //cout << "FULL: " << e << endl;
-                    cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;
+                    /*cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;
                     cout << "TH: " << e.arg(1) << endl;
-                    cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;
+                    cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;*/
                     cout << "LEMMA ORACLE for '" << make_shared< Imp >(this->get_current_abs_hyps(), parse_expr(extract_thesis(e)))->to_string() << "'!" << endl;
                     return make_shared< Imp >(this->get_current_abs_hyps(), parse_expr(extract_thesis(e)))->get_adv_truth_prover(this->tb);
                     break; }

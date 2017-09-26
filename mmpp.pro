@@ -27,7 +27,8 @@ SOURCES += main.cpp \
     platform.cpp \
     workset.cpp \
     jsonize.cpp \
-    z3prover.cpp
+    z3prover.cpp \
+    lr.cpp
 
 CONFIG(qt) {
 SOURCES +=  mainwindow.cpp \
@@ -68,7 +69,8 @@ HEADERS += \
     platform.h \
     workset.h \
     jsonize.h \
-    z3prover.h
+    z3prover.h \
+    lr.h
 
 CONFIG(qt) {
 HEADERS +=  mainwindow.h \
