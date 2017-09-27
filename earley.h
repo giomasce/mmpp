@@ -97,7 +97,7 @@ EarleyTreeItem< LabType > earley(const std::vector<SymType> &sent, SymType type,
         }
     }
 
-#if 1
+#if 0
     // Dump final status for debug
     std::cout << "Earley dump" << std::endl;
     for (size_t i = 0; i < state.size(); i++) {
@@ -110,6 +110,9 @@ EarleyTreeItem< LabType > earley(const std::vector<SymType> &sent, SymType type,
                     std::cout << " •";
                 }
                 std::cout << " " << (*cur_state.der)[k];
+            }
+            if (cur_state.der->size() == cur_state.current) {
+                std::cout << " •";
             }
             std::cout << std::endl;
         }

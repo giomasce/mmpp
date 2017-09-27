@@ -1,6 +1,7 @@
 #include "test.h"
 
 #include <ostream>
+#include <functional>
 
 #include "wff.h"
 #include "parser.h"
@@ -8,6 +9,7 @@
 #include "memory.h"
 #include "utils.h"
 #include "earley.h"
+#include "lr.h"
 #include "utils.h"
 
 using namespace std;
@@ -122,7 +124,17 @@ bool test_one(string filename, bool advanced_tests) {
     return success;
 }
 
-void test_parser() {
+template< typename SymType, typename LabType >
+void test_parsers(const std::vector<SymType> &sent, SymType type, const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations) {
+    cout << "Earley parser" << endl;
+    auto res = earley(sent, type, derivations);
+    assert(res.label != 0);
+
+    cout << "LR parser" << endl;
+    process_derivations(derivations);
+}
+
+void test_grammar1() {
     /* Describe the grammar at http://loup-vaillant.fr/tutorials/earley-parsing/recogniser.
      * Only digit up to 4 are used to keep tables small and debugging easy.
      */
@@ -146,11 +158,10 @@ void test_parser() {
     derivations["Number"].push_back(make_pair(116, vector< string >({ "3" })));
     derivations["Number"].push_back(make_pair(117, vector< string >({ "4" })));
     vector< string > sent = { "1", "+", "(", "2", "*", "3", "-", "4", ")" };
-    auto res = earley< string, size_t >(sent, "Sum", derivations);
-    assert(res.label != 0);
+    test_parsers< string, size_t >(sent, "Sum", derivations);
 }
 
-void test_parser2() {
+void test_grammar2() {
     /* Describe the grammar at https://web.cs.dal.ca/~sjackson/lalr1.html.
      */
     std::unordered_map<char, std::vector<std::pair< size_t, std::vector<char> > > > derivations;
@@ -161,8 +172,35 @@ void test_parser2() {
     derivations['V'].push_back(make_pair(5, vector< char >({ 'x' })));
     derivations['V'].push_back(make_pair(6, vector< char >({ '*', 'E' })));
     vector< char > sent = { 'x', '=', '*', 'x' };
-    auto res = earley< char, size_t >(sent, 'S', derivations);
-    assert(res.label == 1);
+    test_parsers< char, size_t >(sent, 'S', derivations);
+}
+
+void test_grammar3() {
+    /* Describe the grammar at https://en.wikipedia.org/wiki/LR_parser.
+     */
+    std::unordered_map<string, std::vector<std::pair< size_t, std::vector<string> > > > derivations;
+    derivations["Goal"].push_back(make_pair(1, vector< string >({ "Sums" })));
+    derivations["Sums"].push_back(make_pair(2, vector< string >({ "Sums", "+", "Products" })));
+    derivations["Sums"].push_back(make_pair(3, vector< string >({ "Products" })));
+    derivations["Products"].push_back(make_pair(4, vector< string >({ "Products", "*", "Value" })));
+    derivations["Products"].push_back(make_pair(5, vector< string >({ "Value" })));
+    derivations["Value"].push_back(make_pair(6, vector< string >({ "int" })));
+    derivations["Value"].push_back(make_pair(7, vector< string >({ "id" })));
+    vector< string > sent = { "id", "*", "int", "+", "int" };
+    test_parsers< string, size_t >(sent, "Goal", derivations);
+}
+
+void test_grammar4() {
+    /* Describe the grammar at https://dickgrune.com/Books/PTAPG_1st_Edition/BookBody.pd, page 201.
+     */
+    std::unordered_map<char, std::vector<std::pair< size_t, std::vector<char> > > > derivations;
+    derivations['S'].push_back(make_pair(1, vector< char >({ 'E' })));
+    derivations['E'].push_back(make_pair(2, vector< char >({ 'E', '-', 'T' })));
+    derivations['E'].push_back(make_pair(3, vector< char >({ 'T' })));
+    derivations['T'].push_back(make_pair(4, vector< char >({ 'n' })));
+    derivations['T'].push_back(make_pair(5, vector< char >({ '(', 'E', ')' })));
+    vector< char > sent = { 'n', '-', 'n', '-', 'n' };
+    test_parsers< char, size_t >(sent, 'S', derivations);
 }
 
 void test() {
@@ -198,10 +236,27 @@ void test() {
         cout << "Finished. Memory usage: " << size_to_string(getCurrentRSS()) << endl << endl;
     }
 
-    if (true) {
+    if (false) {
         cout << "Generic parser test" << endl;
-        test_parser();
-        test_parser2();
+        test_grammar1();
+        test_grammar2();
+        test_grammar3();
+        test_grammar4();
+    }
+
+    if (true) {
+        cout << "LR persing on set.mm" << endl;
+        FileTokenizer ft("../set.mm/set.mm");
+        Parser p(ft, false, true);
+        p.run();
+        LibraryImpl lib = p.get_library();
+        LibraryToolbox tb(lib, false);
+        cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
+        cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl << endl;
+
+        std::function< std::ostream&(std::ostream&, SymTok) > sym_printer =  [&](ostream &os, SymTok sym)->ostream& { return os << lib.resolve_symbol(sym); };
+        std::function< std::ostream&(std::ostream&, LabTok) > lab_printer =  [&](ostream &os, LabTok lab)->ostream& { return os << lib.resolve_label(lab); };
+        process_derivations(tb.get_derivations(), sym_printer, lab_printer);
     }
     return;
 

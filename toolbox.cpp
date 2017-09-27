@@ -545,11 +545,13 @@ void LibraryToolbox::compute_derivations()
 {
     // Build the derivation rules; a derivation is created for each $f statement
     // and for each $a and $p statement without essential hypotheses such that no variable
-    // appears more than once and without distinct variables constraints
-    for (auto &type_lab : this->get_types()) {
+    // appears more than once and without distinct variables constraints and that does not
+    // begin with the turnstile
+    /*for (auto &type_lab : this->get_types()) {
         auto &type_sent = this->lib.get_sentence(type_lab);
         this->derivations[type_sent.at(0)].push_back(make_pair(type_lab, vector<SymTok>({type_sent.at(1)})));
-    }
+    }*/
+    const SymTok turnstile = this->lib.get_symbol("|-");
     auto assertions_gen = this->lib.list_assertions();
     while (true) {
         const Assertion *ass2 = assertions_gen();
@@ -564,6 +566,9 @@ void LibraryToolbox::compute_derivations()
             continue;
         }
         const auto &sent = this->lib.get_sentence(ass.get_thesis());
+        if (sent[0] == turnstile) {
+            continue;
+        }
         set< SymTok > symbols;
         bool duplicate = false;
         for (const auto &tok : sent) {
