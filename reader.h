@@ -1,5 +1,5 @@
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef READER_H
+#define READER_H
 
 #include <vector>
 #include <string>
@@ -98,4 +98,4 @@ private:
     int current = 0;
 };
 
-#endif // PARSER_H
+#endif // READER_H

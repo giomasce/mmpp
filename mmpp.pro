@@ -68,7 +68,8 @@ HEADERS += \
     jsonize.h \
     z3prover.h \
     lr.h \
-    reader.h
+    reader.h \
+    parser.h
 
 CONFIG(qt) {
 HEADERS +=  mainwindow.h \

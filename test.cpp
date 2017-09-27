@@ -127,11 +127,12 @@ bool test_one(string filename, bool advanced_tests) {
 template< typename SymType, typename LabType >
 void test_parsers(const std::vector<SymType> &sent, SymType type, const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations) {
     cout << "Earley parser" << endl;
-    auto res = earley(sent, type, derivations);
+    EarleyParser earley_parser(derivations);
+    auto res = earley_parser.parse(sent, type);
     assert(res.label != 0);
 
     cout << "LR parser" << endl;
-    process_derivations(derivations);
+    LRParser parser(derivations);
 }
 
 void test_grammar1() {
@@ -256,7 +257,7 @@ void test() {
 
         std::function< std::ostream&(std::ostream&, SymTok) > sym_printer =  [&](ostream &os, SymTok sym)->ostream& { return os << lib.resolve_symbol(sym); };
         std::function< std::ostream&(std::ostream&, LabTok) > lab_printer =  [&](ostream &os, LabTok lab)->ostream& { return os << lib.resolve_label(lab); };
-        process_derivations(tb.get_derivations(), sym_printer, lab_printer);
+        LRParser parser(tb.get_derivations(), sym_printer, lab_printer);
     }
     return;
 

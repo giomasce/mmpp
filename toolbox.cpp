@@ -214,12 +214,12 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
     return false;
 }
 
-static void earley_type_unwind_tree(const EarleyTreeItem< LabTok > &tree, ProofEngine &engine, const Library &lib, const std::unordered_map<SymTok, Prover> &var_provers) {
+static void earley_type_unwind_tree(const ParsingTree< LabTok > &tree, ProofEngine &engine, const Library &lib, const std::unordered_map<SymTok, Prover> &var_provers) {
     // We need to sort children according to their order as floating hypotheses of this assertion
     // If this is not an assertion, then there are no children
     const Assertion &ass = lib.get_assertion(tree.label);
     if (ass.is_valid()) {
-        unordered_map< SymTok, const EarleyTreeItem< LabTok >* > children;
+        unordered_map< SymTok, const ParsingTree< LabTok >* > children;
         auto it = tree.children.begin();
         for (auto &tok : lib.get_sentence(tree.label)) {
             if (!lib.is_constant(tok)) {
@@ -246,7 +246,8 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
     copy(type_sent.begin()+1, type_sent.end(), back_inserter(sent));
     auto derivations = this->get_derivations();
 
-    EarleyTreeItem tree = earley(sent, type, derivations);
+    EarleyParser parser(derivations);
+    ParsingTree tree = parser.parse(sent, type);
     if (tree.label == 0) {
         return false;
     } else {
