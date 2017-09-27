@@ -2,7 +2,7 @@
 
 #include "json.h"
 
-#include "parser.h"
+#include "reader.h"
 #include "platform.h"
 #include "jsonize.h"
 
@@ -24,7 +24,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
     }
     if (*path_begin == "load") {
         FileTokenizer ft(platform_get_resources_base() + "/library.mm");
-        Parser p(ft, false, true);
+        Reader p(ft, false, true);
         p.run();
         this->library = make_unique< LibraryImpl >(p.get_library());
         json ret = { { "status", "ok" } };

@@ -4,7 +4,7 @@
 #include <functional>
 
 #include "wff.h"
-#include "parser.h"
+#include "reader.h"
 #include "unification.h"
 #include "memory.h"
 #include "utils.h"
@@ -63,7 +63,7 @@ bool test_one(string filename, bool advanced_tests) {
     try {
         cout << "Memory usage when starting: " << size_to_string(getCurrentRSS()) << endl;
         FileTokenizer ft(test_basename + "/" + filename);
-        Parser p(ft, true, true);
+        Reader p(ft, true, true);
         cout << "Reading library and executing all proofs..." << endl;
         p.run();
         LibraryImpl lib = p.get_library();
@@ -247,7 +247,7 @@ void test() {
     if (true) {
         cout << "LR persing on set.mm" << endl;
         FileTokenizer ft("../set.mm/set.mm");
-        Parser p(ft, false, true);
+        Reader p(ft, false, true);
         p.run();
         LibraryImpl lib = p.get_library();
         LibraryToolbox tb(lib, false);
@@ -263,7 +263,7 @@ void test() {
     if (false) {
         cout << "Doing additional tests on set.mm..." << endl;
         FileTokenizer ft("../set.mm/set.mm");
-        Parser p(ft, false, true);
+        Reader p(ft, false, true);
         p.run();
         LibraryImpl lib = p.get_library();
         LibraryToolbox tb(lib, true);

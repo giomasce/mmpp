@@ -6,7 +6,7 @@
 #include "z3prover.h"
 
 #include "wff.h"
-#include "parser.h"
+#include "reader.h"
 #include "memory.h"
 #include "utils.h"
 
@@ -568,7 +568,7 @@ int test_z3_main(int argc, char *argv[])
 
     cout << "Reading set.mm..." << endl;
     FileTokenizer ft("../set.mm/set.mm");
-    Parser p(ft, false, true);
+    Reader p(ft, false, true);
     p.run();
     LibraryImpl lib = p.get_library();
     LibraryToolbox tb(lib, true);

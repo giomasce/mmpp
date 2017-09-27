@@ -7,7 +7,7 @@
 #include <memory>
 #include <fstream>
 
-#include "parser.h"
+#include "reader.h"
 #include "utils.h"
 #include "proof.h"
 #include "utils.h"
@@ -160,13 +160,13 @@ FileTokenizer::~FileTokenizer()
     delete this->cascade;
 }
 
-Parser::Parser(TokenGenerator &tg, bool execute_proofs, bool store_comments) :
+Reader::Reader(TokenGenerator &tg, bool execute_proofs, bool store_comments) :
     tg(&tg), execute_proofs(execute_proofs), store_comments(store_comments),
     number(1)
 {
 }
 
-void Parser::run () {
+void Reader::run () {
     pair< bool, string > token_pair;
     this->label = 0;
     assert(this->stack.empty());
@@ -252,21 +252,21 @@ void Parser::run () {
     this->t_comment = "";
 }
 
-const LibraryImpl &Parser::get_library() const {
+const LibraryImpl &Reader::get_library() const {
     return this->lib;
 }
 
-std::pair<bool, string> Parser::next_token()
+std::pair<bool, string> Reader::next_token()
 {
     return this->tg->next();
 }
 
-const StackFrame &Parser::get_final_frame() const
+const StackFrame &Reader::get_final_frame() const
 {
     return this->final_frame;
 }
 
-void Parser::parse_c()
+void Reader::parse_c()
 {
     assert_or_throw(this->label == 0, "Undue label in $c statement");
     assert_or_throw(this->stack.size() == 1, "Found $c statement when not in top-level scope");
@@ -278,7 +278,7 @@ void Parser::parse_c()
     }
 }
 
-void Parser::parse_v()
+void Reader::parse_v()
 {
     assert_or_throw(this->label == 0, "Undue label in $v statement");
     for (auto stok : this->toks) {
@@ -289,7 +289,7 @@ void Parser::parse_v()
     }
 }
 
-void Parser::parse_f()
+void Reader::parse_f()
 {
     assert_or_throw(this->label != 0, "Missing label in $f statement");
     assert_or_throw(this->toks.size() == 2, "Found $f statement with wrong length");
@@ -304,7 +304,7 @@ void Parser::parse_f()
     this->stack.back().types_set.insert(this->label);
 }
 
-void Parser::parse_e()
+void Reader::parse_e()
 {
     assert_or_throw(this->label != 0, "Missing label in $e statement");
     assert_or_throw(this->toks.size() >= 1, "Empty $e statement");
@@ -320,7 +320,7 @@ void Parser::parse_e()
     this->stack.back().hyps.push_back(this->label);
 }
 
-void Parser::parse_d()
+void Reader::parse_d()
 {
     assert_or_throw(this->label == 0, "Undue label in $d statement");
     for (auto it = this->toks.begin(); it != this->toks.end(); it++) {
@@ -335,7 +335,7 @@ void Parser::parse_d()
     }
 }
 
-void Parser::collect_vars_from_sentence(std::set<SymTok> &vars, const std::vector<SymTok> &sent) const {
+void Reader::collect_vars_from_sentence(std::set<SymTok> &vars, const std::vector<SymTok> &sent) const {
     for (auto &tok : sent) {
         if (this->check_var(tok)) {
             vars.insert(tok);
@@ -343,7 +343,7 @@ void Parser::collect_vars_from_sentence(std::set<SymTok> &vars, const std::vecto
     }
 }
 
-void Parser::collect_vars_from_proof(std::set<SymTok> &vars, const std::vector<LabTok> &proof) const
+void Reader::collect_vars_from_proof(std::set<SymTok> &vars, const std::vector<LabTok> &proof) const
 {
     for (auto &tok : proof) {
         if (this->check_type(tok)) {
@@ -353,7 +353,7 @@ void Parser::collect_vars_from_proof(std::set<SymTok> &vars, const std::vector<L
     }
 }
 
-set< SymTok > Parser::collect_mand_vars(const std::vector<SymTok> &sent) const {
+set< SymTok > Reader::collect_mand_vars(const std::vector<SymTok> &sent) const {
     set< SymTok > vars;
     this->collect_vars_from_sentence(vars, sent);
     for (auto &frame : this->stack) {
@@ -364,7 +364,7 @@ set< SymTok > Parser::collect_mand_vars(const std::vector<SymTok> &sent) const {
     return vars;
 }
 
-std::set<SymTok> Parser::collect_opt_vars(const std::vector<LabTok> &proof, const std::set<SymTok> &mand_vars) const
+std::set<SymTok> Reader::collect_opt_vars(const std::vector<LabTok> &proof, const std::set<SymTok> &mand_vars) const
 {
     set< SymTok > vars;
     this->collect_vars_from_proof(vars, proof);
@@ -374,7 +374,7 @@ std::set<SymTok> Parser::collect_opt_vars(const std::vector<LabTok> &proof, cons
 }
 
 // Here order matters! Be careful!
-pair< vector< LabTok >, vector< LabTok > > Parser::collect_mand_hyps(set< SymTok > vars) const {
+pair< vector< LabTok >, vector< LabTok > > Reader::collect_mand_hyps(set< SymTok > vars) const {
     vector< LabTok > float_hyps, ess_hyps;
 
     // Floating hypotheses
@@ -397,7 +397,7 @@ pair< vector< LabTok >, vector< LabTok > > Parser::collect_mand_hyps(set< SymTok
     return make_pair(float_hyps, ess_hyps);
 }
 
-std::set<LabTok> Parser::collect_opt_hyps(std::set<SymTok> opt_vars) const
+std::set<LabTok> Reader::collect_opt_hyps(std::set<SymTok> opt_vars) const
 {
     set< LabTok > ret;
     for (auto &frame : this->stack) {
@@ -411,7 +411,7 @@ std::set<LabTok> Parser::collect_opt_hyps(std::set<SymTok> opt_vars) const
     return ret;
 }
 
-set< pair< SymTok, SymTok > > Parser::collect_mand_dists(set< SymTok > vars) const {
+set< pair< SymTok, SymTok > > Reader::collect_mand_dists(set< SymTok > vars) const {
     set< pair< SymTok, SymTok > > dists;
     for (auto &frame : this->stack) {
         for (auto &dist : frame.dists) {
@@ -423,7 +423,7 @@ set< pair< SymTok, SymTok > > Parser::collect_mand_dists(set< SymTok > vars) con
     return dists;
 }
 
-set< pair< SymTok, SymTok > > Parser::collect_opt_dists(set< SymTok > opt_vars, set< SymTok > mand_vars) const {
+set< pair< SymTok, SymTok > > Reader::collect_opt_dists(set< SymTok > opt_vars, set< SymTok > mand_vars) const {
     set< SymTok > vars;
     set_union(opt_vars.begin(), opt_vars.end(), mand_vars.begin(), mand_vars.end(), inserter(vars, vars.begin()));
     set< pair< SymTok, SymTok > > dists;
@@ -439,7 +439,7 @@ set< pair< SymTok, SymTok > > Parser::collect_opt_dists(set< SymTok > opt_vars, 
     return dists;
 }
 
-void Parser::parse_a()
+void Reader::parse_a()
 {
     // Usual sanity checks and symbol conversion
     assert_or_throw(this->label != 0, "Missing label in $a statement");
@@ -467,7 +467,7 @@ void Parser::parse_a()
     this->lib.add_assertion(this->label, ass);
 }
 
-void Parser::parse_p()
+void Reader::parse_p()
 {
     // Usual sanity checks and symbol conversion
     assert_or_throw(this->label != 0, "Missing label in $p statement");
@@ -569,7 +569,7 @@ void Parser::parse_p()
     this->lib.add_assertion(this->label, ass);
 }
 
-void Parser::process_comment(const string &comment)
+void Reader::process_comment(const string &comment)
 {
     if (this->store_comments) {
         this->last_comment = comment;
@@ -645,7 +645,7 @@ static string decode_string(vector< pair< bool, string > >::const_iterator begin
     return value;
 }
 
-void Parser::parse_t_code(const vector< vector< pair< bool, string > > > &code) {
+void Reader::parse_t_code(const vector< vector< pair< bool, string > > > &code) {
     LibraryAddendumImpl add;
     for (auto &tokens : code) {
         assert_or_throw(tokens.size() > 0, "empty instruction in $t comment");
@@ -709,7 +709,7 @@ void Parser::parse_t_code(const vector< vector< pair< bool, string > > > &code) 
     this->lib.set_addendum(add);
 }
 
-void Parser::parse_t_comment(const string &comment)
+void Reader::parse_t_comment(const string &comment)
 {
     // 0 -> normal
     // 1 -> comment
@@ -806,13 +806,13 @@ void Parser::parse_t_comment(const string &comment)
     this->parse_t_code(code);
 }
 
-void Parser::parse_j_comment(const string &comment)
+void Reader::parse_j_comment(const string &comment)
 {
     (void) comment;
     // TODO
 }
 
-bool Parser::check_var(SymTok tok) const
+bool Reader::check_var(SymTok tok) const
 {
     for (auto &frame : this->stack) {
         if (frame.vars.find(tok) != frame.vars.end()) {
@@ -822,12 +822,12 @@ bool Parser::check_var(SymTok tok) const
     return false;
 }
 
-bool Parser::check_const(SymTok tok) const
+bool Reader::check_const(SymTok tok) const
 {
     return this->lib.is_constant(tok);
 }
 
-bool Parser::check_type(LabTok tok) const
+bool Reader::check_type(LabTok tok) const
 {
     for (auto &frame : this->stack) {
         if (frame.types_set.find(tok) != frame.types_set.end()) {

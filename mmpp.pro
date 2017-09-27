@@ -12,14 +12,12 @@ CONFIG += link_pkgconfig
 PKGCONFIG += libmicrohttpd
 
 SOURCES += main.cpp \
-    parser.cpp \
     library.cpp \
     proof.cpp \
     unification.cpp \
     memory.c \
     wff.cpp \
     toolbox.cpp \
-    earley.cpp \
     test.cpp \
     utils.cpp \
     httpd.cpp \
@@ -28,7 +26,7 @@ SOURCES += main.cpp \
     workset.cpp \
     jsonize.cpp \
     z3prover.cpp \
-    lr.cpp
+    reader.cpp
 
 CONFIG(qt) {
 SOURCES +=  mainwindow.cpp \
@@ -53,7 +51,6 @@ QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -
 
 HEADERS += \
     wff.h \
-    parser.h \
     library.h \
     proof.h \
     unification.h \
@@ -70,7 +67,8 @@ HEADERS += \
     workset.h \
     jsonize.h \
     z3prover.h \
-    lr.h
+    lr.h \
+    reader.h
 
 CONFIG(qt) {
 HEADERS +=  mainwindow.h \

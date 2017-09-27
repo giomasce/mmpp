@@ -5,11 +5,11 @@
 
 #include "library.h"
 #include "toolbox.h"
-#include "parser.h"
+#include "reader.h"
 #include "htmldelegate.h"
 
 struct Context {
-    Parser *parser = NULL;
+    Reader *parser = NULL;
     const Library *lib = NULL;
     LibraryToolbox *tb = NULL;
 

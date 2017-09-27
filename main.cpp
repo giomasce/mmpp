@@ -12,7 +12,7 @@
 #include <csignal>
 
 #include "wff.h"
-#include "parser.h"
+#include "reader.h"
 #include "unification.h"
 #include "memory.h"
 #include "utils.h"
@@ -35,7 +35,7 @@ void unification_test() {
 
     cout << "Reading set.mm..." << endl;
     FileTokenizer ft("../set.mm/set.mm");
-    Parser p(ft, false, true);
+    Reader p(ft, false, true);
     p.run();
     LibraryImpl lib = p.get_library();
     LibraryToolbox tb(lib, true);
@@ -78,7 +78,7 @@ void unification_loop() {
 
     cout << "Reading set.mm..." << endl;
     FileTokenizer ft("../set.mm/set.mm");
-    Parser p(ft, false, true);
+    Reader p(ft, false, true);
     p.run();
     LibraryImpl lib = p.get_library();
     LibraryToolbox tb(lib, true);

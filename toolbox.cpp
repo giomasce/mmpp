@@ -2,7 +2,7 @@
 #include "utils.h"
 #include "unification.h"
 #include "earley.h"
-#include "parser.h"
+#include "reader.h"
 
 using namespace std;
 

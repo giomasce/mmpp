@@ -79,7 +79,7 @@ Context *Context::create_from_filename(string filename)
 {
     Context *ctx = new Context();
     FileTokenizer ft(filename);
-    ctx->parser = new Parser(ft, false, true);
+    ctx->parser = new Reader(ft, false, true);
     ctx->parser->run();
     ctx->lib = &ctx->parser->get_library();
     ctx->tb = new LibraryToolbox(*ctx->lib, true);

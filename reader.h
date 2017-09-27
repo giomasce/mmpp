@@ -38,9 +38,9 @@ private:
     std::pair< bool, std::string > finalize_token(bool comment);
 };
 
-class Parser {
+class Reader {
 public:
-    Parser(TokenGenerator &tg, bool execute_proofs=true, bool store_comments=false);
+    Reader(TokenGenerator &tg, bool execute_proofs=true, bool store_comments=false);
     void run();
     const LibraryImpl &get_library() const;
 

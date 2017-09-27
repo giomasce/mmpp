@@ -68,7 +68,7 @@ public:
 };
 
 class LibraryAddendumImpl : public ExtendedLibraryAddendum {
-    friend class Parser;
+    friend class Reader;
 public:
     virtual const std::string &get_htmldef(SymTok tok) const
     {
