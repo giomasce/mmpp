@@ -16,7 +16,6 @@
 #include <boost/serialization/utility.hpp>
 
 #include "parser.h"
-#include "json.h"
 #include "serialize_tuple.h"
 
 // The state encodes (producting symbol, rule name, position, producted sentence)
@@ -267,6 +266,7 @@ public:
              const std::function< std::ostream&(std::ostream&, LabType) > &lab_printer = default_lab_printer< LabType >) :
         derivations(derivations), sym_printer(sym_printer), lab_printer(lab_printer) {
         //this->initialize();
+        this->ders_by_lab = compute_derivations_by_label(derivations);
     }
 
     template< class Archive >
@@ -279,30 +279,14 @@ public:
         a >> this->automaton;
     }
 
-    /*nlohmann::json to_json() {
-        return nlohmann::json(this->automaton);
-    }
-
-    void from_json(nlohmann::json j) {
-        std::unordered_map< std::string, std::pair< std::unordered_map< std::string, size_t >, std::vector< std::tuple< SymType, LabType, size_t, size_t > > > > a;
-        a = j.get< decltype(a) >();
-        for (const auto &i : a) {
-            std::unordered_map< SymType, size_t > shifts;
-            for (const auto &j : i.second.first) {
-                SymType x;
-                from_string(x, j.first);
-                shifts.insert(std::make_pair(x, j.second));
-            }
-            this->automaton.insert(std::make_pair(static_cast< size_t >(std::stoull(i.first)), make_pair(shifts, i.second.second)));
-        }
-    }*/
-
     ParsingTree< LabType > parse(const std::vector<SymType> &sent, SymType type) const {
         LRParsingHelper helper(this->automaton, sent, type);
         bool res;
         ParsingTree< LabType > parsing_tree;
         std::tie(res, parsing_tree) = helper.do_parsing();
         if (res) {
+            // Check that the returned parsing tree is correct
+            assert(reconstruct_sentence(parsing_tree, this->derivations, this->ders_by_lab) == sent);
             return parsing_tree;
         } else {
             return {};
@@ -384,8 +368,8 @@ public:
             }
         }
 
-        // Look again at all states
-        for (const auto &it : states) {
+        // Look again at all states to list conflicts
+        /*for (const auto &it : states) {
             const auto &state = it.first;
             size_t shift_num;
             size_t reduce_num;
@@ -395,11 +379,12 @@ public:
                 print_state(state, this->sym_printer, this->lab_printer);
                 std::cout << std::endl;
             }
-        }
+        }*/
     }
 
 private:
     const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations;
+    std::unordered_map< LabType, std::pair< SymType, std::vector< SymType > > > ders_by_lab;
     /* Every state is mapped to a pair containing the shift map and the vector of reductions;
      * each reduction is described by its head symbol, its label, its number of symbols and its number of variables. */
     std::unordered_map< size_t, std::pair< std::unordered_map< SymType, size_t >, std::vector< std::tuple< SymType, LabType, size_t, size_t > > > > automaton;
