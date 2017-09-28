@@ -270,12 +270,16 @@ public:
     }
 
     template< class Archive >
-    void to_archive(Archive &a) {
+    void to_archive(Archive &a, const std::string &digest) {
+        a << digest;
         a << this->automaton;
     }
 
     template< class Archive >
-    void from_archive(Archive &a) {
+    void from_archive(Archive &a, const std::string &digest) {
+        std::string found_digest;
+        a >> found_digest;
+        assert(digest == found_digest);
         a >> this->automaton;
     }
 

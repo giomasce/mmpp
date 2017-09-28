@@ -145,13 +145,13 @@ void test_parsers(const std::vector<SymType> &sent, SymType type, const std::uno
     {
         ofstream lr_fout("/tmp/lr_parser_test_data");
         boost::archive::text_oarchive oa(lr_fout);
-        lr_parser.to_archive(oa);
+        lr_parser.to_archive(oa, "");
     }
 
     {
         ifstream lr_fin("/tmp/lr_parser_test_data");
         boost::archive::text_iarchive oa(lr_fin);
-        lr_parser.from_archive(oa);
+        lr_parser.from_archive(oa, "");
     }
 
     ParsingTree< LabType > lr_pt = lr_parser.parse(sent, type);
@@ -235,6 +235,7 @@ void test_lr_set() {
     FileTokenizer ft("../set.mm/set.mm");
     Reader p(ft, false, true);
     p.run();
+    ft.compute_digest();
     LibraryImpl lib = p.get_library();
     LibraryToolbox tb(lib, false);
     cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
@@ -251,13 +252,13 @@ void test_lr_set() {
         lr_parser.initialize();
         ofstream lr_fout("lr_parser_data");
         boost::archive::text_oarchive oa(lr_fout);
-        lr_parser.to_archive(oa);
+        lr_parser.to_archive(oa, ft.get_digest());
     }
 
     {
         ifstream lr_fin("lr_parser_data");
         boost::archive::text_iarchive oa(lr_fin);
-        lr_parser.from_archive(oa);
+        lr_parser.from_archive(oa, ft.get_digest());
     }
 
     for (const Assertion &ass : lib.get_assertions()) {

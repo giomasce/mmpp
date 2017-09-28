@@ -73,8 +73,7 @@ std::pair<bool, string> FileTokenizer::next()
                 this->cascade = NULL;
             }
         }
-        char c;
-        this->fin.get(c);
+        char c = this->get_char();
         if (this->fin.eof()) {
             return this->finalize_token(false);
         }
@@ -83,7 +82,7 @@ std::pair<bool, string> FileTokenizer::next()
                 throw MMPPException("Dollars cannot appear in the middle of a token");
             }
             // This can be a regular token or the beginning of a comment
-            this->fin.get(c);
+            c = this->get_char();
             if (this->fin.eof()) {
                 throw MMPPException("Interrupted dollar sequence");
             }
@@ -93,7 +92,7 @@ std::pair<bool, string> FileTokenizer::next()
                 bool comment = c == '(';
                 vector< char > content;
                 while (true) {
-                    this->fin.get(c);
+                    c = this->get_char();
                     if (this->fin.eof()) {
                         throw MMPPException("File ended in comment or in file inclusion");
                     }
@@ -153,6 +152,24 @@ std::pair<bool, string> FileTokenizer::next()
             throw MMPPException("Forbidden input character");
         }
     }
+}
+
+void FileTokenizer::compute_digest()
+{
+    this->hasher.Final(this->digest);
+}
+
+string FileTokenizer::get_digest() const
+{
+    return string(reinterpret_cast< const char* >(this->digest), sizeof(decltype(this->digest)));
+}
+
+char FileTokenizer::get_char()
+{
+    char c;
+    this->fin.get(c);
+    this->hasher.Update(reinterpret_cast< ::byte* >(&c), 1);
+    return c;
 }
 
 FileTokenizer::~FileTokenizer()

@@ -9,7 +9,7 @@ CONFIG(qt) {
 
 TEMPLATE = app
 CONFIG += link_pkgconfig
-PKGCONFIG += libmicrohttpd
+PKGCONFIG += libmicrohttpd libcrypto++
 
 SOURCES += main.cpp \
     library.cpp \
