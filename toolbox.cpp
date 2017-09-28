@@ -548,10 +548,11 @@ void LibraryToolbox::compute_derivations()
     // and for each $a and $p statement without essential hypotheses such that no variable
     // appears more than once and without distinct variables constraints and that does not
     // begin with the turnstile
-    /*for (auto &type_lab : this->get_types()) {
+    for (auto &type_lab : this->get_types()) {
         auto &type_sent = this->lib.get_sentence(type_lab);
         this->derivations[type_sent.at(0)].push_back(make_pair(type_lab, vector<SymTok>({type_sent.at(1)})));
-    }*/
+    }
+    // FIXME Take it from the configuration
     const SymTok turnstile = this->lib.get_symbol("|-");
     auto assertions_gen = this->lib.list_assertions();
     while (true) {

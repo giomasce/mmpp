@@ -125,14 +125,61 @@ bool test_one(string filename, bool advanced_tests) {
 }
 
 template< typename SymType, typename LabType >
+std::unordered_map< LabType, std::pair< SymType, std::vector< SymType > > > compute_derivations_by_label(const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations) {
+    std::unordered_map< LabType, std::pair< SymType, std::vector< SymType > > > ders;
+    for (const auto &der_sym : derivations) {
+        for (const auto &der : der_sym.second) {
+            ders.insert(make_pair(der.first, make_pair(der_sym.first, der.second)));
+        }
+    }
+    return ders;
+}
+
+template< typename SymType, typename LabType >
+void reconstruct_sentence_internal(const ParsingTree< LabType > &parsing_tree,
+                                                     const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations,
+                                                     const std::unordered_map< LabType, std::pair< SymType, std::vector< SymType > > > &ders_by_lab,
+                                                     std::back_insert_iterator< std::vector< SymType > > it) {
+    const auto &rule = ders_by_lab.at(parsing_tree.label);
+    auto pt_it = parsing_tree.children.begin();
+    for (const auto &sym : rule.second) {
+        if (derivations.find(sym) == derivations.end()) {
+            it = sym;
+        } else {
+            assert(pt_it != parsing_tree.children.end());
+            reconstruct_sentence_internal(*pt_it, derivations, ders_by_lab, it);
+            pt_it++;
+        }
+    }
+    assert(pt_it == parsing_tree.children.end());
+}
+
+template< typename SymType, typename LabType >
+std::vector< SymType > reconstruct_sentence(const ParsingTree< LabType > &parsing_tree,
+                                            const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations,
+                                            const std::unordered_map< LabType, std::pair< SymType, std::vector< SymType > > > &ders_by_lab) {
+    std::vector< SymType > res;
+    reconstruct_sentence_internal(parsing_tree, derivations, ders_by_lab, std::back_inserter(res));
+    return res;
+}
+
+template< typename SymType, typename LabType >
 void test_parsers(const std::vector<SymType> &sent, SymType type, const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations) {
+    const auto ders_by_lab = compute_derivations_by_label(derivations);
+
     cout << "Earley parser" << endl;
     EarleyParser earley_parser(derivations);
-    auto res = earley_parser.parse(sent, type);
-    assert(res.label != 0);
+    ParsingTree< LabType > earley_pt = earley_parser.parse(sent, type);
+    assert(earley_pt.label != 0);
+    assert(reconstruct_sentence(earley_pt, derivations, ders_by_lab) == sent);
 
     cout << "LR parser" << endl;
-    LRParser parser(derivations);
+    LRParser lr_parser(derivations);
+    ParsingTree< LabType > lr_pt = lr_parser.parse(sent, type);
+    assert(lr_pt.label != 0);
+    assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent);
+
+    assert(earley_pt == lr_pt);
 }
 
 void test_grammar1() {
@@ -237,7 +284,7 @@ void test() {
         cout << "Finished. Memory usage: " << size_to_string(getCurrentRSS()) << endl << endl;
     }
 
-    if (false) {
+    if (true) {
         cout << "Generic parser test" << endl;
         test_grammar1();
         test_grammar2();
@@ -255,9 +302,21 @@ void test() {
         cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
         cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl << endl;
 
-        std::function< std::ostream&(std::ostream&, SymTok) > sym_printer =  [&](ostream &os, SymTok sym)->ostream& { return os << lib.resolve_symbol(sym); };
-        std::function< std::ostream&(std::ostream&, LabTok) > lab_printer =  [&](ostream &os, LabTok lab)->ostream& { return os << lib.resolve_label(lab); };
-        LRParser parser(tb.get_derivations(), sym_printer, lab_printer);
+        std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](ostream &os, SymTok sym)->ostream& { return os << lib.resolve_symbol(sym); };
+        std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](ostream &os, LabTok lab)->ostream& { return os << lib.resolve_label(lab); };
+        const auto &derivations = tb.get_derivations();
+        const auto ders_by_lab = compute_derivations_by_label(derivations);
+        EarleyParser earley_parser(derivations);
+        LRParser lr_parser(derivations, sym_printer, lab_printer);
+
+        for (const Assertion &ass : lib.get_assertions()) {
+            const Sentence &sent = lib.get_sentence(ass.get_thesis());
+            auto earley_pt = earley_parser.parse(sent, lib.get_symbol("wff"));
+            auto lr_pt = lr_parser.parse(sent, lib.get_symbol("wff"));
+            assert(reconstruct_sentence(earley_pt, derivations, ders_by_lab) == sent);
+            assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent);
+            assert(earley_pt == lr_pt);
+        }
     }
     return;
 
