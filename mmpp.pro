@@ -45,9 +45,9 @@ SOURCES +=  mainwindow.cpp \
 #QMAKE_CXXFLAGS += -std=c++17 -march=native -fsanitize=undefined -fno-sanitize-recover=all
 #QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lpthread -fsanitize=undefined -fno-sanitize-recover=all
 
-QMAKE_CFLAGS += -std=c11
-QMAKE_CXXFLAGS += -std=c++17 -march=native
-QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lpthread -lz3
+QMAKE_CFLAGS += -std=c11 -march=native -g
+QMAKE_CXXFLAGS += -std=c++17 -march=native -g -ftemplate-backtrace-limit=0
+QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lpthread -lz3
 
 HEADERS += \
     wff.h \
@@ -69,7 +69,8 @@ HEADERS += \
     z3prover.h \
     lr.h \
     reader.h \
-    parser.h
+    parser.h \
+    serialize_tuple.h
 
 CONFIG(qt) {
 HEADERS +=  mainwindow.h \

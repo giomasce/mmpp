@@ -11,7 +11,13 @@
 #include <functional>
 #include <memory>
 
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/utility.hpp>
+
 #include "parser.h"
+#include "json.h"
+#include "serialize_tuple.h"
 
 // The state encodes (producting symbol, rule name, position, producted sentence)
 template< typename SymType, typename LabType >
@@ -173,7 +179,7 @@ public:
             this->parsing_tree_stack.push_back(new_parsing_tree);
 
             // Detect if the search has terminated
-            if (this->sent_it == this->sent.end() && this->parsing_tree_stack.size() == 1 && head_sym == this->type) {
+            if (this->sent_it == this->sent.end() && this->parsing_tree_stack.size() == 1 && this->state_stack.size() == 1 + sym_num && head_sym == this->type) {
                 return std::make_pair(true, new_parsing_tree);
             }
 
@@ -209,6 +215,50 @@ private:
     std::vector< ParsingTree< LabType > > parsing_tree_stack;
 };
 
+/*inline void from_string(unsigned short &x, const std::string &s) {
+    x = stoul(s);
+}
+
+inline void from_string(unsigned char &x, const std::string &s) {
+    x = stoul(s);
+}
+
+inline void from_string(unsigned &x, const std::string &s) {
+    x = stoul(s);
+}
+
+inline void from_string(unsigned long &x, const std::string &s) {
+    x = stoul(s);
+}
+
+inline void from_string(unsigned long long &x, const std::string &s) {
+    x = stoull(s);
+}
+
+inline void from_string(char &x, const std::string &s) {
+    x = stoi(s);
+}
+
+inline void from_string(short &x, const std::string &s) {
+    x = stoi(s);
+}
+
+inline void from_string(int &x, const std::string &s) {
+    x = stoi(s);
+}
+
+inline void from_string(long &x, const std::string &s) {
+    x = stol(s);
+}
+
+inline void from_string(long long &x, const std::string &s) {
+    x = stoll(s);
+}
+
+inline void from_string(std::string &x, const std::string &s) {
+    x = s;
+}*/
+
 template< typename SymType, typename LabType >
 class LRParser : public Parser< SymType, LabType > {
 public:
@@ -216,8 +266,36 @@ public:
              const std::function< std::ostream&(std::ostream&, SymType) > &sym_printer = default_sym_printer< SymType >,
              const std::function< std::ostream&(std::ostream&, LabType) > &lab_printer = default_lab_printer< LabType >) :
         derivations(derivations), sym_printer(sym_printer), lab_printer(lab_printer) {
-        this->process_derivations();
+        //this->initialize();
     }
+
+    template< class Archive >
+    void to_archive(Archive &a) {
+        a << this->automaton;
+    }
+
+    template< class Archive >
+    void from_archive(Archive &a) {
+        a >> this->automaton;
+    }
+
+    /*nlohmann::json to_json() {
+        return nlohmann::json(this->automaton);
+    }
+
+    void from_json(nlohmann::json j) {
+        std::unordered_map< std::string, std::pair< std::unordered_map< std::string, size_t >, std::vector< std::tuple< SymType, LabType, size_t, size_t > > > > a;
+        a = j.get< decltype(a) >();
+        for (const auto &i : a) {
+            std::unordered_map< SymType, size_t > shifts;
+            for (const auto &j : i.second.first) {
+                SymType x;
+                from_string(x, j.first);
+                shifts.insert(std::make_pair(x, j.second));
+            }
+            this->automaton.insert(std::make_pair(static_cast< size_t >(std::stoull(i.first)), make_pair(shifts, i.second.second)));
+        }
+    }*/
 
     ParsingTree< LabType > parse(const std::vector<SymType> &sent, SymType type) const {
         LRParsingHelper helper(this->automaton, sent, type);
@@ -231,8 +309,7 @@ public:
         }
     }
 
-private:
-    void process_derivations() {
+    void initialize() {
         size_t num_states = 0;
         std::map< LRState< SymType, LabType >, std::shared_ptr< std::pair< size_t, std::map< SymType, size_t > > > > states;
         std::set< LRState< SymType, LabType > > processed_states;
@@ -321,12 +398,13 @@ private:
         }
     }
 
+private:
     const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations;
     /* Every state is mapped to a pair containing the shift map and the vector of reductions;
      * each reduction is described by its head symbol, its label, its number of symbols and its number of variables. */
     std::unordered_map< size_t, std::pair< std::unordered_map< SymType, size_t >, std::vector< std::tuple< SymType, LabType, size_t, size_t > > > > automaton;
-    const std::function< std::ostream&(std::ostream&, SymType) > &sym_printer;
-    const std::function< std::ostream&(std::ostream&, LabType) > &lab_printer;
+    const std::function< std::ostream&(std::ostream&, SymType) > sym_printer;
+    const std::function< std::ostream&(std::ostream&, LabType) > lab_printer;
 };
 
 #endif // LR_H

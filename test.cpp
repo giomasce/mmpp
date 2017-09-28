@@ -2,6 +2,10 @@
 
 #include <ostream>
 #include <functional>
+#include <fstream>
+
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 
 #include "wff.h"
 #include "reader.h"
@@ -175,6 +179,20 @@ void test_parsers(const std::vector<SymType> &sent, SymType type, const std::uno
 
     cout << "LR parser" << endl;
     LRParser lr_parser(derivations);
+    lr_parser.initialize();
+
+    {
+        ofstream lr_fout("/tmp/lr_parser_test_data");
+        boost::archive::text_oarchive oa(lr_fout);
+        lr_parser.to_archive(oa);
+    }
+
+    {
+        ifstream lr_fin("/tmp/lr_parser_test_data");
+        boost::archive::text_iarchive oa(lr_fin);
+        lr_parser.from_archive(oa);
+    }
+
     ParsingTree< LabType > lr_pt = lr_parser.parse(sent, type);
     assert(lr_pt.label != 0);
     assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent);
@@ -251,6 +269,54 @@ void test_grammar4() {
     test_parsers< char, size_t >(sent, 'S', derivations);
 }
 
+void test_lr_set() {
+    cout << "LR parsing on set.mm" << endl;
+    FileTokenizer ft("../set.mm/set.mm");
+    Reader p(ft, false, true);
+    p.run();
+    LibraryImpl lib = p.get_library();
+    LibraryToolbox tb(lib, false);
+    cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
+    cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl << endl;
+
+    std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](ostream &os, SymTok sym)->ostream& { return os << lib.resolve_symbol(sym); };
+    std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](ostream &os, LabTok lab)->ostream& { return os << lib.resolve_label(lab); };
+    const auto &derivations = tb.get_derivations();
+    const auto ders_by_lab = compute_derivations_by_label(derivations);
+    EarleyParser earley_parser(derivations);
+    LRParser lr_parser(derivations, sym_printer, lab_printer);
+
+    if (0) {
+        lr_parser.initialize();
+        ofstream lr_fout("lr_parser_data");
+        boost::archive::text_oarchive oa(lr_fout);
+        lr_parser.to_archive(oa);
+    }
+
+    {
+        ifstream lr_fin("lr_parser_data");
+        boost::archive::text_iarchive oa(lr_fin);
+        lr_parser.from_archive(oa);
+    }
+
+    for (const Assertion &ass : lib.get_assertions()) {
+        if (!ass.is_valid() || !ass.is_theorem()) {
+            continue;
+        }
+        cout << lib.resolve_label(ass.get_thesis()) << endl;
+        const Sentence &sent = lib.get_sentence(ass.get_thesis());
+        Sentence sent2;
+        copy(sent.begin() + 1, sent.end(), back_inserter(sent2));
+        /*auto earley_pt = earley_parser.parse(sent2, lib.get_symbol("wff"));
+        assert(earley_pt.label != 0);
+        assert(reconstruct_sentence(earley_pt, derivations, ders_by_lab) == sent2);*/
+        auto lr_pt = lr_parser.parse(sent2, lib.get_symbol("wff"));
+        assert(lr_pt.label != 0);
+        assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent2);
+        //assert(earley_pt == lr_pt);
+    }
+}
+
 void test() {
 
     /* This program just does a lot of tests on the features of the mmpp library
@@ -284,7 +350,7 @@ void test() {
         cout << "Finished. Memory usage: " << size_to_string(getCurrentRSS()) << endl << endl;
     }
 
-    if (true) {
+    if (false) {
         cout << "Generic parser test" << endl;
         test_grammar1();
         test_grammar2();
@@ -293,30 +359,7 @@ void test() {
     }
 
     if (true) {
-        cout << "LR persing on set.mm" << endl;
-        FileTokenizer ft("../set.mm/set.mm");
-        Reader p(ft, false, true);
-        p.run();
-        LibraryImpl lib = p.get_library();
-        LibraryToolbox tb(lib, false);
-        cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
-        cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl << endl;
-
-        std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](ostream &os, SymTok sym)->ostream& { return os << lib.resolve_symbol(sym); };
-        std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](ostream &os, LabTok lab)->ostream& { return os << lib.resolve_label(lab); };
-        const auto &derivations = tb.get_derivations();
-        const auto ders_by_lab = compute_derivations_by_label(derivations);
-        EarleyParser earley_parser(derivations);
-        LRParser lr_parser(derivations, sym_printer, lab_printer);
-
-        for (const Assertion &ass : lib.get_assertions()) {
-            const Sentence &sent = lib.get_sentence(ass.get_thesis());
-            auto earley_pt = earley_parser.parse(sent, lib.get_symbol("wff"));
-            auto lr_pt = lr_parser.parse(sent, lib.get_symbol("wff"));
-            assert(reconstruct_sentence(earley_pt, derivations, ders_by_lab) == sent);
-            assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent);
-            assert(earley_pt == lr_pt);
-        }
+        test_lr_set();
     }
     return;
 
