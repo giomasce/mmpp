@@ -3,7 +3,7 @@
 
 using namespace std;
 
-#ifdef __GNUG__
+#if defined(__GNUG__) && defined(SELF_DEBUG)
 
 // Taken from https://stupefydeveloper.blogspot.it/2008/10/cc-call-stack.html and partially adapted
 std::vector<string> dump_stacktrace(size_t depth) {

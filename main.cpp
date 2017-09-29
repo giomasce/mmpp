@@ -3,6 +3,8 @@
 #include <string>
 #include <cstring>
 
+#include <libgen.h>
+
 #include "utils.h"
 
 using namespace std;
