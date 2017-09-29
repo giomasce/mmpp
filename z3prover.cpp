@@ -635,3 +635,6 @@ int test_z3_main(int argc, char *argv[])
 
     return 0;
 }
+static_block {
+    register_main_function("mmpp_test_z3", test_z3_main);
+}

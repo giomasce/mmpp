@@ -18,6 +18,8 @@
 #include "parser.h"
 #include "serialize_tuple.h"
 
+#define LR_PARSER_AUTO_TEST
+
 // The state encodes (producting symbol, rule name, position, producted sentence)
 template< typename SymType, typename LabType >
 using LRState = std::set< std::tuple< SymType, LabType, size_t, std::vector< SymType > > >;
@@ -266,7 +268,9 @@ public:
              const std::function< std::ostream&(std::ostream&, LabType) > &lab_printer = default_lab_printer< LabType >) :
         derivations(derivations), sym_printer(sym_printer), lab_printer(lab_printer) {
         //this->initialize();
+#ifdef LR_PARSER_AUTO_TEST
         this->ders_by_lab = compute_derivations_by_label(derivations);
+#endif
     }
 
     template< class Archive >
@@ -289,8 +293,10 @@ public:
         ParsingTree< LabType > parsing_tree;
         std::tie(res, parsing_tree) = helper.do_parsing();
         if (res) {
+#ifdef LR_PARSER_AUTO_TEST
             // Check that the returned parsing tree is correct
             assert(reconstruct_sentence(parsing_tree, this->derivations, this->ders_by_lab) == sent);
+#endif
             return parsing_tree;
         } else {
             return {};
@@ -388,12 +394,15 @@ public:
 
 private:
     const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations;
-    std::unordered_map< LabType, std::pair< SymType, std::vector< SymType > > > ders_by_lab;
     /* Every state is mapped to a pair containing the shift map and the vector of reductions;
      * each reduction is described by its head symbol, its label, its number of symbols and its number of variables. */
     std::unordered_map< size_t, std::pair< std::unordered_map< SymType, size_t >, std::vector< std::tuple< SymType, LabType, size_t, size_t > > > > automaton;
     const std::function< std::ostream&(std::ostream&, SymType) > sym_printer;
     const std::function< std::ostream&(std::ostream&, LabType) > lab_printer;
+
+#ifdef LR_PARSER_AUTO_TEST
+    std::unordered_map< LabType, std::pair< SymType, std::vector< SymType > > > ders_by_lab;
+#endif
 };
 
 #endif // LR_H

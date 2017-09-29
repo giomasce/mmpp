@@ -10,8 +10,6 @@
 #include "httpd.h"
 #include "workset.h"
 
-int httpd_main(int argc, char *argv[]);
-
 class SendError {
 public:
     SendError(unsigned int status_code);

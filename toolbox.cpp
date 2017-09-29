@@ -568,7 +568,7 @@ void LibraryToolbox::compute_derivations()
             continue;
         }
         const auto &sent = this->lib.get_sentence(ass.get_thesis());
-        if (sent[0] == turnstile) {
+        if (sent.at(0) == turnstile) {
             continue;
         }
         set< SymTok > symbols;
@@ -671,6 +671,7 @@ void LibraryToolbox::compute_registered_provers()
     for (size_t index = 0; index < LibraryToolbox::registered_provers().size(); index++) {
         this->compute_registered_prover(index);
     }
+    //cerr << "Built " << LibraryToolbox::registered_provers().size() << " registered provers" << endl;
 }
 
 void LibraryToolbox::compute_registered_prover(size_t index)

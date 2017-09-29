@@ -19,7 +19,7 @@
 
 using namespace std;
 
-const string test_basename = "../metamath-test";
+const boost::filesystem::path test_basename = "../metamath-test";
 const string tests_filenames = R"tests(
 fail anatomy-bad1.mm "Simple incorrect 'anatomy' test "
 fail anatomy-bad2.mm "Simple incorrect 'anatomy' test "
@@ -63,11 +63,11 @@ static vector< pair < string, bool > > get_tests() {
     return tests;
 }
 
-bool test_one(string filename, bool advanced_tests) {
+bool test_verification_one(string filename, bool advanced_tests) {
     bool success = true;
     try {
         cout << "Memory usage when starting: " << size_to_string(platform_get_current_rss()) << endl;
-        FileTokenizer ft(test_basename + "/" + filename);
+        FileTokenizer ft(test_basename / filename);
         Reader p(ft, true, true);
         cout << "Reading library and executing all proofs..." << endl;
         p.run();
@@ -127,6 +127,49 @@ bool test_one(string filename, bool advanced_tests) {
     }
 
     return success;
+}
+
+void test_all_verifications() {
+    auto tests = get_tests();
+    // Comment or uncomment the following line to disable or enable tests with metamath-test
+    //tests = {};
+    int problems = 0;
+    for (auto test_pair : tests) {
+        string filename = test_pair.first;
+        bool expect_success = test_pair.second;
+        cout << "Testing file " << filename << " from " << test_basename << ", which is expected to " << (expect_success ? "pass" : "fail" ) << "..." << endl;
+
+        // Useful for debugging
+        /*if (filename == "demo0.mm") {
+            mmpp_abort = true;
+        } else {
+            continue;
+            mmpp_abort = false;
+        }*/
+        /*if (filename == "nf.mm") {
+            break;
+        }*/
+
+        bool success = test_verification_one(filename, expect_success);
+        if (success) {
+            if (expect_success) {
+                cout << "Good, it worked!" << endl;
+            } else {
+                cout << "Bad, it should have been failed!" << endl;
+                problems++;
+            }
+        } else {
+            if (expect_success) {
+                cout << "Bad, this was NOT expected!" << endl;
+                problems++;
+            } else {
+                cout << "Good, this was expected!" << endl;
+            }
+        }
+
+        cout << "-------" << endl << endl;
+    }
+    cout << "Found " << problems << " problems" << endl;
 }
 
 template< typename SymType, typename LabType >
@@ -231,35 +274,76 @@ void test_grammar4() {
     test_parsers< char, size_t >(sent, 'S', derivations);
 }
 
+/* This funny construction with two classes is the only way I found to have lib and tb
+ * as references in TestEnvironment, while being at the same time able to do the
+ * (somewhat) complex construction procedure they need. I wonder if there is some better way.
+ */
+struct TestEnvironmentInner {
+    TestEnvironmentInner(const string &filename)
+    {
+        FileTokenizer ft(filename);
+        Reader p(ft, false, true);
+        p.run();
+        ft.compute_digest();
+        this->lib_digest = new string(ft.get_digest());
+        this->lib = new LibraryImpl(p.get_library());
+        this->tb = new LibraryToolbox(*this->lib, true);
+        cout << this->lib->get_symbols_num() << " symbols and " << this->lib->get_labels_num() << " labels" << endl;
+        cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl << endl;
+    }
+
+    ~TestEnvironmentInner() {
+        delete this->lib;
+        delete this->tb;
+        delete this->lib_digest;
+    }
+
+    LibraryImpl *lib;
+    LibraryToolbox *tb;
+    string *lib_digest;
+};
+
+struct TestEnvironment {
+    TestEnvironment(const string &filename) :
+        inner(filename), lib(*inner.lib), tb(*inner.tb), lib_digest(*inner.lib_digest)
+    {
+    }
+
+    TestEnvironmentInner inner;
+    LibraryImpl &lib;
+    LibraryToolbox &tb;
+    string &lib_digest;
+};
+
+TestEnvironment &get_set_mm() {
+    static TestEnvironment data("../set.mm/set.mm");
+    return data;
+}
+
 void test_lr_set() {
     cout << "LR parsing on set.mm" << endl;
-    FileTokenizer ft("../set.mm/set.mm");
-    Reader p(ft, false, true);
-    p.run();
-    ft.compute_digest();
-    LibraryImpl lib = p.get_library();
-    LibraryToolbox tb(lib, false);
-    cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
-    cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl << endl;
-
+    auto &data = get_set_mm();
+    auto &lib = data.lib;
+    auto &tb = data.tb;
+    auto &lib_digest = data.lib_digest;
     std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](ostream &os, SymTok sym)->ostream& { return os << lib.resolve_symbol(sym); };
     std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](ostream &os, LabTok lab)->ostream& { return os << lib.resolve_label(lab); };
     const auto &derivations = tb.get_derivations();
     const auto ders_by_lab = compute_derivations_by_label(derivations);
-    EarleyParser earley_parser(derivations);
+    //EarleyParser earley_parser(derivations);
     LRParser lr_parser(derivations, sym_printer, lab_printer);
 
     if (0) {
         lr_parser.initialize();
         ofstream lr_fout("lr_parser_data");
         boost::archive::text_oarchive oa(lr_fout);
-        lr_parser.to_archive(oa, ft.get_digest());
+        lr_parser.to_archive(oa, lib_digest);
     }
 
     {
         ifstream lr_fin("lr_parser_data");
         boost::archive::text_iarchive oa(lr_fin);
-        lr_parser.from_archive(oa, ft.get_digest());
+        lr_parser.from_archive(oa, lib_digest);
     }
 
     Tic t = tic();
@@ -282,67 +366,58 @@ void test_lr_set() {
         assert(reconstruct_sentence(earley_pt, derivations, ders_by_lab) == sent2);*/
         auto lr_pt = lr_parser.parse(sent2, lib.get_symbol("wff"));
         assert(lr_pt.label != 0);
-        //assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent2);
+        assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent2);
         //assert(earley_pt == lr_pt);
     }
     toc(t, reps);
 }
 
+void test_small_stuff() {
+    cout << "Testing random small stuff..." << endl;
+    auto ph = pwff(new Var("ph"));
+    auto ps = pwff(new Var("ps"));
+    auto w = pwff(new Nand(ph, ps));
+    auto w2 = pwff(new Xor(w, pwff(new And(pwff(new True()), ph))));
+
+    cout << w2->to_string() << endl;
+    cout << w2->imp_not_form()->to_string() << endl;
+
+    CompressedDecoder cd;
+    string test_enc[] = { "A", "B", "T", "UA", "UB", "UT", "VA", "VB", "YT", "UUA", "YYT", "UUUA", "UUUAZ" };
+    int test_dec[] = { 1, 2, 20, 21, 22, 40, 41, 42, 120, 121, 620, 621, 0 };
+    for (auto &str : test_enc) {
+        cout << "Testing " << str << ":";
+        for (auto &c : str) {
+            cout << " " << c << "->" << cd.push_char(c);
+        }
+        cout << endl;
+    }
+    CompressedEncoder ce;
+    for (auto &val : test_dec) {
+        cout << "Testing " << val << ": " << ce.push_code(val) << endl;
+    }
+
+    cout << "Finished. Memory usage: " << size_to_string(platform_get_current_rss()) << endl << endl;
+}
+
+void test_parsers() {
+    cout << "Generic parser test" << endl;
+    test_grammar1();
+    test_grammar2();
+    test_grammar3();
+    test_grammar4();
+}
+
 void test() {
-
-    /* This program just does a lot of tests on the features of the mmpp library
-     */
-
-    if (false) {
-        cout << "Testing random small stuff..." << endl;
-        auto ph = pwff(new Var("ph"));
-        auto ps = pwff(new Var("ps"));
-        auto w = pwff(new Nand(ph, ps));
-        auto w2 = pwff(new Xor(w, pwff(new And(pwff(new True()), ph))));
-
-        cout << w2->to_string() << endl;
-        cout << w2->imp_not_form()->to_string() << endl;
-
-        CompressedDecoder cd;
-        string test_enc[] = { "A", "B", "T", "UA", "UB", "UT", "VA", "VB", "YT", "UUA", "YYT", "UUUA", "UUUAZ" };
-        int test_dec[] = { 1, 2, 20, 21, 22, 40, 41, 42, 120, 121, 620, 621, 0 };
-        for (auto &str : test_enc) {
-            cout << "Testing " << str << ":";
-            for (auto &c : str) {
-                cout << " " << c << "->" << cd.push_char(c);
-            }
-            cout << endl;
-        }
-        CompressedEncoder ce;
-        for (auto &val : test_dec) {
-            cout << "Testing " << val << ": " << ce.push_code(val) << endl;
-        }
-
-        cout << "Finished. Memory usage: " << size_to_string(platform_get_current_rss()) << endl << endl;
-    }
-
-    if (false) {
-        cout << "Generic parser test" << endl;
-        test_grammar1();
-        test_grammar2();
-        test_grammar3();
-        test_grammar4();
-    }
+    test_small_stuff();
+    test_parsers();
+    test_lr_set();
 
     if (true) {
-        test_lr_set();
-    }
-    return;
-
-    if (false) {
         cout << "Doing additional tests on set.mm..." << endl;
-        FileTokenizer ft("../set.mm/set.mm");
-        Reader p(ft, false, true);
-        p.run();
-        LibraryImpl lib = p.get_library();
-        LibraryToolbox tb(lib, true);
-        cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
-        cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl << endl;
+        auto &data = get_set_mm();
+        auto &lib = data.lib;
+        auto &tb = data.tb;
 
         if (true) {
             cout << "Generic unification test" << endl;
@@ -559,47 +634,29 @@ void test() {
         }
     }
 
-    auto tests = get_tests();
-    // Comment or uncomment the following line to disable or enable tests with metamath-test
-    //tests = {};
-    int problems = 0;
-    for (auto test_pair : tests) {
-        string filename = test_pair.first;
-        bool expect_success = test_pair.second;
-        cout << "Testing file " << filename << " from " << test_basename << ", which is expected to " << (expect_success ? "pass" : "fail" ) << "..." << endl;
-
-        // Useful for debugging
-        /*if (filename == "demo0.mm") {
-            mmpp_abort = true;
-        } else {
-            continue;
-            mmpp_abort = false;
-        }*/
-        /*if (filename == "nf.mm") {
-            break;
-        }*/
-
-        bool success = test_one(filename, expect_success);
-        if (success) {
-            if (expect_success) {
-                cout << "Good, it worked!" << endl;
-            } else {
-                cout << "Bad, it should have been failed!" << endl;
-                problems++;
-            }
-        } else {
-            if (expect_success) {
-                cout << "Bad, this was NOT expected!" << endl;
-                problems++;
-            } else {
-                cout << "Good, this was expected!" << endl;
-            }
-        }
-
-        cout << "-------" << endl << endl;
-    }
-    cout << "Found " << problems << " problems" << endl;
-
+    test_all_verifications();
     cout << "Maximum memory usage: " << size_to_string(platform_get_peak_rss()) << endl;
+}
 
+int test_all_main(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    test();
+    return 0;
+}
+static_block {
+    register_main_function("mmpp_test_all", test_all_main);
+}
+
+int test_one_main(int argc, char *argv[]) {
+    if (argc != 2) {
+        cerr << "Provide file name as argument, please" << endl;
+        return 1;
+    }
+    string filename(argv[1]);
+    return test_verification_one(filename, true) ? 0 : 1;
+}
+static_block {
+    register_main_function("mmpp_test_one", test_one_main);
 }

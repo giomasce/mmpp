@@ -106,3 +106,13 @@ void toc(const Tic &t, int reps) {
     auto usecs = std::chrono::duration_cast< std::chrono::microseconds >(end - t.begin).count();
     cout << "It took " << usecs << " microseconds to repeat " << reps << " times, which is " << (usecs / reps) << " microsecond per execution." << endl;
 }
+
+unordered_map< string, function< int(int, char*[]) > > &get_main_functions() {
+    static auto *ret = new unordered_map< string, function< int(int, char*[]) > >();
+    return *ret;
+}
+
+void register_main_function(const string &name, const function< int(int, char*[]) > &main_function) {
+    get_main_functions().insert(make_pair(name, main_function));
+}
+

@@ -1,4 +1,5 @@
 
+# Comment this to enable QT
 CONFIG -= qt
 
 CONFIG(qt) {
@@ -25,12 +26,14 @@ SOURCES += main.cpp \
     workset.cpp \
     jsonize.cpp \
     z3prover.cpp \
-    reader.cpp
+    reader.cpp \
+    main_unification.cpp
 
 CONFIG(qt) {
 SOURCES +=  mainwindow.cpp \
     prooftreemodel.cpp \
-    htmldelegate.cpp
+    htmldelegate.cpp \
+    main_qt.cpp
 }
 
 # Experiments with clang
