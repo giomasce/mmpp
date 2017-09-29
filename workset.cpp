@@ -23,7 +23,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         return ret;
     }
     if (*path_begin == "load") {
-        FileTokenizer ft(platform_get_resources_base() + "/library.mm");
+        FileTokenizer ft(platform_get_resources_base() / "library.mm");
         Reader p(ft, false, true);
         p.run();
         this->library = make_unique< LibraryImpl >(p.get_library());

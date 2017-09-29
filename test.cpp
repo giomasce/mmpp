@@ -15,6 +15,7 @@
 #include "earley.h"
 #include "lr.h"
 #include "utils.h"
+#include "platform.h"
 
 using namespace std;
 
@@ -65,7 +66,7 @@ static vector< pair < string, bool > > get_tests() {
 bool test_one(string filename, bool advanced_tests) {
     bool success = true;
     try {
-        cout << "Memory usage when starting: " << size_to_string(getCurrentRSS()) << endl;
+        cout << "Memory usage when starting: " << size_to_string(platform_get_current_rss()) << endl;
         FileTokenizer ft(test_basename + "/" + filename);
         Reader p(ft, true, true);
         cout << "Reading library and executing all proofs..." << endl;
@@ -115,7 +116,7 @@ bool test_one(string filename, bool advanced_tests) {
             cout << "Skipping compression and decompression test" << endl;
         }
 
-        cout << "Finished. Memory usage: " << size_to_string(getCurrentRSS()) << endl;
+        cout << "Finished. Memory usage: " << size_to_string(platform_get_current_rss()) << endl;
     } catch (const MMPPException &e) {
         cout << "An exception with message '" << e.get_reason() << "' was thrown!" << endl;
         e.print_stacktrace(cout);
@@ -239,7 +240,7 @@ void test_lr_set() {
     LibraryImpl lib = p.get_library();
     LibraryToolbox tb(lib, false);
     cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
-    cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl << endl;
+    cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl << endl;
 
     std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](ostream &os, SymTok sym)->ostream& { return os << lib.resolve_symbol(sym); };
     std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](ostream &os, LabTok lab)->ostream& { return os << lib.resolve_label(lab); };
@@ -317,7 +318,7 @@ void test() {
             cout << "Testing " << val << ": " << ce.push_code(val) << endl;
         }
 
-        cout << "Finished. Memory usage: " << size_to_string(getCurrentRSS()) << endl << endl;
+        cout << "Finished. Memory usage: " << size_to_string(platform_get_current_rss()) << endl << endl;
     }
 
     if (false) {
@@ -341,7 +342,7 @@ void test() {
         LibraryImpl lib = p.get_library();
         LibraryToolbox tb(lib, true);
         cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
-        cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl << endl;
+        cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl << endl;
 
         if (true) {
             cout << "Generic unification test" << endl;
@@ -356,7 +357,7 @@ void test() {
                 }
                 cout << endl;
             }
-            cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
+            cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
         }
 
         if (true) {
@@ -375,7 +376,7 @@ void test() {
                 auto &thesis_sent = lib.get_sentence(ass.get_thesis());
                 cout << " => " << tb.print_sentence(thesis_sent) << endl;
             }
-            cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
+            cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
         }
 
         if (true) {
@@ -390,7 +391,7 @@ void test() {
             tb.build_type_prover(sent)(engine);
             auto res = engine.get_proof_labels();
             cout << "Found type proof: " << tb.print_proof(res) << endl;
-            cout << "Memory usage after test: " << size_to_string(getCurrentRSS()) << endl << endl;
+            cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
         }
 
         vector< pwff > wffs = { /*pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
@@ -599,6 +600,6 @@ void test() {
     }
     cout << "Found " << problems << " problems" << endl;
 
-    cout << "Maximum memory usage: " << size_to_string(getPeakRSS()) << endl;
+    cout << "Maximum memory usage: " << size_to_string(platform_get_peak_rss()) << endl;
 
 }

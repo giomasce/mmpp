@@ -40,8 +40,13 @@ vector< string > tokenize(const string &in) {
 
 }
 
-FileTokenizer::FileTokenizer(string filename) :
+/*FileTokenizer::FileTokenizer(const string &filename) :
     fin(filename), base_path(path(filename).parent_path()), cascade(NULL), white(true)
+{
+}*/
+
+FileTokenizer::FileTokenizer(const path &filename) :
+    fin(filename), base_path(filename.parent_path()), cascade(NULL), white(true)
 {
 }
 

@@ -15,7 +15,6 @@ SOURCES += main.cpp \
     library.cpp \
     proof.cpp \
     unification.cpp \
-    memory.c \
     wff.cpp \
     toolbox.cpp \
     test.cpp \
@@ -54,7 +53,6 @@ HEADERS += \
     library.h \
     proof.h \
     unification.h \
-    memory.h \
     toolbox.h \
     earley.h \
     stringcache.h \

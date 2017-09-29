@@ -3,6 +3,7 @@
 #include <random>
 
 #include <boost/tokenizer.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 #include "reader.h"
 #include "memory.h"
@@ -137,8 +138,8 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
     string static_url = "/static/";
     if (method == "GET" && starts_with(url, static_url)) {
         // FIXME Sanitize URL
-        string filename = platform_get_resources_base() + string(url.begin(), url.end());
-        ifstream infile(filename, ios::binary);
+        auto filename = platform_get_resources_base() / string(url.begin(), url.end());
+        boost::filesystem::ifstream infile(filename, ios::binary);
         if (infile.rdstate() && ios::failbit) {
             cb.set_status_code(404);
             cb.add_header("Content-Type", "text/plain");

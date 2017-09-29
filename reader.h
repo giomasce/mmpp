@@ -27,7 +27,8 @@ public:
 
 class FileTokenizer : public TokenGenerator {
 public:
-    FileTokenizer(std::string filename);
+    //FileTokenizer(const std::string &filename);
+    FileTokenizer(const boost::filesystem::path &filename);
     std::pair< bool, std::string > next();
     void compute_digest();
     std::string get_digest() const;
@@ -36,7 +37,7 @@ private:
     FileTokenizer(std::string filename, boost::filesystem::path base_path);
     char get_char();
 
-    std::ifstream fin;
+    boost::filesystem::ifstream fin;
     boost::filesystem::path base_path;
     FileTokenizer *cascade;
     bool white;

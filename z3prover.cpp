@@ -9,6 +9,7 @@
 #include "reader.h"
 #include "memory.h"
 #include "utils.h"
+#include "platform.h"
 
 using namespace std;
 using namespace z3;
@@ -573,7 +574,7 @@ int test_z3_main(int argc, char *argv[])
     LibraryImpl lib = p.get_library();
     LibraryToolbox tb(lib, true);
     cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
-    cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl;
+    cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl;
 
     for (int i = 0; i < 3; i++) {
         set_param("proof", true);

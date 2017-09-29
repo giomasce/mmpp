@@ -21,6 +21,7 @@
 #include "httpd.h"
 #include "web.h"
 #include "z3prover.h"
+#include "platform.h"
 
 #ifdef USE_QT
 #include "mainwindow.h"
@@ -40,7 +41,7 @@ void unification_test() {
     LibraryImpl lib = p.get_library();
     LibraryToolbox tb(lib, true);
     cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
-    cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl;
+    cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl;
     vector< string > tests = { "|- ( ( A e. CC /\\ B e. CC /\\ N e. NN0 ) -> ( ( A + B ) ^ N ) = sum_ k e. ( 0 ... N ) ( ( N _C k ) x. ( ( A ^ ( N - k ) ) x. ( B ^ k ) ) ) )",
                                "|- ( ph -> ( ps <-> ps ) )",
                                "|- ( ph -> ph )" };
@@ -83,7 +84,7 @@ void unification_loop() {
     LibraryImpl lib = p.get_library();
     LibraryToolbox tb(lib, true);
     cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
-    cout << "Memory usage after loading the library: " << size_to_string(getCurrentRSS()) << endl;
+    cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl;
     while (true) {
         string line;
         getline(cin, line);
