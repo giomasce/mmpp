@@ -261,11 +261,18 @@ void test_lr_set() {
         lr_parser.from_archive(oa, ft.get_digest());
     }
 
+    Tic t = tic();
+    int reps = 0;
+    LabTok quartfull_lab = lib.get_label("quartfull");
     for (const Assertion &ass : lib.get_assertions()) {
         if (!ass.is_valid() || !ass.is_theorem()) {
             continue;
         }
-        cout << lib.resolve_label(ass.get_thesis()) << endl;
+        if (ass.get_thesis() == quartfull_lab) {
+            continue;
+        }
+        //cout << lib.resolve_label(ass.get_thesis()) << endl;
+        reps++;
         const Sentence &sent = lib.get_sentence(ass.get_thesis());
         Sentence sent2;
         copy(sent.begin() + 1, sent.end(), back_inserter(sent2));
@@ -274,9 +281,10 @@ void test_lr_set() {
         assert(reconstruct_sentence(earley_pt, derivations, ders_by_lab) == sent2);*/
         auto lr_pt = lr_parser.parse(sent2, lib.get_symbol("wff"));
         assert(lr_pt.label != 0);
-        assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent2);
+        //assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent2);
         //assert(earley_pt == lr_pt);
     }
+    toc(t, reps);
 }
 
 void test() {

@@ -94,3 +94,15 @@ bool starts_with(string a, string b) {
     }
     return equal(b.begin(), b.end(), a.begin());
 }
+
+Tic tic() {
+    Tic t;
+    t.begin = std::chrono::steady_clock::now();
+    return t;
+}
+
+void toc(const Tic &t, int reps) {
+    auto end = std::chrono::steady_clock::now();
+    auto usecs = std::chrono::duration_cast< std::chrono::microseconds >(end - t.begin).count();
+    cout << "It took " << usecs << " microseconds to repeat " << reps << " times, which is " << (usecs / reps) << " microsecond per execution." << endl;
+}

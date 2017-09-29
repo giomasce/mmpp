@@ -12,6 +12,7 @@
 #include <locale>
 #include <functional>
 #include <iomanip>
+#include <chrono>
 
 #ifdef __GNUG__
 #include <execinfo.h>
@@ -126,5 +127,12 @@ static inline std::string trimmed(std::string s) {
 
 std::string size_to_string(size_t size);
 bool starts_with(std::string a, std::string b);
+
+struct Tic {
+    std::chrono::steady_clock::time_point begin;
+};
+
+Tic tic();
+void toc(const Tic &t, int reps);
 
 #endif // STATICS_H
