@@ -227,12 +227,12 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
     return false;
 }
 
-static void earley_type_unwind_tree(const ParsingTree< LabTok > &tree, ProofEngine &engine, const Library &lib, const std::unordered_map<SymTok, Prover> &var_provers) {
+static void earley_type_unwind_tree(const ParsingTree< LabTok, SymTok > &tree, ProofEngine &engine, const Library &lib, const std::unordered_map<SymTok, Prover> &var_provers) {
     // We need to sort children according to their order as floating hypotheses of this assertion
     // If this is not an assertion, then there are no children
     const Assertion &ass = lib.get_assertion(tree.label);
     if (ass.is_valid()) {
-        unordered_map< SymTok, const ParsingTree< LabTok >* > children;
+        unordered_map< SymTok, const ParsingTree< LabTok, SymTok >* > children;
         auto it = tree.children.begin();
         for (auto &tok : lib.get_sentence(tree.label)) {
             if (!lib.is_constant(tok)) {
@@ -260,7 +260,7 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
     auto derivations = this->get_derivations();
 
     EarleyParser parser(derivations);
-    ParsingTree tree = parser.parse(sent, type);
+    ParsingTree tree = parser.Parser< SymTok, LabTok >::parse(sent, type);
     if (tree.label == 0) {
         return false;
     } else {
@@ -712,6 +712,8 @@ void LibraryToolbox::compute_parser_initialization()
             this->cache->store();
         }
     }
+    // Drop the cache so that memory can be recovered
+    this->cache = NULL;
     this->parser_initialization_computed = true;
 }
 
@@ -731,7 +733,12 @@ const LRParser<SymTok, LabTok> &LibraryToolbox::get_parser() const
     return *this->parser;
 }
 
-ParsingTree<LabTok> LibraryToolbox::parse_sentence(const std::vector<SymTok> &sent, SymTok type) const
+ParsingTree<LabTok, SymTok> LibraryToolbox::parse_sentence(typename vector<SymTok>::const_iterator sent_begin, typename vector<SymTok>::const_iterator sent_end, SymTok type) const
+{
+    return this->get_parser().parse(sent_begin, sent_end, type);
+}
+
+ParsingTree<LabTok, SymTok> LibraryToolbox::parse_sentence(const std::vector<SymTok> &sent, SymTok type) const
 {
     return this->get_parser().parse(sent, type);
 }

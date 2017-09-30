@@ -3,12 +3,13 @@
 
 #include <vector>
 
-template< typename LabType >
+template< typename LabType, typename SymType >
 struct ParsingTree {
     LabType label;
-    std::vector< ParsingTree< LabType > > children;
+    SymType type;
+    std::vector< ParsingTree< LabType, SymType > > children;
 
-    bool operator==(const ParsingTree< LabType > &other) const {
+    bool operator==(const ParsingTree< LabType, SymType > &other) const {
         return this->label == other.label && this->children == other.children;
     }
 };
@@ -16,12 +17,15 @@ struct ParsingTree {
 template< typename SymType, typename LabType >
 class Parser {
 public:
-    virtual ParsingTree< LabType > parse(const std::vector<SymType> &sent, SymType type) const = 0;
+    virtual ParsingTree< LabType, SymType > parse(const std::vector<SymType> &sent, SymType type) const {
+        return this->parse(sent.begin(), sent.end(), type);
+    }
+    virtual ParsingTree< LabType, SymType > parse(typename std::vector<SymType>::const_iterator sent_begin, typename std::vector<SymType>::const_iterator sent_end, SymType type) const = 0;
     virtual ~Parser() {}
 };
 
 template< typename SymType, typename LabType >
-void reconstruct_sentence_internal(const ParsingTree< LabType > &parsing_tree,
+void reconstruct_sentence_internal(const ParsingTree< LabType, SymType > &parsing_tree,
                                                      const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations,
                                                      const std::unordered_map< LabType, std::pair< SymType, std::vector< SymType > > > &ders_by_lab,
                                                      std::back_insert_iterator< std::vector< SymType > > it) {
@@ -40,7 +44,7 @@ void reconstruct_sentence_internal(const ParsingTree< LabType > &parsing_tree,
 }
 
 template< typename SymType, typename LabType >
-std::vector< SymType > reconstruct_sentence(const ParsingTree< LabType > &parsing_tree,
+std::vector< SymType > reconstruct_sentence(const ParsingTree< LabType, SymType > &parsing_tree,
                                             const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations,
                                             const std::unordered_map< LabType, std::pair< SymType, std::vector< SymType > > > &ders_by_lab) {
     std::vector< SymType > res;

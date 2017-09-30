@@ -135,26 +135,26 @@ template< typename SymType, typename LabType >
 class LRParsingHelper {
 public:
     LRParsingHelper(const std::unordered_map< size_t, std::pair< std::unordered_map< SymType, size_t >, std::vector< std::tuple< SymType, LabType, size_t, size_t > > > > &automaton,
-                    const std::vector<SymType> &sent, SymType type) :
-    automaton(automaton), sent(sent), type(type) {
+                    typename std::vector<SymType>::const_iterator sent_begin, typename std::vector<SymType>::const_iterator sent_end, SymType target_type) :
+    automaton(automaton), sent_begin(sent_begin), sent_end(sent_end), target_type(target_type) {
         this->state_stack.push_back(0);
-        this->sent_it = this->sent.begin();
+        this->sent_it = this->sent_begin;
     }
 
-    std::pair< bool, ParsingTree< LabType > > do_parsing() {
+    std::pair< bool, ParsingTree< LabType, SymType > > do_parsing() {
         const auto &row = this->automaton.at(this->state_stack.back());
         const auto &shifts = row.first;
         const auto &reductions = row.second;
 
         // Try to perform a shift
-        if (this->sent_it != sent.end()) {
+        if (this->sent_it != sent_end) {
             auto shift = shifts.find(*this->sent_it);
             if (shift != shifts.end()) {
                 this->state_stack.push_back(shift->second);
                 this->sent_it++;
 
                 bool res;
-                ParsingTree< LabType > parsing_tree;
+                ParsingTree< LabType, SymType > parsing_tree;
                 std::tie(res, parsing_tree) = this->do_parsing();
                 if (res) {
                     return std::make_pair(res, parsing_tree);
@@ -167,20 +167,21 @@ public:
 
         // Try to perform each reduction
         for (const auto &reduction : reductions) {
-            SymType head_sym;
+            SymType type;
             LabType lab;
             size_t sym_num;
             size_t var_num;
-            std::tie(head_sym, lab, sym_num, var_num) = reduction;
+            std::tie(type, lab, sym_num, var_num) = reduction;
 
-            ParsingTree< LabType > new_parsing_tree;
+            ParsingTree< LabType, SymType > new_parsing_tree;
             new_parsing_tree.label = lab;
+            new_parsing_tree.type = type;
             std::copy(this->parsing_tree_stack.end() - var_num, this->parsing_tree_stack.end(), std::back_inserter(new_parsing_tree.children));
             this->parsing_tree_stack.resize(this->parsing_tree_stack.size() - var_num);
             this->parsing_tree_stack.push_back(new_parsing_tree);
 
             // Detect if the search has terminated
-            if (this->sent_it == this->sent.end() && this->parsing_tree_stack.size() == 1 && this->state_stack.size() == 1 + sym_num && head_sym == this->type) {
+            if (this->sent_it == this->sent_end && this->parsing_tree_stack.size() == 1 && this->state_stack.size() == 1 + sym_num && type == this->target_type) {
                 return std::make_pair(true, new_parsing_tree);
             }
 
@@ -188,10 +189,10 @@ public:
             std::copy(this->state_stack.end() - sym_num, this->state_stack.end(), std::back_inserter(temp_states));
             this->state_stack.resize(this->state_stack.size() - sym_num);
             const auto &new_row = this->automaton.at(this->state_stack.back());
-            this->state_stack.push_back(new_row.first.at(head_sym));
+            this->state_stack.push_back(new_row.first.at(type));
 
             bool res;
-            ParsingTree< LabType > parsing_tree;
+            ParsingTree< LabType, SymType > parsing_tree;
             std::tie(res, parsing_tree) = this->do_parsing();
             if (res) {
                 return std::make_pair(res, parsing_tree);
@@ -203,62 +204,19 @@ public:
             std::copy(new_parsing_tree.children.begin(), new_parsing_tree.children.end(), std::back_inserter(this->parsing_tree_stack));
         }
 
-        return std::pair< bool, ParsingTree< LabType > >(false, {});
+        return std::pair< bool, ParsingTree< LabType, SymType > >(false, {});
     }
 
 private:
     const std::unordered_map< size_t, std::pair< std::unordered_map< SymType, size_t >, std::vector< std::tuple< SymType, LabType, size_t, size_t > > > > &automaton;
-    const std::vector<SymType> &sent;
-    const SymType type;
+    typename std::vector<SymType>::const_iterator sent_begin;
+    typename std::vector<SymType>::const_iterator sent_end;
+    const SymType target_type;
 
     typename std::vector<SymType>::const_iterator sent_it;
     std::vector< size_t > state_stack;
-    std::vector< ParsingTree< LabType > > parsing_tree_stack;
+    std::vector< ParsingTree< LabType, SymType > > parsing_tree_stack;
 };
-
-/*inline void from_string(unsigned short &x, const std::string &s) {
-    x = stoul(s);
-}
-
-inline void from_string(unsigned char &x, const std::string &s) {
-    x = stoul(s);
-}
-
-inline void from_string(unsigned &x, const std::string &s) {
-    x = stoul(s);
-}
-
-inline void from_string(unsigned long &x, const std::string &s) {
-    x = stoul(s);
-}
-
-inline void from_string(unsigned long long &x, const std::string &s) {
-    x = stoull(s);
-}
-
-inline void from_string(char &x, const std::string &s) {
-    x = stoi(s);
-}
-
-inline void from_string(short &x, const std::string &s) {
-    x = stoi(s);
-}
-
-inline void from_string(int &x, const std::string &s) {
-    x = stoi(s);
-}
-
-inline void from_string(long &x, const std::string &s) {
-    x = stol(s);
-}
-
-inline void from_string(long long &x, const std::string &s) {
-    x = stoll(s);
-}
-
-inline void from_string(std::string &x, const std::string &s) {
-    x = s;
-}*/
 
 template< typename SymType, typename LabType >
 class LRParser : public Parser< SymType, LabType > {
@@ -283,15 +241,18 @@ public:
         this->automaton = cached_data;
     }
 
-    ParsingTree< LabType > parse(const std::vector<SymType> &sent, SymType type) const {
-        LRParsingHelper helper(this->automaton, sent, type);
+    using Parser< SymType, LabType >::parse;
+    ParsingTree< LabType, SymType > parse(typename std::vector<SymType>::const_iterator sent_begin, typename std::vector<SymType>::const_iterator sent_end, SymType type) const {
+        LRParsingHelper helper(this->automaton, sent_begin, sent_end, type);
         bool res;
-        ParsingTree< LabType > parsing_tree;
+        ParsingTree< LabType, SymType > parsing_tree;
         std::tie(res, parsing_tree) = helper.do_parsing();
         if (res) {
 #ifdef LR_PARSER_AUTO_TEST
             // Check that the returned parsing tree is correct
-            assert(reconstruct_sentence(parsing_tree, this->derivations, this->ders_by_lab) == sent);
+            auto parsed_sent = reconstruct_sentence(parsing_tree, this->derivations, this->ders_by_lab);
+            assert(parsed_sent.size() == static_cast< size_t >(sent_end - sent_begin));
+            assert(std::equal(sent_begin, sent_end, parsed_sent.begin()));
 #endif
             return parsing_tree;
         } else {

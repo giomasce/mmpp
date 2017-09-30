@@ -141,7 +141,8 @@ public:
     void compute_parser_initialization();
     const LRParser< SymTok, LabTok > &get_parser();
     const LRParser< SymTok, LabTok > &get_parser() const;
-    ParsingTree< LabTok > parse_sentence(const std::vector<SymTok> &sent, SymTok type) const;
+    ParsingTree< LabTok, SymTok > parse_sentence(typename std::vector<SymTok>::const_iterator sent_begin, typename std::vector<SymTok>::const_iterator sent_end, SymTok type) const;
+    ParsingTree< LabTok, SymTok > parse_sentence(const std::vector<SymTok> &sent, SymTok type) const;
 
     bool proving_helper(const std::vector< Sentence > &templ_hyps,
                          const Sentence &templ_thesis,

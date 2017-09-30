@@ -22,9 +22,10 @@ struct EarleyState {
         return this->initial == x.initial && this->current == x.current && this->type == x.type && this->der_lab == x.der_lab && this->der == x.der;
     }
 
-    ParsingTree< LabType > get_tree(const std::vector< std::vector< EarleyState > > &state) const {
-        ParsingTree< LabType > ret;
+    ParsingTree< LabType, SymType > get_tree(const std::vector< std::vector< EarleyState > > &state) const {
+        ParsingTree< LabType, SymType > ret;
         ret.label = this->der_lab;
+        ret.type = this->type;
         for (auto &child : this->children) {
             ret.children.push_back(state[child.first][child.second].get_tree(state));
         }
@@ -41,12 +42,14 @@ public:
         derivations(derivations) {
     }
 
-    ParsingTree< LabType > parse(const std::vector<SymType> &sent, SymType type) const {
+    using Parser< SymType, LabType >::parse;
+    ParsingTree< LabType, SymType > parse(typename std::vector<SymType>::const_iterator sent_begin, typename std::vector<SymType>::const_iterator sent_end, SymType type) const {
         /* For every position (plus one end-of-string position) we maintain a list
          * of tuples whose elements are the initial position of that item, the position
          * of the current point and the associated derivation. */
         std::vector< std::vector< EarleyState< SymType, LabType > > > state;
-        state.resize(sent.size()+1);
+        size_t sent_size = sent_end - sent_begin;
+        state.resize(sent_size + 1);
 
         // The state is initialized with the derivations for the target type
         for (auto &der : this->derivations.at(type)) {
@@ -86,7 +89,7 @@ public:
                     } else {
                         // Current symbol it not in the derivations, therefore is terminal: scan phase
                         // If the symbol matches the sentence, promote item to the new bucket
-                        if (i < sent.size() && symbol == sent[i]) {
+                        if (i < sent_size && symbol == sent_begin[i]) {
                             EarleyState< SymType, LabType > new_item = { cur_state.initial, cur_state.current+1, cur_state.type, cur_state.der_lab, cur_state.der, cur_state.children };
                             if (find(state[i+1].begin(), state[i+1].end(), new_item) == state[i+1].end()) {
                                 state[i+1].push_back(new_item);
@@ -97,7 +100,7 @@ public:
             }
         }
 
-    #if 0
+    #if 1
         // Dump final status for debug
         std::cout << "Earley dump" << std::endl;
         for (size_t i = 0; i < state.size(); i++) {
@@ -121,14 +124,14 @@ public:
     #endif
 
         // Final phase: see if the sentence was accepted
-        for (size_t j = 0; j < state[sent.size()].size(); j++) {
-            EarleyState< SymType, LabType > &cur_state = state[sent.size()][j];
+        for (size_t j = 0; j < state[sent_size].size(); j++) {
+            EarleyState< SymType, LabType > &cur_state = state[sent_size][j];
             if (cur_state.initial == 0 && cur_state.current == cur_state.der->size() && cur_state.type == type) {
-                ParsingTree< LabType > tree = cur_state.get_tree(state);
+                ParsingTree< LabType, SymType > tree = cur_state.get_tree(state);
                 return tree;
             }
         }
-        ParsingTree< LabType > ret;
+        ParsingTree< LabType, SymType > ret;
         ret.label = 0;
         return ret;
     }
