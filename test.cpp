@@ -431,8 +431,8 @@ void test() {
 
         if (true) {
             cout << "Type proving test" << endl;
-            //auto sent = lib.parse_sentence("wff ph");
-            auto sent = tb.read_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
+            auto sent = tb.read_sentence(  "wff ( [_ suc z / z ]_ ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
+            //auto sent = tb.read_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
             cout << "Sentence is " << tb.print_sentence(sent) << endl;
             cout << "HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_HTML) << endl;
             cout << "Alt HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << endl;
@@ -440,9 +440,14 @@ void test() {
             ProofEngine engine(lib);
             tb.build_type_prover(sent)(engine);
             auto res = engine.get_proof_labels();
-            cout << "Found type proof: " << tb.print_proof(res) << endl;
+            cout << "Found type proof (classical): " << tb.print_proof(res) << endl;
+            ProofEngine engine2(lib);
+            tb.build_earley_type_prover(sent)(engine2);
+            res = engine2.get_proof_labels();
+            cout << "Found type proof (Earley):    " << tb.print_proof(res) << endl;
             cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
         }
+        return;
 
         vector< pwff > wffs = { /*pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
                                 pwff(new Var("ph")), pwff(new Not(pwff(new Var("ph")))),

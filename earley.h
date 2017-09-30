@@ -100,7 +100,7 @@ public:
             }
         }
 
-    #if 1
+    #if 0
         // Dump final status for debug
         std::cout << "Earley dump" << std::endl;
         for (size_t i = 0; i < state.size(); i++) {

@@ -255,12 +255,10 @@ static void earley_type_unwind_tree(const ParsingTree< LabTok, SymTok > &tree, P
 bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_sent, ProofEngine &engine, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
     SymTok type = type_sent[0];
-    vector< SymTok > sent;
-    copy(type_sent.begin()+1, type_sent.end(), back_inserter(sent));
     auto derivations = this->get_derivations();
 
     EarleyParser parser(derivations);
-    ParsingTree tree = parser.Parser< SymTok, LabTok >::parse(sent, type);
+    ParsingTree tree = parser.parse(type_sent.begin()+1, type_sent.end(), type);
     if (tree.label == 0) {
         return false;
     } else {
@@ -685,7 +683,7 @@ void LibraryToolbox::compute_registered_provers()
     for (size_t index = 0; index < LibraryToolbox::registered_provers().size(); index++) {
         this->compute_registered_prover(index);
     }
-    //cerr << "Built " << LibraryToolbox::registered_provers().size() << " registered provers" << endl;
+    //cerr << "Computed " << LibraryToolbox::registered_provers().size() << " registered provers" << endl;
 }
 
 void LibraryToolbox::compute_parser_initialization()
