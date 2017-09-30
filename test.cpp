@@ -186,18 +186,6 @@ void test_parsers(const std::vector<SymType> &sent, SymType type, const std::uno
     LRParser lr_parser(derivations);
     lr_parser.initialize();
 
-    {
-        ofstream lr_fout("/tmp/lr_parser_test_data");
-        boost::archive::text_oarchive oa(lr_fout);
-        lr_parser.to_archive(oa, "");
-    }
-
-    {
-        ifstream lr_fin("/tmp/lr_parser_test_data");
-        boost::archive::text_iarchive oa(lr_fin);
-        lr_parser.from_archive(oa, "");
-    }
-
     ParsingTree< LabType > lr_pt = lr_parser.parse(sent, type);
     assert(lr_pt.label != 0);
     assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent);
@@ -279,7 +267,7 @@ void test_grammar4() {
  * (somewhat) complex construction procedure they need. I wonder if there is some better way.
  */
 struct TestEnvironmentInner {
-    TestEnvironmentInner(const string &filename)
+    TestEnvironmentInner(const string &filename, const string &cache_filename)
     {
         FileTokenizer ft(filename);
         Reader p(ft, false, true);
@@ -287,7 +275,8 @@ struct TestEnvironmentInner {
         ft.compute_digest();
         this->lib_digest = new string(ft.get_digest());
         this->lib = new LibraryImpl(p.get_library());
-        this->tb = new LibraryToolbox(*this->lib, true);
+        shared_ptr< ToolboxCache > cache = make_shared< FileToolboxCache >(cache_filename);
+        this->tb = new LibraryToolbox(*this->lib, true, cache);
         cout << this->lib->get_symbols_num() << " symbols and " << this->lib->get_labels_num() << " labels" << endl;
         cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl << endl;
     }
@@ -304,8 +293,8 @@ struct TestEnvironmentInner {
 };
 
 struct TestEnvironment {
-    TestEnvironment(const string &filename) :
-        inner(filename), lib(*inner.lib), tb(*inner.tb), lib_digest(*inner.lib_digest)
+    TestEnvironment(const string &filename, const string &cache_filename) :
+        inner(filename, cache_filename), lib(*inner.lib), tb(*inner.tb), lib_digest(*inner.lib_digest)
     {
     }
 
@@ -316,7 +305,7 @@ struct TestEnvironment {
 };
 
 TestEnvironment &get_set_mm() {
-    static TestEnvironment data("../set.mm/set.mm");
+    static TestEnvironment data("../set.mm/set.mm", "../set.mm/set.mm.cache");
     return data;
 }
 
@@ -325,26 +314,12 @@ void test_lr_set() {
     auto &data = get_set_mm();
     auto &lib = data.lib;
     auto &tb = data.tb;
-    auto &lib_digest = data.lib_digest;
     std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](ostream &os, SymTok sym)->ostream& { return os << lib.resolve_symbol(sym); };
     std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](ostream &os, LabTok lab)->ostream& { return os << lib.resolve_label(lab); };
     const auto &derivations = tb.get_derivations();
     const auto ders_by_lab = compute_derivations_by_label(derivations);
     //EarleyParser earley_parser(derivations);
-    LRParser lr_parser(derivations, sym_printer, lab_printer);
-
-    if (0) {
-        lr_parser.initialize();
-        ofstream lr_fout("lr_parser_data");
-        boost::archive::text_oarchive oa(lr_fout);
-        lr_parser.to_archive(oa, lib_digest);
-    }
-
-    {
-        ifstream lr_fin("lr_parser_data");
-        boost::archive::text_iarchive oa(lr_fin);
-        lr_parser.from_archive(oa, lib_digest);
-    }
+    auto &lr_parser = tb.get_parser();
 
     Tic t = tic();
     int reps = 0;
@@ -421,8 +396,8 @@ void test() {
 
         if (true) {
             cout << "Generic unification test" << endl;
-            vector< SymTok > sent = tb.parse_sentence("wff ( ph -> ( ps -> ch ) )");
-            vector< SymTok > templ = tb.parse_sentence("wff ( th -> et )");
+            vector< SymTok > sent = tb.read_sentence("wff ( ph -> ( ps -> ch ) )");
+            vector< SymTok > templ = tb.read_sentence("wff ( th -> et )");
             auto res = unify(sent, templ, lib, false);
             cout << "Matching:         " << tb.print_sentence(sent) << endl << "against template: " << tb.print_sentence(templ) << endl;
             for (auto &match : res) {
@@ -438,7 +413,7 @@ void test() {
         if (true) {
             cout << "Statement unification test" << endl;
             //auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> th )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- th", lib));
-            auto res = tb.unify_assertion({ tb.parse_sentence("|- ( ch -> ( ph -> ps ) )"), tb.parse_sentence("|- ch") }, tb.parse_sentence("|- ( ph -> ps )"));
+            auto res = tb.unify_assertion({ tb.read_sentence("|- ( ch -> ( ph -> ps ) )"), tb.read_sentence("|- ch") }, tb.read_sentence("|- ( ph -> ps )"));
             cout << "Found " << res.size() << " matching assertions:" << endl;
             for (auto &match : res) {
                 auto &label = get<0>(match);
@@ -457,7 +432,7 @@ void test() {
         if (true) {
             cout << "Type proving test" << endl;
             //auto sent = lib.parse_sentence("wff ph");
-            auto sent = tb.parse_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
+            auto sent = tb.read_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
             cout << "Sentence is " << tb.print_sentence(sent) << endl;
             cout << "HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_HTML) << endl;
             cout << "Alt HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << endl;

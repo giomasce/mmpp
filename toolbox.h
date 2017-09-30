@@ -4,8 +4,15 @@
 #include <vector>
 #include <unordered_map>
 #include <functional>
+#include <fstream>
+#include <string>
+
+#include <boost/filesystem.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 
 #include "library.h"
+#include "lr.h"
 
 class LibraryToolbox;
 
@@ -65,11 +72,40 @@ struct RegisteredProverInstanceData {
     std::string label_str;
 };
 
+class ToolboxCache {
+public:
+    virtual ~ToolboxCache();
+    virtual bool load() = 0;
+    virtual bool store() = 0;
+    virtual std::string get_digest() = 0;
+    virtual void set_digest(std::string digest) = 0;
+    virtual LRParser< SymTok, LabTok >::CachedData get_lr_parser_data() = 0;
+    virtual void set_lr_parser_data(const LRParser< SymTok, LabTok >::CachedData &cached_data) = 0;
+};
+
+class FileToolboxCache : public ToolboxCache {
+public:
+    FileToolboxCache(const boost::filesystem::path &filename);
+    bool load();
+    bool store();
+    std::string get_digest();
+    void set_digest(std::string digest);
+    LRParser< SymTok, LabTok >::CachedData get_lr_parser_data();
+    void set_lr_parser_data(const LRParser< SymTok, LabTok >::CachedData &cached_data);
+
+private:
+    boost::filesystem::path filename;
+    std::string digest;
+    LRParser< SymTok, LabTok >::CachedData lr_parser_data;
+};
+
 class LibraryToolbox
 {
 public:
-    explicit LibraryToolbox(const Library &lib, bool compute=false);
+    explicit LibraryToolbox(const Library &lib, bool compute=false, std::shared_ptr< ToolboxCache > cache = NULL);
+    ~LibraryToolbox();
     const Library &get_library() const;
+    void set_cache(std::shared_ptr< ToolboxCache > cache);
     std::vector< SymTok > substitute(const std::vector< SymTok > &orig, const std::unordered_map< SymTok, std::vector< SymTok > > &subst_map) const;
     std::unordered_map< SymTok, std::vector< SymTok > > compose_subst(const std::unordered_map< SymTok, std::vector< SymTok > > &first,
                                                                       const std::unordered_map< SymTok, std::vector< SymTok > > &second) const;
@@ -81,7 +117,7 @@ public:
     bool classical_type_proving_helper(const std::vector< SymTok > &type_sent, ProofEngine &engine, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
     bool earley_type_proving_helper(const std::vector< SymTok > &type_sent, ProofEngine &engine, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
 
-    std::vector< SymTok > parse_sentence(const std::string &in) const;
+    std::vector< SymTok > read_sentence(const std::string &in) const;
     SentencePrinter print_sentence(const std::vector< SymTok > &sent, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
     ProofPrinter print_proof(const std::vector< LabTok > &proof) const;
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
@@ -102,6 +138,11 @@ public:
     Prover build_registered_prover(const RegisteredProver &prover, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers) const;
     void compute_registered_provers();
 
+    void compute_parser_initialization();
+    const LRParser< SymTok, LabTok > &get_parser();
+    const LRParser< SymTok, LabTok > &get_parser() const;
+    ParsingTree< LabTok > parse_sentence(const std::vector<SymTok> &sent, SymTok type) const;
+
     bool proving_helper(const std::vector< Sentence > &templ_hyps,
                          const Sentence &templ_thesis,
                          const std::unordered_map< std::string, Prover > &types_provers,
@@ -117,7 +158,6 @@ private:
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true);
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true) const;
 
-private:
     const Library &lib;
 
     std::vector< LabTok > types_by_var;
@@ -133,6 +173,9 @@ private:
                         std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > >,
                         boost::hash< std::tuple< std::vector< std::vector< SymTok > >, std::vector< SymTok > > > > unification_cache;
 
+    LRParser< SymTok, LabTok > *parser;
+    bool parser_initialization_computed = false;
+
     // This is an instance of the Construct On First Use idiom, which prevents the static initialization fiasco; see https://isocpp.org/wiki/faq/ctors#static-init-order-on-first-use-members
     static std::vector< RegisteredProverData > &registered_provers() {
         static std::vector< RegisteredProverData > *ret = new std::vector< RegisteredProverData >();
@@ -141,6 +184,8 @@ private:
 
     std::vector< RegisteredProverInstanceData > instance_registered_provers;
     void compute_registered_prover(size_t i);
+
+    std::shared_ptr< ToolboxCache > cache;
 };
 
 #endif // LIBRARYTOOLBOX_H

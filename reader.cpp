@@ -266,6 +266,8 @@ void Reader::run () {
     this->final_frame = this->stack.back();
     this->lib.set_final_stack_frame(this->final_frame);
     this->lib.set_max_number(this->number-1);
+    this->tg->compute_digest();
+    this->lib.set_digest(this->tg->get_digest());
     this->stack.pop_back();
     assert_or_throw(this->stack.empty(), "Unmatched open scoping block");
 

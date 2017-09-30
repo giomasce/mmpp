@@ -22,6 +22,8 @@ std::vector< std::string > tokenize(const std::string &in);
 class TokenGenerator {
 public:
     virtual std::pair< bool, std::string > next() = 0;
+    virtual void compute_digest() = 0;
+    virtual std::string get_digest() const = 0;
     virtual ~TokenGenerator();
 };
 

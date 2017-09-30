@@ -1,3 +1,6 @@
+
+#include <boost/filesystem/fstream.hpp>
+
 #include "toolbox.h"
 #include "utils.h"
 #include "unification.h"
@@ -50,17 +53,27 @@ ostream &operator<<(ostream &os, const ProofPrinter &sp)
     return os;
 }
 
-LibraryToolbox::LibraryToolbox(const Library &lib, bool compute) :
-    lib(lib)
+LibraryToolbox::LibraryToolbox(const Library &lib, bool compute, shared_ptr<ToolboxCache> cache) :
+    lib(lib), cache(cache)
 {
     if (compute) {
         this->compute_everything();
     }
 }
 
+LibraryToolbox::~LibraryToolbox()
+{
+    delete this->parser;
+}
+
 const Library &LibraryToolbox::get_library() const
 {
     return this->lib;
+}
+
+void LibraryToolbox::set_cache(std::shared_ptr<ToolboxCache> cache)
+{
+    this->cache = cache;
 }
 
 std::vector<SymTok> LibraryToolbox::substitute(const std::vector<SymTok> &orig, const std::unordered_map<SymTok, std::vector<SymTok> > &subst_map) const
@@ -325,7 +338,7 @@ Prover LibraryToolbox::build_prover(const std::vector<Sentence> &templ_hyps, con
 Prover LibraryToolbox::build_type_prover_from_strings(const std::string &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
     return [=](ProofEngine &engine){
-        vector< SymTok > type_sent2 = this->parse_sentence(type_sent);
+        vector< SymTok > type_sent2 = this->read_sentence(type_sent);
         return this->classical_type_proving_helper(type_sent2, engine, var_provers);
     };
 }
@@ -343,7 +356,7 @@ Prover LibraryToolbox::build_type_prover_from_strings(const std::string &type_se
     };
 }*/
 
-std::vector<SymTok> LibraryToolbox::parse_sentence(const string &in) const
+std::vector<SymTok> LibraryToolbox::read_sentence(const string &in) const
 {
     auto toks = tokenize(in);
     vector< SymTok > res;
@@ -478,6 +491,7 @@ void LibraryToolbox::compute_everything()
     this->compute_assertions_by_type();
     this->compute_registered_provers();
     this->compute_derivations();
+    this->compute_parser_initialization();
 }
 
 const std::vector<LabTok> &LibraryToolbox::get_types() const
@@ -674,6 +688,54 @@ void LibraryToolbox::compute_registered_provers()
     //cerr << "Built " << LibraryToolbox::registered_provers().size() << " registered provers" << endl;
 }
 
+void LibraryToolbox::compute_parser_initialization()
+{
+    delete this->parser;
+    this->parser = NULL;
+    std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](ostream &os, SymTok sym)->ostream& { return os << lib.resolve_symbol(sym); };
+    std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](ostream &os, LabTok lab)->ostream& { return os << lib.resolve_label(lab); };
+    this->parser = new LRParser< SymTok, LabTok >(this->get_derivations(), sym_printer, lab_printer);
+    bool loaded = false;
+    if (this->cache != NULL) {
+        if (this->cache->load()) {
+            if (this->lib.get_digest() == this->cache->get_digest()) {
+                this->parser->set_cached_data(this->cache->get_lr_parser_data());
+                loaded = true;
+            }
+        }
+    }
+    if (!loaded) {
+        this->parser->initialize();
+        if (this->cache != NULL) {
+            this->cache->set_digest(this->lib.get_digest());
+            this->cache->set_lr_parser_data(this->parser->get_cached_data());
+            this->cache->store();
+        }
+    }
+    this->parser_initialization_computed = true;
+}
+
+const LRParser<SymTok, LabTok> &LibraryToolbox::get_parser()
+{
+    if (!this->parser_initialization_computed) {
+        this->compute_parser_initialization();
+    }
+    return *this->parser;
+}
+
+const LRParser<SymTok, LabTok> &LibraryToolbox::get_parser() const
+{
+    if (!this->parser_initialization_computed) {
+        throw MMPPException("computation required on const object");
+    }
+    return *this->parser;
+}
+
+ParsingTree<LabTok> LibraryToolbox::parse_sentence(const std::vector<SymTok> &sent, SymTok type) const
+{
+    return this->get_parser().parse(sent, type);
+}
+
 void LibraryToolbox::compute_registered_prover(size_t index)
 {
     this->instance_registered_provers.resize(LibraryToolbox::registered_provers().size());
@@ -683,9 +745,9 @@ void LibraryToolbox::compute_registered_prover(size_t index)
         // Decode input strings to sentences
         std::vector<std::vector<SymTok> > templ_hyps_sent;
         for (auto &hyp : data.templ_hyps) {
-            templ_hyps_sent.push_back(this->parse_sentence(hyp));
+            templ_hyps_sent.push_back(this->read_sentence(hyp));
         }
-        std::vector<SymTok> templ_thesis_sent = this->parse_sentence(data.templ_thesis);
+        std::vector<SymTok> templ_thesis_sent = this->read_sentence(data.templ_thesis);
 
         auto unification = this->unify_assertion(templ_hyps_sent, templ_thesis_sent, true);
         assert_or_throw(!unification.empty(), "Could not find the template assertion");
@@ -743,4 +805,49 @@ string test_prover(Prover prover, const LibraryToolbox &tb) {
             return ret;
         }
     }
+}
+
+ToolboxCache::~ToolboxCache()
+{
+}
+
+FileToolboxCache::FileToolboxCache(const boost::filesystem::path &filename) : filename(filename) {
+}
+
+bool FileToolboxCache::load() {
+    boost::filesystem::ifstream lr_fin(this->filename);
+    if (lr_fin.fail()) {
+        return false;
+    }
+    boost::archive::text_iarchive archive(lr_fin);
+    archive >> this->digest;
+    archive >> this->lr_parser_data;
+    return true;
+}
+
+bool FileToolboxCache::store() {
+    boost::filesystem::ofstream lr_fout(this->filename);
+    if (lr_fout.fail()) {
+        return false;
+    }
+    boost::archive::text_oarchive archive(lr_fout);
+    archive << this->digest;
+    archive << this->lr_parser_data;
+    return true;
+}
+
+string FileToolboxCache::get_digest() {
+    return this->digest;
+}
+
+void FileToolboxCache::set_digest(string digest) {
+    this->digest = digest;
+}
+
+LRParser< SymTok, LabTok >::CachedData FileToolboxCache::get_lr_parser_data() {
+    return this->lr_parser_data;
+}
+
+void FileToolboxCache::set_lr_parser_data(const LRParser< SymTok, LabTok >::CachedData &cached_data) {
+    this->lr_parser_data = cached_data;
 }

@@ -273,18 +273,14 @@ public:
 #endif
     }
 
-    template< class Archive >
-    void to_archive(Archive &a, const std::string &digest) {
-        a << digest;
-        a << this->automaton;
+    typedef std::unordered_map< size_t, std::pair< std::unordered_map< SymType, size_t >, std::vector< std::tuple< SymType, LabType, size_t, size_t > > > > CachedData;
+
+    const CachedData &get_cached_data() const {
+        return this->automaton;
     }
 
-    template< class Archive >
-    void from_archive(Archive &a, const std::string &digest) {
-        std::string found_digest;
-        a >> found_digest;
-        assert(digest == found_digest);
-        a >> this->automaton;
+    void set_cached_data(const CachedData &cached_data) {
+        this->automaton = cached_data;
     }
 
     ParsingTree< LabType > parse(const std::vector<SymType> &sent, SymType type) const {
@@ -396,7 +392,7 @@ private:
     const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations;
     /* Every state is mapped to a pair containing the shift map and the vector of reductions;
      * each reduction is described by its head symbol, its label, its number of symbols and its number of variables. */
-    std::unordered_map< size_t, std::pair< std::unordered_map< SymType, size_t >, std::vector< std::tuple< SymType, LabType, size_t, size_t > > > > automaton;
+    CachedData automaton;
     const std::function< std::ostream&(std::ostream&, SymType) > sym_printer;
     const std::function< std::ostream&(std::ostream&, LabType) > lab_printer;
 

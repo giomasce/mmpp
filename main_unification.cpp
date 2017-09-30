@@ -26,7 +26,7 @@ void unification_test() {
                                "|- ( ph -> ph )" };
     int reps = 30;
     for (const auto &test : tests) {
-        Sentence sent = tb.parse_sentence(test);
+        Sentence sent = tb.read_sentence(test);
         auto res2 = tb.unify_assertion({}, sent, false, true);
         cout << "Trying to unify " << test << endl;
         cout << "Found " << res2.size() << " matching assertions:" << endl;
@@ -73,10 +73,10 @@ void unification_loop() {
         size_t dollar_pos;
         vector< vector< SymTok > > hypotheses;
         while ((dollar_pos = line.find("$")) != string::npos) {
-            hypotheses.push_back(tb.parse_sentence(line.substr(0, dollar_pos)));
+            hypotheses.push_back(tb.read_sentence(line.substr(0, dollar_pos)));
             line = line.substr(dollar_pos+1);
         }
-        vector< SymTok > sent = tb.parse_sentence(line);
+        vector< SymTok > sent = tb.read_sentence(line);
         /*auto sent_wff = sent;
         sent_wff[0] = lib.get_symbol("wff");
         auto res = lib.prove_type(sent_wff);

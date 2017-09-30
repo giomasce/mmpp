@@ -303,9 +303,19 @@ LabTok LibraryImpl::get_max_number() const
     return this->max_number;
 }
 
+string LibraryImpl::get_digest() const
+{
+    return this->digest;
+}
+
 void LibraryImpl::set_addendum(const LibraryAddendumImpl &add)
 {
     this->addendum = add;
+}
+
+void LibraryImpl::set_digest(const string &digest)
+{
+    this->digest = digest;
 }
 
 Library::~Library()

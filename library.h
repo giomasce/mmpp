@@ -243,6 +243,7 @@ public:
     virtual std::function< const Assertion*() > list_assertions() const = 0;
     virtual const StackFrame &get_final_stack_frame() const = 0;
     virtual const LibraryAddendum &get_addendum() const = 0;
+    virtual std::string get_digest() const = 0;
     virtual ~Library();
 };
 
@@ -277,6 +278,7 @@ public:
     const LibraryAddendumImpl &get_addendum() const;
     std::function< const Assertion*() > list_assertions() const;
     virtual LabTok get_max_number() const;
+    std::string get_digest() const;
 
     SymTok create_symbol(std::string s);
     LabTok create_label(std::string s);
@@ -286,6 +288,7 @@ public:
     void set_final_stack_frame(const StackFrame &final_stack_frame);
     void set_max_number(LabTok max_number);
     void set_addendum(const LibraryAddendumImpl &add);
+    void set_digest(const std::string &digest);
 
 private:
     StringCache< SymTok > syms;
@@ -301,6 +304,8 @@ private:
     LibraryAddendumImpl addendum;
 
     LabTok max_number;
+
+    std::string digest;
 };
 
 #endif // LIBRARY_H
