@@ -189,6 +189,8 @@ Reader::Reader(TokenGenerator &tg, bool execute_proofs, bool store_comments) :
 }
 
 void Reader::run () {
+    cout << "Running the reader" << endl;
+    auto t = tic();
     pair< bool, string > token_pair;
     this->label = 0;
     assert(this->stack.empty());
@@ -274,6 +276,10 @@ void Reader::run () {
     // Some final operations
     this->parse_t_comment(this->t_comment);
     this->t_comment = "";
+    this->parse_j_comment(this->j_comment);
+    this->j_comment = "";
+
+    toc(t, 1);
 }
 
 const LibraryImpl &Reader::get_library() const {
@@ -599,27 +605,26 @@ void Reader::process_comment(const string &comment)
         this->last_comment = comment;
     }
     bool found_dollar = false;
+    size_t i = 0;
     for (auto &c : comment) {
-        if (is_whitespace(c)) {
-            continue;
-        }
-        if (c == '$') {
-            found_dollar = true;
-        } else {
-            if (found_dollar) {
-                if (c == 't') {
-                    this->t_comment = comment;
-                } else if (c == 'j') {
-                    this->parse_j_comment(comment);
+        if (!is_whitespace(c)) {
+            if (c == '$') {
+                found_dollar = true;
+            } else {
+                if (found_dollar) {
+                    if (c == 't') {
+                        this->t_comment = string(comment.begin()+i+1, comment.end());
+                    } else if (c == 'j') {
+                        this->j_comment += string(comment.begin()+i+1, comment.end());
+                    }
+                    return;
                 } else {
                     // Either the $ token is at the beginning or the comment is discarded
                     return;
                 }
-            } else {
-                // Either the $ token is at the beginning or the comment is discarded
-                return;
             }
         }
+        i++;
     }
 }
 
@@ -667,6 +672,48 @@ static string decode_string(vector< pair< bool, string > >::const_iterator begin
         value += tmp;
     }
     return value;
+}
+
+void Reader::parse_j_code(const std::vector<std::vector<std::pair<bool, string> > > &code)
+{
+    ParsingAddendumImpl add;
+    this->lib.set_parsing_addendum(add);
+    for (auto &tokens : code) {
+        assert_or_throw(tokens.size() > 0, "empty instruction in $j comment");
+        assert_or_throw(!tokens.at(0).first, "instruction in $j comment begins with a string");
+        const string &command = tokens.at(0).second;
+        if (command == "syntax") {
+            assert_or_throw(tokens.size() >= 2, "syntax instruction in $j comment with wrong length");
+            assert_or_throw(tokens.at(1).first, "malformed syntax instruction in $j comment");
+            SymTok tok1 = this->lib.get_symbol(tokens.at(1).second);
+            assert_or_throw(tok1 != 0, "unknown symbol in syntax instruction in $j comment");
+            SymTok tok2 = tok1;
+            if (tokens.size() > 2) {
+                assert_or_throw(tokens.size() == 4, "syntax instruction in $j comment with wrong length");
+                assert_or_throw(!tokens.at(2).first, "malformed syntax instruction in $j comment");
+                assert_or_throw(tokens.at(3).first, "malformed syntax instruction in $j comment");
+                assert_or_throw(tokens.at(2).second == "as", "malformed syntax instruction in $j comment");
+                tok2 = this->lib.get_symbol(tokens.at(3).second);
+                assert_or_throw(tok2 != 0, "unknown symbol in syntax instruction in $j comment");
+            }
+            add.syntax[tok1] = tok2;
+        } else if (command == "unambiguous") {
+            add.unambiguous = decode_string(tokens.begin() + 1, tokens.end(), true);
+        } else if (command == "definition") {
+            // FIXME Implement missing commands
+        } else if (command == "condcongruence") {
+        } else if (command == "congruence") {
+        } else if (command == "notfree") {
+        } else if (command == "primitive") {
+        } else if (command == "justification") {
+        } else if (command == "condequality") {
+        } else if (command == "equality") {
+        } else {
+            //cerr << "Uknown command " << tokens.at(0).second << endl;
+            throw MMPPException("unknown command in $j comment");
+        }
+    }
+    this->lib.set_parsing_addendum(add);
 }
 
 void Reader::parse_t_code(const vector< vector< pair< bool, string > > > &code) {
@@ -733,7 +780,7 @@ void Reader::parse_t_code(const vector< vector< pair< bool, string > > > &code) 
     this->lib.set_addendum(add);
 }
 
-void Reader::parse_t_comment(const string &comment)
+std::vector<std::vector<std::pair<bool, std::string> > > Reader::parse_comment(const string &comment)
 {
     // 0 -> normal
     // 1 -> comment
@@ -744,7 +791,7 @@ void Reader::parse_t_comment(const string &comment)
     // 6 -> normal, expect whitespace (or ;)
     // 7 -> wait $
     // 8 -> skip one char
-    uint8_t state = 7;
+    uint8_t state = 0;
     vector< vector< pair< bool, string > > > code;
     vector< pair< bool, string > > tokens;
     vector< char > token;
@@ -827,13 +874,19 @@ void Reader::parse_t_comment(const string &comment)
             assert("Should not arrive here" == NULL);
         }
     }
+    return code;
+}
+
+void Reader::parse_t_comment(const string &comment)
+{
+    auto code = this->parse_comment(comment);
     this->parse_t_code(code);
 }
 
 void Reader::parse_j_comment(const string &comment)
 {
-    (void) comment;
-    // TODO
+    auto code = this->parse_comment(comment);
+    this->parse_j_code(code);
 }
 
 bool Reader::check_var(SymTok tok) const

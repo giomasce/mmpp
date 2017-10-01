@@ -155,7 +155,7 @@ void test_all_verifications() {
             if (expect_success) {
                 cout << "Good, it worked!" << endl;
             } else {
-                cout << "Bad, it should have been failed!" << endl;
+                cout << "Bad, it should have failed!" << endl;
                 problems++;
             }
         } else {
@@ -432,7 +432,6 @@ void test() {
         if (true) {
             cout << "Type proving test" << endl;
             auto sent = tb.read_sentence(  "wff ( [_ suc z / z ]_ ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
-            //auto sent = tb.read_sentence("wff ( [ suc z / z ] ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
             cout << "Sentence is " << tb.print_sentence(sent) << endl;
             cout << "HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_HTML) << endl;
             cout << "Alt HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << endl;
@@ -447,7 +446,6 @@ void test() {
             cout << "Found type proof (Earley):    " << tb.print_proof(res) << endl;
             cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
         }
-        return;
 
         vector< pwff > wffs = { /*pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
                                 pwff(new Var("ph")), pwff(new Not(pwff(new Var("ph")))),

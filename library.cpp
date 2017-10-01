@@ -273,6 +273,11 @@ const LibraryAddendumImpl &LibraryImpl::get_addendum() const
     return this->addendum;
 }
 
+const ParsingAddendumImpl &LibraryImpl::get_parsing_addendum() const
+{
+    return this->parsing_addendum;
+}
+
 class AssertionGenerator {
 public:
     AssertionGenerator(const vector< Assertion > &ref) :
@@ -311,6 +316,11 @@ string LibraryImpl::get_digest() const
 void LibraryImpl::set_addendum(const LibraryAddendumImpl &add)
 {
     this->addendum = add;
+}
+
+void LibraryImpl::set_parsing_addendum(const ParsingAddendumImpl &add)
+{
+    this->parsing_addendum = add;
 }
 
 void LibraryImpl::set_digest(const string &digest)

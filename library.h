@@ -160,6 +160,25 @@ private:
     std::string althtmldir;
 };
 
+class ParsingAddendum {
+    virtual const std::map< SymTok, SymTok > &get_syntax() const = 0;
+    virtual const std::string &get_unambiguous() const = 0;
+};
+
+class ParsingAddendumImpl : public ParsingAddendum {
+    friend class Reader;
+public:
+    const std::map< SymTok, SymTok > &get_syntax() const {
+        return this->syntax;
+    }
+    const std::string &get_unambiguous() const {
+        return this->unambiguous;
+    }
+private:
+    std::map< SymTok, SymTok > syntax;
+    std::string unambiguous;
+};
+
 std::string fix_htmlcss_for_qt(std::string s);
 
 class Assertion {
@@ -243,6 +262,7 @@ public:
     virtual std::function< const Assertion*() > list_assertions() const = 0;
     virtual const StackFrame &get_final_stack_frame() const = 0;
     virtual const LibraryAddendum &get_addendum() const = 0;
+    virtual const ParsingAddendumImpl &get_parsing_addendum() const = 0;
     virtual std::string get_digest() const = 0;
     virtual ~Library();
 };
@@ -276,6 +296,7 @@ public:
     bool is_constant(SymTok c) const;
     const StackFrame &get_final_stack_frame() const;
     const LibraryAddendumImpl &get_addendum() const;
+    const ParsingAddendumImpl &get_parsing_addendum() const;
     std::function< const Assertion*() > list_assertions() const;
     virtual LabTok get_max_number() const;
     std::string get_digest() const;
@@ -288,6 +309,7 @@ public:
     void set_final_stack_frame(const StackFrame &final_stack_frame);
     void set_max_number(LabTok max_number);
     void set_addendum(const LibraryAddendumImpl &add);
+    void set_parsing_addendum(const ParsingAddendumImpl &add);
     void set_digest(const std::string &digest);
 
 private:
@@ -302,6 +324,7 @@ private:
 
     StackFrame final_stack_frame;
     LibraryAddendumImpl addendum;
+    ParsingAddendumImpl parsing_addendum;
 
     LabTok max_number;
 

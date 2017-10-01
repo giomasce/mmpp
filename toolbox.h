@@ -102,7 +102,7 @@ private:
 class LibraryToolbox
 {
 public:
-    explicit LibraryToolbox(const Library &lib, bool compute=false, std::shared_ptr< ToolboxCache > cache = NULL);
+    explicit LibraryToolbox(const ExtendedLibrary &lib, bool compute=false, std::shared_ptr< ToolboxCache > cache = NULL);
     ~LibraryToolbox();
     const Library &get_library() const;
     void set_cache(std::shared_ptr< ToolboxCache > cache);
@@ -144,6 +144,8 @@ public:
     ParsingTree< LabTok, SymTok > parse_sentence(typename std::vector<SymTok>::const_iterator sent_begin, typename std::vector<SymTok>::const_iterator sent_end, SymTok type) const;
     ParsingTree< LabTok, SymTok > parse_sentence(const std::vector<SymTok> &sent, SymTok type) const;
 
+    void compute_sentences_parsing();
+
     bool proving_helper(const std::vector< Sentence > &templ_hyps,
                          const Sentence &templ_thesis,
                          const std::unordered_map< std::string, Prover > &types_provers,
@@ -159,7 +161,7 @@ private:
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true);
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true) const;
 
-    const Library &lib;
+    const ExtendedLibrary &lib;
 
     std::vector< LabTok > types_by_var;
     bool types_by_var_computed = false;
@@ -177,7 +179,11 @@ private:
     LRParser< SymTok, LabTok > *parser;
     bool parser_initialization_computed = false;
 
-    // This is an instance of the Construct On First Use idiom, which prevents the static initialization fiasco; see https://isocpp.org/wiki/faq/ctors#static-init-order-on-first-use-members
+    std::vector< ParsingTree< LabTok, SymTok > > parsed_sents;
+    bool sentences_parsing_computed = false;
+
+    // This is an instance of the Construct On First Use idiom, which prevents the static initialization fiasco;
+    // see https://isocpp.org/wiki/faq/ctors#static-init-order-on-first-use-members
     static std::vector< RegisteredProverData > &registered_provers() {
         static std::vector< RegisteredProverData > *ret = new std::vector< RegisteredProverData >();
         return *ret;

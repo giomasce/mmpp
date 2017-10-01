@@ -15,7 +15,7 @@
 #include <chrono>
 #include <unordered_map>
 
-//#define SELF_DEBUG
+#define SELF_DEBUG
 
 #if defined(__GNUG__) && defined(SELF_DEBUG)
 #include <execinfo.h>

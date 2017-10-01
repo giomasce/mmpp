@@ -53,7 +53,7 @@ ostream &operator<<(ostream &os, const ProofPrinter &sp)
     return os;
 }
 
-LibraryToolbox::LibraryToolbox(const Library &lib, bool compute, shared_ptr<ToolboxCache> cache) :
+LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, bool compute, shared_ptr<ToolboxCache> cache) :
     lib(lib), cache(cache)
 {
     if (compute) {
@@ -485,11 +485,15 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
 
 void LibraryToolbox::compute_everything()
 {
+    //cout << "Computing everything" << endl;
+    //auto t = tic();
     this->compute_types_by_var();
     this->compute_assertions_by_type();
     this->compute_registered_provers();
     this->compute_derivations();
     this->compute_parser_initialization();
+    this->compute_sentences_parsing();
+    //toc(t, 1);
 }
 
 const std::vector<LabTok> &LibraryToolbox::get_types() const
@@ -739,6 +743,23 @@ ParsingTree<LabTok, SymTok> LibraryToolbox::parse_sentence(typename vector<SymTo
 ParsingTree<LabTok, SymTok> LibraryToolbox::parse_sentence(const std::vector<SymTok> &sent, SymTok type) const
 {
     return this->get_parser().parse(sent, type);
+}
+
+void LibraryToolbox::compute_sentences_parsing()
+{
+    if (!this->parser_initialization_computed) {
+        this->compute_parser_initialization();
+    }
+    for (size_t i = 1; i < this->lib.get_labels_num(); i++) {
+        const Sentence &sent = this->lib.get_sentence(i);
+        auto pt = this->parse_sentence(sent.begin()+1, sent.end(), this->lib.get_parsing_addendum().get_syntax().at(sent[0]));
+        if (pt.label == 0) {
+            throw MMPPException("Failed to parse a sentence in the library");
+        }
+        this->parsed_sents.resize(i+1);
+        this->parsed_sents[i] = pt;
+    }
+    this->sentences_parsing_computed = true;
 }
 
 void LibraryToolbox::compute_registered_prover(size_t index)

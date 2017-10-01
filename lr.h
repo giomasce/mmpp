@@ -141,7 +141,7 @@ public:
         this->sent_it = this->sent_begin;
     }
 
-    std::pair< bool, ParsingTree< LabType, SymType > > do_parsing() {
+    std::tuple< bool, bool, ParsingTree< LabType, SymType > > do_parsing() {
         const auto &row = this->automaton.at(this->state_stack.back());
         const auto &shifts = row.first;
         const auto &reductions = row.second;
@@ -154,10 +154,11 @@ public:
                 this->sent_it++;
 
                 bool res;
+                bool must_halt;
                 ParsingTree< LabType, SymType > parsing_tree;
-                std::tie(res, parsing_tree) = this->do_parsing();
-                if (res) {
-                    return std::make_pair(res, parsing_tree);
+                std::tie(res, must_halt, parsing_tree) = this->do_parsing();
+                if (res || must_halt) {
+                    return std::make_tuple(res, must_halt, parsing_tree);
                 }
 
                 this->sent_it--;
@@ -182,20 +183,31 @@ public:
 
             // Detect if the search has terminated
             if (this->sent_it == this->sent_end && this->parsing_tree_stack.size() == 1 && this->state_stack.size() == 1 + sym_num && type == this->target_type) {
-                return std::make_pair(true, new_parsing_tree);
+                return std::make_tuple(true, false, new_parsing_tree);
             }
 
             std::vector< size_t > temp_states;
             std::copy(this->state_stack.end() - sym_num, this->state_stack.end(), std::back_inserter(temp_states));
             this->state_stack.resize(this->state_stack.size() - sym_num);
-            const auto &new_row = this->automaton.at(this->state_stack.back());
-            this->state_stack.push_back(new_row.first.at(type));
+            auto new_row_it = this->automaton.find(this->state_stack.back());
+            // If the search had not terminated before and we do not have a new state to go, than the search has failed
+            if (new_row_it == this->automaton.end()) {
+                return std::tuple< bool, bool, ParsingTree< LabType, SymType > >(false, true, {});
+            }
+            const auto &new_row = new_row_it->second;
+            // As above
+            auto new_state_it = new_row.first.find(type);
+            if (new_state_it == new_row.first.end()) {
+                return std::tuple< bool, bool, ParsingTree< LabType, SymType > >(false, true, {});
+            }
+            this->state_stack.push_back(new_state_it->second);
 
             bool res;
+            bool must_halt;
             ParsingTree< LabType, SymType > parsing_tree;
-            std::tie(res, parsing_tree) = this->do_parsing();
-            if (res) {
-                return std::make_pair(res, parsing_tree);
+            std::tie(res, must_halt, parsing_tree) = this->do_parsing();
+            if (res || must_halt) {
+                return std::make_tuple(res, must_halt, parsing_tree);
             }
 
             this->state_stack.pop_back();
@@ -204,7 +216,7 @@ public:
             std::copy(new_parsing_tree.children.begin(), new_parsing_tree.children.end(), std::back_inserter(this->parsing_tree_stack));
         }
 
-        return std::pair< bool, ParsingTree< LabType, SymType > >(false, {});
+        return std::tuple< bool, bool, ParsingTree< LabType, SymType > >(false, false, {});
     }
 
 private:
@@ -246,7 +258,7 @@ public:
         LRParsingHelper helper(this->automaton, sent_begin, sent_end, type);
         bool res;
         ParsingTree< LabType, SymType > parsing_tree;
-        std::tie(res, parsing_tree) = helper.do_parsing();
+        std::tie(res, std::ignore, parsing_tree) = helper.do_parsing();
         if (res) {
 #ifdef LR_PARSER_AUTO_TEST
             // Check that the returned parsing tree is correct

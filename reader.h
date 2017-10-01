@@ -65,9 +65,11 @@ private:
     void parse_a();
     void parse_p();
     void process_comment(const std::string &comment);
+    std::vector<std::vector<std::pair<bool, std::string> > > parse_comment(const std::string &comment);
     void parse_t_comment(const std::string &comment);
     void parse_t_code(const std::vector<std::vector<std::pair<bool, std::string> > > &code);
     void parse_j_comment(const std::string &comment);
+    void parse_j_code(const std::vector<std::vector<std::pair<bool, std::string> > > &code);
 
     bool check_var(SymTok tok) const;
     bool check_const(SymTok tok) const;
@@ -91,6 +93,7 @@ private:
     std::string last_comment;
     std::vector< std::string > toks;
     std::string t_comment;
+    std::string j_comment;
 
     std::vector< StackFrame > stack;
     StackFrame final_frame;
