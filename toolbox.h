@@ -165,6 +165,8 @@ public:
                          const std::unordered_map< std::string, Prover > &types_provers,
                          const std::vector< Prover > &hyps_provers) const;
 
+    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_uncached3(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
+
 private:
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_uncached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_uncached2(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
