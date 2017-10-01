@@ -16,6 +16,7 @@
 #include "lr.h"
 #include "utils.h"
 #include "platform.h"
+#include "unif.h"
 
 using namespace std;
 
@@ -262,53 +263,6 @@ void test_grammar4() {
     test_parsers< char, size_t >(sent, 'S', derivations);
 }
 
-/* This funny construction with two classes is the only way I found to have lib and tb
- * as references in TestEnvironment, while being at the same time able to do the
- * (somewhat) complex construction procedure they need. I wonder if there is some better way.
- */
-struct TestEnvironmentInner {
-    TestEnvironmentInner(const string &filename, const string &cache_filename)
-    {
-        FileTokenizer ft(filename);
-        Reader p(ft, false, true);
-        p.run();
-        ft.compute_digest();
-        this->lib_digest = new string(ft.get_digest());
-        this->lib = new LibraryImpl(p.get_library());
-        shared_ptr< ToolboxCache > cache = make_shared< FileToolboxCache >(cache_filename);
-        this->tb = new LibraryToolbox(*this->lib, true, cache);
-        cout << this->lib->get_symbols_num() << " symbols and " << this->lib->get_labels_num() << " labels" << endl;
-        cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl << endl;
-    }
-
-    ~TestEnvironmentInner() {
-        delete this->lib;
-        delete this->tb;
-        delete this->lib_digest;
-    }
-
-    LibraryImpl *lib;
-    LibraryToolbox *tb;
-    string *lib_digest;
-};
-
-struct TestEnvironment {
-    TestEnvironment(const string &filename, const string &cache_filename) :
-        inner(filename, cache_filename), lib(*inner.lib), tb(*inner.tb), lib_digest(*inner.lib_digest)
-    {
-    }
-
-    TestEnvironmentInner inner;
-    LibraryImpl &lib;
-    LibraryToolbox &tb;
-    string &lib_digest;
-};
-
-TestEnvironment &get_set_mm() {
-    static TestEnvironment data("../set.mm/set.mm", "../set.mm/set.mm.cache");
-    return data;
-}
-
 void test_lr_set() {
     cout << "LR parsing on set.mm" << endl;
     auto &data = get_set_mm();
@@ -383,236 +337,255 @@ void test_parsers() {
     test_grammar4();
 }
 
-void test() {
-    test_small_stuff();
-    test_parsers();
-    test_lr_set();
+void test_unification() {
+    auto &data = get_set_mm();
+    auto &lib = data.lib;
+    auto &tb = data.tb;
+    cout << "Generic unification test" << endl;
+    vector< SymTok > sent = tb.read_sentence("wff ( ph -> ( ps -> ch ) )");
+    vector< SymTok > templ = tb.read_sentence("wff ( th -> et )");
+    auto res = unify(sent, templ, lib, false);
+    cout << "Matching:         " << tb.print_sentence(sent) << endl << "against template: " << tb.print_sentence(templ) << endl;
+    for (auto &match : res) {
+        cout << "  *";
+        for (auto &var: match) {
+            cout << " " << tb.print_sentence({var.first}) << " => " << tb.print_sentence(var.second) << "  ";
+        }
+        cout << endl;
+    }
+    cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
+}
+
+void test_statement_unification() {
+    auto &data = get_set_mm();
+    auto &lib = data.lib;
+    auto &tb = data.tb;
+    cout << "Statement unification test" << endl;
+    //auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> th )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- th", lib));
+    auto res = tb.unify_assertion({ tb.read_sentence("|- ( ch -> ( ph -> ps ) )"), tb.read_sentence("|- ch") }, tb.read_sentence("|- ( ph -> ps )"));
+    cout << "Found " << res.size() << " matching assertions:" << endl;
+    for (auto &match : res) {
+        auto &label = get<0>(match);
+        const Assertion &ass = lib.get_assertion(label);
+        cout << " * " << lib.resolve_label(label) << ":";
+        for (auto &hyp : ass.get_ess_hyps()) {
+            auto &hyp_sent = lib.get_sentence(hyp);
+            cout << " & " << tb.print_sentence(hyp_sent);
+        }
+        auto &thesis_sent = lib.get_sentence(ass.get_thesis());
+        cout << " => " << tb.print_sentence(thesis_sent) << endl;
+    }
+    cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
+}
+
+void test_tree_unification();
+
+void test_type_proving() {
+    auto &data = get_set_mm();
+    auto &lib = data.lib;
+    auto &tb = data.tb;
+    cout << "Type proving test" << endl;
+    auto sent = tb.read_sentence(  "wff ( [_ suc z / z ]_ ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
+    cout << "Sentence is " << tb.print_sentence(sent) << endl;
+    cout << "HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_HTML) << endl;
+    cout << "Alt HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << endl;
+    cout << "LaTeX sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_LATEX) << endl;
+    ProofEngine engine(lib);
+    tb.build_type_prover(sent)(engine);
+    auto res = engine.get_proof_labels();
+    cout << "Found type proof (classical): " << tb.print_proof(res) << endl;
+    ProofEngine engine2(lib);
+    tb.build_earley_type_prover(sent)(engine2);
+    res = engine2.get_proof_labels();
+    cout << "Found type proof (Earley):    " << tb.print_proof(res) << endl;
+    cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
+}
+
+void test_wffs_trivial() {
+    auto &data = get_set_mm();
+    auto &lib = data.lib;
+    auto &tb = data.tb;
+    vector< pwff > wffs = { /*pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
+                            pwff(new Var("ph")), pwff(new Not(pwff(new Var("ph")))),
+                            pwff(new Var("ps")), pwff(new Not(pwff(new Var("ps")))),
+                            pwff(new Imp(pwff(new True()), pwff(new True()))),
+                            pwff(new Imp(pwff(new True()), pwff(new False()))),
+                            pwff(new Imp(pwff(new False()), pwff(new True()))),
+                            pwff(new Imp(pwff(new False()), pwff(new False()))),
+                            pwff(new Biimp(pwff(new True()), pwff(new True()))),
+                            pwff(new Biimp(pwff(new True()), pwff(new False()))),
+                            pwff(new Biimp(pwff(new False()), pwff(new True()))),
+                            pwff(new Biimp(pwff(new False()), pwff(new False()))),
+                            pwff(new And(pwff(new True()), pwff(new True()))),
+                            pwff(new And(pwff(new True()), pwff(new False()))),
+                            pwff(new And(pwff(new False()), pwff(new True()))),
+                            pwff(new And(pwff(new False()), pwff(new False()))),*/
+                            pwff(new And3(pwff(new True()), pwff(new True()), pwff(new True()))),
+                            pwff(new And3(pwff(new True()), pwff(new False()), pwff(new True()))),
+                            pwff(new And3(pwff(new False()), pwff(new True()), pwff(new True()))),
+                            pwff(new And3(pwff(new False()), pwff(new False()), pwff(new True()))),
+                            pwff(new And3(pwff(new True()), pwff(new True()), pwff(new False()))),
+                            pwff(new And3(pwff(new True()), pwff(new False()), pwff(new False()))),
+                            pwff(new And3(pwff(new False()), pwff(new True()), pwff(new False()))),
+                            pwff(new And3(pwff(new False()), pwff(new False()), pwff(new False()))),
+                            pwff(new Or(pwff(new True()), pwff(new True()))),
+                            pwff(new Or(pwff(new True()), pwff(new False()))),
+                            pwff(new Or(pwff(new False()), pwff(new True()))),
+                            pwff(new Or(pwff(new False()), pwff(new False()))),
+                            pwff(new Nand(pwff(new True()), pwff(new True()))),
+                            pwff(new Nand(pwff(new True()), pwff(new False()))),
+                            pwff(new Nand(pwff(new False()), pwff(new True()))),
+                            pwff(new Nand(pwff(new False()), pwff(new False()))),
+                            pwff(new Xor(pwff(new True()), pwff(new True()))),
+                            pwff(new Xor(pwff(new True()), pwff(new False()))),
+                            pwff(new Xor(pwff(new False()), pwff(new True()))),
+                            pwff(new Xor(pwff(new False()), pwff(new False()))),
+                            pwff(new Imp(pwff(new Var("ph")), pwff(new Var("ps")))),
+                            pwff(new And(pwff(new Var("ph")), pwff(new Var("ps")))),
+                            pwff(new And(pwff(new True()), pwff(new And(pwff(new Var("ph")), pwff(new False()))))),
+                            pwff(new And(pwff(new False()), pwff(new And(pwff(new True()), pwff(new True()))))),
+                          };
 
     if (true) {
-        cout << "Doing additional tests on set.mm..." << endl;
-        auto &data = get_set_mm();
-        auto &lib = data.lib;
-        auto &tb = data.tb;
-
-        if (true) {
-            cout << "Generic unification test" << endl;
-            vector< SymTok > sent = tb.read_sentence("wff ( ph -> ( ps -> ch ) )");
-            vector< SymTok > templ = tb.read_sentence("wff ( th -> et )");
-            auto res = unify(sent, templ, lib, false);
-            cout << "Matching:         " << tb.print_sentence(sent) << endl << "against template: " << tb.print_sentence(templ) << endl;
-            for (auto &match : res) {
-                cout << "  *";
-                for (auto &var: match) {
-                    cout << " " << tb.print_sentence({var.first}) << " => " << tb.print_sentence(var.second) << "  ";
+        cout << "WFF type proving test" << endl;
+        for (pwff &wff : wffs) {
+            //wff->prove_type(lib, engine);
+            cout << "WFF: " << wff->to_string() << endl;
+            {
+                ProofEngine engine(lib);
+                wff->get_type_prover(tb)(engine);
+                if (engine.get_proof_labels().size() > 0) {
+                    cout << "type proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
                 }
-                cout << endl;
             }
-            cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
-        }
-
-        if (true) {
-            cout << "Statement unification test" << endl;
-            //auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> th )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- th", lib));
-            auto res = tb.unify_assertion({ tb.read_sentence("|- ( ch -> ( ph -> ps ) )"), tb.read_sentence("|- ch") }, tb.read_sentence("|- ( ph -> ps )"));
-            cout << "Found " << res.size() << " matching assertions:" << endl;
-            for (auto &match : res) {
-                auto &label = get<0>(match);
-                const Assertion &ass = lib.get_assertion(label);
-                cout << " * " << lib.resolve_label(label) << ":";
-                for (auto &hyp : ass.get_ess_hyps()) {
-                    auto &hyp_sent = lib.get_sentence(hyp);
-                    cout << " & " << tb.print_sentence(hyp_sent);
-                }
-                auto &thesis_sent = lib.get_sentence(ass.get_thesis());
-                cout << " => " << tb.print_sentence(thesis_sent) << endl;
-            }
-            cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
-        }
-
-        if (true) {
-            cout << "Type proving test" << endl;
-            auto sent = tb.read_sentence(  "wff ( [_ suc z / z ]_ ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
-            cout << "Sentence is " << tb.print_sentence(sent) << endl;
-            cout << "HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_HTML) << endl;
-            cout << "Alt HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << endl;
-            cout << "LaTeX sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_LATEX) << endl;
-            ProofEngine engine(lib);
-            tb.build_type_prover(sent)(engine);
-            auto res = engine.get_proof_labels();
-            cout << "Found type proof (classical): " << tb.print_proof(res) << endl;
-            ProofEngine engine2(lib);
-            tb.build_earley_type_prover(sent)(engine2);
-            res = engine2.get_proof_labels();
-            cout << "Found type proof (Earley):    " << tb.print_proof(res) << endl;
-            cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
-        }
-
-        vector< pwff > wffs = { /*pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
-                                pwff(new Var("ph")), pwff(new Not(pwff(new Var("ph")))),
-                                pwff(new Var("ps")), pwff(new Not(pwff(new Var("ps")))),
-                                pwff(new Imp(pwff(new True()), pwff(new True()))),
-                                pwff(new Imp(pwff(new True()), pwff(new False()))),
-                                pwff(new Imp(pwff(new False()), pwff(new True()))),
-                                pwff(new Imp(pwff(new False()), pwff(new False()))),
-                                pwff(new Biimp(pwff(new True()), pwff(new True()))),
-                                pwff(new Biimp(pwff(new True()), pwff(new False()))),
-                                pwff(new Biimp(pwff(new False()), pwff(new True()))),
-                                pwff(new Biimp(pwff(new False()), pwff(new False()))),
-                                pwff(new And(pwff(new True()), pwff(new True()))),
-                                pwff(new And(pwff(new True()), pwff(new False()))),
-                                pwff(new And(pwff(new False()), pwff(new True()))),
-                                pwff(new And(pwff(new False()), pwff(new False()))),*/
-                                pwff(new And3(pwff(new True()), pwff(new True()), pwff(new True()))),
-                                pwff(new And3(pwff(new True()), pwff(new False()), pwff(new True()))),
-                                pwff(new And3(pwff(new False()), pwff(new True()), pwff(new True()))),
-                                pwff(new And3(pwff(new False()), pwff(new False()), pwff(new True()))),
-                                pwff(new And3(pwff(new True()), pwff(new True()), pwff(new False()))),
-                                pwff(new And3(pwff(new True()), pwff(new False()), pwff(new False()))),
-                                pwff(new And3(pwff(new False()), pwff(new True()), pwff(new False()))),
-                                pwff(new And3(pwff(new False()), pwff(new False()), pwff(new False()))),
-                                pwff(new Or(pwff(new True()), pwff(new True()))),
-                                pwff(new Or(pwff(new True()), pwff(new False()))),
-                                pwff(new Or(pwff(new False()), pwff(new True()))),
-                                pwff(new Or(pwff(new False()), pwff(new False()))),
-                                pwff(new Nand(pwff(new True()), pwff(new True()))),
-                                pwff(new Nand(pwff(new True()), pwff(new False()))),
-                                pwff(new Nand(pwff(new False()), pwff(new True()))),
-                                pwff(new Nand(pwff(new False()), pwff(new False()))),
-                                pwff(new Xor(pwff(new True()), pwff(new True()))),
-                                pwff(new Xor(pwff(new True()), pwff(new False()))),
-                                pwff(new Xor(pwff(new False()), pwff(new True()))),
-                                pwff(new Xor(pwff(new False()), pwff(new False()))),
-                                pwff(new Imp(pwff(new Var("ph")), pwff(new Var("ps")))),
-                                pwff(new And(pwff(new Var("ph")), pwff(new Var("ps")))),
-                                pwff(new And(pwff(new True()), pwff(new And(pwff(new Var("ph")), pwff(new False()))))),
-                                pwff(new And(pwff(new False()), pwff(new And(pwff(new True()), pwff(new True()))))),
-                              };
-
-        if (true) {
-            cout << "WFF type proving test" << endl;
-            for (pwff &wff : wffs) {
-                //wff->prove_type(lib, engine);
-                cout << "WFF: " << wff->to_string() << endl;
-                {
-                    ProofEngine engine(lib);
-                    wff->get_type_prover(tb)(engine);
-                    if (engine.get_proof_labels().size() > 0) {
-                        cout << "type proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
-                    }
-                }
-                cout << endl;
-            }
-        }
-
-        if (true) {
-            cout << "WFF proving test" << endl;
-            for (pwff &wff : wffs) {
-                cout << "WFF: " << wff->to_string() << endl;
-                {
-                    ProofEngine engine(lib);
-                    wff->get_truth_prover(tb)(engine);
-                    if (engine.get_proof_labels().size() > 0) {
-                        cout << "Truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
-                    }
-                }
-                {
-                    ProofEngine engine(lib);
-                    wff->get_falsity_prover(tb)(engine);
-                    if (engine.get_proof_labels().size() > 0) {
-                        cout << "Falsity proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
-                    }
-                }
-                cout << endl;
-            }
-        }
-
-        if (true) {
-            cout << "WFF imp_not normal form test" << endl;
-            for (pwff &wff : wffs) {
-                cout << "WFF: " << wff->to_string() << endl;
-                {
-                    ProofEngine engine(lib);
-                    wff->get_imp_not_prover(tb)(engine);
-                    if (engine.get_proof_labels().size() > 0) {
-                        cout << "imp_not proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
-                    }
-                }
-                cout << endl;
-            }
-        }
-
-        if (true) {
-            cout << "WFF subst test" << endl;
-            for (pwff &wff : wffs) {
-                cout << "WFF: " << wff->to_string() << endl;
-                {
-                    ProofEngine engine(lib);
-                    wff->get_subst_prover("ph", true, tb)(engine);
-                    if (engine.get_proof_labels().size() > 0) {
-                        cout << "subst ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
-                    }
-                }
-                {
-                    ProofEngine engine(lib);
-                    wff->get_subst_prover("ph", false, tb)(engine);
-                    if (engine.get_proof_labels().size() > 0) {
-                        cout << "subst -. ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
-                    }
-                }
-                {
-                    ProofEngine engine(lib);
-                    wff->get_subst_prover("ps", true, tb)(engine);
-                    if (engine.get_proof_labels().size() > 0) {
-                        cout << "subst ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
-                    }
-                }
-                {
-                    ProofEngine engine(lib);
-                    wff->get_subst_prover("ps", false, tb)(engine);
-                    if (engine.get_proof_labels().size() > 0) {
-                        cout << "subst -. ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
-                    }
-                }
-                cout << endl;
-            }
-        }
-
-        vector< pwff > wffs2 = { pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
-                                 pwff(new Imp(pwff(new Var("ph")), pwff(new Var("ph")))),
-                                 pwff(new Or3(pwff(new Var("ph")), pwff(new True()), pwff(new False()))),
-                                 pwff(new Imp(pwff(new Var("ph")), pwff(new And3(pwff(new Var("ph")), pwff(new True()), pwff(new Var("ph")))))),
-                                 pwff(new Biimp(pwff(new Nand(pwff(new Var("ph")), pwff(new Nand(pwff(new Var("ch")), pwff(new Var("ps")))))),
-                                                pwff(new Imp(pwff(new Var("ph")), pwff(new And(pwff(new Var("ch")), pwff(new Var("ps")))))))),
-                               };
-
-        if (true) {
-            cout << "WFF adv_truth test" << endl;
-            for (pwff &wff : wffs2) {
-                cout << "WFF: " << wff->to_string() << endl;
-                {
-                    ProofEngine engine(lib);
-                    wff->get_adv_truth_prover(tb)(engine);
-                    if (engine.get_proof_labels().size() > 0) {
-                        cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
-                        cout << "proof length: " << engine.get_proof_labels().size() << endl;
-                        UncompressedProof proof = engine.get_proof();
-                    }
-                }
-                cout << endl;
-            }
+            cout << endl;
         }
     }
 
-    test_all_verifications();
+    if (true) {
+        cout << "WFF proving test" << endl;
+        for (pwff &wff : wffs) {
+            cout << "WFF: " << wff->to_string() << endl;
+            {
+                ProofEngine engine(lib);
+                wff->get_truth_prover(tb)(engine);
+                if (engine.get_proof_labels().size() > 0) {
+                    cout << "Truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                }
+            }
+            {
+                ProofEngine engine(lib);
+                wff->get_falsity_prover(tb)(engine);
+                if (engine.get_proof_labels().size() > 0) {
+                    cout << "Falsity proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                }
+            }
+            cout << endl;
+        }
+    }
+
+    if (true) {
+        cout << "WFF imp_not normal form test" << endl;
+        for (pwff &wff : wffs) {
+            cout << "WFF: " << wff->to_string() << endl;
+            {
+                ProofEngine engine(lib);
+                wff->get_imp_not_prover(tb)(engine);
+                if (engine.get_proof_labels().size() > 0) {
+                    cout << "imp_not proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                }
+            }
+            cout << endl;
+        }
+    }
+
+    if (true) {
+        cout << "WFF subst test" << endl;
+        for (pwff &wff : wffs) {
+            cout << "WFF: " << wff->to_string() << endl;
+            {
+                ProofEngine engine(lib);
+                wff->get_subst_prover("ph", true, tb)(engine);
+                if (engine.get_proof_labels().size() > 0) {
+                    cout << "subst ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                }
+            }
+            {
+                ProofEngine engine(lib);
+                wff->get_subst_prover("ph", false, tb)(engine);
+                if (engine.get_proof_labels().size() > 0) {
+                    cout << "subst -. ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                }
+            }
+            {
+                ProofEngine engine(lib);
+                wff->get_subst_prover("ps", true, tb)(engine);
+                if (engine.get_proof_labels().size() > 0) {
+                    cout << "subst ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                }
+            }
+            {
+                ProofEngine engine(lib);
+                wff->get_subst_prover("ps", false, tb)(engine);
+                if (engine.get_proof_labels().size() > 0) {
+                    cout << "subst -. ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                }
+            }
+            cout << endl;
+        }
+    }
+}
+
+void test_wffs_advanced() {
+    auto &data = get_set_mm();
+    auto &lib = data.lib;
+    auto &tb = data.tb;
+    vector< pwff > wffs2 = { pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
+                             pwff(new Imp(pwff(new Var("ph")), pwff(new Var("ph")))),
+                             pwff(new Or3(pwff(new Var("ph")), pwff(new True()), pwff(new False()))),
+                             pwff(new Imp(pwff(new Var("ph")), pwff(new And3(pwff(new Var("ph")), pwff(new True()), pwff(new Var("ph")))))),
+                             pwff(new Biimp(pwff(new Nand(pwff(new Var("ph")), pwff(new Nand(pwff(new Var("ch")), pwff(new Var("ps")))))),
+                                            pwff(new Imp(pwff(new Var("ph")), pwff(new And(pwff(new Var("ch")), pwff(new Var("ps")))))))),
+                           };
+
+    if (true) {
+        cout << "WFF adv_truth test" << endl;
+        for (pwff &wff : wffs2) {
+            cout << "WFF: " << wff->to_string() << endl;
+            {
+                ProofEngine engine(lib);
+                wff->get_adv_truth_prover(tb)(engine);
+                if (engine.get_proof_labels().size() > 0) {
+                    cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                    cout << "proof length: " << engine.get_proof_labels().size() << endl;
+                    UncompressedProof proof = engine.get_proof();
+                }
+            }
+            cout << endl;
+        }
+    }
+}
+
+void test() {
+    /*test_small_stuff();
+    test_parsers();
+    test_lr_set();
+    test_unification();
+    test_statement_unification();*/
+    test_tree_unification();
+    /*test_type_proving();
+    test_wffs_trivial();
+    test_wffs_advanced();
+    test_all_verifications();*/
     cout << "Maximum memory usage: " << size_to_string(platform_get_peak_rss()) << endl;
 }
 
@@ -637,4 +610,35 @@ int test_one_main(int argc, char *argv[]) {
 }
 static_block {
     register_main_function("mmpp_test_one", test_one_main);
+}
+
+TestEnvironmentInner::TestEnvironmentInner(const string &filename, const string &cache_filename)
+{
+    cout << "Reading database from file " << filename << " using cache in file " << cache_filename << endl;
+    FileTokenizer ft(filename);
+    Reader p(ft, false, true);
+    p.run();
+    ft.compute_digest();
+    this->lib_digest = new string(ft.get_digest());
+    this->lib = new LibraryImpl(p.get_library());
+    shared_ptr< ToolboxCache > cache = make_shared< FileToolboxCache >(cache_filename);
+    this->tb = new LibraryToolbox(*this->lib, "|-", true, cache);
+    cout << this->lib->get_symbols_num() << " symbols and " << this->lib->get_labels_num() << " labels" << endl;
+    cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl << endl;
+}
+
+TestEnvironmentInner::~TestEnvironmentInner() {
+    delete this->lib;
+    delete this->tb;
+    delete this->lib_digest;
+}
+
+TestEnvironment::TestEnvironment(const string &filename, const string &cache_filename) :
+    inner(filename, cache_filename), lib(*inner.lib), tb(*inner.tb), lib_digest(*inner.lib_digest)
+{
+}
+
+const TestEnvironment &get_set_mm() {
+    static TestEnvironment data("../set.mm/set.mm", "../set.mm/set.mm.cache");
+    return data;
 }

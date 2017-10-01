@@ -10,6 +10,7 @@ struct ParsingTree {
     std::vector< ParsingTree< SymType, LabType > > children;
 
     bool operator==(const ParsingTree< SymType, LabType > &other) const {
+        // The type does not participate in equality check, since it is assumed that it is a function of the label
         return this->label == other.label && this->children == other.children;
     }
 };

@@ -102,7 +102,7 @@ private:
 class LibraryToolbox
 {
 public:
-    explicit LibraryToolbox(const ExtendedLibrary &lib, bool compute=false, std::shared_ptr< ToolboxCache > cache = NULL);
+    explicit LibraryToolbox(const ExtendedLibrary &lib, std::string turnstile, bool compute = false, std::shared_ptr< ToolboxCache > cache = NULL);
     ~LibraryToolbox();
     const Library &get_library() const;
     void set_cache(std::shared_ptr< ToolboxCache > cache);
@@ -133,18 +133,27 @@ public:
     void compute_derivations();
     const std::unordered_map<SymTok, std::vector<std::pair< LabTok, std::vector<SymTok> > > > &get_derivations();
     const std::unordered_map<SymTok, std::vector<std::pair<LabTok, std::vector<SymTok> > > > &get_derivations() const;
-
-    static RegisteredProver register_prover(const std::vector< std::string > &templ_hyps, const std::string &templ_thesis);
-    Prover build_registered_prover(const RegisteredProver &prover, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers) const;
-    void compute_registered_provers();
+    void compute_ders_by_label();
+    const std::unordered_map< LabTok, std::pair< SymTok, std::vector< SymTok > > > &get_ders_by_label();
+    const std::unordered_map< LabTok, std::pair< SymTok, std::vector< SymTok > > > &get_ders_by_label() const;
+    std::vector< SymTok > reconstruct_sentence(const ParsingTree< SymTok, LabTok > &pt);
+    std::vector< SymTok > reconstruct_sentence(const ParsingTree< SymTok, LabTok > &pt) const;
 
     void compute_parser_initialization();
     const LRParser< SymTok, LabTok > &get_parser();
     const LRParser< SymTok, LabTok > &get_parser() const;
     ParsingTree< SymTok, LabTok > parse_sentence(typename std::vector<SymTok>::const_iterator sent_begin, typename std::vector<SymTok>::const_iterator sent_end, SymTok type) const;
     ParsingTree< SymTok, LabTok > parse_sentence(const std::vector<SymTok> &sent, SymTok type) const;
+    ParsingTree< SymTok, LabTok > parse_sentence(typename std::vector<SymTok>::const_iterator sent_begin, typename std::vector<SymTok>::const_iterator sent_end, SymTok type);
+    ParsingTree< SymTok, LabTok > parse_sentence(const std::vector<SymTok> &sent, SymTok type);
 
     void compute_sentences_parsing();
+    const std::vector< ParsingTree< SymTok, LabTok > > &get_parsed_sents();
+    const std::vector< ParsingTree< SymTok, LabTok > > &get_parsed_sents() const;
+
+    static RegisteredProver register_prover(const std::vector< std::string > &templ_hyps, const std::string &templ_thesis);
+    Prover build_registered_prover(const RegisteredProver &prover, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers) const;
+    void compute_registered_provers();
 
     bool proving_helper(const std::vector< Sentence > &templ_hyps,
                          const Sentence &templ_thesis,
@@ -158,10 +167,13 @@ public:
 
 private:
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_uncached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
+    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_uncached2(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true);
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true) const;
 
     const ExtendedLibrary &lib;
+    SymTok turnstile;
+    SymTok turnstile_alias;
 
     std::vector< LabTok > types_by_var;
     bool types_by_var_computed = false;
@@ -172,11 +184,14 @@ private:
     std::unordered_map<SymTok, std::vector<std::pair< LabTok, std::vector<SymTok> > > > derivations;
     bool derivations_computed = false;
 
+    std::unordered_map< LabTok, std::pair< SymTok, std::vector< SymTok > > > ders_by_label;
+    bool ders_by_label_computed = false;
+
     std::unordered_map< std::tuple< std::vector< std::vector< SymTok > >, std::vector< SymTok > >,
                         std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > >,
                         boost::hash< std::tuple< std::vector< std::vector< SymTok > >, std::vector< SymTok > > > > unification_cache;
 
-    LRParser< SymTok, LabTok > *parser;
+    LRParser< SymTok, LabTok > *parser = NULL;
     bool parser_initialization_computed = false;
 
     std::vector< ParsingTree< SymTok, LabTok > > parsed_sents;

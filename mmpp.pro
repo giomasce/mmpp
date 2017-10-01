@@ -27,7 +27,8 @@ SOURCES += main.cpp \
     jsonize.cpp \
     z3prover.cpp \
     reader.cpp \
-    main_unification.cpp
+    main_unification.cpp \
+    temp.cpp
 
 CONFIG(qt) {
 SOURCES +=  mainwindow.cpp \

@@ -4,6 +4,7 @@
 #include "toolbox.h"
 #include "utils.h"
 #include "unification.h"
+#include "unif.h"
 #include "earley.h"
 #include "reader.h"
 
@@ -53,8 +54,8 @@ ostream &operator<<(ostream &os, const ProofPrinter &sp)
     return os;
 }
 
-LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, bool compute, shared_ptr<ToolboxCache> cache) :
-    lib(lib), cache(cache)
+LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, bool compute, shared_ptr<ToolboxCache> cache) :
+    lib(lib), turnstile(lib.get_symbol(turnstile)), turnstile_alias(lib.get_parsing_addendum().get_syntax().at(this->turnstile)), cache(cache)
 {
     if (compute) {
         this->compute_everything();
@@ -283,6 +284,38 @@ const std::unordered_map<SymTok, std::vector<std::pair<LabTok, std::vector<SymTo
     return this->derivations;
 }
 
+void LibraryToolbox::compute_ders_by_label()
+{
+    this->ders_by_label = compute_derivations_by_label(this->get_derivations());
+    this->ders_by_label_computed = true;
+}
+
+const std::unordered_map<LabTok, std::pair<SymTok, std::vector<SymTok> > > &LibraryToolbox::get_ders_by_label()
+{
+    if (!this->ders_by_label_computed) {
+        this->compute_ders_by_label();
+    }
+    return this->ders_by_label;
+}
+
+const std::unordered_map<LabTok, std::pair<SymTok, std::vector<SymTok> > > &LibraryToolbox::get_ders_by_label() const
+{
+    if (!this->ders_by_label_computed) {
+        throw MMPPException("computation required on const object");
+    }
+    return this->ders_by_label;
+}
+
+std::vector<SymTok> LibraryToolbox::reconstruct_sentence(const ParsingTree<SymTok, LabTok> &pt)
+{
+    return ::reconstruct_sentence(pt, this->get_derivations(), this->get_ders_by_label());
+}
+
+std::vector<SymTok> LibraryToolbox::reconstruct_sentence(const ParsingTree<SymTok, LabTok> &pt) const
+{
+    return ::reconstruct_sentence(pt, this->get_derivations(), this->get_ders_by_label());
+}
+
 Prover LibraryToolbox::build_prover(const std::vector<Sentence> &templ_hyps, const Sentence &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers) const
 {
     auto res = this->unify_assertion(templ_hyps, templ_thesis, true);
@@ -452,6 +485,87 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
     return ret;
 }
 
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion_uncached2(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first, bool up_to_hyps_perms) const
+{
+    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
+
+    // Parse inputs
+    vector< ParsingTree< SymTok, LabTok > > pt_hyps;
+    for (auto &hyp : hypotheses) {
+        pt_hyps.push_back(this->parse_sentence(hyp.begin()+1, hyp.end(), this->turnstile_alias));
+    }
+    ParsingTree< SymTok, LabTok > pt_thesis = this->parse_sentence(thesis.begin()+1, thesis.end(), this->turnstile_alias);
+
+    auto assertions_gen = this->lib.list_assertions();
+    const std::function< bool(LabTok) > is_var = [&](LabTok x)->bool {
+        const auto &types_set = this->lib.get_final_stack_frame().types_set;
+        if (types_set.find(x) == types_set.end()) {
+            return false;
+        }
+        return !this->lib.is_constant(this->lib.get_sentence(x).at(1));
+    };
+    while (true) {
+        const Assertion *ass2 = assertions_gen();
+        if (ass2 == NULL) {
+            break;
+        }
+        const Assertion &ass = *ass2;
+        if (ass.is_usage_disc()) {
+            continue;
+        }
+        if (ass.get_ess_hyps().size() != hypotheses.size()) {
+            continue;
+        }
+        if (thesis[0] != this->lib.get_sentence(ass.get_thesis())[0]) {
+            continue;
+        }
+        std::unordered_map< LabTok, ParsingTree< SymTok, LabTok > > thesis_subst;
+        auto &templ_pt = this->get_parsed_sents().at(ass.get_thesis());
+        bool res = unify(templ_pt, pt_thesis, is_var, thesis_subst);
+        if (!res) {
+            continue;
+        }
+        // We have to generate all the hypotheses' permutations; fortunately usually hypotheses are not many
+        // TODO Is there a better algorithm?
+        // The i-th specified hypothesis is matched with the perm[i]-th assertion hypothesis
+        vector< size_t > perm;
+        for (size_t i = 0; i < hypotheses.size(); i++) {
+            perm.push_back(i);
+        }
+        do {
+            std::unordered_map< LabTok, ParsingTree< SymTok, LabTok > > subst = thesis_subst;
+            res = true;
+            for (size_t i = 0; i < hypotheses.size(); i++) {
+                res = (hypotheses[i][0] == this->lib.get_sentence(ass.get_ess_hyps()[perm[i]])[0]);
+                if (!res) {
+                    break;
+                }
+                auto &templ_pt = this->get_parsed_sents().at(ass.get_ess_hyps()[perm[i]]);
+                res = unify(templ_pt, pt_hyps[i], is_var, subst);
+                if (!res) {
+                    break;
+                }
+            }
+            if (!res) {
+                continue;
+            }
+            std::unordered_map< SymTok, std::vector< SymTok > > subst2;
+            for (auto &s : subst) {
+                subst2.insert(make_pair(this->lib.get_sentence(s.first).at(1), this->reconstruct_sentence(s.second)));
+            }
+            ret.emplace_back(ass.get_thesis(), perm, subst2);
+            if (just_first) {
+                return ret;
+            }
+            if (!up_to_hyps_perms) {
+                break;
+            }
+        } while (next_permutation(perm.begin(), perm.end()));
+    }
+
+    return ret;
+}
+
 std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first)
 {
     // Cache is used only when requesting just the first result
@@ -480,7 +594,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
 
 std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first, bool up_to_hyps_perms) const
 {
-    return this->unify_assertion_uncached(hypotheses, thesis, just_first, up_to_hyps_perms);
+    return this->unify_assertion_uncached2(hypotheses, thesis, just_first, up_to_hyps_perms);
 }
 
 void LibraryToolbox::compute_everything()
@@ -489,10 +603,11 @@ void LibraryToolbox::compute_everything()
     //auto t = tic();
     this->compute_types_by_var();
     this->compute_assertions_by_type();
-    this->compute_registered_provers();
     this->compute_derivations();
+    this->compute_ders_by_label();
     this->compute_parser_initialization();
     this->compute_sentences_parsing();
+    this->compute_registered_provers();
     //toc(t, 1);
 }
 
@@ -745,12 +860,22 @@ ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(const std::vector<S
     return this->get_parser().parse(sent, type);
 }
 
+ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(typename vector<SymTok>::const_iterator sent_begin, typename vector<SymTok>::const_iterator sent_end, SymTok type)
+{
+    return this->get_parser().parse(sent_begin, sent_end, type);
+}
+
+ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(const std::vector<SymTok> &sent, SymTok type)
+{
+    return this->get_parser().parse(sent, type);
+}
+
 void LibraryToolbox::compute_sentences_parsing()
 {
-    if (!this->parser_initialization_computed) {
+    /*if (!this->parser_initialization_computed) {
         this->compute_parser_initialization();
-    }
-    for (size_t i = 1; i < this->lib.get_labels_num(); i++) {
+    }*/
+    for (size_t i = 1; i < this->lib.get_labels_num()+1; i++) {
         const Sentence &sent = this->lib.get_sentence(i);
         auto pt = this->parse_sentence(sent.begin()+1, sent.end(), this->lib.get_parsing_addendum().get_syntax().at(sent[0]));
         if (pt.label == 0) {
@@ -760,6 +885,22 @@ void LibraryToolbox::compute_sentences_parsing()
         this->parsed_sents[i] = pt;
     }
     this->sentences_parsing_computed = true;
+}
+
+const std::vector<ParsingTree<SymTok, LabTok> > &LibraryToolbox::get_parsed_sents()
+{
+    if (!this->sentences_parsing_computed) {
+        this->compute_sentences_parsing();
+    }
+    return this->parsed_sents;
+}
+
+const std::vector<ParsingTree<SymTok, LabTok> > &LibraryToolbox::get_parsed_sents() const
+{
+    if (!this->sentences_parsing_computed) {
+        throw MMPPException("computation required on const object");
+    }
+    return this->parsed_sents;
 }
 
 void LibraryToolbox::compute_registered_prover(size_t index)

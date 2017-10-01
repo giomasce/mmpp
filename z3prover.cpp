@@ -10,6 +10,7 @@
 #include "memory.h"
 #include "utils.h"
 #include "platform.h"
+#include "test.h"
 
 using namespace std;
 using namespace z3;
@@ -567,14 +568,9 @@ int test_z3_main(int argc, char *argv[])
     (void) argc;
     (void) argv;
 
-    cout << "Reading set.mm..." << endl;
-    FileTokenizer ft("../set.mm/set.mm");
-    Reader p(ft, false, true);
-    p.run();
-    LibraryImpl lib = p.get_library();
-    LibraryToolbox tb(lib, true);
-    cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
-    cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl;
+    auto &data = get_set_mm();
+    auto &lib = data.lib;
+    auto &tb = data.tb;
 
     for (int i = 0; i < 3; i++) {
         set_param("proof", true);

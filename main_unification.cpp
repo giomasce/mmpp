@@ -7,20 +7,16 @@
 #include "utils.h"
 #include "toolbox.h"
 #include "platform.h"
+#include "test.h"
 
 using namespace std;
 using namespace chrono;
 
 void unification_test() {
+    auto &data = get_set_mm();
+    auto &lib = data.lib;
+    auto &tb = data.tb;
 
-    cout << "Reading set.mm..." << endl;
-    FileTokenizer ft("../set.mm/set.mm");
-    Reader p(ft, false, true);
-    p.run();
-    LibraryImpl lib = p.get_library();
-    LibraryToolbox tb(lib, true);
-    cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
-    cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl;
     vector< string > tests = { "|- ( ( A e. CC /\\ B e. CC /\\ N e. NN0 ) -> ( ( A + B ) ^ N ) = sum_ k e. ( 0 ... N ) ( ( N _C k ) x. ( ( A ^ ( N - k ) ) x. ( B ^ k ) ) ) )",
                                "|- ( ph -> ( ps <-> ps ) )",
                                "|- ( ph -> ph )" };
@@ -51,19 +47,13 @@ void unification_test() {
         auto usecs = duration_cast< microseconds >(end - begin).count();
         cout << "It took " << usecs << " microseconds to repeat the unification " << reps << " times, which is " << (usecs / reps) << " microsecond per execution" << endl;
     }
-
 }
 
 void unification_loop() {
+    auto &data = get_set_mm();
+    auto &lib = data.lib;
+    auto &tb = data.tb;
 
-    cout << "Reading set.mm..." << endl;
-    FileTokenizer ft("../set.mm/set.mm");
-    Reader p(ft, false, true);
-    p.run();
-    LibraryImpl lib = p.get_library();
-    LibraryToolbox tb(lib, true);
-    cout << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
-    cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl;
     while (true) {
         string line;
         getline(cin, line);
@@ -99,7 +89,6 @@ void unification_loop() {
             cout << " => " << tb.print_sentence(thesis_sent) << endl;
         }
     }
-
 }
 
 int unification_loop_main(int argc, char *argv[]) {
