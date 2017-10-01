@@ -22,8 +22,8 @@ struct EarleyState {
         return this->initial == x.initial && this->current == x.current && this->type == x.type && this->der_lab == x.der_lab && this->der == x.der;
     }
 
-    ParsingTree< LabType, SymType > get_tree(const std::vector< std::vector< EarleyState > > &state) const {
-        ParsingTree< LabType, SymType > ret;
+    ParsingTree< SymType, LabType > get_tree(const std::vector< std::vector< EarleyState > > &state) const {
+        ParsingTree< SymType, LabType > ret;
         ret.label = this->der_lab;
         ret.type = this->type;
         for (auto &child : this->children) {
@@ -43,7 +43,7 @@ public:
     }
 
     using Parser< SymType, LabType >::parse;
-    ParsingTree< LabType, SymType > parse(typename std::vector<SymType>::const_iterator sent_begin, typename std::vector<SymType>::const_iterator sent_end, SymType type) const {
+    ParsingTree< SymType, LabType > parse(typename std::vector<SymType>::const_iterator sent_begin, typename std::vector<SymType>::const_iterator sent_end, SymType type) const {
         /* For every position (plus one end-of-string position) we maintain a list
          * of tuples whose elements are the initial position of that item, the position
          * of the current point and the associated derivation. */
@@ -127,11 +127,11 @@ public:
         for (size_t j = 0; j < state[sent_size].size(); j++) {
             EarleyState< SymType, LabType > &cur_state = state[sent_size][j];
             if (cur_state.initial == 0 && cur_state.current == cur_state.der->size() && cur_state.type == type) {
-                ParsingTree< LabType, SymType > tree = cur_state.get_tree(state);
+                ParsingTree< SymType, LabType > tree = cur_state.get_tree(state);
                 return tree;
             }
         }
-        ParsingTree< LabType, SymType > ret;
+        ParsingTree< SymType, LabType > ret;
         ret.label = 0;
         return ret;
     }

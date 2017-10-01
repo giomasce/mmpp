@@ -178,7 +178,7 @@ void test_parsers(const std::vector<SymType> &sent, SymType type, const std::uno
 
     cout << "Earley parser" << endl;
     EarleyParser< SymType, LabType > earley_parser(derivations);
-    ParsingTree< LabType, SymType > earley_pt = earley_parser.parse(sent, type);
+    ParsingTree< SymType, LabType > earley_pt = earley_parser.parse(sent, type);
     assert(earley_pt.label != 0);
     assert(reconstruct_sentence(earley_pt, derivations, ders_by_lab) == sent);
 
@@ -186,7 +186,7 @@ void test_parsers(const std::vector<SymType> &sent, SymType type, const std::uno
     LRParser lr_parser(derivations);
     lr_parser.initialize();
 
-    ParsingTree< LabType, SymType > lr_pt = lr_parser.parse(sent, type);
+    ParsingTree< SymType, LabType > lr_pt = lr_parser.parse(sent, type);
     assert(lr_pt.label != 0);
     assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent);
 

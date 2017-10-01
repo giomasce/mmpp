@@ -141,8 +141,8 @@ public:
     void compute_parser_initialization();
     const LRParser< SymTok, LabTok > &get_parser();
     const LRParser< SymTok, LabTok > &get_parser() const;
-    ParsingTree< LabTok, SymTok > parse_sentence(typename std::vector<SymTok>::const_iterator sent_begin, typename std::vector<SymTok>::const_iterator sent_end, SymTok type) const;
-    ParsingTree< LabTok, SymTok > parse_sentence(const std::vector<SymTok> &sent, SymTok type) const;
+    ParsingTree< SymTok, LabTok > parse_sentence(typename std::vector<SymTok>::const_iterator sent_begin, typename std::vector<SymTok>::const_iterator sent_end, SymTok type) const;
+    ParsingTree< SymTok, LabTok > parse_sentence(const std::vector<SymTok> &sent, SymTok type) const;
 
     void compute_sentences_parsing();
 
@@ -179,7 +179,7 @@ private:
     LRParser< SymTok, LabTok > *parser;
     bool parser_initialization_computed = false;
 
-    std::vector< ParsingTree< LabTok, SymTok > > parsed_sents;
+    std::vector< ParsingTree< SymTok, LabTok > > parsed_sents;
     bool sentences_parsing_computed = false;
 
     // This is an instance of the Construct On First Use idiom, which prevents the static initialization fiasco;

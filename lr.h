@@ -141,7 +141,7 @@ public:
         this->sent_it = this->sent_begin;
     }
 
-    std::tuple< bool, bool, ParsingTree< LabType, SymType > > do_parsing() {
+    std::tuple< bool, bool, ParsingTree< SymType, LabType > > do_parsing() {
         const auto &row = this->automaton.at(this->state_stack.back());
         const auto &shifts = row.first;
         const auto &reductions = row.second;
@@ -155,7 +155,7 @@ public:
 
                 bool res;
                 bool must_halt;
-                ParsingTree< LabType, SymType > parsing_tree;
+                ParsingTree< SymType, LabType > parsing_tree;
                 std::tie(res, must_halt, parsing_tree) = this->do_parsing();
                 if (res || must_halt) {
                     return std::make_tuple(res, must_halt, parsing_tree);
@@ -174,7 +174,7 @@ public:
             size_t var_num;
             std::tie(type, lab, sym_num, var_num) = reduction;
 
-            ParsingTree< LabType, SymType > new_parsing_tree;
+            ParsingTree< SymType, LabType > new_parsing_tree;
             new_parsing_tree.label = lab;
             new_parsing_tree.type = type;
             std::copy(this->parsing_tree_stack.end() - var_num, this->parsing_tree_stack.end(), std::back_inserter(new_parsing_tree.children));
@@ -192,19 +192,19 @@ public:
             auto new_row_it = this->automaton.find(this->state_stack.back());
             // If the search had not terminated before and we do not have a new state to go, than the search has failed
             if (new_row_it == this->automaton.end()) {
-                return std::tuple< bool, bool, ParsingTree< LabType, SymType > >(false, true, {});
+                return std::tuple< bool, bool, ParsingTree< SymType, LabType > >(false, true, {});
             }
             const auto &new_row = new_row_it->second;
             // As above
             auto new_state_it = new_row.first.find(type);
             if (new_state_it == new_row.first.end()) {
-                return std::tuple< bool, bool, ParsingTree< LabType, SymType > >(false, true, {});
+                return std::tuple< bool, bool, ParsingTree< SymType, LabType > >(false, true, {});
             }
             this->state_stack.push_back(new_state_it->second);
 
             bool res;
             bool must_halt;
-            ParsingTree< LabType, SymType > parsing_tree;
+            ParsingTree< SymType, LabType > parsing_tree;
             std::tie(res, must_halt, parsing_tree) = this->do_parsing();
             if (res || must_halt) {
                 return std::make_tuple(res, must_halt, parsing_tree);
@@ -216,7 +216,7 @@ public:
             std::copy(new_parsing_tree.children.begin(), new_parsing_tree.children.end(), std::back_inserter(this->parsing_tree_stack));
         }
 
-        return std::tuple< bool, bool, ParsingTree< LabType, SymType > >(false, false, {});
+        return std::tuple< bool, bool, ParsingTree< SymType, LabType > >(false, false, {});
     }
 
 private:
@@ -227,7 +227,7 @@ private:
 
     typename std::vector<SymType>::const_iterator sent_it;
     std::vector< size_t > state_stack;
-    std::vector< ParsingTree< LabType, SymType > > parsing_tree_stack;
+    std::vector< ParsingTree< SymType, LabType > > parsing_tree_stack;
 };
 
 template< typename SymType, typename LabType >
@@ -254,10 +254,10 @@ public:
     }
 
     using Parser< SymType, LabType >::parse;
-    ParsingTree< LabType, SymType > parse(typename std::vector<SymType>::const_iterator sent_begin, typename std::vector<SymType>::const_iterator sent_end, SymType type) const {
+    ParsingTree< SymType, LabType > parse(typename std::vector<SymType>::const_iterator sent_begin, typename std::vector<SymType>::const_iterator sent_end, SymType type) const {
         LRParsingHelper helper(this->automaton, sent_begin, sent_end, type);
         bool res;
-        ParsingTree< LabType, SymType > parsing_tree;
+        ParsingTree< SymType, LabType > parsing_tree;
         std::tie(res, std::ignore, parsing_tree) = helper.do_parsing();
         if (res) {
 #ifdef LR_PARSER_AUTO_TEST

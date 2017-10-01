@@ -71,7 +71,8 @@ HEADERS += \
     lr.h \
     reader.h \
     parser.h \
-    serialize_tuple.h
+    serialize_tuple.h \
+    unif.h
 
 CONFIG(qt) {
 HEADERS +=  mainwindow.h \
