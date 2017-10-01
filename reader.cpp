@@ -189,8 +189,8 @@ Reader::Reader(TokenGenerator &tg, bool execute_proofs, bool store_comments) :
 }
 
 void Reader::run () {
-    cout << "Running the reader" << endl;
-    auto t = tic();
+    //cout << "Running the reader" << endl;
+    //auto t = tic();
     pair< bool, string > token_pair;
     this->label = 0;
     assert(this->stack.empty());
@@ -279,7 +279,7 @@ void Reader::run () {
     this->parse_j_comment(this->j_comment);
     this->j_comment = "";
 
-    toc(t, 1);
+    //toc(t, 1);
 }
 
 const LibraryImpl &Reader::get_library() const {
