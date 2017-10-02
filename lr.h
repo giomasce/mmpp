@@ -18,7 +18,7 @@
 #include "parser.h"
 #include "serialize_tuple.h"
 
-#define LR_PARSER_AUTO_TEST
+#define LR_PARSER_SELF_TEST
 
 // The state encodes (producting symbol, rule name, position, producted sentence)
 template< typename SymType, typename LabType >
@@ -238,7 +238,7 @@ public:
              const std::function< std::ostream&(std::ostream&, LabType) > &lab_printer = default_lab_printer< LabType >) :
         derivations(derivations), sym_printer(sym_printer), lab_printer(lab_printer) {
         //this->initialize();
-#ifdef LR_PARSER_AUTO_TEST
+#ifdef LR_PARSER_SELF_TEST
         this->ders_by_lab = compute_derivations_by_label(derivations);
 #endif
     }
@@ -260,7 +260,7 @@ public:
         ParsingTree< SymType, LabType > parsing_tree;
         std::tie(res, std::ignore, parsing_tree) = helper.do_parsing();
         if (res) {
-#ifdef LR_PARSER_AUTO_TEST
+#ifdef LR_PARSER_SELF_TEST
             // Check that the returned parsing tree is correct
             auto parsed_sent = reconstruct_sentence(parsing_tree, this->derivations, this->ders_by_lab);
             assert(parsed_sent.size() == static_cast< size_t >(sent_end - sent_begin));
@@ -369,7 +369,7 @@ private:
     const std::function< std::ostream&(std::ostream&, SymType) > sym_printer;
     const std::function< std::ostream&(std::ostream&, LabType) > lab_printer;
 
-#ifdef LR_PARSER_AUTO_TEST
+#ifdef LR_PARSER_SELF_TEST
     std::unordered_map< LabType, std::pair< SymType, std::vector< SymType > > > ders_by_lab;
 #endif
 };
