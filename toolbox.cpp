@@ -10,6 +10,8 @@
 
 using namespace std;
 
+//#define TOOLBOX_SELF_TEST
+
 ostream &operator<<(ostream &os, const SentencePrinter &sp)
 {
     bool first = true;
@@ -95,6 +97,7 @@ std::vector<SymTok> LibraryToolbox::substitute(const std::vector<SymTok> &orig, 
 // Computes second o first (map composition)
 std::unordered_map<SymTok, std::vector<SymTok> > LibraryToolbox::compose_subst(const std::unordered_map<SymTok, std::vector<SymTok> > &first, const std::unordered_map<SymTok, std::vector<SymTok> > &second) const
 {
+    throw "Buggy implementation, do not use";
     std::unordered_map< SymTok, std::vector< SymTok > > ret;
     for (auto &first_pair : first) {
         auto res = ret.insert(make_pair(first_pair.first, this->substitute(first_pair.second, second)));
@@ -594,7 +597,12 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
 
 std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first, bool up_to_hyps_perms) const
 {
-    return this->unify_assertion_uncached2(hypotheses, thesis, just_first, up_to_hyps_perms);
+    auto ret2 = this->unify_assertion_uncached2(hypotheses, thesis, just_first, up_to_hyps_perms);
+#ifdef TOOLBOX_SELF_TEST
+    auto ret = this->unify_assertion_uncached(hypotheses, thesis, just_first, up_to_hyps_perms);
+    assert(ret == ret2);
+#endif
+    return ret2;
 }
 
 void LibraryToolbox::compute_everything()
