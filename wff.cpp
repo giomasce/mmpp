@@ -15,6 +15,14 @@ Sentence Wff::to_asserted_sentence(const Library &lib) const
     return ret;
 }
 
+// FIXME Terribly inefficient, but to_sentence() is inefficient too
+Sentence Wff::to_wff_sentence(const Library &lib) const
+{
+    auto ret = this->to_sentence(lib);
+    ret.insert(ret.begin(), lib.get_symbol("wff"));
+    return ret;
+}
+
 Prover Wff::get_truth_prover(const LibraryToolbox &tb) const
 {
     (void) tb;
@@ -277,7 +285,7 @@ void Var::get_variables(std::set<string> &vars) const
 
 Prover Var::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_type_prover_from_strings("wff " + this->name);
+    return tb.build_type_prover(this->to_wff_sentence(tb));
 }
 
 RegisteredProver Var::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( ph <-> ph )");
@@ -882,7 +890,7 @@ Prover ConvertibleWff::get_type_prover(const LibraryToolbox &tb) const
 {
     // Disabled, because ordinarily I do not want to use this generic and probably inefficient method
     return null_prover;
-    return tb.build_type_prover_from_strings("wff " + this->to_string());
+    return tb.build_type_prover(this->to_wff_sentence(tb));
 }
 
 And3::And3(pwff a, pwff b, pwff c) :

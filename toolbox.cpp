@@ -109,54 +109,6 @@ static vector< size_t > invert_perm(const vector< size_t > &perm) {
     return ret;
 }
 
-// FIXME - Either remove or deduplicate with register_prover() and friends
-bool LibraryToolbox::proving_helper(const std::vector<Sentence> &templ_hyps, const Sentence &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ProofEngine &engine) const
-{
-    std::unordered_map<SymTok, Prover> types_provers_sym;
-    for (auto &type_pair : types_provers) {
-        auto res = types_provers_sym.insert(make_pair(this->get_symbol(type_pair.first), type_pair.second));
-        assert(res.second);
-    }
-
-    auto res = this->unify_assertion(templ_hyps, templ_thesis, true);
-    if (res.empty()) {
-        cerr << string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string() << endl;
-    }
-    assert_or_throw(!res.empty(), string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
-    const Assertion &ass = this->get_assertion(get<0>(*res.begin()));
-    assert(ass.is_valid());
-    const vector< size_t > &perm = get<1>(*res.begin());
-    const vector< size_t > perm_inv = invert_perm(perm);
-    const unordered_map< SymTok, vector< SymTok > > &ass_map = get<2>(*res.begin());
-    //const unordered_map< SymTok, vector< SymTok > > full_map = this->compose_subst(ass_map, subst_map);
-
-    engine.checkpoint();
-
-    // Compute floating hypotheses
-    for (auto &hyp : ass.get_float_hyps()) {
-        bool res = this->classical_type_proving_helper(this->substitute(this->get_sentence(hyp), ass_map), engine, types_provers_sym);
-        if (!res) {
-            engine.rollback();
-            return false;
-        }
-    }
-
-    // Compute essential hypotheses
-    for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
-        bool res = hyps_provers[perm_inv[i]](engine);
-        if (!res) {
-            engine.rollback();
-            return false;
-        }
-    }
-
-    // Finally add this assertion's label
-    engine.process_label(ass.get_thesis());
-
-    engine.commit();
-    return true;
-}
-
 bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &type_sent, ProofEngine &engine, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
     // Iterate over all propositions (maybe just axioms would be enough) with zero essential hypotheses, try to match and recur on all matches;
@@ -323,45 +275,66 @@ Prover LibraryToolbox::build_prover(const std::vector<Sentence> &templ_hyps, con
     assert_or_throw(!res.empty(), string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
     const auto &res1 = res[0];
     return [=](ProofEngine &engine){
-        std::unordered_map<SymTok, Prover> types_provers_sym;
-        for (auto &type_pair : types_provers) {
-            auto res = types_provers_sym.insert(make_pair(this->get_symbol(type_pair.first), type_pair.second));
-            assert(res.second);
-        }
-
-        const Assertion &ass = this->get_assertion(get<0>(res1));
-        assert(ass.is_valid());
+        RegisteredProverInstanceData inst_data;
+        inst_data.valid = true;
+        inst_data.label = get<0>(res1);
         const vector< size_t > &perm = get<1>(res1);
-        const vector< size_t > perm_inv = invert_perm(perm);
-        const unordered_map< SymTok, vector< SymTok > > &ass_map = get<2>(res1);
-        //const unordered_map< SymTok, vector< SymTok > > full_map = this->compose_subst(ass_map, subst_map);
-
-        engine.checkpoint();
-
-        // Compute floating hypotheses
-        for (auto &hyp : ass.get_float_hyps()) {
-            bool res = this->classical_type_proving_helper(this->substitute(this->get_sentence(hyp), ass_map), engine, types_provers_sym);
-            if (!res) {
-                engine.rollback();
-                return false;
-            }
-        }
-
-        // Compute essential hypotheses
-        for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
-            bool res = hyps_provers[perm_inv[i]](engine);
-            if (!res) {
-                engine.rollback();
-                return false;
-            }
-        }
-
-        // Finally add this assertion's label
-        engine.process_label(ass.get_thesis());
-
-        engine.commit();
-        return true;
+        inst_data.perm_inv = invert_perm(perm);
+        inst_data.ass_map = get<2>(res1);
+        return this->proving_helper(inst_data, types_provers, hyps_provers, engine);
     };
+}
+
+bool LibraryToolbox::proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ProofEngine &engine) const {
+    const Assertion &ass = this->get_assertion(inst_data.label);
+    assert(ass.is_valid());
+
+    std::unordered_map<SymTok, Prover> types_provers_sym;
+    for (auto &type_pair : types_provers) {
+        auto res = types_provers_sym.insert(make_pair(this->get_symbol(type_pair.first), type_pair.second));
+        assert(res.second);
+    }
+
+    engine.checkpoint();
+
+    // Compute floating hypotheses
+    for (auto &hyp : ass.get_float_hyps()) {
+        bool res = this->classical_type_proving_helper(this->substitute(this->get_sentence(hyp), inst_data.ass_map), engine, types_provers_sym);
+        if (!res) {
+            cerr << "Applying " << inst_data.label_str << " a floating hypothesis failed..." << endl;
+            engine.rollback();
+            return false;
+        }
+    }
+
+    // Compute essential hypotheses
+    for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
+        bool res = hyps_provers[inst_data.perm_inv[i]](engine);
+        if (!res) {
+            cerr << "Applying " << inst_data.label_str << " an essential hypothesis failed..." << endl;
+            engine.rollback();
+            return false;
+        }
+    }
+
+    // Finally add this assertion's label
+    try {
+        engine.process_label(ass.get_thesis());
+    } catch (const ProofException &e) {
+        cerr << "Applying " << inst_data.label_str << " the proof executor signalled an error..." << endl;
+        cerr << "The reason was " << e.get_reason() << endl;
+        cerr << "On stack there was: " << this->print_sentence(e.get_error().on_stack) << endl;
+        cerr << "Has to match with: " << this->print_sentence(e.get_error().to_subst) << endl;
+        cerr << "Substitution map:" << endl;
+        for (const auto &it : e.get_error().subst_map) {
+            cerr << this->resolve_symbol(it.first) << ": " << this->print_sentence(it.second) << endl;
+        }
+        engine.rollback();
+        return false;
+    }
+
+    engine.commit();
+    return true;
 }
 
 SymTok LibraryToolbox::get_symbol(string s) const
@@ -432,14 +405,6 @@ const ParsingAddendumImpl &LibraryToolbox::get_parsing_addendum() const
 string LibraryToolbox::get_digest() const
 {
     return this->lib_hidden.get_digest();
-}
-
-Prover LibraryToolbox::build_type_prover_from_strings(const std::string &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
-{
-    return [=](ProofEngine &engine){
-        vector< SymTok > type_sent2 = this->read_sentence(type_sent);
-        return this->classical_type_proving_helper(type_sent2, engine, var_provers);
-    };
 }
 
 /*Prover cascade_provers(const Prover &a,  const Prover &b)
@@ -823,54 +788,7 @@ Prover LibraryToolbox::build_registered_prover(const RegisteredProver &prover, c
     const RegisteredProverInstanceData &inst_data = this->instance_registered_provers[index];
 
     return [=](ProofEngine &engine){
-        const Assertion &ass = this->get_assertion(inst_data.label);
-
-        std::unordered_map<SymTok, Prover> types_provers_sym;
-        for (auto &type_pair : types_provers) {
-            auto res = types_provers_sym.insert(make_pair(this->get_symbol(type_pair.first), type_pair.second));
-            assert(res.second);
-        }
-
-        engine.checkpoint();
-
-        // Compute floating hypotheses
-        for (auto &hyp : ass.get_float_hyps()) {
-            bool res = this->classical_type_proving_helper(this->substitute(this->get_sentence(hyp), inst_data.ass_map), engine, types_provers_sym);
-            if (!res) {
-                cerr << "Applying " << inst_data.label_str << " a floating hypothesis failed..." << endl;
-                engine.rollback();
-                return false;
-            }
-        }
-
-        // Compute essential hypotheses
-        for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
-            bool res = hyps_provers[inst_data.perm_inv[i]](engine);
-            if (!res) {
-                cerr << "Applying " << inst_data.label_str << " an essential hypothesis failed..." << endl;
-                engine.rollback();
-                return false;
-            }
-        }
-
-        // Finally add this assertion's label
-        try {
-            engine.process_label(ass.get_thesis());
-        } catch (const ProofException &e) {
-            cerr << "Applying " << inst_data.label_str << " the proof executor signalled an error..." << endl;
-            cerr << "The reason was " << e.get_reason() << endl;
-            cerr << "On stack there was: " << this->print_sentence(e.get_error().on_stack) << endl;
-            cerr << "Has to match with: " << this->print_sentence(e.get_error().to_subst) << endl;
-            cerr << "Substitution map:" << endl;
-            for (const auto &it : e.get_error().subst_map) {
-                cerr << this->resolve_symbol(it.first) << ": " << this->print_sentence(it.second) << endl;
-            }
-            engine.rollback();
-            return false;
-        }
-
-        engine.commit();
-        return true;
+        return this->proving_helper(inst_data, types_provers, hyps_provers, engine);
     };
 }
 

@@ -1,3 +1,4 @@
+
 #ifndef LIBRARYTOOLBOX_H
 #define LIBRARYTOOLBOX_H
 
@@ -109,7 +110,6 @@ public:
     std::unordered_map< SymTok, std::vector< SymTok > > compose_subst(const std::unordered_map< SymTok, std::vector< SymTok > > &first,
                                                                       const std::unordered_map< SymTok, std::vector< SymTok > > &second) const;
 
-    Prover build_type_prover_from_strings(const std::string &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
     Prover build_classical_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
     Prover build_earley_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
     Prover build_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
@@ -155,15 +155,12 @@ public:
     Prover build_registered_prover(const RegisteredProver &prover, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers) const;
     void compute_registered_provers();
 
-    bool proving_helper(const std::vector< Sentence > &templ_hyps,
-                         const Sentence &templ_thesis,
-                         const std::unordered_map< std::string, Prover > &types_provers,
-                         const std::vector< Prover > &hyps_provers,
-                         ProofEngine &engine) const;
     Prover build_prover(const std::vector< Sentence > &templ_hyps,
                          const Sentence &templ_thesis,
                          const std::unordered_map< std::string, Prover > &types_provers,
                          const std::vector< Prover > &hyps_provers) const;
+
+    bool proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers, ProofEngine &engine) const;
 
     // Library interface
     SymTok get_symbol(std::string s) const;
