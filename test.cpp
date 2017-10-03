@@ -593,16 +593,16 @@ void test_wffs_advanced() {
 }
 
 void test() {
-    /*test_small_stuff();
+    test_small_stuff();
     test_parsers();
     test_lr_set();
     test_unification();
-    test_statement_unification();*/
+    test_statement_unification();
     test_tree_unification();
-    /*test_type_proving();
+    test_type_proving();
     test_wffs_trivial();
     test_wffs_advanced();
-    test_all_verifications();*/
+    test_all_verifications();
     cout << "Maximum memory usage: " << size_to_string(platform_get_peak_rss()) << endl;
 }
 

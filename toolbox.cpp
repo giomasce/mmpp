@@ -10,7 +10,7 @@
 
 using namespace std;
 
-//#define TOOLBOX_SELF_TEST
+#define TOOLBOX_SELF_TEST
 
 ostream &operator<<(ostream &os, const SentencePrinter &sp)
 {
@@ -57,7 +57,7 @@ ostream &operator<<(ostream &os, const ProofPrinter &sp)
 }
 
 LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, bool compute, shared_ptr<ToolboxCache> cache) :
-    lib(lib), turnstile(lib.get_symbol(turnstile)), turnstile_alias(lib.get_parsing_addendum().get_syntax().at(this->turnstile)), cache(cache)
+    lib_hidden(lib), turnstile(lib.get_symbol(turnstile)), turnstile_alias(lib.get_parsing_addendum().get_syntax().at(this->turnstile)), cache(cache)
 {
     if (compute) {
         this->compute_everything();
@@ -67,11 +67,6 @@ LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, boo
 LibraryToolbox::~LibraryToolbox()
 {
     delete this->parser;
-}
-
-const Library &LibraryToolbox::get_library() const
-{
-    return this->lib;
 }
 
 void LibraryToolbox::set_cache(std::shared_ptr<ToolboxCache> cache)
@@ -84,7 +79,7 @@ std::vector<SymTok> LibraryToolbox::substitute(const std::vector<SymTok> &orig, 
     vector< SymTok > ret;
     for (auto it = orig.begin(); it != orig.end(); it++) {
         const SymTok &tok = *it;
-        if (this->lib.is_constant(tok)) {
+        if (this->is_constant(tok)) {
             ret.push_back(tok);
         } else {
             const vector< SymTok > &subst = subst_map.at(tok);
@@ -119,7 +114,7 @@ bool LibraryToolbox::proving_helper(const std::vector<Sentence> &templ_hyps, con
 {
     std::unordered_map<SymTok, Prover> types_provers_sym;
     for (auto &type_pair : types_provers) {
-        auto res = types_provers_sym.insert(make_pair(lib.get_symbol(type_pair.first), type_pair.second));
+        auto res = types_provers_sym.insert(make_pair(this->get_symbol(type_pair.first), type_pair.second));
         assert(res.second);
     }
 
@@ -128,7 +123,7 @@ bool LibraryToolbox::proving_helper(const std::vector<Sentence> &templ_hyps, con
         cerr << string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string() << endl;
     }
     assert_or_throw(!res.empty(), string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
-    const Assertion &ass = this->lib.get_assertion(get<0>(*res.begin()));
+    const Assertion &ass = this->get_assertion(get<0>(*res.begin()));
     assert(ass.is_valid());
     const vector< size_t > &perm = get<1>(*res.begin());
     const vector< size_t > perm_inv = invert_perm(perm);
@@ -139,7 +134,7 @@ bool LibraryToolbox::proving_helper(const std::vector<Sentence> &templ_hyps, con
 
     // Compute floating hypotheses
     for (auto &hyp : ass.get_float_hyps()) {
-        bool res = this->classical_type_proving_helper(this->substitute(this->lib.get_sentence(hyp), ass_map), engine, types_provers_sym);
+        bool res = this->classical_type_proving_helper(this->substitute(this->get_sentence(hyp), ass_map), engine, types_provers_sym);
         if (!res) {
             engine.rollback();
             return false;
@@ -172,7 +167,7 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
     auto &type_const = type_sent.at(0);
     if (type_sent.size() == 2) {
         for (auto &test_type : this->get_types()) {
-            if (this->lib.get_sentence(test_type) == type_sent) {
+            if (this->get_sentence(test_type) == type_sent) {
                 auto &type_var = type_sent.at(1);
                 auto it = var_provers.find(type_var);
                 if (it == var_provers.end()) {
@@ -190,27 +185,27 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
         return false;
     }
     for (auto &templ : this->get_assertions_by_type().at(type_const)) {
-        const Assertion &templ_ass = this->lib.get_assertion(templ);
+        const Assertion &templ_ass = this->get_assertion(templ);
         if (templ_ass.get_ess_hyps().size() != 0) {
             continue;
         }
-        const auto &templ_sent = this->lib.get_sentence(templ);
+        const auto &templ_sent = this->get_sentence(templ);
         // We have to sort hypotheses by order af appearance for pushing them correctly on the stack; here we assume that the numeric order of labels coincides with the order of appearance
         vector< pair< LabTok, SymTok > > hyp_labels;
         for (auto &tok : templ_sent) {
-            if (!this->lib.is_constant(tok)) {
+            if (!this->is_constant(tok)) {
                 hyp_labels.push_back(make_pair(this->get_types_by_var()[tok], tok));
             }
         }
         sort(hyp_labels.begin(), hyp_labels.end());
-        auto unifications = unify(type_sent, templ_sent, this->lib);
+        auto unifications = unify(type_sent, templ_sent, *this);
         for (auto &unification : unifications) {
             bool failed = false;
             engine.checkpoint();
             for (auto &hyp_pair : hyp_labels) {
                 const SymTok &var = hyp_pair.second;
                 const vector< SymTok > &subst = unification.at(var);
-                SymTok type = this->lib.get_sentence(this->get_types_by_var().at(var)).at(0);
+                SymTok type = this->get_sentence(this->get_types_by_var().at(var)).at(0);
                 vector< SymTok > new_type_sent = { type };
                 // TODO This is not very efficient
                 copy(subst.begin(), subst.end(), back_inserter(new_type_sent));
@@ -266,7 +261,7 @@ bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_
     if (tree.label == 0) {
         return false;
     } else {
-        earley_type_unwind_tree(tree, engine, this->lib, var_provers);
+        earley_type_unwind_tree(tree, engine, *this, var_provers);
         return true;
     }
 }
@@ -330,11 +325,11 @@ Prover LibraryToolbox::build_prover(const std::vector<Sentence> &templ_hyps, con
     return [=](ProofEngine &engine){
         std::unordered_map<SymTok, Prover> types_provers_sym;
         for (auto &type_pair : types_provers) {
-            auto res = types_provers_sym.insert(make_pair(lib.get_symbol(type_pair.first), type_pair.second));
+            auto res = types_provers_sym.insert(make_pair(this->get_symbol(type_pair.first), type_pair.second));
             assert(res.second);
         }
 
-        const Assertion &ass = this->lib.get_assertion(get<0>(res1));
+        const Assertion &ass = this->get_assertion(get<0>(res1));
         assert(ass.is_valid());
         const vector< size_t > &perm = get<1>(res1);
         const vector< size_t > perm_inv = invert_perm(perm);
@@ -345,7 +340,7 @@ Prover LibraryToolbox::build_prover(const std::vector<Sentence> &templ_hyps, con
 
         // Compute floating hypotheses
         for (auto &hyp : ass.get_float_hyps()) {
-            bool res = this->classical_type_proving_helper(this->substitute(this->lib.get_sentence(hyp), ass_map), engine, types_provers_sym);
+            bool res = this->classical_type_proving_helper(this->substitute(this->get_sentence(hyp), ass_map), engine, types_provers_sym);
             if (!res) {
                 engine.rollback();
                 return false;
@@ -367,6 +362,76 @@ Prover LibraryToolbox::build_prover(const std::vector<Sentence> &templ_hyps, con
         engine.commit();
         return true;
     };
+}
+
+SymTok LibraryToolbox::get_symbol(string s) const
+{
+    return this->lib_hidden.get_symbol(s);
+}
+
+LabTok LibraryToolbox::get_label(string s) const
+{
+    return this->lib_hidden.get_label(s);
+}
+
+string LibraryToolbox::resolve_symbol(SymTok tok) const
+{
+    return this->lib_hidden.resolve_symbol(tok);
+}
+
+string LibraryToolbox::resolve_label(LabTok tok) const
+{
+    return this->lib_hidden.resolve_label(tok);
+}
+
+size_t LibraryToolbox::get_symbols_num() const
+{
+    return this->lib_hidden.get_symbols_num();
+}
+
+size_t LibraryToolbox::get_labels_num() const
+{
+    return this->lib_hidden.get_labels_num();
+}
+
+bool LibraryToolbox::is_constant(SymTok c) const
+{
+    return this->lib_hidden.is_constant(c);
+}
+
+const Sentence &LibraryToolbox::get_sentence(LabTok label) const
+{
+    return this->lib_hidden.get_sentence(label);
+}
+
+const Assertion &LibraryToolbox::get_assertion(LabTok label) const
+{
+    return this->lib_hidden.get_assertion(label);
+}
+
+std::function<const Assertion *()> LibraryToolbox::list_assertions() const
+{
+    return this->lib_hidden.list_assertions();
+}
+
+const StackFrame &LibraryToolbox::get_final_stack_frame() const
+{
+    return this->lib_hidden.get_final_stack_frame();
+}
+
+const LibraryAddendum &LibraryToolbox::get_addendum() const
+{
+    return this->lib_hidden.get_addendum();
+}
+
+const ParsingAddendumImpl &LibraryToolbox::get_parsing_addendum() const
+{
+    return this->lib_hidden.get_parsing_addendum();
+}
+
+string LibraryToolbox::get_digest() const
+{
+    return this->lib_hidden.get_digest();
 }
 
 Prover LibraryToolbox::build_type_prover_from_strings(const std::string &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
@@ -395,7 +460,7 @@ std::vector<SymTok> LibraryToolbox::read_sentence(const string &in) const
     auto toks = tokenize(in);
     vector< SymTok > res;
     for (auto &tok : toks) {
-        auto tok_num = this->lib.get_symbol(tok);
+        auto tok_num = this->get_symbol(tok);
         assert_or_throw(tok_num != 0);
         res.push_back(tok_num);
     }
@@ -404,12 +469,12 @@ std::vector<SymTok> LibraryToolbox::read_sentence(const string &in) const
 
 SentencePrinter LibraryToolbox::print_sentence(const std::vector<SymTok> &sent, SentencePrinter::Style style) const
 {
-    return SentencePrinter({ sent, this->lib, style });
+    return SentencePrinter({ sent, *this, style });
 }
 
 ProofPrinter LibraryToolbox::print_proof(const std::vector<LabTok> &proof) const
 {
-    return ProofPrinter({ proof, this->lib });
+    return ProofPrinter({ proof, *this });
 }
 
 std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion_uncached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first, bool up_to_hyps_perms) const
@@ -423,7 +488,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
     }
     copy(thesis.begin(), thesis.end(), back_inserter(sent));
 
-    auto assertions_gen = this->lib.list_assertions();
+    auto assertions_gen = this->list_assertions();
     while (true) {
         const Assertion *ass2 = assertions_gen();
         if (ass2 == NULL) {
@@ -446,25 +511,25 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
         do {
             vector< SymTok > templ;
             for (size_t i = 0; i < hypotheses.size(); i++) {
-                auto &hyp = this->lib.get_sentence(ass.get_ess_hyps()[perm[i]]);
+                auto &hyp = this->get_sentence(ass.get_ess_hyps()[perm[i]]);
                 copy(hyp.begin(), hyp.end(), back_inserter(templ));
                 templ.push_back(0);
             }
-            auto &th = this->lib.get_sentence(ass.get_thesis());
+            auto &th = this->get_sentence(ass.get_thesis());
             copy(th.begin(), th.end(), back_inserter(templ));
-            auto unifications = unify(sent, templ, this->lib);
+            auto unifications = unify(sent, templ, *this);
             if (!unifications.empty()) {
                 for (auto &unification : unifications) {
                     // Here we have to check that substitutions are of the corresponding type
                     // TODO - Here we immediately drop the type information, which probably mean that later we have to compute it again
                     bool wrong_unification = false;
                     for (auto &float_hyp : ass.get_float_hyps()) {
-                        const Sentence &float_hyp_sent = this->lib.get_sentence(float_hyp);
+                        const Sentence &float_hyp_sent = this->get_sentence(float_hyp);
                         Sentence type_sent;
                         type_sent.push_back(float_hyp_sent.at(0));
                         auto &type_main_sent = unification.at(float_hyp_sent.at(1));
                         copy(type_main_sent.begin(), type_main_sent.end(), back_inserter(type_sent));
-                        ProofEngine engine(this->lib);
+                        ProofEngine engine(*this);
                         if (!this->classical_type_proving_helper(type_sent, engine)) {
                             wrong_unification = true;
                             break;
@@ -499,13 +564,13 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
     }
     ParsingTree< SymTok, LabTok > pt_thesis = this->parse_sentence(thesis.begin()+1, thesis.end(), this->turnstile_alias);
 
-    auto assertions_gen = this->lib.list_assertions();
+    auto assertions_gen = this->list_assertions();
     const std::function< bool(LabTok) > is_var = [&](LabTok x)->bool {
-        const auto &types_set = this->lib.get_final_stack_frame().types_set;
+        const auto &types_set = this->get_final_stack_frame().types_set;
         if (types_set.find(x) == types_set.end()) {
             return false;
         }
-        return !this->lib.is_constant(this->lib.get_sentence(x).at(1));
+        return !this->is_constant(this->get_sentence(x).at(1));
     };
     while (true) {
         const Assertion *ass2 = assertions_gen();
@@ -519,7 +584,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
         if (ass.get_ess_hyps().size() != hypotheses.size()) {
             continue;
         }
-        if (thesis[0] != this->lib.get_sentence(ass.get_thesis())[0]) {
+        if (thesis[0] != this->get_sentence(ass.get_thesis())[0]) {
             continue;
         }
         std::unordered_map< LabTok, ParsingTree< SymTok, LabTok > > thesis_subst;
@@ -539,7 +604,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
             std::unordered_map< LabTok, ParsingTree< SymTok, LabTok > > subst = thesis_subst;
             res = true;
             for (size_t i = 0; i < hypotheses.size(); i++) {
-                res = (hypotheses[i][0] == this->lib.get_sentence(ass.get_ess_hyps()[perm[i]])[0]);
+                res = (hypotheses[i][0] == this->get_sentence(ass.get_ess_hyps()[perm[i]])[0]);
                 if (!res) {
                     break;
                 }
@@ -554,7 +619,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
             }
             std::unordered_map< SymTok, std::vector< SymTok > > subst2;
             for (auto &s : subst) {
-                subst2.insert(make_pair(this->lib.get_sentence(s.first).at(1), this->reconstruct_sentence(s.second)));
+                subst2.insert(make_pair(this->get_sentence(s.first).at(1), this->reconstruct_sentence(s.second)));
             }
             ret.emplace_back(ass.get_thesis(), perm, subst2);
             if (just_first) {
@@ -621,13 +686,18 @@ void LibraryToolbox::compute_everything()
 
 const std::vector<LabTok> &LibraryToolbox::get_types() const
 {
-    return this->lib.get_final_stack_frame().types;
+    return this->get_final_stack_frame().types;
+}
+
+const std::set<LabTok> &LibraryToolbox::get_types_set() const
+{
+    return this->get_final_stack_frame().types_set;
 }
 
 void LibraryToolbox::compute_types_by_var()
 {
     for (auto &type : this->get_types()) {
-        const SymTok &var = this->lib.get_sentence(type).at(1);
+        const SymTok &var = this->get_sentence(type).at(1);
         this->types_by_var.resize(max(this->types_by_var.size(), (size_t) var+1));
         this->types_by_var[var] = type;
     }
@@ -652,7 +722,7 @@ const std::vector<LabTok> &LibraryToolbox::get_types_by_var() const
 
 void LibraryToolbox::compute_assertions_by_type()
 {
-    auto assertions_gen = this->lib.list_assertions();
+    auto assertions_gen = this->list_assertions();
     while (true) {
         const Assertion *ass2 = assertions_gen();
         if (ass2 == NULL) {
@@ -660,7 +730,7 @@ void LibraryToolbox::compute_assertions_by_type()
         }
         const Assertion &ass = *ass2;
         const auto &label = ass.get_thesis();
-        this->assertions_by_type[this->lib.get_sentence(label).at(0)].push_back(label);
+        this->assertions_by_type[this->get_sentence(label).at(0)].push_back(label);
     }
     this->assertions_by_type_computed = true;
 }
@@ -688,12 +758,11 @@ void LibraryToolbox::compute_derivations()
     // appears more than once and without distinct variables constraints and that does not
     // begin with the turnstile
     for (auto &type_lab : this->get_types()) {
-        auto &type_sent = this->lib.get_sentence(type_lab);
+        auto &type_sent = this->get_sentence(type_lab);
         this->derivations[type_sent.at(0)].push_back(make_pair(type_lab, vector<SymTok>({type_sent.at(1)})));
     }
     // FIXME Take it from the configuration
-    const SymTok turnstile = this->lib.get_symbol("|-");
-    auto assertions_gen = this->lib.list_assertions();
+    auto assertions_gen = this->list_assertions();
     while (true) {
         const Assertion *ass2 = assertions_gen();
         if (ass2 == NULL) {
@@ -706,14 +775,14 @@ void LibraryToolbox::compute_derivations()
         if (ass.get_mand_dists().size() != 0) {
             continue;
         }
-        const auto &sent = this->lib.get_sentence(ass.get_thesis());
-        if (sent.at(0) == turnstile) {
+        const auto &sent = this->get_sentence(ass.get_thesis());
+        if (sent.at(0) == this->turnstile) {
             continue;
         }
         set< SymTok > symbols;
         bool duplicate = false;
         for (const auto &tok : sent) {
-            if (this->lib.is_constant(tok)) {
+            if (this->is_constant(tok)) {
                 continue;
             }
             auto res = symbols.insert(tok);
@@ -729,7 +798,7 @@ void LibraryToolbox::compute_derivations()
         for (size_t i = 1; i < sent.size(); i++) {
             const auto &tok = sent[i];
             // Variables are replaced with their types, which act as variables of the context-free grammar
-            sent2.push_back(this->lib.is_constant(tok) ? tok : this->lib.get_sentence(this->get_types_by_var().at(tok)).at(0));
+            sent2.push_back(this->is_constant(tok) ? tok : this->get_sentence(this->get_types_by_var().at(tok)).at(0));
         }
         this->derivations[sent.at(0)].push_back(make_pair(ass.get_thesis(), sent2));
     }
@@ -754,11 +823,11 @@ Prover LibraryToolbox::build_registered_prover(const RegisteredProver &prover, c
     const RegisteredProverInstanceData &inst_data = this->instance_registered_provers[index];
 
     return [=](ProofEngine &engine){
-        const Assertion &ass = this->lib.get_assertion(inst_data.label);
+        const Assertion &ass = this->get_assertion(inst_data.label);
 
         std::unordered_map<SymTok, Prover> types_provers_sym;
         for (auto &type_pair : types_provers) {
-            auto res = types_provers_sym.insert(make_pair(lib.get_symbol(type_pair.first), type_pair.second));
+            auto res = types_provers_sym.insert(make_pair(this->get_symbol(type_pair.first), type_pair.second));
             assert(res.second);
         }
 
@@ -766,7 +835,7 @@ Prover LibraryToolbox::build_registered_prover(const RegisteredProver &prover, c
 
         // Compute floating hypotheses
         for (auto &hyp : ass.get_float_hyps()) {
-            bool res = this->classical_type_proving_helper(this->substitute(this->lib.get_sentence(hyp), inst_data.ass_map), engine, types_provers_sym);
+            bool res = this->classical_type_proving_helper(this->substitute(this->get_sentence(hyp), inst_data.ass_map), engine, types_provers_sym);
             if (!res) {
                 cerr << "Applying " << inst_data.label_str << " a floating hypothesis failed..." << endl;
                 engine.rollback();
@@ -794,7 +863,7 @@ Prover LibraryToolbox::build_registered_prover(const RegisteredProver &prover, c
             cerr << "Has to match with: " << this->print_sentence(e.get_error().to_subst) << endl;
             cerr << "Substitution map:" << endl;
             for (const auto &it : e.get_error().subst_map) {
-                cerr << this->lib.resolve_symbol(it.first) << ": " << this->print_sentence(it.second) << endl;
+                cerr << this->resolve_symbol(it.first) << ": " << this->print_sentence(it.second) << endl;
             }
             engine.rollback();
             return false;
@@ -817,13 +886,13 @@ void LibraryToolbox::compute_parser_initialization()
 {
     delete this->parser;
     this->parser = NULL;
-    std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](ostream &os, SymTok sym)->ostream& { return os << lib.resolve_symbol(sym); };
-    std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](ostream &os, LabTok lab)->ostream& { return os << lib.resolve_label(lab); };
+    std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](ostream &os, SymTok sym)->ostream& { return os << this->resolve_symbol(sym); };
+    std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](ostream &os, LabTok lab)->ostream& { return os << this->resolve_label(lab); };
     this->parser = new LRParser< SymTok, LabTok >(this->get_derivations(), sym_printer, lab_printer);
     bool loaded = false;
     if (this->cache != NULL) {
         if (this->cache->load()) {
-            if (this->lib.get_digest() == this->cache->get_digest()) {
+            if (this->get_digest() == this->cache->get_digest()) {
                 this->parser->set_cached_data(this->cache->get_lr_parser_data());
                 loaded = true;
             }
@@ -832,7 +901,7 @@ void LibraryToolbox::compute_parser_initialization()
     if (!loaded) {
         this->parser->initialize();
         if (this->cache != NULL) {
-            this->cache->set_digest(this->lib.get_digest());
+            this->cache->set_digest(this->get_digest());
             this->cache->set_lr_parser_data(this->parser->get_cached_data());
             this->cache->store();
         }
@@ -883,9 +952,9 @@ void LibraryToolbox::compute_sentences_parsing()
     /*if (!this->parser_initialization_computed) {
         this->compute_parser_initialization();
     }*/
-    for (size_t i = 1; i < this->lib.get_labels_num()+1; i++) {
-        const Sentence &sent = this->lib.get_sentence(i);
-        auto pt = this->parse_sentence(sent.begin()+1, sent.end(), this->lib.get_parsing_addendum().get_syntax().at(sent[0]));
+    for (size_t i = 1; i < this->get_labels_num()+1; i++) {
+        const Sentence &sent = this->get_sentence(i);
+        auto pt = this->parse_sentence(sent.begin()+1, sent.end(), this->get_parsing_addendum().get_syntax().at(sent[0]));
         if (pt.label == 0) {
             throw MMPPException("Failed to parse a sentence in the library");
         }
@@ -927,8 +996,8 @@ void LibraryToolbox::compute_registered_prover(size_t index)
         auto unification = this->unify_assertion(templ_hyps_sent, templ_thesis_sent, true);
         assert_or_throw(!unification.empty(), "Could not find the template assertion");
         inst_data.label = get<0>(*unification.begin());
-        inst_data.label_str = this->lib.resolve_label(inst_data.label);
-        const Assertion &ass = this->lib.get_assertion(inst_data.label);
+        inst_data.label_str = this->resolve_label(inst_data.label);
+        const Assertion &ass = this->get_assertion(inst_data.label);
         assert(ass.is_valid());
         const vector< size_t > &perm = get<1>(*unification.begin());
         inst_data.perm_inv = invert_perm(perm);
@@ -965,7 +1034,7 @@ string SentencePrinter::to_string() const
 }
 
 string test_prover(Prover prover, const LibraryToolbox &tb) {
-    ProofEngine engine(tb.get_library());
+    ProofEngine engine(tb);
     bool res = prover(engine);
     if (!res) {
         return "(prover failed)";

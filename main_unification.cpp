@@ -41,7 +41,7 @@ void unification_test() {
         // Do actual time measurement
         auto begin = steady_clock::now();
         for (int i = 0; i < reps; i++) {
-            res2 = tb.unify_assertion_uncached3({}, sent, false, true);
+            res2 = tb.unify_assertion({}, sent, false, true);
         }
         auto end = steady_clock::now();
         auto usecs = duration_cast< microseconds >(end - begin).count();

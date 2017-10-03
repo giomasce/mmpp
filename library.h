@@ -256,6 +256,8 @@ public:
     virtual LabTok get_label(std::string s) const = 0;
     virtual std::string resolve_symbol(SymTok tok) const = 0;
     virtual std::string resolve_label(LabTok tok) const = 0;
+    virtual std::size_t get_symbols_num() const = 0;
+    virtual std::size_t get_labels_num() const = 0;
     virtual bool is_constant(SymTok c) const = 0;
     virtual const Sentence &get_sentence(LabTok label) const = 0;
     virtual const Assertion &get_assertion(LabTok label) const = 0;
@@ -269,8 +271,6 @@ public:
 
 class ExtendedLibrary : public Library {
 public:
-    virtual std::size_t get_symbols_num() const = 0;
-    virtual std::size_t get_labels_num() const = 0;
     virtual const std::vector< std::string > &get_symbols() const = 0;
     virtual const std::vector< std::string > &get_labels() const = 0;
     virtual const std::vector< Assertion > &get_assertions() const = 0;

@@ -99,12 +99,11 @@ private:
     LRParser< SymTok, LabTok >::CachedData lr_parser_data;
 };
 
-class LibraryToolbox
+class LibraryToolbox : public Library
 {
 public:
     explicit LibraryToolbox(const ExtendedLibrary &lib, std::string turnstile, bool compute = false, std::shared_ptr< ToolboxCache > cache = NULL);
     ~LibraryToolbox();
-    const Library &get_library() const;
     void set_cache(std::shared_ptr< ToolboxCache > cache);
     std::vector< SymTok > substitute(const std::vector< SymTok > &orig, const std::unordered_map< SymTok, std::vector< SymTok > > &subst_map) const;
     std::unordered_map< SymTok, std::vector< SymTok > > compose_subst(const std::unordered_map< SymTok, std::vector< SymTok > > &first,
@@ -124,6 +123,7 @@ public:
 
     void compute_everything();
     const std::vector< LabTok > &get_types() const;
+    const std::set< LabTok > &get_types_set() const;
     void compute_types_by_var();
     const std::vector< LabTok > &get_types_by_var();
     const std::vector< LabTok > &get_types_by_var() const;
@@ -165,7 +165,21 @@ public:
                          const std::unordered_map< std::string, Prover > &types_provers,
                          const std::vector< Prover > &hyps_provers) const;
 
-    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_uncached3(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
+    // Library interface
+    SymTok get_symbol(std::string s) const;
+    LabTok get_label(std::string s) const;
+    std::string resolve_symbol(SymTok tok) const;
+    std::string resolve_label(LabTok tok) const;
+    std::size_t get_symbols_num() const;
+    std::size_t get_labels_num() const;
+    bool is_constant(SymTok c) const;
+    const Sentence &get_sentence(LabTok label) const;
+    const Assertion &get_assertion(LabTok label) const;
+    std::function< const Assertion*() > list_assertions() const;
+    const StackFrame &get_final_stack_frame() const;
+    const LibraryAddendum &get_addendum() const;
+    const ParsingAddendumImpl &get_parsing_addendum() const;
+    std::string get_digest() const;
 
 private:
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_uncached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
@@ -173,7 +187,7 @@ private:
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true);
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true) const;
 
-    const ExtendedLibrary &lib;
+    const ExtendedLibrary &lib_hidden;
     SymTok turnstile;
     SymTok turnstile_alias;
 

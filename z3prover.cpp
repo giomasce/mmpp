@@ -72,7 +72,7 @@ expr extract_thesis(expr proof) {
 }
 
 void prove_and_print(pwff wff, const LibraryToolbox &tb) {
-    ProofEngine engine(tb.get_library());
+    ProofEngine engine(tb);
     wff->get_adv_truth_prover(tb)(engine);
     if (engine.get_proof_labels().size() > 0) {
         //cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
@@ -280,7 +280,7 @@ struct Z3Adapter {
                     pwff thesis = parse_expr(e.arg(0));
                     //cout << "ORACLE for '" << thesis->to_string() << "'!" << endl;
                     //Prover p1 = thesis->get_adv_truth_prover(tb);
-                    Prover p1 = this->tb.build_prover({}, thesis->to_asserted_sentence(this->tb.get_library()), {}, {});
+                    Prover p1 = this->tb.build_prover({}, thesis->to_asserted_sentence(this->tb), {}, {});
                     return this->tb.build_registered_prover(a1i_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", thesis->get_type_prover(this->tb)}}, {p1});
                     break; }
                 case Z3_OP_PR_TRANSITIVITY: {
