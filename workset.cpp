@@ -13,6 +13,16 @@ Workset::Workset()
 {
 }
 
+template< typename TokType >
+std::vector< std::string > map_to_vect(const std::unordered_map< TokType, std::string > &m) {
+    std::vector< std::string > ret;
+    ret.resize(m.size()+1);
+    for (auto &i : m) {
+        ret[i.first] = i.second;
+    }
+    return ret;
+}
+
 json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end, std::string method)
 {
     (void) cb;
@@ -36,8 +46,8 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             return ret;
         }
         ret["status"] = "loaded";
-        ret["symbols"] = this->library->get_symbols();
-        ret["labels"] = this->library->get_labels();
+        ret["symbols"] = map_to_vect(this->library->get_symbols());
+        ret["labels"] = map_to_vect(this->library->get_labels());
         const auto &addendum = this->library->get_addendum();
         ret["addendum"] = jsonize(addendum);
         ret["max_number"] = this->library->get_max_number();

@@ -349,7 +349,7 @@ void test_unification() {
     for (auto &match : res) {
         cout << "  *";
         for (auto &var: match) {
-            cout << " " << tb.print_sentence({var.first}) << " => " << tb.print_sentence(var.second) << "  ";
+            cout << " " << tb.print_sentence(Sentence({var.first})) << " => " << tb.print_sentence(var.second) << "  ";
         }
         cout << endl;
     }
@@ -592,8 +592,10 @@ void test_wffs_advanced() {
     }
 }
 
+void test_unification2();
+
 void test() {
-    test_small_stuff();
+    /*test_small_stuff();
     test_parsers();
     test_lr_set();
     test_unification();
@@ -602,7 +604,8 @@ void test() {
     test_type_proving();
     test_wffs_trivial();
     test_wffs_advanced();
-    test_all_verifications();
+    test_all_verifications();*/
+    test_unification2();
     cout << "Maximum memory usage: " << size_to_string(platform_get_peak_rss()) << endl;
 }
 

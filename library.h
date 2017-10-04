@@ -266,13 +266,14 @@ public:
     virtual const LibraryAddendum &get_addendum() const = 0;
     virtual const ParsingAddendumImpl &get_parsing_addendum() const = 0;
     virtual std::string get_digest() const = 0;
+    virtual bool is_immutable() const;
     virtual ~Library();
 };
 
 class ExtendedLibrary : public Library {
 public:
-    virtual const std::vector< std::string > &get_symbols() const = 0;
-    virtual const std::vector< std::string > &get_labels() const = 0;
+    virtual const std::unordered_map< SymTok, std::string > &get_symbols() const = 0;
+    virtual const std::unordered_map<LabTok, std::string> &get_labels() const = 0;
     virtual const std::vector< Assertion > &get_assertions() const = 0;
     const ExtendedLibraryAddendum &get_addendum() const = 0;
     virtual LabTok get_max_number() const = 0;
@@ -288,8 +289,8 @@ public:
     std::string resolve_label(LabTok tok) const;
     std::size_t get_symbols_num() const;
     std::size_t get_labels_num() const;
-    const std::vector< std::string > &get_symbols() const;
-    const std::vector< std::string > &get_labels() const;
+    const std::unordered_map< SymTok, std::string > &get_symbols() const;
+    const std::unordered_map<LabTok, std::string> &get_labels() const;
     const std::vector<SymTok> &get_sentence(LabTok label) const;
     const Assertion &get_assertion(LabTok label) const;
     const std::vector< Assertion > &get_assertions() const;
@@ -300,6 +301,7 @@ public:
     std::function< const Assertion*() > list_assertions() const;
     virtual LabTok get_max_number() const;
     std::string get_digest() const;
+    virtual bool is_immutable() const;
 
     SymTok create_symbol(std::string s);
     LabTok create_label(std::string s);

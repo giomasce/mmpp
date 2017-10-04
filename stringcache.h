@@ -4,10 +4,14 @@
 #include <unordered_map>
 #include <vector>
 
-template< typename Tok >
+template< typename TokType >
 class StringCache {
 public:
-    Tok get(std::string s) const {
+    StringCache(size_t nex_id = 1) :
+        next_id(nex_id) {
+    }
+
+    TokType get(std::string s) const {
         auto it = this->dir.find(s);
         if (it == this->dir.end()) {
             return 0;
@@ -15,44 +19,54 @@ public:
             return it->second;
         }
     }
-    Tok create(std::string s)
+
+    TokType create(std::string s)
     {
         auto it = this->dir.find(s);
         if (it == this->dir.end()) {
             bool res;
-            assert(this->next_id != std::numeric_limits< Tok >::max());
-            tie(it, res) = this->dir.insert(make_pair(s, this->next_id));
+            assert(this->next_id != std::numeric_limits< TokType >::max());
+            std::tie(it, res) = this->dir.insert(make_pair(s, this->next_id));
             assert(res);
-            assert(this->inv.size() == this->next_id);
-            this->inv.push_back(s);
+            std::tie(std::ignore, res) = this->inv.insert(std::make_pair(this->next_id, s));
+            assert(res);
             this->next_id++;
             return it->second;
         } else {
             return 0;
         }
     }
-    std::string resolve(Tok id) const
+
+    std::string resolve(TokType id) const
     {
-        return this->inv.at(id);
+        auto it = this->inv.find(id);
+        if (it == this->inv.end()) {
+            return "";
+        } else {
+            return it->second;
+        }
     }
-    Tok get_or_create(std::string s) {
-        Tok tok = this->get(s);
+
+    TokType get_or_create(std::string s) {
+        TokType tok = this->get(s);
         if (tok == 0) {
             tok = this->create(s);
         }
         return tok;
     }
+
     std::size_t size() const {
         return this->dir.size();
     }
-    const std::vector< std::string > &get_cache() const {
+
+    const std::unordered_map< TokType, std::string > &get_cache() const {
         return this->inv;
     }
 
 private:
-    Tok next_id = 1;
-    std::unordered_map< std::string, Tok > dir;
-    std::vector< std::string > inv = std::vector< std::string >(1);
+    TokType next_id = 1;
+    std::unordered_map< std::string, TokType > dir;
+    std::unordered_map< TokType, std::string > inv;
 };
 
 #endif // STRINGCACHE_H

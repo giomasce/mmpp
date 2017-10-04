@@ -35,15 +35,17 @@ struct SentencePrinter {
         STYLE_ALTHTML,
         STYLE_LATEX,
     };
-    const std::vector< SymTok > &sent;
-    const Library &lib;
+    bool is_sent;
+    const Sentence &sent;
+    const ParsingTree<SymTok, LabTok> &pt;
+    const LibraryToolbox &tb;
     const Style style;
 
     std::string to_string() const;
 };
 struct ProofPrinter {
     const std::vector< LabTok > &proof;
-    const Library &lib;
+    const LibraryToolbox &tb;
 
     std::string to_string() const;
 };
@@ -118,6 +120,7 @@ public:
 
     std::vector< SymTok > read_sentence(const std::string &in) const;
     SentencePrinter print_sentence(const std::vector< SymTok > &sent, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
+    SentencePrinter print_sentence(const ParsingTree< SymTok, LabTok > &pt, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
     ProofPrinter print_proof(const std::vector< LabTok > &proof) const;
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
 
@@ -162,6 +165,11 @@ public:
 
     bool proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers, ProofEngine &engine) const;
 
+    std::pair< LabTok, SymTok > new_temp_var(SymTok type_sym);
+    std::pair< std::vector< ParsingTree< SymTok, LabTok > >, ParsingTree< SymTok, LabTok > > refresh_assertion(const Assertion &ass);
+
+    const std::function< bool(LabTok) > get_standard_is_var() const;
+
     // Library interface
     SymTok get_symbol(std::string s) const;
     LabTok get_label(std::string s) const;
@@ -184,9 +192,12 @@ private:
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true);
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true) const;
 
-    const ExtendedLibrary &lib_hidden;
+    const ExtendedLibrary &lib;
     SymTok turnstile;
     SymTok turnstile_alias;
+
+    std::vector< LabTok > types;
+    std::set< LabTok > types_set;
 
     std::vector< LabTok > types_by_var;
     bool types_by_var_computed = false;
@@ -221,6 +232,11 @@ private:
     void compute_registered_prover(size_t i);
 
     std::shared_ptr< ToolboxCache > cache;
+
+    std::map< SymTok, size_t > temp_idx;
+    std::unordered_map< LabTok, Sentence > temp_types;
+    StringCache< SymTok > temp_syms;
+    StringCache< LabTok > temp_labs;
 };
 
 #endif // LIBRARYTOOLBOX_H

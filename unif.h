@@ -12,6 +12,18 @@ template< typename SymType, typename LabType >
 using SubstMap = std::unordered_map< LabType, ParsingTree< SymType, LabType > >;
 
 template< typename SymType, typename LabType >
+void collect_variables(const ParsingTree< SymType, LabType > &pt, const std::function< bool(LabType) > &is_var, std::set< LabType > &vars) {
+    if (is_var(pt.label)) {
+        assert(pt.children.empty());
+        vars.insert(pt.label);
+    } else {
+        for (const auto &child : pt.children) {
+            collect_variables(child, is_var, vars);
+        }
+    }
+}
+
+template< typename SymType, typename LabType >
 bool unify_internal(const ParsingTree< SymType, LabType > &templ, const ParsingTree< SymType, LabType > &target,
                     const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst) {
     if (is_var(templ.label)) {

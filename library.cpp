@@ -61,12 +61,12 @@ size_t LibraryImpl::get_labels_num() const
     return this->labels.size();
 }
 
-const std::vector<string> &LibraryImpl::get_symbols() const
+const std::unordered_map< SymTok, std::string > &LibraryImpl::get_symbols() const
 {
     return this->syms.get_cache();
 }
 
-const std::vector<string> &LibraryImpl::get_labels() const
+const std::unordered_map<LabTok, string> &LibraryImpl::get_labels() const
 {
     return this->labels.get_cache();
 }
@@ -313,6 +313,11 @@ string LibraryImpl::get_digest() const
     return this->digest;
 }
 
+bool LibraryImpl::is_immutable() const
+{
+    return true;
+}
+
 void LibraryImpl::set_addendum(const LibraryAddendumImpl &add)
 {
     this->addendum = add;
@@ -326,6 +331,11 @@ void LibraryImpl::set_parsing_addendum(const ParsingAddendumImpl &add)
 void LibraryImpl::set_digest(const string &digest)
 {
     this->digest = digest;
+}
+
+bool Library::is_immutable() const
+{
+    return false;
 }
 
 Library::~Library()
