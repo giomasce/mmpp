@@ -55,6 +55,9 @@ ostream &operator<<(ostream &os, const ProofPrinter &sp)
 {
     bool first = true;
     for (auto &label : sp.proof) {
+        if (sp.only_assertions && !(sp.tb.get_assertion(label).is_valid() && sp.tb.get_sentence(label).at(0) == sp.tb.get_turnstile())) {
+            continue;
+        }
         if (first) {
             first = false;
         } else {
@@ -371,6 +374,7 @@ std::pair<LabTok, SymTok> LibraryToolbox::new_temp_var(SymTok type_sym)
     return std::make_pair(lab, sym);
 }
 
+// FIXME Deduplicate with refresh_parsing_tree()
 std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok> > LibraryToolbox::refresh_assertion(const Assertion &ass)
 {
     // Collect all variables
@@ -404,6 +408,30 @@ std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok>
         hyps_new_pts.push_back(::substitute(hyp_pt, is_var, subst));
     }
     return make_pair(hyps_new_pts, thesis_new_pt);
+}
+
+ParsingTree<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree(const ParsingTree<SymTok, LabTok> &pt)
+{
+    // Collect all variables
+    std::set< LabTok > var_labs;
+    auto is_var = this->get_standard_is_var();
+    collect_variables(pt, is_var, var_labs);
+
+    // Build a substitution map
+    SubstMap< SymTok, LabTok > subst;
+    for (const auto var_lab : var_labs) {
+        SymTok type_sym = this->get_sentence(var_lab).at(0);
+        SymTok new_sym;
+        LabTok new_lab;
+        tie(new_lab, new_sym) = this->new_temp_var(type_sym);
+        ParsingTree< SymTok, LabTok > new_pt;
+        new_pt.label = new_lab;
+        new_pt.type = type_sym;
+        subst[var_lab] = new_pt;
+    }
+
+    // Substitute and return
+    return ::substitute(pt, is_var, subst);
 }
 
 SymTok LibraryToolbox::get_symbol(string s) const
@@ -532,9 +560,9 @@ SentencePrinter LibraryToolbox::print_sentence(const ParsingTree<SymTok, LabTok>
     return SentencePrinter({ false, {}, pt, *this, style });
 }
 
-ProofPrinter LibraryToolbox::print_proof(const std::vector<LabTok> &proof) const
+ProofPrinter LibraryToolbox::print_proof(const std::vector<LabTok> &proof, bool only_assertions) const
 {
-    return ProofPrinter({ proof, *this });
+    return ProofPrinter({ proof, *this, only_assertions });
 }
 
 std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion_uncached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first, bool up_to_hyps_perms) const
@@ -722,6 +750,16 @@ const std::function<bool (LabTok)> LibraryToolbox::get_standard_is_var() const {
         }
         return !this->is_constant(this->get_sentence(x).at(1));
     };
+}
+
+SymTok LibraryToolbox::get_turnstile() const
+{
+    return this->turnstile;
+}
+
+SymTok LibraryToolbox::get_turnstile_alias() const
+{
+    return this->turnstile_alias;
 }
 
 std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first, bool up_to_hyps_perms) const
@@ -944,24 +982,34 @@ const LRParser<SymTok, LabTok> &LibraryToolbox::get_parser() const
     return *this->parser;
 }
 
-ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(typename vector<SymTok>::const_iterator sent_begin, typename vector<SymTok>::const_iterator sent_end, SymTok type) const
+ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(typename Sentence::const_iterator sent_begin, typename Sentence::const_iterator sent_end, SymTok type) const
 {
     return this->get_parser().parse(sent_begin, sent_end, type);
 }
 
-ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(const std::vector<SymTok> &sent, SymTok type) const
+ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(const Sentence &sent, SymTok type) const
 {
     return this->get_parser().parse(sent, type);
 }
 
-ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(typename vector<SymTok>::const_iterator sent_begin, typename vector<SymTok>::const_iterator sent_end, SymTok type)
+ParsingTree<SymTok, LabTok> LibraryToolbox::parse_sentence(const Sentence &sent) const
+{
+    return this->parse_sentence(sent.begin()+1, sent.end(), sent.at(0));
+}
+
+ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(typename Sentence::const_iterator sent_begin, typename Sentence::const_iterator sent_end, SymTok type)
 {
     return this->get_parser().parse(sent_begin, sent_end, type);
 }
 
-ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(const std::vector<SymTok> &sent, SymTok type)
+ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(const Sentence &sent, SymTok type)
 {
     return this->get_parser().parse(sent, type);
+}
+
+ParsingTree<SymTok, LabTok> LibraryToolbox::parse_sentence(const Sentence &sent)
+{
+    return this->parse_sentence(sent.begin()+1, sent.end(), sent.at(0));
 }
 
 void LibraryToolbox::compute_sentences_parsing()

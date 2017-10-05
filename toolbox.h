@@ -46,6 +46,7 @@ struct SentencePrinter {
 struct ProofPrinter {
     const std::vector< LabTok > &proof;
     const LibraryToolbox &tb;
+    bool only_assertions;
 
     std::string to_string() const;
 };
@@ -121,7 +122,7 @@ public:
     std::vector< SymTok > read_sentence(const std::string &in) const;
     SentencePrinter print_sentence(const std::vector< SymTok > &sent, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
     SentencePrinter print_sentence(const ParsingTree< SymTok, LabTok > &pt, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
-    ProofPrinter print_proof(const std::vector< LabTok > &proof) const;
+    ProofPrinter print_proof(const std::vector< LabTok > &proof, bool only_assertions = false) const;
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
 
     void compute_everything();
@@ -145,10 +146,12 @@ public:
     void compute_parser_initialization();
     const LRParser< SymTok, LabTok > &get_parser();
     const LRParser< SymTok, LabTok > &get_parser() const;
-    ParsingTree< SymTok, LabTok > parse_sentence(typename std::vector<SymTok>::const_iterator sent_begin, typename std::vector<SymTok>::const_iterator sent_end, SymTok type) const;
-    ParsingTree< SymTok, LabTok > parse_sentence(const std::vector<SymTok> &sent, SymTok type) const;
-    ParsingTree< SymTok, LabTok > parse_sentence(typename std::vector<SymTok>::const_iterator sent_begin, typename std::vector<SymTok>::const_iterator sent_end, SymTok type);
-    ParsingTree< SymTok, LabTok > parse_sentence(const std::vector<SymTok> &sent, SymTok type);
+    ParsingTree< SymTok, LabTok > parse_sentence(typename Sentence::const_iterator sent_begin, typename Sentence::const_iterator sent_end, SymTok type) const;
+    ParsingTree< SymTok, LabTok > parse_sentence(const Sentence &sent, SymTok type) const;
+    ParsingTree< SymTok, LabTok > parse_sentence(const Sentence &sent) const;
+    ParsingTree< SymTok, LabTok > parse_sentence(typename Sentence::const_iterator sent_begin, typename Sentence::const_iterator sent_end, SymTok type);
+    ParsingTree< SymTok, LabTok > parse_sentence(const Sentence &sent, SymTok type);
+    ParsingTree< SymTok, LabTok > parse_sentence(const Sentence &sent);
 
     void compute_sentences_parsing();
     const std::vector< ParsingTree< SymTok, LabTok > > &get_parsed_sents();
@@ -167,8 +170,11 @@ public:
 
     std::pair< LabTok, SymTok > new_temp_var(SymTok type_sym);
     std::pair< std::vector< ParsingTree< SymTok, LabTok > >, ParsingTree< SymTok, LabTok > > refresh_assertion(const Assertion &ass);
+    ParsingTree< SymTok, LabTok > refresh_parsing_tree(const ParsingTree< SymTok, LabTok > &pt);
 
     const std::function< bool(LabTok) > get_standard_is_var() const;
+    SymTok get_turnstile() const;
+    SymTok get_turnstile_alias() const;
 
     // Library interface
     SymTok get_symbol(std::string s) const;

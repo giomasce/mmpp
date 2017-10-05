@@ -144,6 +144,11 @@ std::shared_ptr<ProofExecutor> UncompressedProof::get_executor(const Library &li
     return shared_ptr< ProofExecutor >(new UncompressedProofExecutor(lib, ass, *this, gen_proof_tree));
 }
 
+const std::vector<LabTok> &UncompressedProof::get_labels() const
+{
+    return this->labels;
+}
+
 static void compress_unwind_proof_tree_phase1(const ProofTree &tree,
                                               unordered_map< LabTok, CodeTok > &label_map,
                                               vector< LabTok > &refs,
@@ -315,6 +320,11 @@ const std::vector<std::vector<SymTok> > &ProofExecutor::get_stack() const
 const ProofTree &ProofExecutor::get_proof_tree() const
 {
     return this->engine.get_proof_tree();
+}
+
+const std::vector<LabTok> &ProofExecutor::get_proof_labels() const
+{
+    return this->engine.get_proof_labels();
 }
 
 void ProofExecutor::set_debug_output(string debug_output)

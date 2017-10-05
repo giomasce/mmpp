@@ -101,6 +101,7 @@ public:
 
     const std::vector< std::vector< SymTok > > &get_stack() const;
     const ProofTree &get_proof_tree() const;
+    const std::vector< LabTok > &get_proof_labels() const;
     void set_debug_output(std::string debug_output);
     virtual void execute() = 0;
     virtual const CompressedProof compress(CompressionStrategy strategy=CS_ANY) = 0;
@@ -166,6 +167,7 @@ class UncompressedProof : public Proof {
 public:
     UncompressedProof(const std::vector< LabTok > &labels);
     std::shared_ptr< ProofExecutor > get_executor(const Library &lib, const Assertion &ass, bool gen_proof_tree=false) const;
+    const std::vector< LabTok > &get_labels() const;
 private:
     const std::vector< LabTok > labels;
 };
