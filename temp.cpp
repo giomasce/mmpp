@@ -122,43 +122,73 @@ void inverse_unification_reactor(const ParsingTree< SymTok, LabTok > &parent, ve
 
 void test_unification2() {
     auto &data = get_set_mm();
+    auto &lib = data.lib;
     auto &tb = data.tb;
 
-    /*{
-        auto &ass = tb.get_assertion(tb.get_label("ixxun"));
+    for (const Assertion &ass : lib.get_assertions()) {
+    //while (true) {
+        //auto &ass = tb.get_assertion(tb.get_label("cvjust"));
+        if (!ass.is_valid() || !ass.is_theorem() || tb.get_sentence(ass.get_thesis()).at(0) != tb.get_turnstile()) {
+            continue;
+        }
+        if (tb.resolve_label(ass.get_thesis()) == "dummylink") {
+            continue;
+        }
+        if (tb.resolve_label(ass.get_thesis()) == "idi") {
+            continue;
+        }
+
         auto pe = ass.get_proof_executor(tb);
-        UncompressedProof proof = pe->uncompress();
+        auto proof = pe->uncompress();
         auto labs = proof.get_labels();
-        cout << "Proof vector: {";
+        //cout << "Proof vector: {";
+        Reactor reactor(tb);
         for (auto label : labs) {
             auto ess_hyps = ass.get_ess_hyps();
             if (find(ess_hyps.begin(), ess_hyps.end(), label) != ess_hyps.end()) {
-                cout << " \"*\",";
+                //cout << " \"*\",";
+                bool res = reactor.process_hypothesis(tb.get_symbol("wff"));
+                assert(res);
             } else if (tb.get_assertion(label).is_valid() && tb.get_sentence(label).at(0) == tb.get_turnstile()) {
-                cout << " \"" << tb.resolve_label(label) << "\",";
+                //cout << " \"" << tb.resolve_label(label) << "\",";
+                bool res = reactor.process_label(label);
+                assert(res);
             }
         }
-        cout << " }" << endl;
+        //cout << " }" << endl;
         //cout << tb.print_proof(labs, true) << endl;
-    }*/
 
-    cout << "FORWARD UNIFICATION TEST" << endl;
-    Reactor reactor(tb);
-    for (auto it = steps.begin(); it != steps.end(); it++) {
-        string &step = *it;
-        if (step == "*") {
-            bool res = reactor.process_hypothesis(tb.get_symbol("wff"));
-            assert(res);
-        } else {
-            bool res = reactor.process_label(tb.get_label(step));
-            assert(res);
+        /*for (auto it = steps.begin(); it != steps.end(); it++) {
+            string &step = *it;
+            if (step == "*") {
+                bool res = reactor.process_hypothesis(tb.get_symbol("wff"));
+                assert(res);
+            } else {
+                bool res = reactor.process_label(tb.get_label(step));
+                assert(res);
+            }
+        }*/
+
+        bool res;
+        SubstMap< SymTok, LabTok > subst2;
+        tie(res, subst2) = unify(reactor.get_theorem(), tb.get_parsed_sents()[ass.get_thesis()], tb.get_standard_is_var());
+        assert(res);
+        for (const auto &x : subst2) {
+            if (!tb.get_standard_is_var()(x.second.label)) {
+                cout << "FORWARD UNIFICATION TEST for " << tb.resolve_label(ass.get_thesis()) << endl;
+                cout << "Proved theorem: " << tb.print_sentence(reactor.get_theorem()) << endl;
+                cout << "with hypotheses:" << endl;
+                for (const auto &hyp : reactor.get_hypotheses()) {
+                    cout << " * " << tb.print_sentence(hyp) << endl;
+                }
+                cout << endl;
+            }
         }
+
+        tb.release_all_temp_vars();
     }
-    cout << "Proved theorem: " << tb.print_sentence(reactor.get_theorem()) << endl;
-    cout << "with hypotheses:" << endl;
-    for (const auto &hyp : reactor.get_hypotheses()) {
-        cout << " * " << tb.print_sentence(hyp) << endl;
-    }
+
+
 
     /*cout << endl;
 

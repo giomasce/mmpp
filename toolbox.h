@@ -169,6 +169,8 @@ public:
     bool proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers, ProofEngine &engine) const;
 
     std::pair< LabTok, SymTok > new_temp_var(SymTok type_sym);
+    //void release_temp_var(LabTok lab);
+    void release_all_temp_vars();
     std::pair< std::vector< ParsingTree< SymTok, LabTok > >, ParsingTree< SymTok, LabTok > > refresh_assertion(const Assertion &ass);
     ParsingTree< SymTok, LabTok > refresh_parsing_tree(const ParsingTree< SymTok, LabTok > &pt);
 
@@ -239,10 +241,13 @@ private:
 
     std::shared_ptr< ToolboxCache > cache;
 
+    void create_temp_var(SymTok type_sym);
     std::map< SymTok, size_t > temp_idx;
     std::unordered_map< LabTok, Sentence > temp_types;
     StringCache< SymTok > temp_syms;
     StringCache< LabTok > temp_labs;
+    std::map< SymTok, std::vector< std::pair< LabTok, SymTok > > > free_temp_vars;
+    std::map< SymTok, std::vector< std::pair< LabTok, SymTok > > > used_temp_vars;
 };
 
 #endif // LIBRARYTOOLBOX_H

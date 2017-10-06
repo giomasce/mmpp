@@ -352,7 +352,7 @@ bool LibraryToolbox::proving_helper(const RegisteredProverInstanceData &inst_dat
     return true;
 }
 
-std::pair<LabTok, SymTok> LibraryToolbox::new_temp_var(SymTok type_sym)
+void LibraryToolbox::create_temp_var(SymTok type_sym)
 {
     // Create names and variables
     assert(this->is_constant(type_sym));
@@ -371,7 +371,29 @@ std::pair<LabTok, SymTok> LibraryToolbox::new_temp_var(SymTok type_sym)
     this->derivations.at(type_sym).push_back(pair< LabTok, vector< SymTok > >(lab, { sym }));
     this->ders_by_label[lab] = pair< SymTok, vector< SymTok > >(type_sym, { sym });
 
-    return std::make_pair(lab, sym);
+    // And insert it to the free list
+    this->free_temp_vars[type_sym].push_back(make_pair(lab, sym));
+}
+
+std::pair<LabTok, SymTok> LibraryToolbox::new_temp_var(SymTok type_sym)
+{
+    if (this->free_temp_vars[type_sym].empty()) {
+        this->create_temp_var(type_sym);
+    }
+    auto ret = this->free_temp_vars[type_sym].back();
+    this->used_temp_vars[type_sym].push_back(ret);
+    this->free_temp_vars[type_sym].pop_back();
+    return ret;
+}
+
+void LibraryToolbox::release_all_temp_vars()
+{
+    for (auto &v : this->used_temp_vars) {
+        for (const auto &p : v.second) {
+            this->free_temp_vars[v.first].push_back(p);
+        }
+    }
+    this->used_temp_vars.clear();
 }
 
 // FIXME Deduplicate with refresh_parsing_tree()
@@ -856,7 +878,7 @@ const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryToolbox::get_asse
 void LibraryToolbox::compute_derivations()
 {
     // Build the derivation rules; a derivation is created for each $f statement
-    // and for each $a and $p statement without essential hypotheses such that no variable
+    // and for each $a statement without essential hypotheses such that no variable
     // appears more than once and without distinct variables constraints and that does not
     // begin with the turnstile
     for (auto &type_lab : this->get_types()) {
@@ -875,6 +897,9 @@ void LibraryToolbox::compute_derivations()
             continue;
         }
         if (ass.get_mand_dists().size() != 0) {
+            continue;
+        }
+        if (ass.is_theorem()) {
             continue;
         }
         const auto &sent = this->get_sentence(ass.get_thesis());
