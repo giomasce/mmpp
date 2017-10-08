@@ -138,6 +138,7 @@ void test_unification2() {
             continue;
         }
 
+        cout << "FORWARD UNIFICATION TEST for " << tb.resolve_label(ass.get_thesis()) << endl;
         auto pe = ass.get_proof_executor(tb);
         auto proof = pe->uncompress();
         auto labs = proof.get_labels();

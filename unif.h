@@ -119,14 +119,14 @@ bool contains_var(const ParsingTree< SymType, LabType > &pt, LabType var) {
 }
 
 template< typename SymType, typename LabType >
-std::tuple< bool, bool > unify2_internal_slow_step(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
+std::tuple< bool, bool > unify2_slow_step(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
                                                    const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst) {
     if (pt1.label == pt2.label) {
         assert(pt1.children.size() == pt2.children.size());
         for (size_t i = 0; i < pt1.children.size(); i++) {
             bool finished;
             bool success;
-            std::tie(finished, success) = unify2_internal_slow_step(pt1.children[i], pt2.children[i], is_var, subst);
+            std::tie(finished, success) = unify2_slow_step(pt1.children[i], pt2.children[i], is_var, subst);
             if (!finished || !success) {
                 return std::make_pair(finished, success);
             }
@@ -148,7 +148,7 @@ std::tuple< bool, bool > unify2_internal_slow_step(const ParsingTree< SymType, L
 }
 
 template< typename SymType, typename LabType >
-bool unify2_internal_slow(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
+bool unify2_slow(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
                           const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst) {
     // Algorithm described in Chang, Lee (Symbolic logic and mechanical theorem proving), section 5.4 Unification algorithm
     // It seems to be rather inefficient, but it is also simple, so it easier to trust; it can be used
@@ -159,7 +159,7 @@ bool unify2_internal_slow(const ParsingTree< SymType, LabType > &pt1, const Pars
         bool finished;
         bool success;
         SubstMap< SymType, LabType > new_subst;
-        std::tie(finished, success) = unify2_internal_slow_step(pt1s, pt2s, is_var, new_subst);
+        std::tie(finished, success) = unify2_slow_step(pt1s, pt2s, is_var, new_subst);
         if (finished) {
             return success;
         }
@@ -167,6 +167,114 @@ bool unify2_internal_slow(const ParsingTree< SymType, LabType > &pt1, const Pars
         pt2s = substitute(pt2s, is_var, new_subst);
         subst = compose(subst, new_subst, is_var);
     }
+}
+
+template< typename SymType, typename LabType >
+bool unify2_quick_process_tree(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
+                           const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst,
+                           std::unordered_map< LabType, std::set< LabType > > &deps) {
+    if (pt1.label == pt2.label) {
+        assert(pt1.children.size() == pt2.children.size());
+        for (size_t i = 0; i < pt1.children.size(); i++) {
+            bool res = unify2_quick_process_tree(pt1.children[i], pt2.children[i], is_var, subst, deps);
+            if (!res) {
+                return false;
+            }
+        }
+        return true;
+    } else {
+        LabType var;
+        const ParsingTree< SymType, LabType > *content;
+        if (is_var(pt1.label)) {
+            assert(pt1.children.empty());
+            var = pt1.label;
+            content = &pt2;
+        } else if (is_var(pt2.label)) {
+            assert(pt2.children.empty());
+            var = pt2.label;
+            content = &pt1;
+        } else {
+            return false;
+        }
+        bool res;
+        typename SubstMap< SymType, LabType >::iterator it;
+        std::tie(it, res) = subst.insert(std::make_pair(var, *content));
+        if (res) {
+            collect_variables(*content, is_var, deps[var]);
+            return true;
+        } else {
+            return unify2_quick_process_tree(*content, it->second, is_var, subst, deps);
+        }
+    }
+}
+
+enum Status { Unvisited = 0, Visiting, Visited };
+template< typename SymType, typename LabType >
+bool unify2_quick_resolve_deps(LabType lab, SubstMap< SymType, LabType > &subst, std::unordered_map< LabType, Status > &status, const std::function< bool(LabType) > &is_var, const std::unordered_map< LabType, std::set< LabType > > &deps) {
+    auto it = deps.find(lab);
+    if (it == deps.end()) {
+        return true;
+    }
+    if (status[lab] == Visited) {
+        return true;
+    }
+    if (status[lab] == Visiting) {
+        return false;
+    }
+    status[lab] = Visiting;
+    for (const auto &new_lab : it->second) {
+        bool res = unify2_quick_resolve_deps(new_lab, subst, status, is_var, deps);
+        if (!res) {
+            return false;
+        }
+    }
+    subst[lab] = substitute(subst[lab], is_var, subst);
+    status[lab] = Visited;
+    return true;
+}
+
+template< typename SymType, typename LabType >
+bool unify2_quick(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
+                  const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst) {
+    std::unordered_map< LabType, std::set< LabType > > deps;
+    bool res = unify2_quick_process_tree(pt1, pt2, is_var, subst, deps);
+    if (!res) {
+        return false;
+    }
+    std::unordered_map< LabType, Status > status;
+    for (const auto &p : deps) {
+        bool res = unify2_quick_resolve_deps(p.first, subst, status, is_var, deps);
+        if (!res) {
+            return false;
+        }
+    }
+    return true;
+}
+
+template< typename SymType, typename LabType >
+bool unify2_quick_adapter(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
+                  const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst) {
+    ParsingTree< SymType, LabType > pt1s = substitute(pt1, is_var, subst);
+    ParsingTree< SymType, LabType > pt2s = substitute(pt2, is_var, subst);
+    SubstMap< SymType, LabType > new_subst;
+    bool ret = unify2_quick(pt1s, pt2s, is_var, new_subst);
+#ifdef UNIFICATOR_SELF_TEST
+    SubstMap< SymType, LabType > new_subst2;
+    bool ret2 = unify2_slow(pt1s, pt2s, is_var, new_subst2);
+    assert(ret == ret2);
+    if (ret) {
+        auto s1 = substitute(pt1s, is_var, new_subst);
+        auto s2 = substitute(pt2s, is_var, new_subst);
+        auto s3 = substitute(pt1s, is_var, new_subst2);
+        auto s4 = substitute(pt2s, is_var, new_subst2);
+        assert(s1 == s2);
+        assert(s3 == s4);
+    }
+#endif
+    if (ret) {
+        subst = compose(subst, new_subst, is_var);
+    }
+    return ret;
 }
 
 // FIXME Finish
@@ -210,12 +318,20 @@ bool unify(const ParsingTree< SymType, LabType > &templ, const ParsingTree< SymT
 template< typename SymType, typename LabType >
 bool unify2(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
             const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst) {
-    bool ret = unify2_internal_slow(pt1, pt2, is_var, subst);
 #ifdef UNIFICATOR_SELF_TEST
+    SubstMap< SymType, LabType > subst2 = subst;
+#endif
+    bool ret = unify2_quick_adapter(pt1, pt2, is_var, subst);
+#ifdef UNIFICATOR_SELF_TEST
+    bool ret2 = unify2_slow(pt1, pt2, is_var, subst2);
+    assert(ret == ret2);
     if (ret) {
         auto s1 = substitute(pt1, is_var, subst);
         auto s2 = substitute(pt2, is_var, subst);
+        auto s3 = substitute(pt1, is_var, subst2);
+        auto s4 = substitute(pt2, is_var, subst2);
         assert(s1 == s2);
+        assert(s3 == s4);
     }
 #endif
     return ret;
