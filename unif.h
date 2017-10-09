@@ -11,6 +11,47 @@
 template< typename SymType, typename LabType >
 using SubstMap = std::unordered_map< LabType, ParsingTree< SymType, LabType > >;
 
+// Implementation from https://en.wikipedia.org/wiki/Disjoint-set_data_structure
+template< typename LabType >
+class DisjointSet {
+public:
+    void make_set(LabType lab) {
+        // Only insert if the node does not exists yet
+        this->parent.insert(std::make_pair(lab, lab));
+        this->rank.insert(std::make_pair(lab, 0));
+    }
+
+    LabType find_set(LabType lab) {
+        if (this->parent[lab] != lab) {
+            this->parent[lab] = this->find_set(parent[lab]);
+        }
+        return parent[lab];
+    }
+
+    std::pair< bool, LabType > union_set(LabType l1, LabType l2) {
+        l1 = this->find_set(l1);
+        l2 = this->find_set(l2);
+        if (l1 == l2) {
+            return std::make_pair(false, l1);
+        }
+        if (this->rank[l1] < this->rank[l2]) {
+            this->parent[l1] = l2;
+            return std::make_pair(true, l2);
+        } else if (this->rank[l1] > this->rank[l2]) {
+            this->parent[l2] = l1;
+            return std::make_pair(true, l1);
+        } else {
+            this->parent[l2] = l1;
+            this->rank[l1]++;
+            return std::make_pair(true, l1);
+        }
+    }
+
+private:
+    std::unordered_map< LabType, LabType > parent;
+    std::unordered_map< LabType, size_t > rank;
+};
+
 template< typename SymType, typename LabType >
 void collect_variables(const ParsingTree< SymType, LabType > &pt, const std::function< bool(LabType) > &is_var, std::set< LabType > &vars) {
     if (is_var(pt.label)) {
@@ -171,12 +212,13 @@ bool unify2_slow(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< 
 
 template< typename SymType, typename LabType >
 bool unify2_quick_process_tree(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
-                           const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst,
-                           std::unordered_map< LabType, std::set< LabType > > &deps) {
+                               const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst,
+                               std::unordered_map< LabType, std::set< LabType > > &deps,
+                               DisjointSet< LabType > &djs) {
     if (pt1.label == pt2.label) {
         assert(pt1.children.size() == pt2.children.size());
         for (size_t i = 0; i < pt1.children.size(); i++) {
-            bool res = unify2_quick_process_tree(pt1.children[i], pt2.children[i], is_var, subst, deps);
+            bool res = unify2_quick_process_tree(pt1.children[i], pt2.children[i], is_var, subst, deps, djs);
             if (!res) {
                 return false;
             }
@@ -185,12 +227,43 @@ bool unify2_quick_process_tree(const ParsingTree< SymType, LabType > &pt1, const
     } else {
         LabType var;
         const ParsingTree< SymType, LabType > *content;
-        if (is_var(pt1.label)) {
-            assert(pt1.children.empty());
+        bool v1 = is_var(pt1.label);
+        bool v2 = is_var(pt2.label);
+        assert(!(v1 && !pt1.children.empty()));
+        assert(!(v2 && !pt2.children.empty()));
+        if (v1 && v2) {
+            // If both are variables, then we use the disjoint set structure to determine how to substitute
+            djs.make_set(pt1.label);
+            djs.make_set(pt2.label);
+            LabType l1 = djs.find_set(pt1.label);
+            LabType l2 = djs.find_set(pt2.label);
+            if (l1 != l2) {
+                bool res;
+                LabTok l3;
+                std::tie(res, l3) = djs.union_set(l1, l2);
+                assert(res);
+                assert(l3 == l1 || l3 == l2);
+                if (l3 == l1) {
+                    ParsingTree< SymTok, LabTok > pt;
+                    pt.label = l1;
+                    pt.type = pt1.type;
+                    std::tie(std::ignore, res) = subst.insert(std::make_pair(l2, pt));
+                    assert(res);
+                    deps[l2] = { l1 };
+                } else {
+                    ParsingTree< SymTok, LabTok > pt;
+                    pt.label = l2;
+                    pt.type = pt2.type;
+                    std::tie(std::ignore, res) = subst.insert(std::make_pair(l1, pt));
+                    assert(res);
+                    deps[l1] = { l2 };
+                }
+            }
+            return true;
+        } else if (v1) {
             var = pt1.label;
             content = &pt2;
-        } else if (is_var(pt2.label)) {
-            assert(pt2.children.empty());
+        } else if (v2) {
             var = pt2.label;
             content = &pt1;
         } else {
@@ -203,7 +276,7 @@ bool unify2_quick_process_tree(const ParsingTree< SymType, LabType > &pt1, const
             collect_variables(*content, is_var, deps[var]);
             return true;
         } else {
-            return unify2_quick_process_tree(*content, it->second, is_var, subst, deps);
+            return unify2_quick_process_tree(it->second, *content, is_var, subst, deps, djs);
         }
     }
 }
@@ -237,7 +310,8 @@ template< typename SymType, typename LabType >
 bool unify2_quick(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
                   const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst) {
     std::unordered_map< LabType, std::set< LabType > > deps;
-    bool res = unify2_quick_process_tree(pt1, pt2, is_var, subst, deps);
+    DisjointSet< LabType > djs;
+    bool res = unify2_quick_process_tree(pt1, pt2, is_var, subst, deps, djs);
     if (!res) {
         return false;
     }
