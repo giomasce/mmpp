@@ -344,7 +344,7 @@ void test_unification() {
     cout << "Generic unification test" << endl;
     vector< SymTok > sent = tb.read_sentence("wff ( ph -> ( ps -> ch ) )");
     vector< SymTok > templ = tb.read_sentence("wff ( th -> et )");
-    auto res = unify(sent, templ, lib, false);
+    auto res = unify_old(sent, templ, lib, false);
     cout << "Matching:         " << tb.print_sentence(sent) << endl << "against template: " << tb.print_sentence(templ) << endl;
     for (auto &match : res) {
         cout << "  *";
@@ -408,7 +408,7 @@ void test_type_proving() {
     cout << "Alt HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << endl;
     cout << "LaTeX sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_LATEX) << endl;
     ProofEngine engine(lib);
-    tb.build_type_prover(sent)(engine);
+    tb.build_classical_type_prover(sent)(engine);
     auto res = engine.get_proof_labels();
     cout << "Found type proof (classical): " << tb.print_proof(res) << endl;
     ProofEngine engine2(lib);

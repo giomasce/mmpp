@@ -10,7 +10,7 @@
 
 using namespace std;
 
-#define TOOLBOX_SELF_TEST
+//#define TOOLBOX_SELF_TEST
 
 ostream &operator<<(ostream &os, const SentencePrinter &sp)
 {
@@ -165,7 +165,7 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
             }
         }
         sort(hyp_labels.begin(), hyp_labels.end());
-        auto unifications = unify(type_sent, templ_sent, *this);
+        auto unifications = unify_old(type_sent, templ_sent, *this);
         for (auto &unification : unifications) {
             bool failed = false;
             engine.checkpoint();
@@ -627,7 +627,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
             }
             auto &th = this->get_sentence(ass.get_thesis());
             copy(th.begin(), th.end(), back_inserter(templ));
-            auto unifications = unify(sent, templ, *this);
+            auto unifications = unify_old(sent, templ, *this);
             if (!unifications.empty()) {
                 for (auto &unification : unifications) {
                     // Here we have to check that substitutions are of the corresponding type

@@ -12,7 +12,7 @@
 using namespace std;
 
 // This algorithm is probably not terribly efficient
-static void unify_internal(vector<SymTok>::const_iterator sent_cur, vector<SymTok>::const_iterator sent_end,
+static void unify_old_internal(vector<SymTok>::const_iterator sent_cur, vector<SymTok>::const_iterator sent_end,
                            vector<SymTok>::const_iterator templ_cur, vector<SymTok>::const_iterator templ_end,
                            const Library &lib, bool allow_empty, unordered_map< SymTok, vector< SymTok > > &current_match,
                            vector< unordered_map< SymTok, vector< SymTok > > > &matches) {
@@ -38,7 +38,7 @@ static void unify_internal(vector<SymTok>::const_iterator sent_cur, vector<SymTo
 #ifndef NDEBUG
                 cerr << "Token is a constant, which matched" << endl;
 #endif
-                unify_internal(sent_cur+1, sent_end, templ_cur+1, templ_end, lib, allow_empty, current_match, matches);
+                unify_old_internal(sent_cur+1, sent_end, templ_cur+1, templ_end, lib, allow_empty, current_match, matches);
             } else {
 #ifndef NDEBUG
                 cerr << "Token is a constant, which did not match" << endl;
@@ -57,7 +57,7 @@ static void unify_internal(vector<SymTok>::const_iterator sent_cur, vector<SymTo
                     if (i > 0 || allow_empty) {
                         auto this_it = current_match.insert(make_pair(cur_tok, match));
                         assert(this_it.second);
-                        unify_internal(sent_cur+i, sent_end, templ_cur+1, templ_end, lib, allow_empty, current_match, matches);
+                        unify_old_internal(sent_cur+i, sent_end, templ_cur+1, templ_end, lib, allow_empty, current_match, matches);
                         current_match.erase(this_it.first);
                     }
                     if (i < distance(sent_cur, sent_end)) {
@@ -72,7 +72,7 @@ static void unify_internal(vector<SymTok>::const_iterator sent_cur, vector<SymTo
 #ifndef NDEBUG
                     cerr << "Token is an old variable, which matched" << endl;
 #endif
-                    unify_internal(sent_cur+len, sent_end, templ_cur+1, templ_end, lib, allow_empty, current_match, matches);
+                    unify_old_internal(sent_cur+len, sent_end, templ_cur+1, templ_end, lib, allow_empty, current_match, matches);
                 } else {
 #ifndef NDEBUG
                     cerr << "Token is an old variable, which did not match" << endl;
@@ -90,7 +90,7 @@ static void unify_internal(vector<SymTok>::const_iterator sent_cur, vector<SymTo
  * algorithm on much less sentences in the library. After quick measurements, it seems that there is
  * a noticeable (~ 30%) speedup on simple sentences and an order-of-magnitude one on complex sentences.
  */
-static bool unify_internal_quick(vector<SymTok>::const_iterator sent_cur, vector<SymTok>::const_iterator sent_end,
+static bool unify_old_internal_quick(vector<SymTok>::const_iterator sent_cur, vector<SymTok>::const_iterator sent_end,
                                  vector<SymTok>::const_iterator templ_cur, vector<SymTok>::const_iterator templ_end,
                                  const Library &lib) {
     while (templ_cur != templ_end) {
@@ -115,12 +115,12 @@ static bool unify_internal_quick(vector<SymTok>::const_iterator sent_cur, vector
     return true;
 }
 
-std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > unify(const std::vector<SymTok> &sent, const std::vector<SymTok> &templ, const Library &lib, bool allow_empty)
+std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > unify_old(const std::vector<SymTok> &sent, const std::vector<SymTok> &templ, const Library &lib, bool allow_empty)
 {
     vector< unordered_map< SymTok, vector< SymTok > > > matches;
     unordered_map< SymTok, vector< SymTok > > current_match;
-    if (unify_internal_quick(sent.begin(), sent.end(), templ.begin(), templ.end(), lib)) {
-        unify_internal(sent.begin(), sent.end(), templ.begin(), templ.end(), lib, allow_empty, current_match, matches);
+    if (unify_old_internal_quick(sent.begin(), sent.end(), templ.begin(), templ.end(), lib)) {
+        unify_old_internal(sent.begin(), sent.end(), templ.begin(), templ.end(), lib, allow_empty, current_match, matches);
     }
     return matches;
 }

@@ -6,6 +6,6 @@
 #include <vector>
 #include <unordered_map>
 
-std::vector< std::unordered_map< SymTok, std::vector< SymTok > > > unify(const std::vector< SymTok > &sent, const std::vector< SymTok > &templ, const Library &lib, bool allow_empty=false);
+std::vector< std::unordered_map< SymTok, std::vector< SymTok > > > unify_old(const std::vector< SymTok > &sent, const std::vector< SymTok > &templ, const Library &lib, bool allow_empty=false);
 
 #endif // UNIFICATION_H
