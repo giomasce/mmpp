@@ -6,7 +6,7 @@
 
 #include "parser.h"
 
-#define UNIFICATOR_SELF_TEST
+//#define UNIFICATOR_SELF_TEST
 
 template< typename SymType, typename LabType >
 using SubstMap = std::unordered_map< LabType, ParsingTree< SymType, LabType > >;
@@ -226,6 +226,7 @@ bool unify2_quick_process_tree(const ParsingTree< SymType, LabType > &pt1, const
         return true;
     } else {
         LabType var;
+        ParsingTree< SymTok, LabTok > pt_temp;
         const ParsingTree< SymType, LabType > *content;
         bool v1 = is_var(pt1.label);
         bool v2 = is_var(pt2.label);
@@ -244,22 +245,19 @@ bool unify2_quick_process_tree(const ParsingTree< SymType, LabType > &pt1, const
                 assert(res);
                 assert(l3 == l1 || l3 == l2);
                 if (l3 == l1) {
-                    ParsingTree< SymTok, LabTok > pt;
-                    pt.label = l1;
-                    pt.type = pt1.type;
-                    std::tie(std::ignore, res) = subst.insert(std::make_pair(l2, pt));
-                    assert(res);
-                    deps[l2] = { l1 };
+                    pt_temp.label = l1;
+                    pt_temp.type = pt1.type;
+                    var = l2;
+                    content = &pt_temp;
                 } else {
-                    ParsingTree< SymTok, LabTok > pt;
-                    pt.label = l2;
-                    pt.type = pt2.type;
-                    std::tie(std::ignore, res) = subst.insert(std::make_pair(l1, pt));
-                    assert(res);
-                    deps[l1] = { l2 };
+                    pt_temp.label = l2;
+                    pt_temp.type = pt2.type;
+                    var = l1;
+                    content = &pt_temp;
                 }
+            } else {
+                return true;
             }
-            return true;
         } else if (v1) {
             var = pt1.label;
             content = &pt2;
@@ -307,22 +305,44 @@ bool unify2_quick_resolve_deps(LabType lab, SubstMap< SymType, LabType > &subst,
 }
 
 template< typename SymType, typename LabType >
-bool unify2_quick(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
-                  const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst) {
+std::pair< bool, SubstMap< SymType, LabType > > unify2_quick(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
+                  const std::function< bool(LabType) > &is_var) {
+    SubstMap< SymType, LabType > subst;
     std::unordered_map< LabType, std::set< LabType > > deps;
     DisjointSet< LabType > djs;
     bool res = unify2_quick_process_tree(pt1, pt2, is_var, subst, deps, djs);
+#ifdef UNIFICATOR_SELF_TEST
+    SubstMap< SymType, LabType > subst2;
+    bool res2 = unify2_slow(pt1, pt2, is_var, subst2);
+#endif
     if (!res) {
-        return false;
+#ifdef UNIFICATOR_SELF_TEST
+        assert(!res2);
+#endif
+        subst.clear();
+        return std::make_pair(false, subst);
     }
     std::unordered_map< LabType, Status > status;
     for (const auto &p : deps) {
         bool res = unify2_quick_resolve_deps(p.first, subst, status, is_var, deps);
         if (!res) {
-            return false;
+#ifdef UNIFICATOR_SELF_TEST
+            assert(!res2);
+#endif
+            subst.clear();
+            return std::make_pair(false, subst);
         }
     }
-    return true;
+#ifdef UNIFICATOR_SELF_TEST
+    assert(res2);
+    auto s1 = substitute(pt1, is_var, subst);
+    auto s2 = substitute(pt2, is_var, subst);
+    auto s3 = substitute(pt1, is_var, subst2);
+    auto s4 = substitute(pt2, is_var, subst2);
+    assert(s1 == s2);
+    assert(s3 == s4);
+#endif
+    return std::make_pair(true, subst);
 }
 
 template< typename SymType, typename LabType >
@@ -330,21 +350,9 @@ bool unify2_quick_adapter(const ParsingTree< SymType, LabType > &pt1, const Pars
                   const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst) {
     ParsingTree< SymType, LabType > pt1s = substitute(pt1, is_var, subst);
     ParsingTree< SymType, LabType > pt2s = substitute(pt2, is_var, subst);
+    bool ret;
     SubstMap< SymType, LabType > new_subst;
-    bool ret = unify2_quick(pt1s, pt2s, is_var, new_subst);
-#ifdef UNIFICATOR_SELF_TEST
-    SubstMap< SymType, LabType > new_subst2;
-    bool ret2 = unify2_slow(pt1s, pt2s, is_var, new_subst2);
-    assert(ret == ret2);
-    if (ret) {
-        auto s1 = substitute(pt1s, is_var, new_subst);
-        auto s2 = substitute(pt2s, is_var, new_subst);
-        auto s3 = substitute(pt1s, is_var, new_subst2);
-        auto s4 = substitute(pt2s, is_var, new_subst2);
-        assert(s1 == s2);
-        assert(s3 == s4);
-    }
-#endif
+    std::tie(ret, new_subst) = unify2_quick(pt1s, pt2s, is_var);
     if (ret) {
         subst = compose(subst, new_subst, is_var);
     }
@@ -422,5 +430,40 @@ std::pair< bool, SubstMap< SymType, LabType > > unify(const ParsingTree< SymType
     }
     return std::make_pair(res, subst);
 }
+
+template< typename SymType, typename LabType >
+class Unificator {
+public:
+    Unificator(const std::function< bool(LabType) > &is_var) : is_var(is_var) {
+        this->pt1.label = {};
+        this->pt2.label = {};
+        this->pt1.type = {};
+        this->pt2.type = {};
+    }
+
+    void add_parsing_trees(const ParsingTree< SymType, LabType > &new_pt1, const ParsingTree< SymType, LabType > &new_pt2) {
+        this->pt1.children.push_back(new_pt1);
+        this->pt2.children.push_back(new_pt2);
+    }
+
+    std::pair< bool, SubstMap< SymType, LabType > > unify() const {
+        bool ret1;
+        SubstMap< SymType, LabType > ret2;
+        std::tie(ret1, ret2) = ::unify(this->pt1, this->pt2, this->is_var);
+        return std::make_pair(ret1, ret2);
+    }
+
+    std::pair< bool, SubstMap< SymType, LabType > > unify2() const {
+        bool ret1;
+        SubstMap< SymType, LabType > ret2;
+        std::tie(ret1, ret2) = ::unify2_quick(this->pt1, this->pt2, this->is_var);
+        return std::make_pair(ret1, ret2);
+    }
+
+private:
+    const std::function< bool(LabType) > &is_var;
+    ParsingTree< SymType, LabType > pt1;
+    ParsingTree< SymType, LabType > pt2;
+};
 
 #endif // UNIF_H

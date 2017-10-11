@@ -35,11 +35,11 @@ vector< string > steps = { "elun", "simpl1", "simpl2", "*", "elixx1", "syl2anc",
 class Reactor {
 public:
     Reactor(LibraryToolbox &tb) :
-        tb(tb), is_var(tb.get_standard_is_var())
+        tb(tb), is_var(tb.get_standard_is_var()), unificator(this->is_var)
     {
     }
 
-    bool process_hypothesis(SymTok type_sym) {
+    void process_hypothesis(SymTok type_sym) {
         LabTok type;
         tie(type, ignore) = tb.new_temp_var(type_sym);
         this->hypotheses.push_back(type);
@@ -47,36 +47,36 @@ public:
         pt.label = type;
         pt.type = type_sym;
         this->stack.push_back(pt);
-        return true;
     }
 
-    bool process_sentence(const Sentence &sent) {
-        return this->process_parsing_tree(tb.parse_sentence(sent));
+    void process_sentence(const Sentence &sent) {
+        this->process_parsing_tree(tb.parse_sentence(sent));
     }
 
-    bool process_parsing_tree(const ParsingTree< SymTok, LabTok > &pt) {
+    void process_parsing_tree(const ParsingTree< SymTok, LabTok > &pt) {
         this->stack.push_back(tb.refresh_parsing_tree(pt));
-        return true;
     }
 
-    bool process_assertion(const Assertion &ass) {
+    void process_assertion(const Assertion &ass) {
         ParsingTree< SymTok, LabTok > thesis;
         vector< ParsingTree< SymTok, LabTok > > hyps;
         tie(hyps, thesis) = tb.refresh_assertion(ass);
         assert(stack.size() >= hyps.size());
         for (size_t i = 0; i < hyps.size(); i++) {
-            bool res = unify2(this->stack[this->stack.size()-hyps.size()+i], hyps[i], this->is_var, this->subst);
-            if (!res) {
-                return false;
-            }
+            this->unificator.add_parsing_trees(this->stack[this->stack.size()-hyps.size()+i], hyps[i]);
         }
         this->stack.resize(this->stack.size() - hyps.size());
         this->stack.push_back(thesis);
-        return true;
     }
 
-    bool process_label(LabTok lab) {
-        return this->process_assertion(tb.get_assertion(lab));
+    void process_label(LabTok lab) {
+        this->process_assertion(tb.get_assertion(lab));
+    }
+
+    bool compute_unification() {
+        bool res;
+        tie(res, this->subst) = this->unificator.unify2();
+        return res;
     }
 
     ParsingTree< SymTok, LabTok > get_theorem() {
@@ -87,7 +87,15 @@ public:
     vector< ParsingTree< SymTok, LabTok > > get_hypotheses() {
         vector< ParsingTree< SymTok, LabTok > > ret;
         for (const auto &hyp : this->hypotheses) {
-            ret.push_back(subst.at(hyp));
+            SubstMap< SymTok, LabTok >::iterator it = subst.find(hyp);
+            if (it != subst.end()) {
+                ret.push_back(it->second);
+            } else {
+                ParsingTree< SymTok, LabTok > pt;
+                pt.label = hyp;
+                // FIXME Fill pt.type
+                ret.push_back(pt);
+            }
         }
         return ret;
     }
@@ -95,6 +103,7 @@ public:
 private:
     LibraryToolbox &tb;
     const std::function< bool(LabTok) > is_var;
+    Unificator< SymTok, LabTok > unificator;
     vector< ParsingTree< SymTok, LabTok > > stack;
     vector< LabTok > hypotheses;
     SubstMap< SymTok, LabTok > subst;
@@ -148,12 +157,10 @@ void test_unification2() {
             auto ess_hyps = ass.get_ess_hyps();
             if (find(ess_hyps.begin(), ess_hyps.end(), label) != ess_hyps.end()) {
                 //cout << " \"*\",";
-                bool res = reactor.process_hypothesis(tb.get_symbol("wff"));
-                assert(res);
+                reactor.process_hypothesis(tb.get_symbol("wff"));
             } else if (tb.get_assertion(label).is_valid() && tb.get_sentence(label).at(0) == tb.get_turnstile()) {
                 //cout << " \"" << tb.resolve_label(label) << "\",";
-                bool res = reactor.process_label(label);
-                assert(res);
+                reactor.process_label(label);
             }
         }
         //cout << " }" << endl;
@@ -170,7 +177,9 @@ void test_unification2() {
             }
         }*/
 
-        bool res;
+        bool res = reactor.compute_unification();
+        assert(res);
+
         SubstMap< SymTok, LabTok > subst2;
         tie(res, subst2) = unify(reactor.get_theorem(), tb.get_parsed_sents()[ass.get_thesis()], tb.get_standard_is_var());
         assert(res);
