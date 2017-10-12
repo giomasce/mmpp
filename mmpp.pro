@@ -28,7 +28,8 @@ SOURCES += main.cpp \
     z3prover.cpp \
     reader.cpp \
     main_unification.cpp \
-    temp.cpp
+    temp.cpp \
+    optimize.cpp
 
 CONFIG(qt) {
 SOURCES +=  mainwindow.cpp \
@@ -87,6 +88,6 @@ DISTFILES += \
 FORMS += \
     mainwindow.ui
 
-create_links.commands = for i in mmpp_verify_one mmpp_verify_all mmpp_test_setmm mmpp_unificator webmmpp qmmpp mmpp_test_z3 ; do ln -s mmpp \$\$i 2>/dev/null || true ; done
+create_links.commands = for i in mmpp_verify_one mmpp_verify_all mmpp_test_setmm mmpp_unificator webmmpp qmmpp mmpp_test_z3 mmpp_generalizable_theorems ; do ln -s mmpp \$\$i 2>/dev/null || true ; done
 QMAKE_EXTRA_TARGETS += create_links
 POST_TARGETDEPS += create_links
