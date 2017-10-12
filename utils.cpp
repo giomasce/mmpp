@@ -120,3 +120,13 @@ void register_main_function(const string &name, const function< int(int, char*[]
     get_main_functions().insert(make_pair(name, main_function));
 }
 
+streamsize HasherSink::write(const char *s, streamsize n) {
+    this->hasher.Update(reinterpret_cast< const ::byte* >(s), n);
+    return n;
+}
+
+string HasherSink::get_digest() {
+    ::byte digest[decltype(hasher)::DIGESTSIZE];
+    this->hasher.Final(digest);
+    return std::string(reinterpret_cast< const char* >(digest), sizeof(decltype(digest)));
+}

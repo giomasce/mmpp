@@ -159,27 +159,18 @@ static void function_name(); \
 static int var_name __attribute((unused)) = (function_name(), 0) ; \
 static void function_name()
 
-template< typename Hasher >
 class HasherSink : public boost::iostreams::sink {
 public:
-    std::streamsize write(const char* s, std::streamsize n) {
-        this->hasher.Update(reinterpret_cast< const byte* >(s), n);
-        return n;
-    }
-
-    std::string get_digest() {
-        byte digest[decltype(hasher)::DIGESTSIZE];
-        this->hasher.Final(digest);
-        return std::string(reinterpret_cast< const char* >(digest), sizeof(decltype(digest)));
-    }
+    std::streamsize write(const char* s, std::streamsize n);
+    std::string get_digest();
 
 private:
-    Hasher hasher;
+    CryptoPP::SHA256 hasher;
 };
 
 template< typename T >
 std::string hash_object(const T &obj) {
-    HasherSink< CryptoPP::SHA256 > hasher;
+    HasherSink hasher;
     boost::iostreams::stream fout(hasher);
     {
         boost::archive::text_oarchive archive(fout);
