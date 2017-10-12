@@ -963,8 +963,8 @@ void LibraryToolbox::compute_parser_initialization()
     this->parser = NULL;
     std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](ostream &os, SymTok sym)->ostream& { return os << this->resolve_symbol(sym); };
     std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](ostream &os, LabTok lab)->ostream& { return os << this->resolve_label(lab); };
-    auto ders = this->get_derivations();
-    auto ders_digest = hash_object(ders);
+    const auto &ders = this->get_derivations();
+    string ders_digest = hash_object(ders);
     this->parser = new LRParser< SymTok, LabTok >(ders, sym_printer, lab_printer);
     bool loaded = false;
     if (this->cache != NULL) {
