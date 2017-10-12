@@ -190,7 +190,6 @@ public:
     const StackFrame &get_final_stack_frame() const;
     const LibraryAddendum &get_addendum() const;
     const ParsingAddendumImpl &get_parsing_addendum() const;
-    std::string get_digest() const;
 
 private:
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_uncached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;

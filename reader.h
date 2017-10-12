@@ -8,8 +8,6 @@
 
 #include <boost/filesystem.hpp>
 
-#include <cryptopp/sha.h>
-
 #include "library.h"
 
 std::vector< std::string > tokenize(const std::string &in);
@@ -22,8 +20,6 @@ std::vector< std::string > tokenize(const std::string &in);
 class TokenGenerator {
 public:
     virtual std::pair< bool, std::string > next() = 0;
-    virtual void compute_digest() = 0;
-    virtual std::string get_digest() const = 0;
     virtual ~TokenGenerator();
 };
 
@@ -32,12 +28,15 @@ public:
     //FileTokenizer(const std::string &filename);
     FileTokenizer(const boost::filesystem::path &filename);
     std::pair< bool, std::string > next();
-    void compute_digest();
-    std::string get_digest() const;
     ~FileTokenizer();
 private:
     FileTokenizer(std::string filename, boost::filesystem::path base_path);
-    char get_char();
+    char get_char()
+    {
+        char c;
+        this->fin.get(c);
+        return c;
+    }
 
     boost::filesystem::ifstream fin;
     boost::filesystem::path base_path;
@@ -45,8 +44,6 @@ private:
     bool white;
     std::vector< char > buf;
     std::pair< bool, std::string > finalize_token(bool comment);
-    CryptoPP::SHA256 hasher;
-    byte digest[CryptoPP::SHA256::DIGESTSIZE];
 };
 
 class Reader {

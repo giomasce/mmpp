@@ -1,5 +1,5 @@
-#ifndef STATICS_H
-#define STATICS_H
+#ifndef UTILS_H
+#define UTILS_H
 
 #include <set>
 #include <string>
@@ -15,17 +15,19 @@
 #include <chrono>
 #include <unordered_map>
 
-#define SELF_DEBUG
+#include <boost/filesystem.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/iostreams/stream.hpp>
+#include <boost/iostreams/concepts.hpp>
 
-#if defined(__GNUG__) && defined(SELF_DEBUG)
-#include <execinfo.h>
-#include <cxxabi.h>
-#include <dlfcn.h>
-#include <stdlib.h>
+#include <cryptopp/sha.h>
 
+#define EXCEPTIONS_SELF_DEBUG
+
+#if defined(__GNUG__) && defined(EXCEPTIONS_SELF_DEBUG)
 std::vector< std::string > dump_stacktrace(size_t depth);
 std::vector< std::string > dump_stacktrace();
-
 #else
 inline static std::vector< std::string > dump_stacktrace(int depth=0) {
     (void) depth;
@@ -157,4 +159,34 @@ static void function_name(); \
 static int var_name __attribute((unused)) = (function_name(), 0) ; \
 static void function_name()
 
-#endif // STATICS_H
+template< typename Hasher >
+class HasherSink : public boost::iostreams::sink {
+public:
+    std::streamsize write(const char* s, std::streamsize n) {
+        this->hasher.Update(reinterpret_cast< const byte* >(s), n);
+        return n;
+    }
+
+    std::string get_digest() {
+        byte digest[decltype(hasher)::DIGESTSIZE];
+        this->hasher.Final(digest);
+        return std::string(reinterpret_cast< const char* >(digest), sizeof(decltype(digest)));
+    }
+
+private:
+    Hasher hasher;
+};
+
+template< typename T >
+std::string hash_object(const T &obj) {
+    HasherSink< CryptoPP::SHA256 > hasher;
+    boost::iostreams::stream fout(hasher);
+    {
+        boost::archive::text_oarchive archive(fout);
+        archive << obj;
+    }
+    fout.flush();
+    return hasher.get_digest();
+}
+
+#endif // UTILS_H

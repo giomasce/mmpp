@@ -16,7 +16,6 @@ struct TestEnvironmentInner {
 
     LibraryImpl *lib;
     LibraryToolbox *tb;
-    std::string *lib_digest;
 };
 
 struct TestEnvironment {
@@ -25,7 +24,6 @@ struct TestEnvironment {
     TestEnvironmentInner inner;
     LibraryImpl &lib;
     LibraryToolbox &tb;
-    std::string &lib_digest;
 };
 
 const TestEnvironment &get_set_mm();

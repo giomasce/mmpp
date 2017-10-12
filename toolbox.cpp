@@ -542,11 +542,6 @@ const ParsingAddendumImpl &LibraryToolbox::get_parsing_addendum() const
     return this->lib.get_parsing_addendum();
 }
 
-string LibraryToolbox::get_digest() const
-{
-    return this->lib.get_digest();
-}
-
 /*Prover cascade_provers(const Prover &a,  const Prover &b)
 {
     return [=](ProofEngine &engine) {
@@ -968,11 +963,13 @@ void LibraryToolbox::compute_parser_initialization()
     this->parser = NULL;
     std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](ostream &os, SymTok sym)->ostream& { return os << this->resolve_symbol(sym); };
     std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](ostream &os, LabTok lab)->ostream& { return os << this->resolve_label(lab); };
-    this->parser = new LRParser< SymTok, LabTok >(this->get_derivations(), sym_printer, lab_printer);
+    auto ders = this->get_derivations();
+    auto ders_digest = hash_object(ders);
+    this->parser = new LRParser< SymTok, LabTok >(ders, sym_printer, lab_printer);
     bool loaded = false;
     if (this->cache != NULL) {
         if (this->cache->load()) {
-            if (this->get_digest() == this->cache->get_digest()) {
+            if (ders_digest == this->cache->get_digest()) {
                 this->parser->set_cached_data(this->cache->get_lr_parser_data());
                 loaded = true;
             }
@@ -981,7 +978,7 @@ void LibraryToolbox::compute_parser_initialization()
     if (!loaded) {
         this->parser->initialize();
         if (this->cache != NULL) {
-            this->cache->set_digest(this->get_digest());
+            this->cache->set_digest(ders_digest);
             this->cache->set_lr_parser_data(this->parser->get_cached_data());
             this->cache->store();
         }

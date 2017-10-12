@@ -308,11 +308,6 @@ LabTok LibraryImpl::get_max_number() const
     return this->max_number;
 }
 
-string LibraryImpl::get_digest() const
-{
-    return this->digest;
-}
-
 bool LibraryImpl::is_immutable() const
 {
     return true;
@@ -326,11 +321,6 @@ void LibraryImpl::set_addendum(const LibraryAddendumImpl &add)
 void LibraryImpl::set_parsing_addendum(const ParsingAddendumImpl &add)
 {
     this->parsing_addendum = add;
-}
-
-void LibraryImpl::set_digest(const string &digest)
-{
-    this->digest = digest;
 }
 
 bool Library::is_immutable() const

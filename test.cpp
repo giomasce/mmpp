@@ -638,8 +638,6 @@ TestEnvironmentInner::TestEnvironmentInner(const string &filename, const string 
     FileTokenizer ft(filename);
     Reader p(ft, false, true);
     p.run();
-    ft.compute_digest();
-    this->lib_digest = new string(ft.get_digest());
     this->lib = new LibraryImpl(p.get_library());
     shared_ptr< ToolboxCache > cache = make_shared< FileToolboxCache >(cache_filename);
     this->tb = new LibraryToolbox(*this->lib, "|-", true, cache);
@@ -650,11 +648,10 @@ TestEnvironmentInner::TestEnvironmentInner(const string &filename, const string 
 TestEnvironmentInner::~TestEnvironmentInner() {
     delete this->lib;
     delete this->tb;
-    delete this->lib_digest;
 }
 
 TestEnvironment::TestEnvironment(const string &filename, const string &cache_filename) :
-    inner(filename, cache_filename), lib(*inner.lib), tb(*inner.tb), lib_digest(*inner.lib_digest)
+    inner(filename, cache_filename), lib(*inner.lib), tb(*inner.tb)
 {
 }
 

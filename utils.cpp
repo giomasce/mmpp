@@ -3,7 +3,11 @@
 
 using namespace std;
 
-#if defined(__GNUG__) && defined(SELF_DEBUG)
+#if defined(__GNUG__) && defined(EXCEPTIONS_SELF_DEBUG)
+#include <execinfo.h>
+#include <cxxabi.h>
+#include <dlfcn.h>
+#include <stdlib.h>
 
 // Taken from https://stupefydeveloper.blogspot.it/2008/10/cc-call-stack.html and partially adapted
 std::vector<string> dump_stacktrace(size_t depth) {

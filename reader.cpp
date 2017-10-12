@@ -159,24 +159,6 @@ std::pair<bool, string> FileTokenizer::next()
     }
 }
 
-void FileTokenizer::compute_digest()
-{
-    this->hasher.Final(this->digest);
-}
-
-string FileTokenizer::get_digest() const
-{
-    return string(reinterpret_cast< const char* >(this->digest), sizeof(decltype(this->digest)));
-}
-
-char FileTokenizer::get_char()
-{
-    char c;
-    this->fin.get(c);
-    this->hasher.Update(reinterpret_cast< ::byte* >(&c), 1);
-    return c;
-}
-
 FileTokenizer::~FileTokenizer()
 {
     delete this->cascade;
@@ -268,8 +250,6 @@ void Reader::run () {
     this->final_frame = this->stack.back();
     this->lib.set_final_stack_frame(this->final_frame);
     this->lib.set_max_number(this->number-1);
-    this->tg->compute_digest();
-    this->lib.set_digest(this->tg->get_digest());
     this->stack.pop_back();
     assert_or_throw(this->stack.empty(), "Unmatched open scoping block");
 
