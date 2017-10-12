@@ -12,8 +12,7 @@ using namespace std;
 bool mmpp_abort = false;
 
 //const string DEFAULT_MAIN_FUNCTION = "mmpp_test_z3";
-const string DEFAULT_MAIN_FUNCTION = "mmpp_test_all";
-//const string DEFAULT_MAIN_FUNCTION = "unification_test";
+const string DEFAULT_MAIN_FUNCTION = "mmpp_test_setmm";
 
 int main(int argc, char *argv[]) {
     char *tmp = strdup(argv[0]);

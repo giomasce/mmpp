@@ -174,8 +174,8 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
         return res.dump();
     }
 
-    // Backdoor for easily creating tickets (FIXME disable in production)
-    if (true) {
+    // Backdoor for easily creating tickets (only enable on test builds)
+    if (false) {
         string api_create_ticket = "/api/create_ticket";
         if (url == api_create_ticket) {
             cb.add_header("Content-Type", "text/plain");
