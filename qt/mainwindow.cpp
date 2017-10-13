@@ -3,10 +3,9 @@
 #include <QTextDocument>
 #include <QAbstractTextDocumentLayout>
 
-#include "mainwindow.h"
+#include "qt/mainwindow.h"
 #include "ui_mainwindow.h"
-
-#include "prooftreemodel.h"
+#include "qt/prooftreemodel.h"
 
 using namespace std;
 
@@ -50,6 +49,8 @@ void MainWindow::load_proof(string label)
 
 // Experiement
 void MainWindow::paintEvent(QPaintEvent *event) {
+    (void) event;
+
     /*if (this->ctx == NULL) {
         return;
     }
@@ -82,6 +83,6 @@ Context *Context::create_from_filename(string filename)
     ctx->parser = new Reader(ft, false, true);
     ctx->parser->run();
     ctx->lib = &ctx->parser->get_library();
-    ctx->tb = new LibraryToolbox(*ctx->lib, true);
+    ctx->tb = new LibraryToolbox(*ctx->lib, "|-", true);
     return ctx;
 }

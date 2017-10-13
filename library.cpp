@@ -1,7 +1,7 @@
 #include "library.h"
-#include "utils.h"
+#include "utils/utils.h"
 #include "reader.h"
-#include "unification.h"
+#include "old/unification.h"
 #include "toolbox.h"
 
 #include <algorithm>

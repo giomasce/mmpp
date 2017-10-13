@@ -2,10 +2,10 @@
 #include <boost/filesystem/fstream.hpp>
 
 #include "toolbox.h"
-#include "utils.h"
-#include "unification.h"
-#include "unif.h"
-#include "earley.h"
+#include "utils/utils.h"
+#include "old/unification.h"
+#include "parsing/unif.h"
+#include "parsing/earley.h"
 #include "reader.h"
 
 using namespace std;

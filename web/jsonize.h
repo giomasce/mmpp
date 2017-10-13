@@ -1,7 +1,7 @@
 #ifndef JSONIZE_H
 #define JSONIZE_H
 
-#include "json.h"
+#include "libs/json.h"
 #include "library.h"
 
 nlohmann::json jsonize(const ExtendedLibraryAddendum &addendum);

@@ -7,8 +7,7 @@
 
 #include "wff.h"
 #include "reader.h"
-#include "memory.h"
-#include "utils.h"
+#include "utils/utils.h"
 #include "platform.h"
 #include "test.h"
 

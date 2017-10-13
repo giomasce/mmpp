@@ -98,6 +98,9 @@ void HTTPD_microhttpd::cleanup_wrapper(void *cls, MHD_Connection *connection, vo
 // Pass the request to the target
 int HTTPD_microhttpd::answer_wrapper(void *cls, MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data, size_t *upload_data_size, void **con_cls)
 {
+    (void) upload_data;
+    (void) upload_data_size;
+
     auto object = reinterpret_cast< HTTPD_microhttpd* >(cls);
     HTTPCallback_microhttpd *cb;
     if (*con_cls == NULL) {

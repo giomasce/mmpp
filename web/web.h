@@ -5,9 +5,9 @@
 #include <shared_mutex>
 #include <unordered_map>
 
-#include "json.h"
+#include "libs/json.h"
 
-#include "httpd.h"
+#include "web/httpd.h"
 #include "workset.h"
 
 class SendError {

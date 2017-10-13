@@ -1,6 +1,6 @@
 
 # Comment this to enable QT
-CONFIG -= qt
+#CONFIG -= qt
 
 CONFIG(qt) {
     QT       += core gui
@@ -10,32 +10,35 @@ CONFIG(qt) {
 
 TEMPLATE = app
 CONFIG += link_pkgconfig
+#CONFIG += object_parallel_to_source
 PKGCONFIG += libmicrohttpd libcrypto++
 
-SOURCES += main.cpp \
+SOURCES += \
+    main.cpp \
     library.cpp \
     proof.cpp \
-    unification.cpp \
+    old/unification.cpp \
     wff.cpp \
     toolbox.cpp \
     test.cpp \
-    utils.cpp \
-    httpd.cpp \
-    web.cpp \
+    utils/utils.cpp \
+    web/httpd.cpp \
+    web/web.cpp \
     platform.cpp \
-    workset.cpp \
-    jsonize.cpp \
-    z3prover.cpp \
+    web/workset.cpp \
+    web/jsonize.cpp \
+    z3/z3prover.cpp \
     reader.cpp \
     main_unification.cpp \
     temp.cpp \
     optimize.cpp
 
 CONFIG(qt) {
-SOURCES +=  mainwindow.cpp \
-    prooftreemodel.cpp \
-    htmldelegate.cpp \
-    main_qt.cpp
+SOURCES += \
+    qt/mainwindow.cpp \
+    qt/prooftreemodel.cpp \
+    qt/htmldelegate.cpp \
+    qt/main_qt.cpp
 }
 
 # Experiments with clang
@@ -57,36 +60,37 @@ HEADERS += \
     wff.h \
     library.h \
     proof.h \
-    unification.h \
+    old/unification.h \
     toolbox.h \
-    earley.h \
-    stringcache.h \
+    parsing/earley.h \
+    utils/stringcache.h \
     test.h \
-    utils.h \
-    httpd.h \
-    web.h \
-    json.h \
+    utils/utils.h \
+    web/httpd.h \
+    web/web.h \
+    libs/json.h \
     platform.h \
-    workset.h \
-    jsonize.h \
-    z3prover.h \
-    lr.h \
+    web/workset.h \
+    web/jsonize.h \
+    z3/z3prover.h \
+    parsing/lr.h \
     reader.h \
-    parser.h \
-    serialize_tuple.h \
-    unif.h
+    parsing/parser.h \
+    libs/serialize_tuple.h \
+    parsing/unif.h
 
 CONFIG(qt) {
-HEADERS +=  mainwindow.h \
-    prooftreemodel.h \
-    htmldelegate.h
+HEADERS += \
+    qt/mainwindow.h \
+    qt/prooftreemodel.h \
+    qt/htmldelegate.h
 }
 
 DISTFILES += \
     README
 
 FORMS += \
-    mainwindow.ui
+    qt/mainwindow.ui
 
 create_links.commands = for i in mmpp_verify_one mmpp_verify_all mmpp_test_setmm mmpp_unificator webmmpp qmmpp mmpp_test_z3 mmpp_generalizable_theorems ; do ln -s mmpp \$\$i 2>/dev/null || true ; done
 QMAKE_EXTRA_TARGETS += create_links

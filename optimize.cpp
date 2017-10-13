@@ -8,8 +8,8 @@
 
 #include "test.h"
 #include "toolbox.h"
-#include "unif.h"
-#include "utils.h"
+#include "parsing/unif.h"
+#include "utils/utils.h"
 
 using namespace std;
 

@@ -5,7 +5,7 @@
 
 class Workset;
 
-#include "web.h"
+#include "web/web.h"
 #include "library.h"
 
 class Workset {

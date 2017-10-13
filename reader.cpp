@@ -8,9 +8,8 @@
 #include <fstream>
 
 #include "reader.h"
-#include "utils.h"
+#include "utils/utils.h"
 #include "proof.h"
-#include "utils.h"
 
 using namespace std;
 using namespace boost::filesystem;

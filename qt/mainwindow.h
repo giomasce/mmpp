@@ -10,7 +10,7 @@
 
 struct Context {
     Reader *parser = NULL;
-    const Library *lib = NULL;
+    const ExtendedLibrary *lib = NULL;
     LibraryToolbox *tb = NULL;
 
     ~Context();

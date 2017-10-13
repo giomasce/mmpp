@@ -13,7 +13,7 @@
 #include <boost/archive/text_oarchive.hpp>
 
 #include "library.h"
-#include "lr.h"
+#include "parsing/lr.h"
 
 class LibraryToolbox;
 

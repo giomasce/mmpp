@@ -16,7 +16,7 @@
 #include <boost/serialization/utility.hpp>
 
 #include "parser.h"
-#include "serialize_tuple.h"
+#include "libs/serialize_tuple.h"
 
 #define LR_PARSER_SELF_TEST
 

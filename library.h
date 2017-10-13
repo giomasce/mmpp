@@ -31,7 +31,7 @@ typedef std::vector< SymTok > Sentence;
 typedef std::vector< LabTok > Procedure;
 
 #include "proof.h"
-#include "stringcache.h"
+#include "utils/stringcache.h"
 
 struct StackFrame {
     std::set< SymTok > vars;

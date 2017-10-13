@@ -10,14 +10,13 @@
 
 #include "wff.h"
 #include "reader.h"
-#include "unification.h"
-#include "memory.h"
-#include "utils.h"
-#include "earley.h"
-#include "lr.h"
-#include "utils.h"
+#include "old/unification.h"
+#include "utils/utils.h"
+#include "parsing/earley.h"
+#include "parsing/lr.h"
+#include "utils/utils.h"
 #include "platform.h"
-#include "unif.h"
+#include "parsing/unif.h"
 
 using namespace std;
 using namespace chrono;
