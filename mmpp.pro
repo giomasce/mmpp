@@ -60,6 +60,10 @@ QMAKE_CFLAGS += -std=c11 -march=native -g
 QMAKE_CXXFLAGS += -std=c++17 -march=native -g -ftemplate-backtrace-limit=0
 QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lpthread -lz3
 
+QMAKE_CXXFLAGS += -DLR_PARSER_SELF_TEST
+QMAKE_CXXFLAGS += -DUNIFICATOR_SELF_TEST
+QMAKE_CXXFLAGS += -DTOOLBOX_SELF_TEST
+
 HEADERS += \
     wff.h \
     library.h \

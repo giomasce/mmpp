@@ -171,7 +171,7 @@ void test_type_proving() {
     auto res = engine.get_proof_labels();
     cout << "Found type proof (classical): " << tb.print_proof(res) << endl;
     ProofEngine engine2(lib);
-    tb.build_earley_type_prover(sent)(engine2);
+    tb.build_parsing_type_prover(sent)(engine2);
     res = engine2.get_proof_labels();
     cout << "Found type proof (Earley):    " << tb.print_proof(res) << endl;
     cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;

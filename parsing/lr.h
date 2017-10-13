@@ -18,8 +18,6 @@
 #include "parser.h"
 #include "libs/serialize_tuple.h"
 
-#define LR_PARSER_SELF_TEST
-
 // The state encodes (producting symbol, rule name, position, producted sentence)
 template< typename SymType, typename LabType >
 using LRState = std::set< std::tuple< SymType, LabType, size_t, std::vector< SymType > > >;

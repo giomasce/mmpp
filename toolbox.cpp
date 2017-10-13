@@ -10,8 +10,6 @@
 
 using namespace std;
 
-//#define TOOLBOX_SELF_TEST
-
 ostream &operator<<(ostream &os, const SentencePrinter &sp)
 {
     bool first = true;
@@ -218,13 +216,10 @@ static void earley_type_unwind_tree(const ParsingTree< SymTok, LabTok > &tree, P
 }
 
 // TODO Use var_provers
-bool LibraryToolbox::earley_type_proving_helper(const std::vector<SymTok> &type_sent, ProofEngine &engine, const std::unordered_map<SymTok, Prover> &var_provers) const
+bool LibraryToolbox::parsing_type_proving_helper(const std::vector<SymTok> &type_sent, ProofEngine &engine, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
     SymTok type = type_sent[0];
-    auto derivations = this->get_derivations();
-
-    EarleyParser parser(derivations);
-    ParsingTree tree = parser.parse(type_sent.begin()+1, type_sent.end(), type);
+    ParsingTree tree = this->parse_sentence(type_sent.begin()+1, type_sent.end(), type);
     if (tree.label == 0) {
         return false;
     } else {
@@ -1101,16 +1096,17 @@ Prover LibraryToolbox::build_classical_type_prover(const std::vector<SymTok> &ty
     };
 }
 
-Prover LibraryToolbox::build_earley_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
+Prover LibraryToolbox::build_parsing_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
+    assert(var_provers.size() == 0);
     return [=](ProofEngine &engine){
-        return this->earley_type_proving_helper(type_sent, engine, var_provers);
+        return this->parsing_type_proving_helper(type_sent, engine, var_provers);
     };
 }
 
 Prover LibraryToolbox::build_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
-    return LibraryToolbox::build_classical_type_prover(type_sent, var_provers);
+    return this->build_parsing_type_prover(type_sent, var_provers);
 }
 
 string SentencePrinter::to_string() const
@@ -1181,4 +1177,17 @@ LRParser< SymTok, LabTok >::CachedData FileToolboxCache::get_lr_parser_data() {
 
 void FileToolboxCache::set_lr_parser_data(const LRParser< SymTok, LabTok >::CachedData &cached_data) {
     this->lr_parser_data = cached_data;
+}
+
+Prover checked_prover(Prover prover, size_t hyp_num, Sentence thesis)
+{
+    return [=](ProofEngine &engine)->bool {
+        size_t stack_len_before = engine.get_stack().size();
+        bool res = prover(engine);
+        size_t stack_len_after = engine.get_stack().size();
+        assert(stack_len_after >= 1);
+        assert(stack_len_after - stack_len_before == hyp_num - 1);
+        assert(engine.get_stack().back() == thesis);
+        return res;
+    };
 }

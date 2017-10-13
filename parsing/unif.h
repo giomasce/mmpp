@@ -6,8 +6,6 @@
 
 #include "parsing/parser.h"
 
-//#define UNIFICATOR_SELF_TEST
-
 template< typename SymType, typename LabType >
 using SubstMap = std::unordered_map< LabType, ParsingTree< SymType, LabType > >;
 
