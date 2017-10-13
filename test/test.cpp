@@ -4,9 +4,6 @@
 #include <fstream>
 #include <chrono>
 
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-
 #include "wff.h"
 #include "reader.h"
 #include "old/unification.h"
@@ -17,251 +14,30 @@
 #include "platform.h"
 #include "parsing/unif.h"
 #include "test/test_env.h"
+#include "test/test_parsing.h"
+#include "test/test_verification.h"
+#include "test/test_minor.h"
 
 using namespace std;
 using namespace chrono;
 
-const boost::filesystem::path test_basename = "../metamath-test";
-const string tests_filenames = R"tests(
-fail anatomy-bad1.mm "Simple incorrect 'anatomy' test "
-fail anatomy-bad2.mm "Simple incorrect 'anatomy' test "
-fail anatomy-bad3.mm "Simple incorrect 'anatomy' test "
-pass big-unifier.mm
-fail big-unifier-bad1.mm
-fail big-unifier-bad2.mm
-fail big-unifier-bad3.mm
-pass demo0.mm
-fail demo0-bad1.mm
-pass demo0-includer.mm "Test simple file inclusion"
-pass emptyline.mm 'A file with one empty line'
-pass hol.mm
-pass iset.mm
-pass miu.mm
-pass nf.mm
-pass peano-fixed.mm
-pass ql.mm
-pass set.2010-08-29.mm
-pass set.mm
-fail set-dist.mm
-pass lof.mm
-pass lofmathbox.mm
-pass lofset.mm
-pass set(lof).mm
-)tests";
-
-static vector< pair < string, bool > > get_tests() {
-    istringstream iss(tests_filenames);
-    vector< pair< string, bool > > tests;
-    string line;
-    while (getline(iss, line)) {
-        string success, filename;
-        istringstream iss2(line);
-        iss2 >> success >> filename;
-        if (filename == "") {
-            continue;
+void test_old_unification() {
+    auto &data = get_set_mm();
+    auto &lib = data.lib;
+    auto &tb = data.tb;
+    cout << "Generic unification test" << endl;
+    vector< SymTok > sent = tb.read_sentence("wff ( ph -> ( ps -> ch ) )");
+    vector< SymTok > templ = tb.read_sentence("wff ( th -> et )");
+    auto res = unify_old(sent, templ, lib, false);
+    cout << "Matching:         " << tb.print_sentence(sent) << endl << "against template: " << tb.print_sentence(templ) << endl;
+    for (auto &match : res) {
+        cout << "  *";
+        for (auto &var: match) {
+            cout << " " << tb.print_sentence(Sentence({var.first})) << " => " << tb.print_sentence(var.second) << "  ";
         }
-        tests.push_back(make_pair(filename, success == "pass"));
+        cout << endl;
     }
-    return tests;
-}
-
-bool test_verification_one(string filename, bool advanced_tests) {
-    bool success = true;
-    try {
-        cout << "Memory usage when starting: " << size_to_string(platform_get_current_rss()) << endl;
-        FileTokenizer ft(test_basename / filename);
-        Reader p(ft, true, true);
-        cout << "Reading library and executing all proofs..." << endl;
-        p.run();
-        LibraryImpl lib = p.get_library();
-        cout << "Library has " << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
-
-        /*LabTok failing = 287;
-        cout << "Checking proof of " << lib.resolve_label(failing) << endl;
-        lib.get_assertion(failing).get_proof_executor(lib)->execute();*/
-
-        if (advanced_tests) {
-            cout << "Compressing all proofs and executing again..." << endl;
-            for (auto &ass : lib.get_assertions()) {
-                if (ass.is_valid() && ass.is_theorem()) {
-                    CompressedProof compressed = ass.get_proof_executor(lib)->compress();
-                    compressed.get_executor(lib, ass)->execute();
-                }
-            }
-
-            cout << "Decompressing all proofs and executing again..." << endl;
-            for (auto &ass : lib.get_assertions()) {
-                if (ass.is_valid() && ass.is_theorem()) {
-                    UncompressedProof uncompressed = ass.get_proof_executor(lib)->uncompress();
-                    uncompressed.get_executor(lib, ass)->execute();
-                }
-            }
-
-            cout << "Compressing and decompressing all proofs and executing again..." << endl;
-            for (auto &ass : lib.get_assertions()) {
-                if (ass.is_valid() && ass.is_theorem()) {
-                    CompressedProof compressed = ass.get_proof_executor(lib)->compress();
-                    UncompressedProof uncompressed = compressed.get_executor(lib, ass)->uncompress();
-                    uncompressed.get_executor(lib, ass)->execute();
-                }
-            }
-
-            cout << "Decompressing and compressing all proofs and executing again..." << endl;
-            for (auto &ass : lib.get_assertions()) {
-                if (ass.is_valid() && ass.is_theorem()) {
-                    UncompressedProof uncompressed = ass.get_proof_executor(lib)->uncompress();
-                    CompressedProof compressed = uncompressed.get_executor(lib, ass)->compress();
-                    compressed.get_executor(lib, ass)->execute();
-                }
-            }
-        } else {
-            cout << "Skipping compression and decompression test" << endl;
-        }
-
-        cout << "Finished. Memory usage: " << size_to_string(platform_get_current_rss()) << endl;
-    } catch (const MMPPException &e) {
-        cout << "An exception with message '" << e.get_reason() << "' was thrown!" << endl;
-        e.print_stacktrace(cout);
-        success = false;
-    } catch (const ProofException &e) {
-        cout << "An exception with message '" << e.get_reason() << "' was thrown!" << endl;
-        success = false;
-    }
-
-    return success;
-}
-
-void test_all_verifications() {
-    auto tests = get_tests();
-    // Comment or uncomment the following line to disable or enable tests with metamath-test
-    //tests = {};
-    int problems = 0;
-    for (auto test_pair : tests) {
-        string filename = test_pair.first;
-        bool expect_success = test_pair.second;
-        cout << "Testing file " << filename << " from " << test_basename << ", which is expected to " << (expect_success ? "pass" : "fail" ) << "..." << endl;
-
-        // Useful for debugging
-        /*if (filename == "demo0.mm") {
-            mmpp_abort = true;
-        } else {
-            continue;
-            mmpp_abort = false;
-        }*/
-        /*if (filename == "nf.mm") {
-            break;
-        }*/
-
-        bool success = test_verification_one(filename, expect_success);
-        if (success) {
-            if (expect_success) {
-                cout << "Good, it worked!" << endl;
-            } else {
-                cout << "Bad, it should have failed!" << endl;
-                problems++;
-            }
-        } else {
-            if (expect_success) {
-                cout << "Bad, this was NOT expected!" << endl;
-                problems++;
-            } else {
-                cout << "Good, this was expected!" << endl;
-            }
-        }
-
-        cout << "-------" << endl << endl;
-    }
-    cout << "Found " << problems << " problems" << endl;
-}
-
-template< typename SymType, typename LabType >
-void test_parsers(const std::vector<SymType> &sent, SymType type, const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations) {
-    const auto ders_by_lab = compute_derivations_by_label(derivations);
-
-    cout << "Earley parser" << endl;
-    EarleyParser< SymType, LabType > earley_parser(derivations);
-    ParsingTree< SymType, LabType > earley_pt = earley_parser.parse(sent, type);
-    assert(earley_pt.label != 0);
-    assert(reconstruct_sentence(earley_pt, derivations, ders_by_lab) == sent);
-
-    cout << "LR parser" << endl;
-    LRParser lr_parser(derivations);
-    lr_parser.initialize();
-
-    ParsingTree< SymType, LabType > lr_pt = lr_parser.parse(sent, type);
-    assert(lr_pt.label != 0);
-    assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent);
-
-    assert(earley_pt == lr_pt);
-}
-
-void test_grammar1() {
-    /* Describe the grammar at http://loup-vaillant.fr/tutorials/earley-parsing/recogniser.
-     * Only digit up to 4 are used to keep tables small and debugging easy.
-     */
-    std::unordered_map<string, std::vector<std::pair< size_t, std::vector<string> > > > derivations;
-    derivations["Sum"].push_back(make_pair(100, vector< string >({ "Sum", "+", "Product" })));
-    derivations["Sum"].push_back(make_pair(101, vector< string >({ "Sum", "-", "Product" })));
-    derivations["Sum"].push_back(make_pair(102, vector< string >({ "Product" })));
-    derivations["Product"].push_back(make_pair(103, vector< string >({ "Product", "*", "Product" })));
-    derivations["Product"].push_back(make_pair(104, vector< string >({ "Product", "/", "Product" })));
-    derivations["Product"].push_back(make_pair(105, vector< string >({ "Factor" })));
-    derivations["Factor"].push_back(make_pair(106, vector< string >({ "(", "Sum", ")" })));
-    derivations["Factor"].push_back(make_pair(107, vector< string >({ "Number" })));
-    derivations["Number"].push_back(make_pair(108, vector< string >({ "0", "Number" })));
-    derivations["Number"].push_back(make_pair(109, vector< string >({ "1", "Number" })));
-    derivations["Number"].push_back(make_pair(110, vector< string >({ "2", "Number" })));
-    derivations["Number"].push_back(make_pair(111, vector< string >({ "3", "Number" })));
-    derivations["Number"].push_back(make_pair(112, vector< string >({ "4", "Number" })));
-    derivations["Number"].push_back(make_pair(113, vector< string >({ "0" })));
-    derivations["Number"].push_back(make_pair(114, vector< string >({ "1" })));
-    derivations["Number"].push_back(make_pair(115, vector< string >({ "2" })));
-    derivations["Number"].push_back(make_pair(116, vector< string >({ "3" })));
-    derivations["Number"].push_back(make_pair(117, vector< string >({ "4" })));
-    vector< string > sent = { "1", "+", "(", "2", "*", "3", "-", "4", ")" };
-    test_parsers< string, size_t >(sent, "Sum", derivations);
-}
-
-void test_grammar2() {
-    /* Describe the grammar at https://web.cs.dal.ca/~sjackson/lalr1.html.
-     */
-    std::unordered_map<char, std::vector<std::pair< size_t, std::vector<char> > > > derivations;
-    derivations['S'].push_back(make_pair(1, vector< char >({ 'N' })));
-    derivations['N'].push_back(make_pair(2, vector< char >({ 'V', '=', 'E' })));
-    derivations['N'].push_back(make_pair(3, vector< char >({ 'E' })));
-    derivations['E'].push_back(make_pair(4, vector< char >({ 'V' })));
-    derivations['V'].push_back(make_pair(5, vector< char >({ 'x' })));
-    derivations['V'].push_back(make_pair(6, vector< char >({ '*', 'E' })));
-    vector< char > sent = { 'x', '=', '*', 'x' };
-    test_parsers< char, size_t >(sent, 'S', derivations);
-}
-
-void test_grammar3() {
-    /* Describe the grammar at https://en.wikipedia.org/wiki/LR_parser.
-     */
-    std::unordered_map<string, std::vector<std::pair< size_t, std::vector<string> > > > derivations;
-    derivations["Goal"].push_back(make_pair(1, vector< string >({ "Sums" })));
-    derivations["Sums"].push_back(make_pair(2, vector< string >({ "Sums", "+", "Products" })));
-    derivations["Sums"].push_back(make_pair(3, vector< string >({ "Products" })));
-    derivations["Products"].push_back(make_pair(4, vector< string >({ "Products", "*", "Value" })));
-    derivations["Products"].push_back(make_pair(5, vector< string >({ "Value" })));
-    derivations["Value"].push_back(make_pair(6, vector< string >({ "int" })));
-    derivations["Value"].push_back(make_pair(7, vector< string >({ "id" })));
-    vector< string > sent = { "id", "*", "int", "+", "int" };
-    test_parsers< string, size_t >(sent, "Goal", derivations);
-}
-
-void test_grammar4() {
-    /* Describe the grammar at https://dickgrune.com/Books/PTAPG_1st_Edition/BookBody.pd, page 201.
-     */
-    std::unordered_map<char, std::vector<std::pair< size_t, std::vector<char> > > > derivations;
-    derivations['S'].push_back(make_pair(1, vector< char >({ 'E' })));
-    derivations['E'].push_back(make_pair(2, vector< char >({ 'E', '-', 'T' })));
-    derivations['E'].push_back(make_pair(3, vector< char >({ 'T' })));
-    derivations['T'].push_back(make_pair(4, vector< char >({ 'n' })));
-    derivations['T'].push_back(make_pair(5, vector< char >({ '(', 'E', ')' })));
-    vector< char > sent = { 'n', '-', 'n', '-', 'n' };
-    test_parsers< char, size_t >(sent, 'S', derivations);
+    cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
 }
 
 void test_lr_set() {
@@ -300,61 +76,6 @@ void test_lr_set() {
         //assert(earley_pt == lr_pt);
     }
     toc(t, reps);
-}
-
-void test_small_stuff() {
-    cout << "Testing random small stuff..." << endl;
-    auto ph = pwff(new Var("ph"));
-    auto ps = pwff(new Var("ps"));
-    auto w = pwff(new Nand(ph, ps));
-    auto w2 = pwff(new Xor(w, pwff(new And(pwff(new True()), ph))));
-
-    cout << w2->to_string() << endl;
-    cout << w2->imp_not_form()->to_string() << endl;
-
-    CompressedDecoder cd;
-    string test_enc[] = { "A", "B", "T", "UA", "UB", "UT", "VA", "VB", "YT", "UUA", "YYT", "UUUA", "UUUAZ" };
-    int test_dec[] = { 1, 2, 20, 21, 22, 40, 41, 42, 120, 121, 620, 621, 0 };
-    for (auto &str : test_enc) {
-        cout << "Testing " << str << ":";
-        for (auto &c : str) {
-            cout << " " << c << "->" << cd.push_char(c);
-        }
-        cout << endl;
-    }
-    CompressedEncoder ce;
-    for (auto &val : test_dec) {
-        cout << "Testing " << val << ": " << ce.push_code(val) << endl;
-    }
-
-    cout << "Finished. Memory usage: " << size_to_string(platform_get_current_rss()) << endl << endl;
-}
-
-void test_parsers() {
-    cout << "Generic parser test" << endl;
-    test_grammar1();
-    test_grammar2();
-    test_grammar3();
-    test_grammar4();
-}
-
-void test_old_unification() {
-    auto &data = get_set_mm();
-    auto &lib = data.lib;
-    auto &tb = data.tb;
-    cout << "Generic unification test" << endl;
-    vector< SymTok > sent = tb.read_sentence("wff ( ph -> ( ps -> ch ) )");
-    vector< SymTok > templ = tb.read_sentence("wff ( th -> et )");
-    auto res = unify_old(sent, templ, lib, false);
-    cout << "Matching:         " << tb.print_sentence(sent) << endl << "against template: " << tb.print_sentence(templ) << endl;
-    for (auto &match : res) {
-        cout << "  *";
-        for (auto &var: match) {
-            cout << " " << tb.print_sentence(Sentence({var.first})) << " => " << tb.print_sentence(var.second) << "  ";
-        }
-        cout << endl;
-    }
-    cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
 }
 
 void test_statement_unification() {

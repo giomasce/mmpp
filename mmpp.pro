@@ -31,8 +31,11 @@ SOURCES += \
     reader.cpp \
     apps/unificator.cpp \
     temp.cpp \
-    apps/optimize.cpp \
-    test/test_env.cpp
+    test/test_env.cpp \
+    apps/generalizable_theorems.cpp \
+    test/test_parsing.cpp \
+    test/test_verification.cpp \
+    test/test_minor.cpp
 
 CONFIG(qt) {
 SOURCES += \
@@ -77,7 +80,10 @@ HEADERS += \
     parsing/parser.h \
     libs/serialize_tuple.h \
     parsing/unif.h \
-    test/test_env.h
+    test/test_env.h \
+    test/test_parsing.h \
+    test/test_verification.h \
+    test/test_minor.h
 
 CONFIG(qt) {
 HEADERS += \
