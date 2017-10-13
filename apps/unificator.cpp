@@ -6,7 +6,7 @@
 #include "utils/utils.h"
 #include "toolbox.h"
 #include "platform.h"
-#include "test.h"
+#include "test/test_env.h"
 
 using namespace std;
 

@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 
-#include "test.h"
+#include "test/test_env.h"
 #include "toolbox.h"
 #include "parsing/unif.h"
 #include "utils/utils.h"

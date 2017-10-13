@@ -3,13 +3,11 @@
 
 #include <z3++.h>
 
-#include "z3prover.h"
-
 #include "wff.h"
 #include "reader.h"
 #include "utils/utils.h"
 #include "platform.h"
-#include "test.h"
+#include "test/test_env.h"
 
 using namespace std;
 using namespace z3;

@@ -20,7 +20,7 @@ SOURCES += \
     old/unification.cpp \
     wff.cpp \
     toolbox.cpp \
-    test.cpp \
+    test/test.cpp \
     utils/utils.cpp \
     web/httpd.cpp \
     web/web.cpp \
@@ -29,9 +29,10 @@ SOURCES += \
     web/jsonize.cpp \
     z3/z3prover.cpp \
     reader.cpp \
-    main_unification.cpp \
+    apps/unificator.cpp \
     temp.cpp \
-    optimize.cpp
+    apps/optimize.cpp \
+    test/test_env.cpp
 
 CONFIG(qt) {
 SOURCES += \
@@ -64,7 +65,6 @@ HEADERS += \
     toolbox.h \
     parsing/earley.h \
     utils/stringcache.h \
-    test.h \
     utils/utils.h \
     web/httpd.h \
     web/web.h \
@@ -72,12 +72,12 @@ HEADERS += \
     platform.h \
     web/workset.h \
     web/jsonize.h \
-    z3/z3prover.h \
     parsing/lr.h \
     reader.h \
     parsing/parser.h \
     libs/serialize_tuple.h \
-    parsing/unif.h
+    parsing/unif.h \
+    test/test_env.h
 
 CONFIG(qt) {
 HEADERS += \
