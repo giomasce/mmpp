@@ -167,24 +167,13 @@ void test_type_proving() {
     cout << "LaTeX sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_LATEX) << endl;
 
     ProofEngine engine(lib);
-    tb.build_classical_type_prover(sent)(engine);
+    tb.build_type_prover(sent)(engine);
     auto res = engine.get_proof_labels();
-    cout << "Found type proof (classical): " << tb.print_proof(res) << endl;
+    cout << "Found type proof: " << tb.print_proof(res) << endl;
     Tic t = tic();
     for (int i = 0; i < reps; i++) {
         ProofEngine engine(lib);
-        tb.build_classical_type_prover(sent)(engine);
-    }
-    toc(t, reps);
-
-    ProofEngine engine2(lib);
-    tb.build_parsing_type_prover(sent)(engine2);
-    res = engine2.get_proof_labels();
-    cout << "Found type proof (parsing):   " << tb.print_proof(res) << endl;
-    t = tic();
-    for (int i = 0; i < reps; i++) {
-        ProofEngine engine2(lib);
-        tb.build_parsing_type_prover(sent)(engine2);
+        tb.build_type_prover(sent)(engine);
     }
     toc(t, reps);
 
