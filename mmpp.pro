@@ -45,24 +45,30 @@ SOURCES += \
     qt/main_qt.cpp
 }
 
+QMAKE_CFLAGS += -std=c11 -march=native -g
+QMAKE_CXXFLAGS += -std=c++17 -march=native -g -ftemplate-backtrace-limit=0
+QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lpthread -lz3
+
+# Disable these to have faster code; enable them to spot bugs
+#QMAKE_CXXFLAGS += -DLR_PARSER_SELF_TEST
+#QMAKE_CXXFLAGS += -DUNIFICATOR_SELF_TEST
+#QMAKE_CXXFLAGS += -DTOOLBOX_SELF_TEST
+
+# Experiments with undefined behavior checking
+#QMAKE_CFLAGS += -fsanitize=undefined -fno-sanitize-recover=all
+#QMAKE_CXXFLAGS += -fsanitize=undefined -fno-sanitize-recover=all
+#QMAKE_LIBS += -fsanitize=undefined -fno-sanitize-recover=all
+
+# Experiments with address checking
+#QMAKE_CFLAGS += -fsanitize=address -fno-sanitize-recover=all
+#QMAKE_CXXFLAGS += -fsanitize=address -fno-sanitize-recover=all
+#QMAKE_LIBS += -fsanitize=address -fno-sanitize-recover=all
+
 # Experiments with clang
 #QMAKE_CC = clang
 #QMAKE_CXX = clang++
 #QMAKE_LINK = clang++
 #QMAKE_LIBS += -ldl -rdynamic -lboost_system -lboost_filesystem -lpthread -fsanitize=undefined
-
-# Experiments with undefined behavior checking
-#QMAKE_CFLAGS += -fsanitize=undefined -fno-sanitize-recover=all
-#QMAKE_CXXFLAGS += -std=c++17 -march=native -fsanitize=undefined -fno-sanitize-recover=all
-#QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lpthread -fsanitize=undefined -fno-sanitize-recover=all
-
-QMAKE_CFLAGS += -std=c11 -march=native -g
-QMAKE_CXXFLAGS += -std=c++17 -march=native -g -ftemplate-backtrace-limit=0
-QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lpthread -lz3
-
-QMAKE_CXXFLAGS += -DLR_PARSER_SELF_TEST
-QMAKE_CXXFLAGS += -DUNIFICATOR_SELF_TEST
-QMAKE_CXXFLAGS += -DTOOLBOX_SELF_TEST
 
 HEADERS += \
     wff.h \

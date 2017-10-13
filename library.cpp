@@ -180,7 +180,7 @@ void LibraryImpl::set_max_number(LabTok max_number)
 }
 
 Assertion::Assertion() :
-    valid(false)
+    valid(false), theorem(false), modif_disc(false), usage_disc(false)
 {
 }
 
