@@ -191,31 +191,37 @@ bool LibraryToolbox::classical_type_proving_helper(const std::vector<SymTok> &ty
     return false;
 }
 
-static void earley_type_unwind_tree(const ParsingTree< SymTok, LabTok > &tree, ProofEngine &engine, const Library &lib, const std::unordered_map<SymTok, Prover> &var_provers) {
+static void parsing_type_proving_helper_unwind_tree(const ParsingTree< SymTok, LabTok > &tree, ProofEngine &engine, const Library &lib, const std::unordered_map<LabTok, const Prover*> &var_provers) {
     // We need to sort children according to their order as floating hypotheses of this assertion
     // If this is not an assertion, then there are no children
     const Assertion &ass = lib.get_assertion(tree.label);
+    auto it = var_provers.find(tree.label);
     if (ass.is_valid()) {
+        assert(it == var_provers.end());
         unordered_map< SymTok, const ParsingTree< SymTok, LabTok >* > children;
-        auto it = tree.children.begin();
+        auto it2 = tree.children.begin();
         for (auto &tok : lib.get_sentence(tree.label)) {
             if (!lib.is_constant(tok)) {
-                children[tok] = &(*it);
-                it++;
+                children[tok] = &(*it2);
+                it2++;
             }
         }
-        assert(it == tree.children.end());
+        assert(it2 == tree.children.end());
         for (auto &hyp : ass.get_float_hyps()) {
             SymTok tok = lib.get_sentence(hyp).at(1);
-            earley_type_unwind_tree(*children.at(tok), engine, lib, var_provers);
+            parsing_type_proving_helper_unwind_tree(*children.at(tok), engine, lib, var_provers);
         }
+        engine.process_label(tree.label);
     } else {
         assert(tree.children.size() == 0);
+        if (it == var_provers.end()) {
+            engine.process_label(tree.label);
+        } else {
+            (*it->second)(engine);
+        }
     }
-    engine.process_label(tree.label);
 }
 
-// TODO Use var_provers
 bool LibraryToolbox::parsing_type_proving_helper(const std::vector<SymTok> &type_sent, ProofEngine &engine, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
     SymTok type = type_sent[0];
@@ -223,7 +229,11 @@ bool LibraryToolbox::parsing_type_proving_helper(const std::vector<SymTok> &type
     if (tree.label == 0) {
         return false;
     } else {
-        earley_type_unwind_tree(tree, engine, *this, var_provers);
+        std::unordered_map<LabTok, const Prover*> lab_var_provers;
+        for (const auto &x : var_provers) {
+            lab_var_provers.insert(make_pair(this->get_types_by_var().at(x.first), &x.second));
+        }
+        parsing_type_proving_helper_unwind_tree(tree, engine, *this, lab_var_provers);
         return true;
     }
 }
@@ -309,7 +319,7 @@ bool LibraryToolbox::proving_helper(const RegisteredProverInstanceData &inst_dat
 
     // Compute floating hypotheses
     for (auto &hyp : ass.get_float_hyps()) {
-        bool res = this->classical_type_proving_helper(this->substitute(this->get_sentence(hyp), inst_data.ass_map), engine, types_provers_sym);
+        bool res = this->parsing_type_proving_helper(this->substitute(this->get_sentence(hyp), inst_data.ass_map), engine, types_provers_sym);
         if (!res) {
             cerr << "Applying " << inst_data.label_str << " a floating hypothesis failed..." << endl;
             engine.rollback();
@@ -630,7 +640,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
                         auto &type_main_sent = unification.at(float_hyp_sent.at(1));
                         copy(type_main_sent.begin(), type_main_sent.end(), back_inserter(type_sent));
                         ProofEngine engine(*this);
-                        if (!this->classical_type_proving_helper(type_sent, engine)) {
+                        if (!this->parsing_type_proving_helper(type_sent, engine)) {
                             wrong_unification = true;
                             break;
                         }
@@ -1098,7 +1108,6 @@ Prover LibraryToolbox::build_classical_type_prover(const std::vector<SymTok> &ty
 
 Prover LibraryToolbox::build_parsing_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
-    assert(var_provers.size() == 0);
     return [=](ProofEngine &engine){
         return this->parsing_type_proving_helper(type_sent, engine, var_provers);
     };

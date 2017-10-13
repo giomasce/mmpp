@@ -146,13 +146,11 @@ void test_unification() {
         }
 
         // Do actual time measurement
-        auto begin = steady_clock::now();
+        Tic t = tic();
         for (int i = 0; i < reps; i++) {
             res2 = tb.unify_assertion({}, sent, false, true);
         }
-        auto end = steady_clock::now();
-        auto usecs = duration_cast< microseconds >(end - begin).count();
-        cout << "It took " << usecs << " microseconds to repeat the unification " << reps << " times, which is " << (usecs / reps) << " microsecond per execution" << endl;
+        toc(t, reps);
     }
 }
 
@@ -160,20 +158,36 @@ void test_type_proving() {
     auto &data = get_set_mm();
     auto &lib = data.lib;
     auto &tb = data.tb;
+    int reps = 10;
     cout << "Type proving test" << endl;
     auto sent = tb.read_sentence(  "wff ( [_ suc z / z ]_ ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
     cout << "Sentence is " << tb.print_sentence(sent) << endl;
     cout << "HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_HTML) << endl;
     cout << "Alt HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << endl;
     cout << "LaTeX sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_LATEX) << endl;
+
     ProofEngine engine(lib);
     tb.build_classical_type_prover(sent)(engine);
     auto res = engine.get_proof_labels();
     cout << "Found type proof (classical): " << tb.print_proof(res) << endl;
+    Tic t = tic();
+    for (int i = 0; i < reps; i++) {
+        ProofEngine engine(lib);
+        tb.build_classical_type_prover(sent)(engine);
+    }
+    toc(t, reps);
+
     ProofEngine engine2(lib);
     tb.build_parsing_type_prover(sent)(engine2);
     res = engine2.get_proof_labels();
-    cout << "Found type proof (Earley):    " << tb.print_proof(res) << endl;
+    cout << "Found type proof (parsing):   " << tb.print_proof(res) << endl;
+    t = tic();
+    for (int i = 0; i < reps; i++) {
+        ProofEngine engine2(lib);
+        tb.build_parsing_type_prover(sent)(engine2);
+    }
+    toc(t, reps);
+
     cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
 }
 
@@ -324,7 +338,7 @@ void test_wffs_advanced() {
     auto &data = get_set_mm();
     auto &lib = data.lib;
     auto &tb = data.tb;
-    vector< pwff > wffs2 = { pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
+    vector< pwff > wffs = { pwff(new True()), pwff(new False()), pwff(new Not(pwff(new True()))), pwff(new Not(pwff(new False()))),
                              pwff(new Imp(pwff(new Var("ph")), pwff(new Var("ph")))),
                              pwff(new Or3(pwff(new Var("ph")), pwff(new True()), pwff(new False()))),
                              pwff(new Imp(pwff(new Var("ph")), pwff(new And3(pwff(new Var("ph")), pwff(new True()), pwff(new Var("ph")))))),
@@ -334,13 +348,13 @@ void test_wffs_advanced() {
 
     if (true) {
         cout << "WFF adv_truth test" << endl;
-        for (pwff &wff : wffs2) {
+        for (pwff &wff : wffs) {
             cout << "WFF: " << wff->to_string() << endl;
             {
                 ProofEngine engine(lib);
                 wff->get_adv_truth_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
-                    cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                    //cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                     cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
                     cout << "proof length: " << engine.get_proof_labels().size() << endl;
                     UncompressedProof proof = engine.get_proof();
