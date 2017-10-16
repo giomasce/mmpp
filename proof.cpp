@@ -367,6 +367,36 @@ const std::set<std::pair<SymTok, SymTok> > &ProofEngine::get_dists() const
     return *(this->dists_stack.end()-1);
 }
 
+static Sentence do_subst(const Sentence &sent, unordered_map< SymTok, vector< SymTok > > &subst_map, const Library &lib) {
+    (void) lib;
+
+    Sentence new_sent;
+    size_t new_size = 0;
+    for (auto it = sent.begin(); it != sent.end(); it++) {
+        const SymTok &tok = *it;
+        auto it2 = subst_map.find(tok);
+        if (it2 == subst_map.end()) {
+            new_size += 1;
+        } else {
+            const vector< SymTok > &subst = it2->second;
+            new_size += subst.size();
+        }
+    }
+    new_sent.reserve(new_size);
+    for (auto it = sent.begin(); it != sent.end(); it++) {
+        const SymTok &tok = *it;
+        auto it2 = subst_map.find(tok);
+        if (it2 == subst_map.end()) {
+            //assert(lib.is_constant(tok));
+            new_sent.push_back(tok);
+        } else {
+            const vector< SymTok > &subst = it2->second;
+            new_sent.insert(new_sent.end(), subst.begin(), subst.end());
+        }
+    }
+    return new_sent;
+}
+
 void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 {
     assert_or_throw_pe(this->stack.size() >= child_ass.get_mand_hyps_num(), "Stack too small to pop hypotheses");
@@ -458,16 +488,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
     // Build the thesis
     LabTok thesis = child_ass.get_thesis();
     const vector< SymTok > &thesis_sent = this->lib.get_sentence(thesis);
-    vector< SymTok > stack_thesis_sent;
-    for (auto it = thesis_sent.begin(); it != thesis_sent.end(); it++) {
-        const SymTok &tok = *it;
-        if (this->lib.is_constant(tok)) {
-            stack_thesis_sent.push_back(tok);
-        } else {
-            const vector< SymTok > &subst = subst_map.at(tok);
-            copy(subst.begin(), subst.end(), back_inserter(stack_thesis_sent));
-        }
-    }
+    vector< SymTok > stack_thesis_sent = do_subst(thesis_sent, subst_map, lib);
 #ifndef NDEBUG
     cerr << "    Thesis:         " << print_sentence(thesis_sent, this->lib) << endl << "      becomes:      " << print_sentence(stack_thesis_sent, this->lib) << endl;
 #endif
