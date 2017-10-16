@@ -37,7 +37,13 @@ private:
     const ProofError error;
 };
 
-inline static void assert_or_throw_pe(bool cond, const std::string &reason="", const ProofError &error={}) {
+inline static void assert_or_throw_pe(bool cond, const std::string &reason, const ProofError &error={}) {
+    if (!cond) {
+        throw ProofException(reason, error);
+    }
+}
+
+inline static void assert_or_throw_pe(bool cond, const char *reason="", const ProofError &error={}) {
     if (!cond) {
         throw ProofException(reason, error);
     }
