@@ -66,7 +66,7 @@ string size_to_string(size_t size) {
     return stream.str();
 }
 
-MMPPException::MMPPException(string reason) : reason(reason), stacktrace(dump_stacktrace()) {
+MMPPException::MMPPException(const string &reason) : reason(reason), stacktrace(dump_stacktrace()) {
     if (mmpp_abort) {
         std::cerr << "Exception with message: " << reason << std::endl;
         this->print_stacktrace(std::cerr);

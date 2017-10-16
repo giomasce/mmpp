@@ -497,7 +497,7 @@ std::vector<SymTok> LibraryToolbox::read_sentence(const string &in) const
     vector< SymTok > res;
     for (auto &tok : toks) {
         auto tok_num = this->get_symbol(tok);
-        assert_or_throw(tok_num != 0);
+        assert_or_throw(tok_num != 0, "not a symbol");
         res.push_back(tok_num);
     }
     return res;

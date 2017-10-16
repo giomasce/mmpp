@@ -134,12 +134,12 @@ class LRParsingHelper {
 public:
     LRParsingHelper(const std::unordered_map< size_t, std::pair< std::unordered_map< SymType, size_t >, std::vector< std::tuple< SymType, LabType, size_t, size_t > > > > &automaton,
                     typename std::vector<SymType>::const_iterator sent_begin, typename std::vector<SymType>::const_iterator sent_end, SymType target_type) :
-    automaton(automaton), sent_begin(sent_begin), sent_end(sent_end), target_type(target_type) {
+    automaton(automaton), sent_begin(sent_begin), sent_end(sent_end), target_type(target_type), parsing_tree_stack_size(0) {
         this->state_stack.push_back(0);
         this->sent_it = this->sent_begin;
     }
 
-    std::tuple< bool, bool, ParsingTree< SymType, LabType > > do_parsing() {
+    std::tuple< bool, bool > do_parsing() {
         const auto &row = this->automaton.at(this->state_stack.back());
         const auto &shifts = row.first;
         const auto &reductions = row.second;
@@ -153,10 +153,9 @@ public:
 
                 bool res;
                 bool must_halt;
-                ParsingTree< SymType, LabType > parsing_tree;
-                std::tie(res, must_halt, parsing_tree) = this->do_parsing();
+                std::tie(res, must_halt) = this->do_parsing();
                 if (res || must_halt) {
-                    return std::make_tuple(res, must_halt, parsing_tree);
+                    return std::make_tuple(res, must_halt);
                 }
 
                 this->sent_it--;
@@ -172,16 +171,19 @@ public:
             size_t var_num;
             std::tie(type, lab, sym_num, var_num) = reduction;
 
-            ParsingTree< SymType, LabType > new_parsing_tree;
+            this->labels_stack.push_back(std::make_tuple(type, lab, var_num));
+            assert(this->parsing_tree_stack_size >= var_num);
+            this->parsing_tree_stack_size += 1 - var_num;
+            /*ParsingTree< SymType, LabType > new_parsing_tree;
             new_parsing_tree.label = lab;
             new_parsing_tree.type = type;
             std::copy(this->parsing_tree_stack.end() - var_num, this->parsing_tree_stack.end(), std::back_inserter(new_parsing_tree.children));
             this->parsing_tree_stack.resize(this->parsing_tree_stack.size() - var_num);
-            this->parsing_tree_stack.push_back(new_parsing_tree);
+            this->parsing_tree_stack.push_back(new_parsing_tree);*/
 
             // Detect if the search has terminated
-            if (this->sent_it == this->sent_end && this->parsing_tree_stack.size() == 1 && this->state_stack.size() == 1 + sym_num && type == this->target_type) {
-                return std::make_tuple(true, false, new_parsing_tree);
+            if (this->sent_it == this->sent_end && this->parsing_tree_stack_size == 1 && this->state_stack.size() == 1 + sym_num && type == this->target_type) {
+                return std::make_tuple(true, false);
             }
 
             std::vector< size_t > temp_states;
@@ -190,31 +192,48 @@ public:
             auto new_row_it = this->automaton.find(this->state_stack.back());
             // If the search had not terminated before and we do not have a new state to go, than the search has failed
             if (new_row_it == this->automaton.end()) {
-                return std::tuple< bool, bool, ParsingTree< SymType, LabType > >(false, true, {});
+                return std::make_tuple(false, true);
             }
             const auto &new_row = new_row_it->second;
             // As above
             auto new_state_it = new_row.first.find(type);
             if (new_state_it == new_row.first.end()) {
-                return std::tuple< bool, bool, ParsingTree< SymType, LabType > >(false, true, {});
+                return std::make_tuple(false, true);
             }
             this->state_stack.push_back(new_state_it->second);
 
             bool res;
             bool must_halt;
-            ParsingTree< SymType, LabType > parsing_tree;
-            std::tie(res, must_halt, parsing_tree) = this->do_parsing();
+            std::tie(res, must_halt) = this->do_parsing();
             if (res || must_halt) {
-                return std::make_tuple(res, must_halt, parsing_tree);
+                return std::make_tuple(res, must_halt);
             }
 
             this->state_stack.pop_back();
             std::copy(temp_states.begin(), temp_states.end(), std::back_inserter(this->state_stack));
-            this->parsing_tree_stack.pop_back();
-            std::copy(new_parsing_tree.children.begin(), new_parsing_tree.children.end(), std::back_inserter(this->parsing_tree_stack));
+
+            this->parsing_tree_stack_size -= 1 - var_num;
+            this->labels_stack.pop_back();
+            /*this->parsing_tree_stack.pop_back();
+            std::copy(new_parsing_tree.children.begin(), new_parsing_tree.children.end(), std::back_inserter(this->parsing_tree_stack));*/
         }
 
-        return std::tuple< bool, bool, ParsingTree< SymType, LabType > >(false, false, {});
+        return std::make_tuple(false, false);
+    }
+
+    ParsingTree< SymType, LabType > get_parsing_tree() {
+        std::vector< ParsingTree< SymType, LabType > > stack;
+        for (const auto &x : this->labels_stack) {
+            ParsingTree< SymType, LabType > pt;
+            size_t var_num;
+            std::tie(pt.type, pt.label, var_num) = x;
+            assert(stack.size() >= var_num);
+            std::copy(stack.end() - var_num, stack.end(), std::back_inserter(pt.children));
+            stack.resize(stack.size() - var_num);
+            stack.push_back(pt);
+        }
+        assert(stack.size() == 1);
+        return stack[0];
     }
 
 private:
@@ -225,7 +244,9 @@ private:
 
     typename std::vector<SymType>::const_iterator sent_it;
     std::vector< size_t > state_stack;
-    std::vector< ParsingTree< SymType, LabType > > parsing_tree_stack;
+    //std::vector< ParsingTree< SymType, LabType > > parsing_tree_stack;
+    size_t parsing_tree_stack_size;
+    std::vector< std::tuple< SymType, LabType, size_t > > labels_stack;
 };
 
 template< typename SymType, typename LabType >
@@ -255,8 +276,7 @@ public:
     ParsingTree< SymType, LabType > parse(typename std::vector<SymType>::const_iterator sent_begin, typename std::vector<SymType>::const_iterator sent_end, SymType type) const {
         LRParsingHelper helper(this->automaton, sent_begin, sent_end, type);
         bool res;
-        ParsingTree< SymType, LabType > parsing_tree;
-        std::tie(res, std::ignore, parsing_tree) = helper.do_parsing();
+        std::tie(res, std::ignore) = helper.do_parsing();
         if (res) {
 #ifdef LR_PARSER_SELF_TEST
             // Check that the returned parsing tree is correct
@@ -264,7 +284,7 @@ public:
             assert(parsed_sent.size() == static_cast< size_t >(sent_end - sent_begin));
             assert(std::equal(sent_begin, sent_end, parsed_sent.begin()));
 #endif
-            return parsing_tree;
+            return helper.get_parsing_tree();
         } else {
             return {};
         }

@@ -391,6 +391,18 @@ static_block {
     register_main_function("mmpp_verify_one", test_one_main);
 }
 
+int test_simple_one_main(int argc, char *argv[]) {
+    if (argc != 2) {
+        cerr << "Provide file name as argument, please" << endl;
+        return 1;
+    }
+    string filename(argv[1]);
+    return test_verification_one(filename, false) ? 0 : 1;
+}
+static_block {
+    register_main_function("mmpp_simple_verify_one", test_simple_one_main);
+}
+
 int test_all_main(int argc, char *argv[]) {
     (void) argc;
     (void) argv;

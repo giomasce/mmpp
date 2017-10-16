@@ -17,13 +17,13 @@ LibraryImpl::LibraryImpl()
 
 SymTok LibraryImpl::create_symbol(string s)
 {
-    assert_or_throw(is_symbol(s));
+    assert_or_throw(is_symbol(s), "not a valid symbol");
     return this->syms.get_or_create(s);
 }
 
 LabTok LibraryImpl::create_label(string s)
 {
-    assert_or_throw(is_label(s));
+    assert_or_throw(is_label(s), "not a valid label");
     auto res = this->labels.get_or_create(s);
     //cerr << "Resizing from " << this->assertions.size() << " to " << res+1 << endl;
     this->sentences.resize(res+1);

@@ -22,8 +22,7 @@ int main(int argc, char *argv[]) {
     function< int(int, char*[]) > main_func;
     try {
         main_func = get_main_functions().at(bname);
-    } catch (out_of_range e) {
-        (void) e;
+    } catch (out_of_range) {
         // Return a default one
         try {
             main_func = get_main_functions().at(DEFAULT_MAIN_FUNCTION);

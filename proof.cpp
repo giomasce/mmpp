@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <functional>
 #include <cassert>
+#include <unordered_map>
 
 // I do not want this to apply to cassert
 #define NDEBUG
