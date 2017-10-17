@@ -283,7 +283,8 @@ void Reader::parse_c()
         SymTok tok = this->lib.create_symbol(stok);
         assert_or_throw(!this->check_const(tok), "Symbol already bound in $c statement");
         assert_or_throw(!this->check_var(tok), "Symbol already bound in $c statement");
-        this->lib.add_constant(tok);
+        this->consts.insert(tok);
+        this->lib.set_constant(tok, true);
     }
 }
 
@@ -291,9 +292,10 @@ void Reader::parse_v()
 {
     assert_or_throw(this->label == 0, "Undue label in $v statement");
     for (auto stok : this->toks) {
-        SymTok tok = this->lib.create_symbol(stok);
+        SymTok tok = this->lib.create_or_get_symbol(stok);
         assert_or_throw(!this->check_const(tok), "Symbol already bound in $v statement");
         assert_or_throw(!this->check_var(tok), "Symbol already bound in $v statement");
+        this->lib.set_constant(tok, false);
         this->stack.back().vars.insert(tok);
     }
 }
@@ -880,7 +882,7 @@ bool Reader::check_var(SymTok tok) const
 
 bool Reader::check_const(SymTok tok) const
 {
-    return this->lib.is_constant(tok);
+    return this->consts.find(tok) != this->consts.end();
 }
 
 bool Reader::check_type(LabTok tok) const

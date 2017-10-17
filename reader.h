@@ -94,7 +94,7 @@ private:
 
     std::vector< StackFrame > stack;
     StackFrame final_frame;
-    //std::set< SymTok > consts;
+    std::set< SymTok > consts;
 };
 
 class CompressedEncoder {

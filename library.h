@@ -302,10 +302,11 @@ public:
     virtual bool is_immutable() const;
 
     SymTok create_symbol(std::string s);
+    SymTok create_or_get_symbol(std::string s);
     LabTok create_label(std::string s);
     void add_sentence(LabTok label, std::vector< SymTok > content);
     void add_assertion(LabTok label, const Assertion &ass);
-    void add_constant(SymTok c);
+    void set_constant(SymTok c, bool is_const);
     void set_final_stack_frame(const StackFrame &final_stack_frame);
     void set_max_number(LabTok max_number);
     void set_addendum(const LibraryAddendumImpl &add);
@@ -314,7 +315,9 @@ public:
 private:
     StringCache< SymTok > syms;
     StringCache< LabTok > labels;
-    std::set< SymTok > consts;
+    std::vector< bool > consts;
+    //std::set< SymTok > consts;
+    //std::set< SymTok > vars;
 
     // vector is more efficient than unordered_map if labels are known to be contiguous and starting from 1; in the general case the unordered_map might be better
     //std::unordered_map< LabTok, std::vector< SymTok > > sentences;

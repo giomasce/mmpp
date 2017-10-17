@@ -18,13 +18,27 @@ LibraryImpl::LibraryImpl()
 SymTok LibraryImpl::create_symbol(string s)
 {
     assert_or_throw(is_symbol(s), "not a valid symbol");
-    return this->syms.get_or_create(s);
+    SymTok res = this->syms.create(s);
+    if (res == 0) {
+        throw MMPPException("creating an already existing symbol");
+    }
+    return res;
+}
+
+SymTok LibraryImpl::create_or_get_symbol(string s)
+{
+    assert_or_throw(is_symbol(s), "not a valid symbol");
+    SymTok res = this->syms.get_or_create(s);
+    return res;
 }
 
 LabTok LibraryImpl::create_label(string s)
 {
     assert_or_throw(is_label(s), "not a valid label");
-    auto res = this->labels.get_or_create(s);
+    auto res = this->labels.create(s);
+    if (res == 0) {
+        throw MMPPException("creating an already existing label");
+    }
     //cerr << "Resizing from " << this->assertions.size() << " to " << res+1 << endl;
     this->sentences.resize(res+1);
     this->assertions.resize(res+1);
@@ -96,14 +110,26 @@ const std::vector<Assertion> &LibraryImpl::get_assertions() const
     return this->assertions;
 }
 
-void LibraryImpl::add_constant(SymTok c)
+void LibraryImpl::set_constant(SymTok c, bool is_const)
 {
-    this->consts.insert(c);
+    /*if (is_const) {
+        this->consts.insert(c);
+    } else {
+        this->vars.insert(c);
+    }*/
+    this->consts.resize(max(this->consts.size(), static_cast< size_t > (c)+1));
+    this->consts[c] = is_const;
 }
 
 bool LibraryImpl::is_constant(SymTok c) const
 {
-    return this->consts.find(c) != this->consts.end();
+    //return this->consts.find(c) != this->consts.end();
+    //return this->vars.find(c) == this->vars.end();
+    if (c < this->consts.size()) {
+        return this->consts[c];
+    } else {
+        return false;
+    }
 }
 
 /*std::vector<LabTok> LibraryImpl::prove_type2(const std::vector<SymTok> &type_sent) const

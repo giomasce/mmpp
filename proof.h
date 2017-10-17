@@ -7,6 +7,8 @@
 #include <type_traits>
 #include <memory>
 
+#include "utils/vectormap.h"
+
 typedef uint16_t CodeTok;
 
 static_assert(std::is_integral< CodeTok >::value);
@@ -20,10 +22,13 @@ class ProofExecutor;
 
 #include "library.h"
 
+//typedef std::unordered_map< SymTok, std::vector< SymTok > > SubstMapType;
+typedef VectorMap< SymTok, Sentence > SubstMapType;
+
 struct ProofError {
     Sentence on_stack;
     Sentence to_subst;
-    std::unordered_map< SymTok, Sentence > subst_map;
+    SubstMapType subst_map;
 };
 
 class ProofException {

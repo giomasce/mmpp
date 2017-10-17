@@ -1,6 +1,6 @@
 
 # Comment this to enable QT
-#CONFIG -= qt
+CONFIG -= qt
 
 CONFIG(qt) {
     QT       += core gui
@@ -93,7 +93,8 @@ HEADERS += \
     test/test_env.h \
     test/test_parsing.h \
     test/test_verification.h \
-    test/test_minor.h
+    test/test_minor.h \
+    utils/vectormap.h
 
 CONFIG(qt) {
 HEADERS += \

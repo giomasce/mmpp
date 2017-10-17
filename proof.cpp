@@ -1,6 +1,5 @@
 
 #include "proof.h"
-#include "utils/utils.h"
 
 #include <iostream>
 #include <algorithm>
@@ -8,8 +7,10 @@
 #include <cassert>
 #include <unordered_map>
 
+#include "utils/utils.h"
+
 // I do not want this to apply to cassert
-#define NDEBUG
+#define PROOF_VERBOSE_DEBUG
 
 const size_t max_decompression_size = 1024 * 1024;
 
@@ -90,7 +91,7 @@ const UncompressedProof CompressedProofExecutor::uncompress()
 
 void CompressedProofExecutor::execute()
 {
-#ifndef NDEBUG
+#ifndef PROOF_VERBOSE_DEBUG
     cerr << "Executing proof of " << this->lib.resolve_label(this->ass.get_thesis()) << endl;
 #endif
     vector< vector< SymTok > > saved;
@@ -252,7 +253,7 @@ const UncompressedProof UncompressedProofExecutor::uncompress()
 
 void UncompressedProofExecutor::execute()
 {
-#ifndef NDEBUG
+#ifndef PROOF_VERBOSE_DEBUG
     cerr << "Executing proof of " << this->lib.resolve_label(this->ass.get_thesis()) << endl;
 #endif
     for (auto &label : this->proof.labels) {
@@ -367,7 +368,8 @@ const std::set<std::pair<SymTok, SymTok> > &ProofEngine::get_dists() const
     return *(this->dists_stack.end()-1);
 }
 
-static Sentence do_subst(const Sentence &sent, unordered_map< SymTok, vector< SymTok > > &subst_map, const Library &lib) {
+template< typename Map >
+static Sentence do_subst(const Sentence &sent, const Map &subst_map, const Library &lib) {
     (void) lib;
 
     Sentence new_sent;
@@ -379,7 +381,7 @@ static Sentence do_subst(const Sentence &sent, unordered_map< SymTok, vector< Sy
             new_size += 1;
         } else {
             const vector< SymTok > &subst = it2->second;
-            new_size += subst.size();
+            new_size += subst.size() - 1;
         }
     }
     new_sent.reserve(new_size);
@@ -391,7 +393,7 @@ static Sentence do_subst(const Sentence &sent, unordered_map< SymTok, vector< Sy
             new_sent.push_back(tok);
         } else {
             const vector< SymTok > &subst = it2->second;
-            new_sent.insert(new_sent.end(), subst.begin(), subst.end());
+            new_sent.insert(new_sent.end(), subst.begin() + 1, subst.end());
         }
     }
     return new_sent;
@@ -405,7 +407,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
     set< pair< SymTok, SymTok > > dists;
 
     // Use the first num_floating hypotheses to build the substitution map
-    unordered_map< SymTok, vector< SymTok > > subst_map;
+    SubstMapType subst_map;
     size_t i = 0;
     for (auto &hyp : child_ass.get_float_hyps()) {
         const vector< SymTok > &hyp_sent = this->lib.get_sentence(hyp);
@@ -413,17 +415,17 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
         assert(hyp_sent.size() == 2);
         assert(this->lib.is_constant(hyp_sent.at(0)));
         assert(!this->lib.is_constant(hyp_sent.at(1)));
-        const vector< SymTok > &stack_hyp_sent = this->stack.at(stack_base + i);
+        const vector< SymTok > &stack_hyp_sent = this->stack[stack_base + i];
         assert(this->dists_stack.at(stack_base + i).empty());
         assert_or_throw_pe(hyp_sent.at(0) == stack_hyp_sent.at(0), "Floating hypothesis does not match stack");
-#ifndef NDEBUG
+#ifndef PROOF_VERBOSE_DEBUG
         if (stack_hyp_sent.size() == 1) {
             cerr << "[" << this->debug_output << "] Matching an empty sentence" << endl;
         }
 #endif
-        auto res = subst_map.insert(make_pair(hyp_sent.at(1), vector< SymTok >(stack_hyp_sent.begin()+1, stack_hyp_sent.end())));
+        auto res = subst_map.insert(make_pair(hyp_sent.at(1), move(stack_hyp_sent)));
         assert(res.second);
-#ifndef NDEBUG
+#ifndef PROOF_VERBOSE_DEBUG
         cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
 #endif
         i++;
@@ -435,7 +437,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
         assert(this->lib.is_constant(hyp_sent.at(0)));
         const vector< SymTok > &stack_hyp_sent = this->stack.at(stack_base + i);
         copy(this->dists_stack.at(stack_base + i).begin(), this->dists_stack.at(stack_base + i).end(), inserter(dists, dists.begin()));
-#ifndef NDEBUG
+#ifndef PROOF_VERBOSE_DEBUG
         cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
 #endif
         ProofError err = { stack_hyp_sent, hyp_sent, subst_map };
@@ -448,9 +450,9 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
             } else {
                 const vector< SymTok > &subst = subst_map.at(tok);
                 assert(distance(stack_it, stack_hyp_sent.end()) >= 0);
-                assert_or_throw_pe(subst.size() <= (size_t) distance(stack_it, stack_hyp_sent.end()), "Essential hypothesis does not match stack because stack is shorter", err);
-                assert_or_throw_pe(equal(subst.begin(), subst.end(), stack_it), "Essential hypothesis does not match stack because of wrong variable substitution", err);
-                stack_it += subst.size();
+                assert_or_throw_pe(subst.size() - 1 <= (size_t) distance(stack_it, stack_hyp_sent.end()), "Essential hypothesis does not match stack because stack is shorter", err);
+                assert_or_throw_pe(equal(subst.begin() + 1, subst.end(), stack_it), "Essential hypothesis does not match stack because of wrong variable substitution", err);
+                stack_it += subst.size() - 1;
             }
         }
         assert_or_throw_pe(stack_it == stack_hyp_sent.end(), "Essential hypothesis does not match stack because stack is longer", err);
@@ -489,16 +491,16 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
     LabTok thesis = child_ass.get_thesis();
     const vector< SymTok > &thesis_sent = this->lib.get_sentence(thesis);
     vector< SymTok > stack_thesis_sent = do_subst(thesis_sent, subst_map, lib);
-#ifndef NDEBUG
+#ifndef PROOF_VERBOSE_DEBUG
     cerr << "    Thesis:         " << print_sentence(thesis_sent, this->lib) << endl << "      becomes:      " << print_sentence(stack_thesis_sent, this->lib) << endl;
 #endif
 
     // Finally do some popping and pushing
-#ifndef NDEBUG
+#ifndef PROOF_VERBOSE_DEBUG
     cerr << "    Popping from stack " << stack.size() - stack_base << " elements" << endl;
 #endif
     this->stack_resize(stack_base);
-#ifndef NDEBUG
+#ifndef PROOF_VERBOSE_DEBUG
     cerr << "    Pushing on stack: " << print_sentence(stack_thesis_sent, this->lib) << endl;
 #endif
     this->push_stack(stack_thesis_sent, dists);
@@ -528,16 +530,16 @@ void ProofEngine::process_sentence(const std::vector<SymTok> &sent, LabTok label
 void ProofEngine::process_label(const LabTok label)
 {
     const Assertion &child_ass = this->lib.get_assertion(label);
-#ifndef NDEBUG
+#ifndef PROOF_VERBOSE_DEBUG
     cerr << "  Considering label " << this->lib.resolve_label(label);
 #endif
     if (child_ass.is_valid()) {
-#ifndef NDEBUG
+#ifndef PROOF_VERBOSE_DEBUG
         cerr << ", which is a previous assertion" << endl;
 #endif
         this->process_assertion(child_ass, label);
     } else {
-#ifndef NDEBUG
+#ifndef PROOF_VERBOSE_DEBUG
         cerr << ", which is an hypothesis" << endl;
 #endif
         const vector< SymTok > &sent = this->lib.get_sentence(label);
