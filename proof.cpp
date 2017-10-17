@@ -408,6 +408,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 
     // Use the first num_floating hypotheses to build the substitution map
     SubstMapType subst_map;
+    subst_map.reserve(child_ass.get_float_hyps().size());
     size_t i = 0;
     for (auto &hyp : child_ass.get_float_hyps()) {
         const vector< SymTok > &hyp_sent = this->lib.get_sentence(hyp);

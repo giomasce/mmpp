@@ -93,6 +93,10 @@ public:
     VectorMap() {
     }
 
+    void reserve(size_t count) {
+        return this->container.reserve(count);
+    }
+
     std::pair< iterator, bool > insert_slow(const value_type &value) {
         auto it = std::find_if(this->container.begin(), this->container.end(),
                                [&](const std::pair< Key, Value > &x)->bool {
