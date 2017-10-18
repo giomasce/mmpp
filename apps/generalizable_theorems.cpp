@@ -15,14 +15,31 @@ using namespace std;
 
 class Reactor {
 public:
-    Reactor(LibraryToolbox &tb) :
+    Reactor(LibraryToolbox &tb, size_t hyps_num) :
         tb(tb), is_var(tb.get_standard_is_var()), unificator(this->is_var)
     {
+        this->hypotheses.reserve(hyps_num);
+        for (size_t i = 0; i < hyps_num; i++) {
+            LabTok type;
+            SymTok type_sym = tb.get_turnstile_alias();
+            tie(type, ignore) = tb.new_temp_var(type_sym);
+            this->hypotheses.push_back(type);
+        }
     }
 
+    /*map< size_t, LabTok >::iterator create_hypothesis(SymTok type_sym, size_t idx) {
+        auto it = this->hypotheses.find(idx);
+        if (it == this->hypotheses.end()) {
+            LabTok type;
+            tie(type, ignore) = tb.new_temp_var(type_sym);
+            tie(it, ignore) = this->hypotheses.insert(make_pair(idx, type));
+        }
+        return it;
+    }*/
+
     void process_hypothesis(SymTok type_sym, size_t idx) {
-        auto it = this->create_hypothesis(type_sym, idx);
-        LabTok type = it->second;
+        //auto it = this->create_hypothesis(type_sym, idx);
+        LabTok type = this->hypotheses[idx];
         ParsingTree< SymTok, LabTok > pt;
         pt.label = type;
         pt.type = type_sym;
@@ -66,14 +83,14 @@ public:
 
     vector< ParsingTree< SymTok, LabTok > > get_hypotheses() {
         vector< ParsingTree< SymTok, LabTok > > ret;
-        for (const auto &hyp : this->hypotheses) {
-            SubstMap< SymTok, LabTok >::iterator it = subst.find(hyp.second);
+        for (const auto &hyp_lab : this->hypotheses) {
+            SubstMap< SymTok, LabTok >::iterator it = subst.find(hyp_lab);
             if (it != subst.end()) {
                 ret.push_back(it->second);
             } else {
                 ParsingTree< SymTok, LabTok > pt;
-                pt.label = hyp.second;
-                // FIXME Fill pt.type
+                pt.label = hyp_lab;
+                pt.type = this->tb.get_turnstile_alias();
                 ret.push_back(pt);
             }
         }
@@ -81,21 +98,12 @@ public:
     }
 
 private:
-    map< size_t, LabTok >::iterator create_hypothesis(SymTok type_sym, size_t idx) {
-        auto it = this->hypotheses.find(idx);
-        if (it == this->hypotheses.end()) {
-            LabTok type;
-            tie(type, ignore) = tb.new_temp_var(type_sym);
-            tie(it, ignore) = this->hypotheses.insert(make_pair(idx, type));
-        }
-        return it;
-    }
-
     LibraryToolbox &tb;
     const std::function< bool(LabTok) > is_var;
     Unificator< SymTok, LabTok > unificator;
     vector< ParsingTree< SymTok, LabTok > > stack;
-    map< size_t, LabTok > hypotheses;
+    //map< size_t, LabTok > hypotheses;
+    vector< LabTok > hypotheses;
     SubstMap< SymTok, LabTok > subst;
 };
 
@@ -115,7 +123,7 @@ void find_generalizable_theorems() {
         auto proof = pe->uncompress();
         auto labs = proof.get_labels();
         //cout << "Proof vector: {";
-        Reactor reactor(tb);
+        Reactor reactor(tb, ass.get_ess_hyps().size());
         for (auto label : labs) {
             auto ess_hyps = ass.get_ess_hyps();
             auto it = find(ess_hyps.begin(), ess_hyps.end(), label);
@@ -134,27 +142,47 @@ void find_generalizable_theorems() {
         assert(res);
 
         SubstMap< SymTok, LabTok > subst2;
-        tie(res, subst2) = unify(reactor.get_theorem(), tb.get_parsed_sents()[ass.get_thesis()], tb.get_standard_is_var());
+        Unificator< SymTok, LabTok > unif(tb.get_standard_is_var());
+        unif.add_parsing_trees(reactor.get_theorem(), tb.get_parsed_sents()[ass.get_thesis()]);
+        auto hypotheses = reactor.get_hypotheses();
+        for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
+            unif.add_parsing_trees(hypotheses[i], tb.get_parsed_sents()[ass.get_ess_hyps()[i]]);
+        }
+        tie(res, subst2) = unif.unify();
         assert(res);
-        bool presented = false;
+        SubstMap< SymTok, LabTok > generalizables;
+        SubstMap< SymTok, LabTok > not_generalizables;
         for (const auto &x : subst2) {
             if (!tb.get_standard_is_var()(x.second.label)) {
-                if (!presented) {
-                    cout << "FORWARD UNIFICATION TEST for " << tb.resolve_label(ass.get_thesis()) << endl;
-                    cout << "Proved theorem: " << tb.print_sentence(reactor.get_theorem()) << endl;
-                    cout << "with hypotheses:" << endl;
-                    for (const auto &hyp : reactor.get_hypotheses()) {
-                        cout << " * " << tb.print_sentence(hyp) << endl;
-                    }
-                    cout << "Relevant substitution items:" << endl;
-                    presented = true;
+                generalizables.insert(x);
+            } else {
+                not_generalizables.insert(x);
+            }
+        }
+
+        if (!generalizables.empty()) {
+            cout << "GENERALIZABLE THEOREM (" << tb.resolve_label(ass.get_thesis()) << ")" << endl;
+            cout << "Theorem: " << tb.print_sentence(reactor.get_theorem()) << endl;
+            if (ass.get_ess_hyps().size() != 0) {
+                cout << "with hypotheses:" << endl;
+                for (const auto &hyp : reactor.get_hypotheses()) {
+                    cout << " * " << tb.print_sentence(hyp) << endl;
                 }
+            }
+            cout << "Substitution map for generalizable variables:" << endl;
+            for (const auto &x : generalizables) {
                 ParsingTree< SymTok, LabTok > pt;
                 pt.label = x.first;
                 cout << " * " << tb.print_sentence(pt) << ": " << tb.print_sentence(x.second) << endl;
             }
-        }
-        if (presented) {
+            if (!not_generalizables.empty()) {
+                cout << "Substitution map for other variables:" << endl;
+                for (const auto &x : not_generalizables) {
+                    ParsingTree< SymTok, LabTok > pt;
+                    pt.label = x.first;
+                    cout << " * " << tb.print_sentence(pt) << ": " << tb.print_sentence(x.second) << endl;
+                }
+            }
             cout << endl;
         }
 

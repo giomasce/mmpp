@@ -223,12 +223,26 @@ public:
         return this->comment;
     }
     const std::set<std::pair<SymTok, SymTok> > get_dists() const;
-    size_t get_mand_hyps_num() const;
+    size_t get_mand_hyps_num() const
+    {
+        return this->get_float_hyps().size() + this->get_ess_hyps().size();
+    }
     LabTok get_mand_hyp(size_t i) const;
-    const std::vector<LabTok> &get_float_hyps() const;
-    const std::vector<LabTok> &get_ess_hyps() const;
-    const std::set< LabTok > &get_opt_hyps() const;
-    LabTok get_thesis() const;
+    const std::vector<LabTok> &get_float_hyps() const
+    {
+        return this->float_hyps;
+    }
+    const std::vector<LabTok> &get_ess_hyps() const
+    {
+        return this->ess_hyps;
+    }
+    const std::set< LabTok > &get_opt_hyps() const
+    {
+        return this->opt_hyps;
+    }
+    LabTok get_thesis() const {
+        return this->thesis;
+    }
     std::shared_ptr< ProofExecutor > get_proof_executor(const Library &lib, bool gen_proof_tree=false) const;
     void set_proof(std::shared_ptr<Proof> proof);
 
@@ -247,7 +261,10 @@ private:
     bool modif_disc;
     bool usage_disc;
 
-    std::shared_ptr< Proof > get_proof() const;
+    std::shared_ptr< Proof > get_proof() const
+    {
+        return this->proof;
+    }
 };
 
 class Library {

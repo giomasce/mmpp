@@ -241,11 +241,6 @@ const std::set<std::pair<SymTok, SymTok> > Assertion::get_dists() const
     return ret;
 }
 
-size_t Assertion::get_mand_hyps_num() const
-{
-    return this->get_float_hyps().size() + this->get_ess_hyps().size();
-}
-
 LabTok Assertion::get_mand_hyp(size_t i) const
 {
     if (i < this->get_float_hyps().size()) {
@@ -253,25 +248,6 @@ LabTok Assertion::get_mand_hyp(size_t i) const
     } else {
         return this->get_ess_hyps()[i-this->get_float_hyps().size()];
     }
-}
-
-const std::vector<LabTok> &Assertion::get_float_hyps() const
-{
-    return this->float_hyps;
-}
-
-const std::set<LabTok> &Assertion::get_opt_hyps() const
-{
-    return this->opt_hyps;
-}
-
-const std::vector<LabTok> &Assertion::get_ess_hyps() const
-{
-    return this->ess_hyps;
-}
-
-LabTok Assertion::get_thesis() const {
-    return this->thesis;
 }
 
 std::shared_ptr<ProofExecutor> Assertion::get_proof_executor(const Library &lib, bool gen_proof_tree) const
@@ -283,11 +259,6 @@ void Assertion::set_proof(shared_ptr< Proof > proof)
 {
     assert(this->theorem);
     this->proof = proof;
-}
-
-shared_ptr< Proof > Assertion::get_proof() const
-{
-    return this->proof;
 }
 
 const StackFrame &LibraryImpl::get_final_stack_frame() const
