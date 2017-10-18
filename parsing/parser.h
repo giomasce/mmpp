@@ -2,6 +2,8 @@
 #define PARSER_H
 
 #include <vector>
+#include <unordered_map>
+#include <cassert>
 
 template< typename SymType, typename LabType >
 struct ParsingTree {

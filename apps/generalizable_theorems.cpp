@@ -130,17 +130,6 @@ void find_generalizable_theorems() {
         //cout << " }" << endl;
         //cout << tb.print_proof(labs, true) << endl;
 
-        /*for (auto it = steps.begin(); it != steps.end(); it++) {
-            string &step = *it;
-            if (step == "*") {
-                bool res = reactor.process_hypothesis(tb.get_symbol("wff"));
-                assert(res);
-            } else {
-                bool res = reactor.process_label(tb.get_label(step));
-                assert(res);
-            }
-        }*/
-
         bool res = reactor.compute_unification();
         assert(res);
 

@@ -9,7 +9,7 @@ CONFIG(qt) {
 }
 
 TEMPLATE = app
-CONFIG += link_pkgconfig
+CONFIG += link_pkgconfig precompile_header
 #CONFIG += object_parallel_to_source
 PKGCONFIG += libmicrohttpd libcrypto++
 
@@ -76,13 +76,15 @@ QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -
 #QMAKE_CXXFLAGS += -fsanitize=address -fno-sanitize-recover=all
 #QMAKE_LIBS += -fsanitize=address -fno-sanitize-recover=all
 
+PRECOMPILED_HEADER += pch.h
+
 HEADERS += \
+    pch.h \
     wff.h \
     library.h \
     proof.h \
     old/unification.h \
     toolbox.h \
-    parsing/earley.h \
     utils/stringcache.h \
     utils/utils.h \
     web/httpd.h \
@@ -91,16 +93,17 @@ HEADERS += \
     platform.h \
     web/workset.h \
     web/jsonize.h \
-    parsing/lr.h \
     reader.h \
-    parsing/parser.h \
     libs/serialize_tuple.h \
-    parsing/unif.h \
     test/test_env.h \
     test/test_parsing.h \
     test/test_verification.h \
     test/test_minor.h \
-    utils/vectormap.h
+    utils/vectormap.h \
+    parsing/parser.h \
+    parsing/earley.h \
+    parsing/lr.h \
+    parsing/unif.h
 
 CONFIG(qt) {
 HEADERS += \
