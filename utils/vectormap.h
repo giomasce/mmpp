@@ -9,80 +9,8 @@ template< typename Key, typename Value >
 class VectorMap {
 public:
 
-    class Iterator {
-    public:
-        Iterator(typename decltype(VectorMap::container)::iterator it) : it(it) {
-        }
-
-        bool operator==(const Iterator &x) const {
-            return this->it == x.it;
-        }
-
-        bool operator!=(const Iterator &x) const {
-            return this->it != x.it;
-        }
-
-        Iterator &operator++() {
-            ++this->it;
-            return *this;
-        }
-
-        Iterator operator++(int) {
-            auto x = *this;
-            this->it++;
-            return x;
-        }
-
-        typename VectorMap::value_type &operator*() const {
-            return *this->it;
-        }
-
-        typename VectorMap::value_type *operator->() const {
-            return &(this->operator*());
-        }
-
-    private:
-        typename decltype(VectorMap::container)::iterator it;
-    };
-
-    class ConstIterator {
-    public:
-        ConstIterator(typename decltype(VectorMap::container)::const_iterator it) : it(it) {
-        }
-
-        ConstIterator(const VectorMap::Iterator &it) : it(it.it) {
-        }
-
-        bool operator==(const ConstIterator &x) const {
-            return this->it == x.it;
-        }
-
-        bool operator!=(const ConstIterator &x) const {
-            return this->it != x.it;
-        }
-
-        ConstIterator &operator++() {
-            ++this->it;
-            return *this;
-        }
-
-        ConstIterator operator++(int) {
-            auto x = *this;
-            this->it++;
-            return x;
-        }
-
-        const typename VectorMap::value_type &operator*() const {
-            return *this->it;
-        }
-
-        const typename VectorMap::value_type *operator->() const {
-            return &(this->operator*());
-        }
-
-    private:
-        typename decltype(VectorMap::container)::const_iterator it;
-    };
+    class Iterator;
+    class ConstIterator;
 
     typedef Key key_type;
     typedef Value mapped_type;
@@ -170,6 +98,82 @@ public:
 
 private:
     std::vector< value_type > container;
+
+public:
+    class Iterator {
+    public:
+        Iterator(typename decltype(VectorMap::container)::iterator it) : it(it) {
+        }
+
+        bool operator==(const Iterator &x) const {
+            return this->it == x.it;
+        }
+
+        bool operator!=(const Iterator &x) const {
+            return this->it != x.it;
+        }
+
+        Iterator &operator++() {
+            ++this->it;
+            return *this;
+        }
+
+        Iterator operator++(int) {
+            auto x = *this;
+            this->it++;
+            return x;
+        }
+
+        typename VectorMap::value_type &operator*() const {
+            return *this->it;
+        }
+
+        typename VectorMap::value_type *operator->() const {
+            return &(this->operator*());
+        }
+
+    private:
+        typename decltype(VectorMap::container)::iterator it;
+    };
+
+    class ConstIterator {
+    public:
+        ConstIterator(typename decltype(VectorMap::container)::const_iterator it) : it(it) {
+        }
+
+        ConstIterator(const VectorMap::Iterator &it) : it(it.it) {
+        }
+
+        bool operator==(const ConstIterator &x) const {
+            return this->it == x.it;
+        }
+
+        bool operator!=(const ConstIterator &x) const {
+            return this->it != x.it;
+        }
+
+        ConstIterator &operator++() {
+            ++this->it;
+            return *this;
+        }
+
+        ConstIterator operator++(int) {
+            auto x = *this;
+            this->it++;
+            return x;
+        }
+
+        const typename VectorMap::value_type &operator*() const {
+            return *this->it;
+        }
+
+        const typename VectorMap::value_type *operator->() const {
+            return &(this->operator*());
+        }
+
+    private:
+        typename decltype(VectorMap::container)::const_iterator it;
+    };
 };
 
 #endif // VectorMap_H
