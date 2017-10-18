@@ -17,7 +17,7 @@ LibraryImpl::LibraryImpl()
 
 SymTok LibraryImpl::create_symbol(string s)
 {
-    assert_or_throw(is_symbol(s), "not a valid symbol");
+    assert(is_valid_symbol(s));
     SymTok res = this->syms.create(s);
     if (res == 0) {
         throw MMPPException("creating an already existing symbol");
@@ -27,14 +27,14 @@ SymTok LibraryImpl::create_symbol(string s)
 
 SymTok LibraryImpl::create_or_get_symbol(string s)
 {
-    assert_or_throw(is_symbol(s), "not a valid symbol");
+    assert(is_valid_symbol(s));
     SymTok res = this->syms.get_or_create(s);
     return res;
 }
 
 LabTok LibraryImpl::create_label(string s)
 {
-    assert_or_throw(is_label(s), "not a valid label");
+    assert(is_valid_label(s));
     auto res = this->labels.create(s);
     if (res == 0) {
         throw MMPPException("creating an already existing label");

@@ -223,7 +223,7 @@ Prover LibraryToolbox::build_prover(const std::vector<Sentence> &templ_hyps, con
     if (res.empty()) {
         cerr << string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string() << endl;
     }
-    assert_or_throw(!res.empty(), string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
+    assert_or_throw< MMPPException >(!res.empty(), string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
     const auto &res1 = res[0];
     return [=](ProofEngine &engine){
         RegisteredProverInstanceData inst_data;
@@ -497,7 +497,7 @@ std::vector<SymTok> LibraryToolbox::read_sentence(const string &in) const
     vector< SymTok > res;
     for (auto &tok : toks) {
         auto tok_num = this->get_symbol(tok);
-        assert_or_throw(tok_num != 0, "not a symbol");
+        assert_or_throw< MMPPException >(tok_num != 0, "not a symbol");
         res.push_back(tok_num);
     }
     return res;
@@ -1017,7 +1017,7 @@ void LibraryToolbox::compute_registered_prover(size_t index)
         std::vector<SymTok> templ_thesis_sent = this->read_sentence(data.templ_thesis);
 
         auto unification = this->unify_assertion(templ_hyps_sent, templ_thesis_sent, true);
-        assert_or_throw(!unification.empty(), "Could not find the template assertion");
+        assert_or_throw< MMPPException >(!unification.empty(), "Could not find the template assertion");
         inst_data.label = get<0>(*unification.begin());
         inst_data.label_str = this->resolve_label(inst_data.label);
         const Assertion &ass = this->get_assertion(inst_data.label);

@@ -21,6 +21,7 @@ class UncompressedProof;
 class ProofExecutor;
 
 #include "library.h"
+#include "utils/utils.h"
 
 //typedef std::unordered_map< SymTok, std::vector< SymTok > > SubstMapType;
 typedef VectorMap< SymTok, Sentence > SubstMapType;
@@ -33,7 +34,7 @@ struct ProofError {
 
 class ProofException {
 public:
-    ProofException(std::string reason, ProofError error);
+    ProofException(std::string reason, ProofError error = {});
     const std::string &get_reason() const;
     const ProofError &get_error() const;
 
@@ -41,18 +42,6 @@ private:
     const std::string reason;
     const ProofError error;
 };
-
-inline static void assert_or_throw_pe(bool cond, const std::string &reason, const ProofError &error={}) {
-    if (!cond) {
-        throw ProofException(reason, error);
-    }
-}
-
-inline static void assert_or_throw_pe(bool cond, const char *reason="", const ProofError &error={}) {
-    if (!cond) {
-        throw ProofException(reason, error);
-    }
-}
 
 struct ProofTree {
     std::vector< SymTok > sentence;

@@ -23,21 +23,24 @@ std::vector<string> dump_stacktrace(size_t depth) {
     int trace_size = backtrace(trace.data(), depth);
     for (int i=0; i<trace_size; ++i)
     {
-        if(!dladdr(trace[i], &dlinfo))
+        if(!dladdr(trace[i], &dlinfo)) {
             continue;
+        }
 
         symname = dlinfo.dli_sname;
 
         demangled = __cxa_demangle(symname, NULL, 0, &status);
-        if(status == 0 && demangled)
+        if (status == 0 && demangled) {
             symname = demangled;
+        }
 
         ostringstream oss;
         oss << "address: 0x" << trace[i] << ", object: " << dlinfo.dli_fname << ", function: " << symname;
         ret.push_back(oss.str());
 
-        if (demangled)
+        if (demangled) {
             free(demangled);
+        }
     }
     return ret;
 }

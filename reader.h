@@ -9,8 +9,13 @@
 #include <boost/filesystem.hpp>
 
 #include "library.h"
+#include "utils/utils.h"
 
 std::vector< std::string > tokenize(const std::string &in);
+
+class MMPPParsingError : public MMPPException {
+    using MMPPException::MMPPException;
+};
 
 /*
  * Some notes on this Metamath parser:

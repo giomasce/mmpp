@@ -52,14 +52,14 @@ const UncompressedProof CompressedProofExecutor::uncompress()
          * big uncompressed proofs. This is analogous to a "ZIP bomb" and might lead to
          * security problems. Therefore we fail when decompressed data are too long.
          */
-        assert_or_throw(labels.size() < max_decompression_size, "Decompressed proof is too large");
+        assert_or_throw< ProofException >(labels.size() < max_decompression_size, "Decompressed proof is too large");
         const CodeTok &code = this->proof.codes.at(i);
         if (code == 0) {
             saved.emplace_back(labels.begin() + opening_stack.back(), labels.end());
         } else if (code <= this->ass.get_mand_hyps_num()) {
             LabTok label = this->ass.get_mand_hyp(code-1);
             size_t opening = labels.size();
-            assert_or_throw(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
+            assert_or_throw< ProofException >(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
             for (size_t j = 0; j < this->get_hyp_num(label); j++) {
                 opening = opening_stack.back();
                 opening_stack.pop_back();
@@ -69,7 +69,7 @@ const UncompressedProof CompressedProofExecutor::uncompress()
         } else if (code <= this->ass.get_mand_hyps_num() + this->proof.refs.size()) {
             LabTok label = this->proof.refs.at(code-this->ass.get_mand_hyps_num()-1);
             size_t opening = labels.size();
-            assert_or_throw(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
+            assert_or_throw< ProofException >(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
             for (size_t j = 0; j < this->get_hyp_num(label); j++) {
                 opening = opening_stack.back();
                 opening_stack.pop_back();
@@ -77,14 +77,14 @@ const UncompressedProof CompressedProofExecutor::uncompress()
             opening_stack.push_back(opening);
             labels.push_back(label);
         } else {
-            assert_or_throw(code <= this->ass.get_mand_hyps_num() + this->proof.refs.size() + saved.size(), "Code too big in compressed proof");
+            assert_or_throw< ProofException >(code <= this->ass.get_mand_hyps_num() + this->proof.refs.size() + saved.size(), "Code too big in compressed proof");
             const vector< LabTok > &sent = saved.at(code-this->ass.get_mand_hyps_num()-this->proof.refs.size()-1);
             size_t opening = labels.size();
             opening_stack.push_back(opening);
             copy(sent.begin(), sent.end(), back_inserter(labels));
         }
     }
-    assert_or_throw(opening_stack.size() == 1, "Proof uncompression did not end with a single element on the stack");
+    assert_or_throw< ProofException >(opening_stack.size() == 1, "Proof uncompression did not end with a single element on the stack");
     assert(opening_stack.at(0) == 0);
     return UncompressedProof(labels);
 }
@@ -105,7 +105,7 @@ void CompressedProofExecutor::execute()
             LabTok label = this->proof.refs.at(code-this->ass.get_mand_hyps_num()-1);
             this->process_label(label);
         } else {
-            assert_or_throw(code <= this->ass.get_mand_hyps_num() + this->proof.refs.size() + saved.size(), "Code too big in compressed proof");
+            assert_or_throw< ProofException >(code <= this->ass.get_mand_hyps_num() + this->proof.refs.size() + saved.size(), "Code too big in compressed proof");
             const vector< SymTok > &sent = saved.at(code-this->ass.get_mand_hyps_num()-this->proof.refs.size()-1);
             this->process_sentence(sent);
         }
@@ -288,7 +288,7 @@ void ProofExecutor::process_label(const LabTok label)
     const Assertion &child_ass = this->lib.get_assertion(label);
     if (!child_ass.is_valid()) {
         // In line of principle searching in a set would be faster, but since usually hypotheses are not many the vector is probably better
-        assert_or_throw(find(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end(), label) != this->ass.get_float_hyps().end() ||
+        assert_or_throw< ProofException >(find(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end(), label) != this->ass.get_float_hyps().end() ||
                 find(this->ass.get_ess_hyps().begin(), this->ass.get_ess_hyps().end(), label) != this->ass.get_ess_hyps().end() ||
                 find(this->ass.get_opt_hyps().begin(), this->ass.get_opt_hyps().end(), label) != this->ass.get_opt_hyps().end(),
                         "Requested label cannot be used by this theorem");
@@ -307,9 +307,9 @@ size_t ProofExecutor::get_hyp_num(const LabTok label) const {
 
 void ProofExecutor::final_checks() const
 {
-    assert_or_throw(this->get_stack().size() == 1, "Proof execution did not end with a single element on the stack");
-    assert_or_throw(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()), "Proof does not prove the thesis");
-    assert_or_throw(includes(this->ass.get_dists().begin(), this->ass.get_dists().end(),
+    assert_or_throw< ProofException >(this->get_stack().size() == 1, "Proof execution did not end with a single element on the stack");
+    assert_or_throw< ProofException >(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()), "Proof does not prove the thesis");
+    assert_or_throw< ProofException >(includes(this->ass.get_dists().begin(), this->ass.get_dists().end(),
                              this->engine.get_dists().begin(), this->engine.get_dists().end()),
                     "Distinct variables constraints are too wide");
 }
@@ -401,7 +401,7 @@ static Sentence do_subst(const Sentence &sent, const Map &subst_map, const Libra
 
 void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 {
-    assert_or_throw_pe(this->stack.size() >= child_ass.get_mand_hyps_num(), "Stack too small to pop hypotheses");
+    assert_or_throw< ProofException >(this->stack.size() >= child_ass.get_mand_hyps_num(), "Stack too small to pop hypotheses");
     const size_t stack_base = this->stack.size() - child_ass.get_mand_hyps_num();
     //this->dists.clear();
     set< pair< SymTok, SymTok > > dists;
@@ -418,7 +418,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
         assert(!this->lib.is_constant(hyp_sent.at(1)));
         const vector< SymTok > &stack_hyp_sent = this->stack[stack_base + i];
         assert(this->dists_stack.at(stack_base + i).empty());
-        assert_or_throw_pe(hyp_sent.at(0) == stack_hyp_sent.at(0), "Floating hypothesis does not match stack");
+        assert_or_throw< ProofException >(hyp_sent.at(0) == stack_hyp_sent.at(0), "Floating hypothesis does not match stack");
 #ifndef PROOF_VERBOSE_DEBUG
         if (stack_hyp_sent.size() == 1) {
             cerr << "[" << this->debug_output << "] Matching an empty sentence" << endl;
@@ -446,17 +446,17 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
         for (auto it = hyp_sent.begin(); it != hyp_sent.end(); it++) {
             const SymTok &tok = *it;
             if (this->lib.is_constant(tok)) {
-                assert_or_throw_pe(tok == *stack_it, "Essential hypothesis does not match stack beacuse of wrong constant", err);
+                assert_or_throw< ProofException >(tok == *stack_it, "Essential hypothesis does not match stack beacuse of wrong constant", err);
                 stack_it++;
             } else {
                 const vector< SymTok > &subst = subst_map.at(tok);
                 assert(distance(stack_it, stack_hyp_sent.end()) >= 0);
-                assert_or_throw_pe(subst.size() - 1 <= (size_t) distance(stack_it, stack_hyp_sent.end()), "Essential hypothesis does not match stack because stack is shorter", err);
-                assert_or_throw_pe(equal(subst.begin() + 1, subst.end(), stack_it), "Essential hypothesis does not match stack because of wrong variable substitution", err);
+                assert_or_throw< ProofException >(subst.size() - 1 <= (size_t) distance(stack_it, stack_hyp_sent.end()), "Essential hypothesis does not match stack because stack is shorter", err);
+                assert_or_throw< ProofException >(equal(subst.begin() + 1, subst.end(), stack_it), "Essential hypothesis does not match stack because of wrong variable substitution", err);
                 stack_it += subst.size() - 1;
             }
         }
-        assert_or_throw_pe(stack_it == stack_hyp_sent.end(), "Essential hypothesis does not match stack because stack is longer", err);
+        assert_or_throw< ProofException >(stack_it == stack_hyp_sent.end(), "Essential hypothesis does not match stack because stack is longer", err);
         i++;
     }
 
@@ -480,7 +480,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
                         if (this->lib.is_constant(tok2)) {
                             continue;
                         }
-                        assert_or_throw_pe(tok1 != tok2, "Distinct variable constraint violated");
+                        assert_or_throw< ProofException >(tok1 != tok2, "Distinct variable constraint violated");
                         dists.insert(minmax(tok1, tok2));
                     }
                 }

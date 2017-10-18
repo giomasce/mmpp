@@ -21,18 +21,18 @@ vector< string > tokenize(const string &in) {
   size_t begin = 0;
   for (size_t i = 0; i <= in.size(); i++) {
     char c = (i < in.size()) ? in[i] : ' ';
-    if (is_valid(c)) {
+    if (is_mm_valid(c)) {
       if (white) {
         begin = i;
         white = false;
       }
-    } else if (is_whitespace(c)) {
+    } else if (is_mm_whitespace(c)) {
       if (!white) {
         toks.push_back(in.substr(begin, i-begin));
         white = true;
       }
     } else {
-      throw MMPPException("Wrong input character");
+      throw MMPPParsingError("Wrong input character");
     }
   }
   return toks;
@@ -83,12 +83,12 @@ std::pair<bool, string> FileTokenizer::next()
         }
         if (c == '$') {
             if (!this->white) {
-                throw MMPPException("Dollars cannot appear in the middle of a token");
+                throw MMPPParsingError("Dollars cannot appear in the middle of a token");
             }
             // This can be a regular token or the beginning of a comment
             c = this->get_char();
             if (this->fin.eof()) {
-                throw MMPPException("Interrupted dollar sequence");
+                throw MMPPParsingError("Interrupted dollar sequence");
             }
             if (c == '(' || c == '[') {
                 // Here the comment begin
@@ -98,11 +98,11 @@ std::pair<bool, string> FileTokenizer::next()
                 while (true) {
                     c = this->get_char();
                     if (this->fin.eof()) {
-                        throw MMPPException("File ended in comment or in file inclusion");
+                        throw MMPPParsingError("File ended in comment or in file inclusion");
                     }
                     if (found_dollar) {
                         if ((comment && c == '(') || (!comment && c == '[')) {
-                            throw MMPPException("Comment and file inclusion opening forbidden in comments and file inclusions");
+                            throw MMPPParsingError("Comment and file inclusion opening forbidden in comments and file inclusions");
                         } else if ((comment && c == ')') || (!comment && c == ']')) {
                             this->white = true;
                             if (comment) {
@@ -133,27 +133,27 @@ std::pair<bool, string> FileTokenizer::next()
                     }
                 }
             } else if (c == ')') {
-                throw MMPPException("Comment closed while not in comment");
+                throw MMPPParsingError("Comment closed while not in comment");
             } else if (c == ']') {
-                throw MMPPException("File inclusion closed while not in comment");
-            } else if (c == '$' || is_valid(c)) {
+                throw MMPPParsingError("File inclusion closed while not in comment");
+            } else if (c == '$' || is_mm_valid(c)) {
                 this->buf.push_back('$');
                 this->buf.push_back(c);
                 this->white = false;
-            } else if (is_whitespace(c)) {
-                throw MMPPException("Interrupted dollar sequence");
+            } else if (is_mm_whitespace(c)) {
+                throw MMPPParsingError("Interrupted dollar sequence");
             } else {
-                throw MMPPException("Forbidden input character");
+                throw MMPPParsingError("Forbidden input character");
             }
-        } else if (is_valid(c)) {
+        } else if (is_mm_valid(c)) {
             this->buf.push_back(c);
             this->white = false;
-        } else if (is_whitespace(c)) {
+        } else if (is_mm_whitespace(c)) {
             if (!this->white) {
                 return this->finalize_token(false);
             }
         } else {
-            throw MMPPException("Forbidden input character");
+            throw MMPPParsingError("Forbidden input character");
         }
     }
 }
@@ -184,7 +184,7 @@ void Reader::run () {
             continue;
         }
         if (token[0] == '$') {
-            assert_or_throw(token.size() == 2, "Dollar sequence with wrong length");
+            assert_or_throw< MMPPParsingError >(token.size() == 2, "Dollar sequence with wrong length");
             char c = token[1];
 
             // Parse scoping blocks
@@ -192,7 +192,7 @@ void Reader::run () {
                 this->stack.emplace_back();
                 continue;
             } else if (c == '}') {
-                assert_or_throw(!this->stack.empty(), "Unmatched closed scoping block");
+                assert_or_throw< MMPPParsingError >(!this->stack.empty(), "Unmatched closed scoping block");
                 this->stack.pop_back();
                 continue;
             }
@@ -206,7 +206,7 @@ void Reader::run () {
                     continue;
                 }
                 if (token == "") {
-                    throw MMPPException("File ended in a statement");
+                    throw MMPPParsingError("File ended in a statement");
                 }
                 this->toks.push_back(token);
             }
@@ -235,14 +235,14 @@ void Reader::run () {
                 this->parse_p();
                 break;
             default:
-                throw MMPPException("Wrong statement type");
+                throw MMPPParsingError("Wrong statement type");
                 break;
             }
             this->label = 0;
             this->toks.clear();
         } else {
             this->label = this->lib.create_label(token);
-            assert_or_throw(this->label != 0, "Repeated label detected");
+            assert_or_throw< MMPPParsingError >(this->label != 0, "Repeated label detected");
             //cout << "Found label " << token << endl;
         }
     }
@@ -250,7 +250,7 @@ void Reader::run () {
     this->lib.set_final_stack_frame(this->final_frame);
     this->lib.set_max_number(this->number-1);
     this->stack.pop_back();
-    assert_or_throw(this->stack.empty(), "Unmatched open scoping block");
+    assert_or_throw< MMPPParsingError >(this->stack.empty(), "Unmatched open scoping block");
 
     // Some final operations
     this->parse_t_comment(this->t_comment);
@@ -277,12 +277,12 @@ const StackFrame &Reader::get_final_frame() const
 
 void Reader::parse_c()
 {
-    assert_or_throw(this->label == 0, "Undue label in $c statement");
-    assert_or_throw(this->stack.size() == 1, "Found $c statement when not in top-level scope");
+    assert_or_throw< MMPPParsingError >(this->label == 0, "Undue label in $c statement");
+    assert_or_throw< MMPPParsingError >(this->stack.size() == 1, "Found $c statement when not in top-level scope");
     for (auto stok : this->toks) {
         SymTok tok = this->lib.create_symbol(stok);
-        assert_or_throw(!this->check_const(tok), "Symbol already bound in $c statement");
-        assert_or_throw(!this->check_var(tok), "Symbol already bound in $c statement");
+        assert_or_throw< MMPPParsingError >(!this->check_const(tok), "Symbol already bound in $c statement");
+        assert_or_throw< MMPPParsingError >(!this->check_var(tok), "Symbol already bound in $c statement");
         this->consts.insert(tok);
         this->lib.set_constant(tok, true);
     }
@@ -290,11 +290,11 @@ void Reader::parse_c()
 
 void Reader::parse_v()
 {
-    assert_or_throw(this->label == 0, "Undue label in $v statement");
+    assert_or_throw< MMPPParsingError >(this->label == 0, "Undue label in $v statement");
     for (auto stok : this->toks) {
         SymTok tok = this->lib.create_or_get_symbol(stok);
-        assert_or_throw(!this->check_const(tok), "Symbol already bound in $v statement");
-        assert_or_throw(!this->check_var(tok), "Symbol already bound in $v statement");
+        assert_or_throw< MMPPParsingError >(!this->check_const(tok), "Symbol already bound in $v statement");
+        assert_or_throw< MMPPParsingError >(!this->check_var(tok), "Symbol already bound in $v statement");
         this->lib.set_constant(tok, false);
         this->stack.back().vars.insert(tok);
     }
@@ -302,14 +302,14 @@ void Reader::parse_v()
 
 void Reader::parse_f()
 {
-    assert_or_throw(this->label != 0, "Missing label in $f statement");
-    assert_or_throw(this->toks.size() == 2, "Found $f statement with wrong length");
+    assert_or_throw< MMPPParsingError >(this->label != 0, "Missing label in $f statement");
+    assert_or_throw< MMPPParsingError >(this->toks.size() == 2, "Found $f statement with wrong length");
     SymTok const_tok = this->lib.get_symbol(this->toks[0]);
     SymTok var_tok = this->lib.get_symbol(this->toks[1]);
-    assert_or_throw(const_tok != 0, "First member of a $f statement is not defined");
-    assert_or_throw(var_tok != 0, "Second member of a $f statement is not defined");
-    assert_or_throw(this->check_const(const_tok), "First member of a $f statement is not a constant");
-    assert_or_throw(this->check_var(var_tok), "Second member of a $f statement is not a variable");
+    assert_or_throw< MMPPParsingError >(const_tok != 0, "First member of a $f statement is not defined");
+    assert_or_throw< MMPPParsingError >(var_tok != 0, "Second member of a $f statement is not defined");
+    assert_or_throw< MMPPParsingError >(this->check_const(const_tok), "First member of a $f statement is not a constant");
+    assert_or_throw< MMPPParsingError >(this->check_var(var_tok), "Second member of a $f statement is not a variable");
     this->lib.add_sentence(this->label, { const_tok, var_tok });
     this->stack.back().types.push_back(this->label);
     this->stack.back().types_set.insert(this->label);
@@ -317,30 +317,30 @@ void Reader::parse_f()
 
 void Reader::parse_e()
 {
-    assert_or_throw(this->label != 0, "Missing label in $e statement");
-    assert_or_throw(this->toks.size() >= 1, "Empty $e statement");
+    assert_or_throw< MMPPParsingError >(this->label != 0, "Missing label in $e statement");
+    assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $e statement");
     vector< SymTok > tmp;
     for (auto &stok : this->toks) {
         SymTok tok = this->lib.get_symbol(stok);
-        assert_or_throw(tok != 0, "Symbol in $e statement is not defined");
+        assert_or_throw< MMPPParsingError >(tok != 0, "Symbol in $e statement is not defined");
         assert(this->check_const(tok) || this->check_var(tok));
         tmp.push_back(tok);
     }
-    assert_or_throw(this->check_const(tmp[0]), "First symbol of $e statement is not a constant");
+    assert_or_throw< MMPPParsingError >(this->check_const(tmp[0]), "First symbol of $e statement is not a constant");
     this->lib.add_sentence(this->label, tmp);
     this->stack.back().hyps.push_back(this->label);
 }
 
 void Reader::parse_d()
 {
-    assert_or_throw(this->label == 0, "Undue label in $d statement");
+    assert_or_throw< MMPPParsingError >(this->label == 0, "Undue label in $d statement");
     for (auto it = this->toks.begin(); it != this->toks.end(); it++) {
         SymTok tok1 = this->lib.get_symbol(*it);
-        assert_or_throw(this->check_var(tok1), "Symbol in $d statement is not a variable");
+        assert_or_throw< MMPPParsingError >(this->check_var(tok1), "Symbol in $d statement is not a variable");
         for (auto it2 = it+1; it2 != this->toks.end(); it2++) {
             SymTok tok2 = this->lib.get_symbol(*it2);
-            assert_or_throw(this->check_var(tok2), "Symbol in $d statement is not a variable");
-            assert_or_throw(tok1 != tok2, "Repeated symbol in $d statement");
+            assert_or_throw< MMPPParsingError >(this->check_var(tok2), "Symbol in $d statement is not a variable");
+            assert_or_throw< MMPPParsingError >(tok1 != tok2, "Repeated symbol in $d statement");
             this->stack.back().dists.insert(minmax(tok1, tok2));
         }
     }
@@ -358,7 +358,7 @@ void Reader::collect_vars_from_proof(std::set<SymTok> &vars, const std::vector<L
 {
     for (auto &tok : proof) {
         if (this->check_type(tok)) {
-            assert_or_throw(this->lib.get_sentence(tok).size() == 2);
+            assert_or_throw< MMPPParsingError >(this->lib.get_sentence(tok).size() == 2);
             vars.insert(this->lib.get_sentence(tok).at(1));
         }
     }
@@ -453,16 +453,16 @@ set< pair< SymTok, SymTok > > Reader::collect_opt_dists(set< SymTok > opt_vars, 
 void Reader::parse_a()
 {
     // Usual sanity checks and symbol conversion
-    assert_or_throw(this->label != 0, "Missing label in $a statement");
-    assert_or_throw(this->toks.size() >= 1, "Empty $a statement");
+    assert_or_throw< MMPPParsingError >(this->label != 0, "Missing label in $a statement");
+    assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $a statement");
     vector< SymTok > tmp;
     for (auto &stok : this->toks) {
         SymTok tok = this->lib.get_symbol(stok);
-        assert_or_throw(tok != 0, "Symbol in $a statement is not defined");
+        assert_or_throw< MMPPParsingError >(tok != 0, "Symbol in $a statement is not defined");
         assert(this->check_const(tok) || this->check_var(tok));
         tmp.push_back(tok);
     }
-    assert_or_throw(this->check_const(tmp[0]), "First symbol of $a statement is not a constant");
+    assert_or_throw< MMPPParsingError >(this->check_const(tmp[0]), "First symbol of $a statement is not a constant");
     this->lib.add_sentence(this->label, tmp);
 
     // Collect things
@@ -481,8 +481,8 @@ void Reader::parse_a()
 void Reader::parse_p()
 {
     // Usual sanity checks and symbol conversion
-    assert_or_throw(this->label != 0, "Missing label in $p statement");
-    assert_or_throw(this->toks.size() >= 1, "Empty $p statement");
+    assert_or_throw< MMPPParsingError >(this->label != 0, "Missing label in $p statement");
+    assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $p statement");
     vector< SymTok > tmp;
     vector< LabTok > proof_labels;
     vector< LabTok > proof_refs;
@@ -497,11 +497,11 @@ void Reader::parse_p()
                 continue;
             }
             SymTok tok = this->lib.get_symbol(stok);
-            assert_or_throw(tok != 0, "Symbol in $p statement is not defined");
+            assert_or_throw< MMPPParsingError >(tok != 0, "Symbol in $p statement is not defined");
             assert(this->check_const(tok) || this->check_var(tok));
             tmp.push_back(tok);
         } else {
-            assert_or_throw(compressed_proof != 3, "Additional tokens in an incomplete proof");
+            assert_or_throw< MMPPParsingError >(compressed_proof != 3, "Additional tokens in an incomplete proof");
             if (compressed_proof == 0) {
                 if (stok == "(") {
                     compressed_proof = 1;
@@ -520,7 +520,7 @@ void Reader::parse_p()
                     continue;
                 } else {
                     LabTok tok = this->lib.get_label(stok);
-                    assert_or_throw(tok != 0, "Label in compressed proof in $p statement is not defined");
+                    assert_or_throw< MMPPParsingError >(tok != 0, "Label in compressed proof in $p statement is not defined");
                     proof_refs.push_back(tok);
                 }
             }
@@ -534,12 +534,12 @@ void Reader::parse_p()
             }
             if (compressed_proof == -1) {
                 LabTok tok = this->lib.get_label(stok);
-                assert_or_throw(tok != 0, "Symbol in uncompressed proof in $p statement is not defined");
+                assert_or_throw< MMPPParsingError >(tok != 0, "Symbol in uncompressed proof in $p statement is not defined");
                 proof_labels.push_back(tok);
             }
         }
     }
-    assert_or_throw(this->check_const(tmp[0]), "First symbol of $p statement is not a constant");
+    assert_or_throw< MMPPParsingError >(this->check_const(tmp[0]), "First symbol of $p statement is not a constant");
     assert(compressed_proof == -1 || compressed_proof == 2 || compressed_proof == 3);
     this->lib.add_sentence(this->label, tmp);
 
@@ -570,7 +570,7 @@ void Reader::parse_p()
         }
         ass.set_proof(proof);
         auto pe = ass.get_proof_executor(this->lib);
-        assert_or_throw(pe->check_syntax(), "Syntax check failed for proof of $p statement");
+        assert_or_throw< MMPPParsingError >(pe->check_syntax(), "Syntax check failed for proof of $p statement");
         if (this->execute_proofs) {
             pe = ass.get_proof_executor(this->lib);
             pe->set_debug_output("executing " + lib.resolve_label(this->label));
@@ -588,7 +588,7 @@ void Reader::process_comment(const string &comment)
     bool found_dollar = false;
     size_t i = 0;
     for (auto &c : comment) {
-        if (!is_whitespace(c)) {
+        if (!is_mm_whitespace(c)) {
             if (c == '$') {
                 found_dollar = true;
             } else {
@@ -619,7 +619,7 @@ static string escape_string_literal(string s) {
             } else if (c == '\\') {
                 ret.push_back('\\');
             } else {
-                throw MMPPException("Unknown escape sequence");
+                throw MMPPParsingError("Unknown escape sequence");
             }
             escape = false;
         } else {
@@ -631,21 +631,21 @@ static string escape_string_literal(string s) {
         }
     }
     if (escape) {
-        throw MMPPException("Broken escape sequence");
+        throw MMPPParsingError("Broken escape sequence");
     }
     return string(ret.begin(), ret.end());
 }
 
 static string decode_string(vector< pair< bool, string > >::const_iterator begin, vector< pair< bool, string > >::const_iterator end, bool escape=false) {
-    assert_or_throw(distance(begin, end) >= 1);
-    assert_or_throw(distance(begin, end) % 2 == 1);
+    assert_or_throw< MMPPParsingError >(distance(begin, end) >= 1);
+    assert_or_throw< MMPPParsingError >(distance(begin, end) % 2 == 1);
     for (size_t i = 1; i < (size_t) distance(begin, end); i += 2) {
-        assert_or_throw(!(begin+i)->first, "Malformed string in $t comment");
-        assert_or_throw((begin+i)->second == "+", "Malformed string in $t comment");
+        assert_or_throw< MMPPParsingError >(!(begin+i)->first, "Malformed string in $t comment");
+        assert_or_throw< MMPPParsingError >((begin+i)->second == "+", "Malformed string in $t comment");
     }
     string value;
     for (size_t i = 0; i < (size_t) distance(begin, end); i += 2) {
-        assert_or_throw((begin+i)->first, "Malformed string in $t comment");
+        assert_or_throw< MMPPParsingError >((begin+i)->first, "Malformed string in $t comment");
         string tmp = (begin+i)->second;
         if (escape) {
             tmp = escape_string_literal(tmp);
@@ -660,22 +660,22 @@ void Reader::parse_j_code(const std::vector<std::vector<std::pair<bool, string> 
     ParsingAddendumImpl add;
     this->lib.set_parsing_addendum(add);
     for (auto &tokens : code) {
-        assert_or_throw(tokens.size() > 0, "empty instruction in $j comment");
-        assert_or_throw(!tokens.at(0).first, "instruction in $j comment begins with a string");
+        assert_or_throw< MMPPParsingError >(tokens.size() > 0, "empty instruction in $j comment");
+        assert_or_throw< MMPPParsingError >(!tokens.at(0).first, "instruction in $j comment begins with a string");
         const string &command = tokens.at(0).second;
         if (command == "syntax") {
-            assert_or_throw(tokens.size() >= 2, "syntax instruction in $j comment with wrong length");
-            assert_or_throw(tokens.at(1).first, "malformed syntax instruction in $j comment");
+            assert_or_throw< MMPPParsingError >(tokens.size() >= 2, "syntax instruction in $j comment with wrong length");
+            assert_or_throw< MMPPParsingError >(tokens.at(1).first, "malformed syntax instruction in $j comment");
             SymTok tok1 = this->lib.get_symbol(tokens.at(1).second);
-            assert_or_throw(tok1 != 0, "unknown symbol in syntax instruction in $j comment");
+            assert_or_throw< MMPPParsingError >(tok1 != 0, "unknown symbol in syntax instruction in $j comment");
             SymTok tok2 = tok1;
             if (tokens.size() > 2) {
-                assert_or_throw(tokens.size() == 4, "syntax instruction in $j comment with wrong length");
-                assert_or_throw(!tokens.at(2).first, "malformed syntax instruction in $j comment");
-                assert_or_throw(tokens.at(3).first, "malformed syntax instruction in $j comment");
-                assert_or_throw(tokens.at(2).second == "as", "malformed syntax instruction in $j comment");
+                assert_or_throw< MMPPParsingError >(tokens.size() == 4, "syntax instruction in $j comment with wrong length");
+                assert_or_throw< MMPPParsingError >(!tokens.at(2).first, "malformed syntax instruction in $j comment");
+                assert_or_throw< MMPPParsingError >(tokens.at(3).first, "malformed syntax instruction in $j comment");
+                assert_or_throw< MMPPParsingError >(tokens.at(2).second == "as", "malformed syntax instruction in $j comment");
                 tok2 = this->lib.get_symbol(tokens.at(3).second);
-                assert_or_throw(tok2 != 0, "unknown symbol in syntax instruction in $j comment");
+                assert_or_throw< MMPPParsingError >(tok2 != 0, "unknown symbol in syntax instruction in $j comment");
             }
             add.syntax[tok1] = tok2;
         } else if (command == "unambiguous") {
@@ -691,7 +691,7 @@ void Reader::parse_j_code(const std::vector<std::vector<std::pair<bool, string> 
         } else if (command == "equality") {
         } else {
             //cerr << "Uknown command " << tokens.at(0).second << endl;
-            throw MMPPException("unknown command in $j comment");
+            throw MMPPParsingError("unknown command in $j comment");
         }
     }
     this->lib.set_parsing_addendum(add);
@@ -700,8 +700,8 @@ void Reader::parse_j_code(const std::vector<std::vector<std::pair<bool, string> 
 void Reader::parse_t_code(const vector< vector< pair< bool, string > > > &code) {
     LibraryAddendumImpl add;
     for (auto &tokens : code) {
-        assert_or_throw(tokens.size() > 0, "empty instruction in $t comment");
-        assert_or_throw(!tokens.at(0).first, "instruction in $t comment begins with a string");
+        assert_or_throw< MMPPParsingError >(tokens.size() > 0, "empty instruction in $t comment");
+        assert_or_throw< MMPPParsingError >(!tokens.at(0).first, "instruction in $t comment begins with a string");
         int deftype = 0;
         if (tokens.at(0).second == "htmldef") {
             deftype = 1;
@@ -734,18 +734,18 @@ void Reader::parse_t_code(const vector< vector< pair< bool, string > > > &code) 
         } else if (tokens.at(0).second == "althtmldir") {
             add.althtmldir = decode_string(tokens.begin() + 1, tokens.end(), true);
         } else {
-            throw new MMPPException("unknown command in $t comment");
+            throw new MMPPParsingError("unknown command in $t comment");
         }
         if (deftype != 0) {
-            assert_or_throw(tokens.size() >= 4, "*def instruction in $t comment with wrong length");
-            assert_or_throw(tokens.size() % 2 == 0, "*def instruction in $t comment with wrong length");
-            assert_or_throw(tokens.at(1).first, "malformed *def instruction in $t comment");
-            assert_or_throw(!tokens.at(2).first, "malformed *def instruction in $t comment");
-            assert_or_throw(tokens.at(3).first, "malformed *def instruction in $t comment");
-            assert_or_throw(tokens.at(2).second == "as", "malformed *def instruction in $t comment");
+            assert_or_throw< MMPPParsingError >(tokens.size() >= 4, "*def instruction in $t comment with wrong length");
+            assert_or_throw< MMPPParsingError >(tokens.size() % 2 == 0, "*def instruction in $t comment with wrong length");
+            assert_or_throw< MMPPParsingError >(tokens.at(1).first, "malformed *def instruction in $t comment");
+            assert_or_throw< MMPPParsingError >(!tokens.at(2).first, "malformed *def instruction in $t comment");
+            assert_or_throw< MMPPParsingError >(tokens.at(3).first, "malformed *def instruction in $t comment");
+            assert_or_throw< MMPPParsingError >(tokens.at(2).second == "as", "malformed *def instruction in $t comment");
             string value = decode_string(tokens.begin() + 3, tokens.end());
             SymTok tok = this->lib.get_symbol(tokens.at(1).second);
-            assert_or_throw(tok != 0, "unknown symbol in *def instruction in $t comment");
+            assert_or_throw< MMPPParsingError >(tok != 0, "unknown symbol in *def instruction in $t comment");
             if (deftype == 1) {
                 add.htmldefs.resize(max(add.htmldefs.size(), (size_t) tok+1));
                 add.htmldefs[tok] = value;
@@ -779,7 +779,7 @@ std::vector<std::vector<std::pair<bool, std::string> > > Reader::parse_comment(c
     for (char c : comment) {
         if (state == 0) {
             state0:
-            if (is_whitespace(c)) {
+            if (is_mm_whitespace(c)) {
                 if (token.size() > 0) {
                     tokens.push_back(make_pair(false, string(token.begin(), token.end())));
                     token.clear();
@@ -794,10 +794,10 @@ std::vector<std::vector<std::pair<bool, std::string> > > Reader::parse_comment(c
             } else if (c == '/') {
                 state = 4;
             } else if (c == '"') {
-                assert_or_throw(token.empty(), "$t string began during token");
+                assert_or_throw< MMPPParsingError >(token.empty(), "$t string began during token");
                 state = 2;
             } else if (c == '\'') {
-                assert_or_throw(token.empty(), "$t string began during token");
+                assert_or_throw< MMPPParsingError >(token.empty(), "$t string began during token");
                 state = 3;
             } else {
                 token.push_back(c);
@@ -840,14 +840,14 @@ std::vector<std::vector<std::pair<bool, std::string> > > Reader::parse_comment(c
                 code.push_back(tokens);
                 tokens.clear();
             } else {
-                assert_or_throw(is_whitespace(c), "no whitespace after $t string");
+                assert_or_throw< MMPPParsingError >(is_mm_whitespace(c), "no whitespace after $t string");
             }
             state = 0;
         } else if (state == 7) {
             if (c == '$') {
                 state = 8;
             } else {
-                assert_or_throw(is_whitespace(c), "where is $t gone?");
+                assert_or_throw< MMPPParsingError >(is_mm_whitespace(c), "where is $t gone?");
             }
         } else if (state == 8) {
             state = 0;
@@ -897,12 +897,12 @@ bool Reader::check_type(LabTok tok) const
 
 CodeTok CompressedDecoder::push_char(char c)
 {
-    if (is_whitespace(c)) {
+    if (is_mm_whitespace(c)) {
         return -1;
     }
-    assert_or_throw('A' <= c && c <= 'Z', "Invalid character in compressed proof");
+    assert_or_throw< MMPPParsingError >('A' <= c && c <= 'Z', "Invalid character in compressed proof");
     if (c == 'Z') {
-        assert_or_throw(this->current == 0, "Invalid character Z in compressed proof");
+        assert_or_throw< MMPPParsingError >(this->current == 0, "Invalid character Z in compressed proof");
         return 0;
     } else if ('A' <= c && c <= 'T') {
         int res = this->current * 20 + (c - 'A' + 1);
@@ -917,7 +917,7 @@ CodeTok CompressedDecoder::push_char(char c)
 
 string CompressedEncoder::push_code(CodeTok x)
 {
-    assert_or_throw(x != INVALID_CODE);
+    assert_or_throw< MMPPParsingError >(x != INVALID_CODE);
     if (x == 0) {
         return "Z";
     }
