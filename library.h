@@ -278,7 +278,7 @@ public:
     virtual LabTok get_max_number() const = 0;
 };
 
-class LibraryImpl : public ExtendedLibrary
+class LibraryImpl final : public ExtendedLibrary
 {
 public:
     LibraryImpl();

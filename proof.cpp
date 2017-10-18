@@ -311,7 +311,7 @@ void ProofExecutor::final_checks() const
     assert_or_throw< ProofException >(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()), "Proof does not prove the thesis");
     assert_or_throw< ProofException >(includes(this->ass.get_dists().begin(), this->ass.get_dists().end(),
                              this->engine.get_dists().begin(), this->engine.get_dists().end()),
-                    "Distinct variables constraints are too wide");
+                             "Distinct variables constraints are too wide");
 }
 
 const std::vector<std::vector<SymTok> > &ProofExecutor::get_stack() const
