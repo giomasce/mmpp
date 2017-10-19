@@ -37,7 +37,7 @@ public:
 
 class HTTPD_microhttpd : public HTTPD {
 public:
-    HTTPD_microhttpd(int port, HTTPTarget &target);
+    HTTPD_microhttpd(int port, HTTPTarget &target, bool only_from_localhost);
     void start();
     void stop();
     void join();
@@ -59,6 +59,7 @@ private:
     std::condition_variable daemon_cv;
     std::atomic< MHD_Daemon* > daemon;
     HTTPTarget &target;
+    bool only_from_localhost;
 };
 
 class HTTPCallback_microhttpd : public HTTPCallback {

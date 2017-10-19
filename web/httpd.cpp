@@ -11,8 +11,8 @@
 
 using namespace std;
 
-HTTPD_microhttpd::HTTPD_microhttpd(int port, HTTPTarget &target) :
-    port(port), daemon(NULL), target(target)
+HTTPD_microhttpd::HTTPD_microhttpd(int port, HTTPTarget &target, bool only_from_localhost) :
+    port(port), daemon(NULL), target(target), only_from_localhost(only_from_localhost)
 {
 }
 
@@ -61,23 +61,29 @@ HTTPD_microhttpd::~HTTPD_microhttpd()
     this->stop();
 }
 
-// Accept only connection coming from localhost and IPv4
 int HTTPD_microhttpd::accept_wrapper(void *cls, const sockaddr *addr, socklen_t addrlen)
 {
-    (void) cls;
+    auto object = reinterpret_cast< HTTPD_microhttpd* >(cls);
     (void) addrlen;
 
+    // Accept only IPv4
     if (addr->sa_family != AF_INET) {
         return MHD_NO;
     }
-    auto inetaddr = reinterpret_cast< const sockaddr_in* >(addr);
-    struct in_addr localhost;
-    int ret = inet_pton(AF_INET, "127.0.0.1", &localhost);
-    assert(ret == 1);
-    if (memcmp(&inetaddr->sin_addr, &localhost, sizeof(localhost)) == 0) {
+
+    // If configured so, accept only from localhost
+    if (object->only_from_localhost) {
+        auto inetaddr = reinterpret_cast< const sockaddr_in* >(addr);
+        struct in_addr localhost;
+        int ret = inet_pton(AF_INET, "127.0.0.1", &localhost);
+        assert(ret == 1);
+        if (memcmp(&inetaddr->sin_addr, &localhost, sizeof(localhost)) == 0) {
+            return MHD_YES;
+        }
+        return MHD_NO;
+    } else {
         return MHD_YES;
     }
-    return MHD_NO;
 }
 
 // If it is not null, delete the HTTPCallback object

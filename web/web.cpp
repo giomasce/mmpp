@@ -40,7 +40,7 @@ int httpd_main(int argc, char *argv[]) {
 
     int port = 8888;
     WebEndpoint endpoint(port);
-    HTTPD_microhttpd httpd(port, endpoint);
+    HTTPD_microhttpd httpd(port, endpoint, false);
 
     httpd.start();
 
