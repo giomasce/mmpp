@@ -9,7 +9,8 @@ CONFIG(qt) {
 }
 
 TEMPLATE = app
-CONFIG += link_pkgconfig precompile_header
+CONFIG += link_pkgconfig
+CONFIG += precompile_header
 #CONFIG += object_parallel_to_source
 PKGCONFIG += libmicrohttpd libcrypto++
 
@@ -54,11 +55,11 @@ QMAKE_CXXFLAGS += -std=c++17 -march=native -g -ftemplate-backtrace-limit=0
 QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lpthread -lz3
 
 # Compile with clang
-#QMAKE_CC = clang
-#QMAKE_CXX = clang++
-#QMAKE_LINK = clang++
+#QMAKE_CC = clang-5.0
+#QMAKE_CXX = clang++-5.0
+#QMAKE_LINK = clang++-5.0
 #QMAKE_CFLAGS += -std=c11 -march=native -g
-#QMAKE_CXXFLAGS += -std=c++1z -march=native -g -ftemplate-backtrace-limit=0
+#QMAKE_CXXFLAGS += -std=c++17 -march=native -g -ftemplate-backtrace-limit=0
 #QMAKE_LIBS += -ldl -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lpthread -lz3
 
 # Disable these to have faster code; enable them to spot bugs
