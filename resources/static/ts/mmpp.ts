@@ -338,7 +338,7 @@ const WORKSET_TEMPL = `
   <div id="commands">
     <button onclick="mmpp.ui_load_data()">Load database</button>
     <input type="text" id="statement_label"></input>
-    <button onclick="mmpp.ui_show_proof()">Show assertion</button>
+    <button onclick="mmpp.ui_show_proof()">Show proof</button>
     <button onclick="mmpp.ui_show_modifier()">Show modifier</button>
   </div>
   <div id="workset_area"></div>
