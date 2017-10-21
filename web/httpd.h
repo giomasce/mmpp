@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <functional>
 
+const size_t HTTP_BUFFER_SIZE = 1024;
+
 class HTTPD
 {
 public:

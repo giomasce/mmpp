@@ -177,7 +177,7 @@ int HTTPD_microhttpd::answer_wrapper(void *cls, MHD_Connection *connection, cons
     string content = content_buf.str();
     response = MHD_create_response_from_buffer (content.size(), (void*) content.c_str(), MHD_RESPMEM_MUST_COPY);*/
 
-    response = MHD_create_response_from_callback(cb->get_size(), 1024, reader_callback, new microhttpd_reader(cb->get_answerer()), free_reader_callback_data);
+    response = MHD_create_response_from_callback(cb->get_size(), HTTP_BUFFER_SIZE, reader_callback, new microhttpd_reader(cb->get_answerer()), free_reader_callback_data);
 
     for (auto header : cb->get_headers()) {
         MHD_add_response_header (response, header.first.c_str(), header.second.c_str());

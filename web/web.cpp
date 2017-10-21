@@ -172,14 +172,16 @@ void WebEndpoint::answer(HTTPCallback &cb)
             return;
         }
         // Ok, we are cleared to send the file
-        boost::filesystem::ifstream infile(filename, ios::binary);
-        if (infile.rdstate() && ios::failbit) {
+        auto infile = make_shared< boost::filesystem::ifstream >(filename, ios::binary);
+        if (!(*infile)) {
             cb.set_status_code(404);
             cb.add_header("Content-Type", "text/plain");
             cb.set_answer("404 Not Found");
             return;
         }
-        string content;
+        cb.set_status_code(200);
+        cb.add_header("Content-Type", guess_content_type(url));
+        /*string content;
         try {
             content = string(istreambuf_iterator< char >(infile), istreambuf_iterator< char >());
         } catch(exception) {
@@ -188,9 +190,17 @@ void WebEndpoint::answer(HTTPCallback &cb)
             cb.set_answer("404 Not Found");
             return;
         }
-        cb.set_status_code(200);
-        cb.add_header("Content-Type", guess_content_type(url));
-        cb.set_answer(move(content));
+        cb.set_answer(move(content));*/
+        cb.set_answerer([infile]() mutable {
+            if (*infile) {
+                char buffer[HTTP_BUFFER_SIZE];
+                infile->read(buffer, HTTP_BUFFER_SIZE);
+                auto bytes_num = infile->gcount();
+                return string(buffer, bytes_num);
+            } else {
+                return string("");
+            }
+        });
         return;
     }
 
