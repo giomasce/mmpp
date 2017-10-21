@@ -39,7 +39,7 @@ extern bool mmpp_abort;
 
 class MMPPException {
 public:
-    MMPPException(const std::string &reason);
+    MMPPException(const std::string &reason="");
     const std::string &get_reason() const;
     const std::vector< std::string > &get_stacktrace() const;
     void print_stacktrace(std::ostream &st) const;
@@ -50,16 +50,9 @@ private:
 };
 
 template< typename Exception, typename... Args >
-inline static void assert_or_throw(bool cond, const std::string &reason, const Args&... args) {
+inline static void assert_or_throw(bool cond, const Args&... args) {
     if (!cond) {
-        throw Exception(reason, args...);
-    }
-}
-
-template< typename Exception, typename... Args >
-inline static void assert_or_throw(bool cond, const char *reason="", const Args&... args) {
-    if (!cond) {
-        throw Exception(reason, args...);
+        throw Exception(args...);
     }
 }
 

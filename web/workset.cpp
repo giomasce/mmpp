@@ -33,10 +33,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         return ret;
     }
     if (*path_begin == "load") {
-        FileTokenizer ft(platform_get_resources_base() / "library.mm");
-        Reader p(ft, false, true);
-        p.run();
-        this->library = make_unique< LibraryImpl >(p.get_library());
+        this->load_library(platform_get_resources_base() / "library.mm");
         json ret = { { "status", "ok" } };
         return ret;
     } else if (*path_begin == "get_context") {
@@ -102,4 +99,12 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         }
     }
     throw SendError(404);
+}
+
+void Workset::load_library(boost::filesystem::path filename)
+{
+    FileTokenizer ft(filename);
+    Reader p(ft, false, true);
+    p.run();
+    this->library = make_unique< LibraryImpl >(p.get_library());
 }

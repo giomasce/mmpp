@@ -13,7 +13,7 @@
 using namespace std;
 
 HTTPD_microhttpd::HTTPD_microhttpd(int port, HTTPTarget &target, bool only_from_localhost) :
-    port(port), daemon(NULL), target(target), only_from_localhost(only_from_localhost)
+    port(port), daemon(NULL), target(target), restrict_to_localhost(only_from_localhost)
 {
 }
 
@@ -73,7 +73,7 @@ int HTTPD_microhttpd::accept_wrapper(void *cls, const sockaddr *addr, socklen_t 
     }
 
     // If configured so, accept only from localhost
-    if (object->only_from_localhost) {
+    if (object->restrict_to_localhost) {
         auto inetaddr = reinterpret_cast< const sockaddr_in* >(addr);
         struct in_addr localhost;
         int ret = inet_pton(AF_INET, "127.0.0.1", &localhost);
@@ -87,7 +87,7 @@ int HTTPD_microhttpd::accept_wrapper(void *cls, const sockaddr *addr, socklen_t 
     }
 }
 
-// If it is not null, delete the HTTPCallback object
+// Delete the HTTPCallback object
 void HTTPD_microhttpd::cleanup_wrapper(void *cls, MHD_Connection *connection, void **con_cls, MHD_RequestTerminationCode toe)
 {
     auto object = reinterpret_cast< HTTPD_microhttpd* >(cls);

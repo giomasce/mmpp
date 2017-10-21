@@ -32,7 +32,7 @@ string generate_id() {
     return string(id.begin(), id.end());
 }
 
-int httpd_main(int argc, char *argv[]) {
+int webmmpp_main_common(int argc, char *argv[], bool open_server) {
     if (!platform_init(argc, argv)) {
         return 1;
     }
@@ -40,16 +40,26 @@ int httpd_main(int argc, char *argv[]) {
     init_random();
 
     int port = 8888;
-    WebEndpoint endpoint(port);
-    HTTPD_microhttpd httpd(port, endpoint, false);
+    WebEndpoint endpoint(port, open_server);
+    HTTPD_microhttpd httpd(port, endpoint, !open_server);
+
+    if (open_server) {
+        // The session is already available, but it is constant; we need to populate it with some content
+        shared_ptr< Session > session = endpoint.get_guest_session();
+        shared_ptr< Workset > workset;
+        tie(ignore, workset) = session->create_workset();
+        workset->load_library(platform_get_resources_base() / "library.mm");
+    }
 
     httpd.start();
 
-    // Generate a session and pass it to the browser
-    string ticket_id = endpoint.create_session_and_ticket();
-    string browser_url = "http://127.0.0.1:" + to_string(port) + "/ticket/" + ticket_id;
-    platform_open_browser(browser_url);
-    cout << "A browser session was spawned; if you cannot see it, go to " << browser_url << endl;
+    if (!open_server) {
+        // Generate a session and pass it to the browser
+        string ticket_id = endpoint.create_session_and_ticket();
+        string browser_url = "http://127.0.0.1:" + to_string(port) + "/ticket/" + ticket_id;
+        platform_open_browser(browser_url);
+        cout << "A browser session was spawned; if you cannot see it, go to " << browser_url << endl;
+    }
 
     while (true) {
         if (platform_should_stop()) {
@@ -63,12 +73,23 @@ int httpd_main(int argc, char *argv[]) {
 
     return 0;
 }
+
+int webmmpp_main(int argc, char*argv[]) {
+    return webmmpp_main_common(argc, argv, false);
+}
 static_block {
-    register_main_function("webmmpp", httpd_main);
+    register_main_function("webmmpp", webmmpp_main);
 }
 
-WebEndpoint::WebEndpoint(int port) :
-    port(port)
+int webmmpp_open_main(int argc, char*argv[]) {
+    return webmmpp_main_common(argc, argv, true);
+}
+static_block {
+    register_main_function("webmmpp_open", webmmpp_open_main);
+}
+
+WebEndpoint::WebEndpoint(int port, bool enable_guest_session) :
+    port(port), guest_session(enable_guest_session ? make_shared< Session >(true) : NULL)
 {
 }
 
@@ -124,10 +145,14 @@ void WebEndpoint::answer(HTTPCallback &cb)
     }
 
     // Check auth cookie and recover session
-    shared_ptr< Session > session;
+    string session_cookie;
     try {
-        session = this->get_session(cb.get_cookies().at(cookie_name));
-    } catch (out_of_range e) {
+        session_cookie = cb.get_cookies().at(cookie_name);
+    } catch (out_of_range) {
+        session_cookie = "";
+    }
+    shared_ptr< Session > session = this->get_session(session_cookie);
+    if (session == NULL) {
         cb.set_status_code(403);
         cb.add_header("Content-Type", "text/plain");
         cb.set_answer("403 Forbidden");
@@ -256,6 +281,11 @@ void WebEndpoint::answer(HTTPCallback &cb)
     cb.set_answer("404 Not Found");
 }
 
+std::shared_ptr<Session> WebEndpoint::get_guest_session()
+{
+    return this->guest_session;
+}
+
 string WebEndpoint::create_session_and_ticket()
 {
     unique_lock< shared_mutex > lock(this->sessions_mutex);
@@ -271,13 +301,12 @@ shared_ptr< Session > WebEndpoint::get_session(string session_id)
     shared_lock< shared_mutex > lock(this->sessions_mutex);
     try {
         return this->sessions.at(session_id);
-    } catch(out_of_range e) {
-        (void) e;
-        throw SendError(404);
+    } catch(out_of_range) {
+        return this->guest_session;
     }
 }
 
-Session::Session()
+Session::Session(bool constant) : constant(constant)
 {
 }
 
@@ -290,6 +319,7 @@ json Session::answer_api1(HTTPCallback &cb, vector< string >::const_iterator pat
         }
 
         if (*path_begin == "create") {
+            assert_or_throw< SendError >(!this->is_constant(), 403);
             path_begin++;
             if (path_begin != path_end) {
                 throw SendError(404);
@@ -305,6 +335,10 @@ json Session::answer_api1(HTTPCallback &cb, vector< string >::const_iterator pat
         }
     }
     throw SendError(404);
+}
+
+bool Session::is_constant() {
+    return this->constant;
 }
 
 std::pair<size_t, std::shared_ptr<Workset> > Session::create_workset()
