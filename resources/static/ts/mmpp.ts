@@ -59,20 +59,6 @@ export function ui_load_data() {
   });
 }
 
-export function show_statement() {
-  if (!current_workset.loaded) {
-    return;
-  }
-  let label : string = $("#statement_label").val();
-  let label_tok : number = current_workset.labels_inv[label];
-  current_workset.do_api_request(`get_sentence/${label_tok}`).done(function(data) {;
-    $("#editor").val(new Renderer(RenderingStyles.TEXT, current_workset).render_from_codes(data["sentence"]));
-    $("#current_statement").html(new Renderer(RenderingStyles.HTML, current_workset).render_from_codes(data["sentence"]));
-    $("#current_statement_alt").html(new Renderer(RenderingStyles.ALT_HTML, current_workset).render_from_codes(data["sentence"]));
-  });
-  $("#show_statement_div").css('display', 'block');
-}
-
 function render_proof_internal(proof_tree, depth : number, step : number) : [string, number] {
   let children : [string, number][] = proof_tree.children.filter(function(el) {
     return include_non_essentials ? true : el["essential"];
@@ -264,15 +250,6 @@ export function ui_show_modifier() {
       modifier_render_proof(responses[requests_map["proof_tree"]]["proof_tree"], editor, editor.root_step.id);
     });
   });
-}
-
-export function editor_changed() {
-  if (!current_workset.loaded) {
-    return;
-  }
-  let tokens : string[] = $("#editor").val().split(" ");
-  $("#current_statement").html(new Renderer(RenderingStyles.HTML, current_workset).render_from_strings(tokens));
-  $("#current_statement_alt").html(new Renderer(RenderingStyles.ALT_HTML, current_workset).render_from_strings(tokens));
 }
 
 /*function retrieve_sentence(label_tok : number) : number[] {
