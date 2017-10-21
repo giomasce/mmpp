@@ -23,7 +23,6 @@ SOURCES += \
     toolbox.cpp \
     test/test.cpp \
     utils/utils.cpp \
-    web/httpd.cpp \
     web/web.cpp \
     platform.cpp \
     web/workset.cpp \
@@ -36,7 +35,8 @@ SOURCES += \
     apps/generalizable_theorems.cpp \
     test/test_parsing.cpp \
     test/test_verification.cpp \
-    test/test_minor.cpp
+    test/test_minor.cpp \
+    web/httpd_microhttpd.cpp
 
 CONFIG(qt) {
 SOURCES += \
@@ -104,7 +104,8 @@ HEADERS += \
     parsing/parser.h \
     parsing/earley.h \
     parsing/lr.h \
-    parsing/unif.h
+    parsing/unif.h \
+    web/httpd_microhttpd.h
 
 CONFIG(qt) {
 HEADERS += \

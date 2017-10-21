@@ -1,8 +1,9 @@
-#include "httpd.h"
+#include "httpd_microhttpd.h"
 
 #include <cstring>
 #include <sstream>
 #include <iostream>
+#include <deque>
 
 #include <cassert>
 
@@ -94,11 +95,50 @@ void HTTPD_microhttpd::cleanup_wrapper(void *cls, MHD_Connection *connection, vo
     (void) connection;
     (void) toe;
 
-    if (*con_cls != NULL) {
-        auto cb = reinterpret_cast< HTTPCallback_microhttpd* >(*con_cls);
-        delete cb;
-        *con_cls = NULL;
+    auto cb = reinterpret_cast< HTTPCallback_microhttpd* >(*con_cls);
+    delete cb;
+    *con_cls = NULL;
+}
+
+class microhttpd_reader {
+public:
+    microhttpd_reader(HTTPAnswerer &answerer) : pos(0), total_pos(0), answerer(answerer) {
     }
+
+    size_t callback(uint64_t pos, char* buf, size_t max) {
+        assert(pos == this->total_pos);
+        size_t bytes_avail = this->buffer.size() - this->pos;
+        if (bytes_avail == 0) {
+            this->buffer = this->answerer();
+            if (this->buffer.empty()) {
+                return MHD_CONTENT_READER_END_OF_STREAM;
+            }
+            this->pos = 0;
+            bytes_avail = this->buffer.size();
+        }
+        size_t bytes_num = min(max, bytes_avail);
+        memcpy(buf, this->buffer.c_str() + this->pos, bytes_num);
+        this->pos += bytes_num;
+        this->total_pos += bytes_num;
+        return bytes_num;
+    }
+
+private:
+    string buffer;
+    size_t pos;
+    size_t total_pos;
+    HTTPAnswerer &answerer;
+
+};
+
+long int reader_callback(void *cls, uint64_t pos, char* buf, size_t max) {
+    microhttpd_reader *reader = reinterpret_cast< microhttpd_reader* >(cls);
+    return reader->callback(pos, buf, max);
+}
+
+void free_reader_callback_data(void *cls) {
+    microhttpd_reader *reader = reinterpret_cast< microhttpd_reader* >(cls);
+    delete reader;
 }
 
 // Pass the request to the target
@@ -115,19 +155,35 @@ int HTTPD_microhttpd::answer_wrapper(void *cls, MHD_Connection *connection, cons
     } else {
         cb = reinterpret_cast< HTTPCallback_microhttpd* >(*con_cls);
     }
-    string surl(url);
-    string smethod(method);
-    string sversion(version);
-    cerr << "Request: " << sversion << ", " << smethod << ": " << surl << endl;
-    string content = object->target.answer(*cb, surl, smethod, sversion);
+    cb->set_url(url);
+    cb->set_method(method);
+    cb->set_version(version);
+    cerr << "Request: " << version << ", " << method << ": " << url << endl;
+    object->target.answer(*cb);
 
     struct MHD_Response *response;
     int ret;
-    response = MHD_create_response_from_buffer (content.size(), (void*) content.c_str(), MHD_RESPMEM_MUST_COPY);
+
+    /*HTTPAnswerer &answerer = cb->get_answerer();
+    ostringstream content_buf;
+    while (true) {
+        string new_content = answerer();
+        if (new_content.empty()) {
+            break;
+        } else {
+            content_buf << new_content;
+        }
+    }
+    string content = content_buf.str();
+    response = MHD_create_response_from_buffer (content.size(), (void*) content.c_str(), MHD_RESPMEM_MUST_COPY);*/
+
+    response = MHD_create_response_from_callback(cb->get_size(), 1024, reader_callback, new microhttpd_reader(cb->get_answerer()), free_reader_callback_data);
+
     for (auto header : cb->get_headers()) {
         MHD_add_response_header (response, header.first.c_str(), header.second.c_str());
     }
     ret = MHD_queue_response (connection, cb->get_status_code(), response);
+    // This just decrements the reference counter
     MHD_destroy_response (response);
     return ret;
 }
@@ -141,7 +197,8 @@ HTTPCallback::~HTTPCallback()
 }
 
 HTTPCallback_microhttpd::HTTPCallback_microhttpd(MHD_Connection *connection) :
-    connection(connection), status_code(200), req_headers_extracted(false), cookies_extracted(false)
+    connection(connection), status_code(200), req_headers_extracted(false), cookies_extracted(false),
+    answerer([]() { return ""; }), size(-1)
 {
 }
 
@@ -153,6 +210,43 @@ void HTTPCallback_microhttpd::set_status_code(unsigned int status_code)
 void HTTPCallback_microhttpd::add_header(string header, string content)
 {
     this->headers.push_back(make_pair(header, content));
+}
+
+void HTTPCallback_microhttpd::set_answer(string &&answer)
+{
+    this->answerer = [answer,printed=false]() mutable ->string {
+        if (!printed) {
+            printed = true;
+            return answer;
+        } else {
+            return "";
+        }
+    };
+}
+
+void HTTPCallback_microhttpd::set_size(uint64_t size)
+{
+    this->size = size;
+}
+
+const string &HTTPCallback_microhttpd::get_url()
+{
+    return this->url;
+}
+
+const string &HTTPCallback_microhttpd::get_method()
+{
+    return this->method;
+}
+
+const string &HTTPCallback_microhttpd::get_version()
+{
+    return this->version;
+};
+
+void HTTPCallback_microhttpd::set_answerer(HTTPAnswerer &&answerer)
+{
+    this->answerer = answerer;
 }
 
 const std::unordered_map<string, string> &HTTPCallback_microhttpd::get_request_headers()
@@ -181,6 +275,31 @@ unsigned int HTTPCallback_microhttpd::get_status_code() const
 const std::vector<std::pair<string, string> > &HTTPCallback_microhttpd::get_headers() const
 {
     return this->headers;
+}
+
+uint64_t HTTPCallback_microhttpd::get_size()
+{
+    return this->size;
+}
+
+void HTTPCallback_microhttpd::set_url(const string &url)
+{
+    this->url = url;
+}
+
+void HTTPCallback_microhttpd::set_method(const string &method)
+{
+    this->method = method;
+}
+
+void HTTPCallback_microhttpd::set_version(const string &version)
+{
+    this->version = version;
+}
+
+HTTPAnswerer &HTTPCallback_microhttpd::get_answerer()
+{
+    return this->answerer;
 }
 
 int HTTPCallback_microhttpd::iterator_wrapper(void *cls, MHD_ValueKind kind, const char *key, const char *value)

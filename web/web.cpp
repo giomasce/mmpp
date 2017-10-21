@@ -10,6 +10,7 @@
 #include "utils/utils.h"
 #include "web.h"
 #include "platform.h"
+#include "httpd_microhttpd.h"
 
 using namespace std;
 using namespace nlohmann;
@@ -95,13 +96,13 @@ string guess_content_type(string url) {
     return "application/octet-stream";
 }
 
-string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string version)
+void WebEndpoint::answer(HTTPCallback &cb)
 {
-    (void) version;
-
     // Receive session ticket
     string cookie_name = "mmpp_session_id";
     string ticket_url = "/ticket/";
+    const string &url = cb.get_url();
+    const string &method = cb.get_method();
     if (method == "GET" && starts_with(url, ticket_url)) {
         unique_lock< shared_mutex > lock(this->sessions_mutex);
         string ticket = string(url.begin() + ticket_url.size(), url.end());
@@ -111,12 +112,14 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
             this->session_tickets.erase(ticket);
             cb.add_header("Location", "/");
             cb.set_status_code(302);
-            return "";
+            cb.set_answer("");
+            return;
         } else {
             // The ticket is not valid, we forbid
             cb.set_status_code(403);
             cb.add_header("Content-Type", "text/plain");
-            return "403 Forbidden";
+            cb.set_answer("403 Forbidden");
+            return;
         }
     }
 
@@ -127,39 +130,68 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
     } catch (out_of_range e) {
         cb.set_status_code(403);
         cb.add_header("Content-Type", "text/plain");
-        return "403 Forbidden";
+        cb.set_answer("403 Forbidden");
+        return;
     }
 
     // Redirect to the main app
     if (method == "GET" && url == "/") {
         cb.add_header("Location", "/static/index.html");
         cb.set_status_code(302);
-        return "";
+        cb.set_answer("");
+        return;
     }
 
-    // Serve static files (FIXME this code is terrible from security POV)
+    // Serve static files
+    // TODO This is not the greatest static file server ever...
     string static_url = "/static/";
+    boost::filesystem::path static_dir = boost::filesystem::canonical(platform_get_resources_base() / "static");
     if (method == "GET" && starts_with(url, static_url)) {
-        // FIXME Sanitize URL
-        auto filename = platform_get_resources_base() / string(url.begin(), url.end());
+        boost::filesystem::path filename = platform_get_resources_base() / string(url.begin(), url.end());
+        // First we have to check if the file exists, because canonical() requires it
+        if (!boost::filesystem::exists(filename)) {
+            cb.set_status_code(404);
+            cb.add_header("Content-Type", "text/plain");
+            cb.set_answer("404 Not Found");
+            return;
+        }
+        // Then we canonicalize the path and check that it still is under the right directory by repeatedly passing to the parent directory
+        boost::filesystem::path canonical_filename = boost::filesystem::canonical(filename);
+        bool is_in_static = false;
+        for (boost::filesystem::path i = canonical_filename; !i.empty(); i = i.parent_path()) {
+            if (i == static_dir) {
+                is_in_static = true;
+                break;
+            }
+        }
+        if (!is_in_static) {
+            // We respond 404 and not 403, because the client could query the existence of files outside the static dir
+            cb.set_status_code(404);
+            cb.add_header("Content-Type", "text/plain");
+            cb.set_answer("404 Not Found");
+            return;
+        }
+        // Ok, we are cleared to send the file
         boost::filesystem::ifstream infile(filename, ios::binary);
         if (infile.rdstate() && ios::failbit) {
             cb.set_status_code(404);
             cb.add_header("Content-Type", "text/plain");
-            return "404 Not Found";
+            cb.set_answer("404 Not Found");
+            return;
         }
         string content;
         try {
             content = string(istreambuf_iterator< char >(infile), istreambuf_iterator< char >());
-        } catch(exception &e) {
-            (void) e;
+        } catch(exception) {
             cb.set_status_code(404);
             cb.add_header("Content-Type", "text/plain");
-            return "404 Not Found";
+            cb.set_answer("404 Not Found");
+            return;
         }
         cb.set_status_code(200);
         cb.add_header("Content-Type", guess_content_type(url));
-        return content;
+        cb.set_answer(move(content));
+        return;
     }
 
     // Expose API version
@@ -171,7 +203,8 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
         res["max_version"] = 1;
         cb.add_header("Content-Type", "application/json");
         cb.set_status_code(200);
-        return res.dump();
+        cb.set_answer(res.dump());
+        return;
     }
 
     // Backdoor for easily creating tickets (only enable on test builds)
@@ -182,7 +215,8 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
             cb.set_status_code(200);
             string ticket_id = this->create_session_and_ticket();
             string browser_url = "http://127.0.0.1:" + to_string(this->port) + "/ticket/" + ticket_id;
-            return browser_url;
+            cb.set_answer(move(browser_url));
+            return;
         }
     }
 
@@ -196,18 +230,20 @@ string WebEndpoint::answer(HTTPCallback &cb, string url, string method, string v
             json res = session->answer_api1(cb, path.begin(), path.end(), method);
             cb.add_header("Content-Type", "application/json");
             cb.set_status_code(200);
-            return res.dump();
+            cb.set_answer(res.dump());
+            return;
         } catch (SendError se) {
             cb.add_header("Content-Type", "text/plain");
             cb.set_status_code(se.get_status_code());
-            return to_string(se.get_status_code()) + " " + se.get_descr();
+            cb.set_answer(to_string(se.get_status_code()) + " " + se.get_descr());
+            return;
         }
     }
 
     // If nothing has serviced the request yet, then this is a 404
     cb.set_status_code(404);
     cb.add_header("Content-Type", "text/plain");
-    return "404 Not Found";
+    cb.set_answer("404 Not Found");
 }
 
 string WebEndpoint::create_session_and_ticket()

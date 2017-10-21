@@ -11,6 +11,20 @@
 
 using namespace std;
 
+void set_max_ram(uint64_t bytes) {
+    struct rlimit64 limit;
+    limit.rlim_cur = bytes;
+    limit.rlim_max = bytes;
+    setrlimit64(RLIMIT_AS, &limit);
+}
+
+void set_max_ram32(uint64_t bytes) {
+    struct rlimit limit;
+    limit.rlim_cur = bytes;
+    limit.rlim_max = bytes;
+    setrlimit(RLIMIT_AS, &limit);
+}
+
 atomic< bool > signalled;
 void int_handler(int signal) {
     (void) signal;

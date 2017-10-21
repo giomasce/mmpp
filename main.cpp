@@ -6,6 +6,7 @@
 #include <libgen.h>
 
 #include "utils/utils.h"
+#include "platform.h"
 
 using namespace std;
 
@@ -15,6 +16,7 @@ bool mmpp_abort = false;
 const string DEFAULT_MAIN_FUNCTION = "mmpp_test_setmm";
 
 int main(int argc, char *argv[]) {
+    set_max_ram(1024 * 1024 * 1024);
     char *tmp = strdup(argv[0]);
     string bname(basename(tmp));
     // string constructor should have made a copy

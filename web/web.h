@@ -40,7 +40,7 @@ private:
 class WebEndpoint : public HTTPTarget {
 public:
     WebEndpoint(int port);
-    std::string answer(HTTPCallback &cb, std::string url, std::string method, std::string version);
+    void answer(HTTPCallback &cb);
     std::string create_session_and_ticket();
 private:
     std::shared_ptr<Session> get_session(std::string session_id);
