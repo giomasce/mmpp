@@ -118,6 +118,9 @@ void find_generalizable_theorems() {
         if (!ass.is_valid() || !ass.is_theorem() || tb.get_sentence(ass.get_thesis()).at(0) != tb.get_turnstile()) {
             continue;
         }
+        if (ass.is_modif_disc() || ass.is_usage_disc()) {
+            continue;
+        }
 
         auto pe = ass.get_proof_executor(tb);
         auto proof = pe->uncompress();
@@ -152,8 +155,17 @@ void find_generalizable_theorems() {
         assert(res);
         SubstMap< SymTok, LabTok > generalizables;
         SubstMap< SymTok, LabTok > not_generalizables;
+        LabTok lab_cvv = tb.get_label("cvv");
+        LabTok lab_cv = tb.get_label("cv");
         for (const auto &x : subst2) {
-            if (!tb.get_standard_is_var()(x.second.label)) {
+            bool generalizable = true;
+            if (tb.get_standard_is_var()(x.second.label)) {
+                generalizable = false;
+            }
+            if (x.second.label == lab_cvv || x.second.label == lab_cv) {
+                generalizable = false;
+            }
+            if (generalizable) {
                 generalizables.insert(x);
             } else {
                 not_generalizables.insert(x);
