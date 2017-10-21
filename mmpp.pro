@@ -50,9 +50,13 @@ SOURCES += \
 QMAKE_CC = gcc
 QMAKE_CXX = g++
 QMAKE_LINK = g++
-QMAKE_CFLAGS += -std=c11 -march=native -g
-QMAKE_CXXFLAGS += -std=c++17 -march=native -g -ftemplate-backtrace-limit=0
+QMAKE_CFLAGS += -std=c11 -g
+QMAKE_CXXFLAGS += -std=c++17 -g -ftemplate-backtrace-limit=0
 QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lpthread -lz3
+
+# Compile to native instruction set
+#QMAKE_CFLAGS += -march=native
+#QMAKE_CXXFLAGS += -march=native
 
 # Compile with clang
 #QMAKE_CC = clang-5.0
