@@ -48,6 +48,7 @@ int webmmpp_main_common(int argc, char *argv[], bool open_server) {
         shared_ptr< Session > session = endpoint.get_guest_session();
         shared_ptr< Workset > workset;
         tie(ignore, workset) = session->create_workset();
+        workset->set_name("Default workset");
         workset->load_library(platform_get_resources_base() / "library.mm");
     }
 
@@ -321,11 +322,14 @@ json Session::answer_api1(HTTPCallback &cb, vector< string >::const_iterator pat
         if (*path_begin == "create") {
             assert_or_throw< SendError >(!this->is_constant(), 403);
             path_begin++;
-            if (path_begin != path_end) {
-                throw SendError(404);
-            }
+            assert_or_throw< SendError >(path_begin == path_end, 404);
             auto res = this->create_workset();
             json ret = { { "id", res.first } };
+            return ret;
+        } else if (*path_begin == "list") {
+            path_begin++;
+            assert_or_throw< SendError >(path_begin == path_end, 404);
+            json ret = { { "worksets", this->json_list_worksets() } };
             return ret;
         } else {
             size_t id = safe_stoi(*path_begin);
@@ -345,7 +349,10 @@ std::pair<size_t, std::shared_ptr<Workset> > Session::create_workset()
 {
     unique_lock< shared_mutex > lock(this->worksets_mutex);
     size_t id = this->worksets.size();
-    this->worksets.push_back(make_shared< Workset >());
+    auto workset = make_shared< Workset >();
+    workset->set_name("Workset " + to_string(id + 1));
+    this->worksets.push_back(workset);
+
     return { id, this->worksets.at(id) };
 }
 
@@ -358,6 +365,19 @@ std::shared_ptr<Workset> Session::get_workset(size_t id)
         (void) e;
         throw SendError(404);
     }
+}
+
+json Session::json_list_worksets()
+{
+    shared_lock< shared_mutex > lock(this->worksets_mutex);
+    json ret;
+    for (size_t i = 0; i < this->worksets.size(); i++) {
+        json tmp;
+        tmp["id"] = i;
+        tmp["name"] = this->worksets.at(i)->get_name();
+        ret.push_back(tmp);
+    }
+    return ret;
 }
 
 SendError::SendError(unsigned int status_code) : status_code(status_code)

@@ -33,6 +33,7 @@ public:
     bool is_constant();
     std::pair< size_t, std::shared_ptr< Workset > > create_workset();
     std::shared_ptr< Workset > get_workset(size_t id);
+    nlohmann::json json_list_worksets();
 
 private:
     std::shared_mutex worksets_mutex;

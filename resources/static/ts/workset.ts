@@ -3,9 +3,13 @@
 
 import { jsonAjax, invert_list } from "./utils";
 
+const API_VERSION : number = 1;
+
 export class Workset {
+
   id : number;
-  status : string;
+  name : string;
+  loaded : boolean;
   symbols : [string];
   labels : [string];
   symbols_inv: { [tok : string] : number };
@@ -15,27 +19,45 @@ export class Workset {
 
   constructor(id : number) {
     this.id = id;
+    this.loaded = false;
+  }
+
+  do_api_request(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : JQueryPromise<any> {
+    return jsonAjax(`/api/${API_VERSION}/workset/${this.id}/` + url, dump, dump_content, async);
   }
 
   get_context(callback : () => void) {
     let self = this;
-    jsonAjax(`/api/1/workset/${this.id}/get_context`, true, false).done(function(data) {
-      self.status = data.status;
-      if (self.status === "loaded") {
+    this.do_api_request(`get_context`, true, false).done(function(data) {
+    self.name = data.name;
+      if (data.status === "loaded") {
+        self.loaded = true;
         self.symbols = data.symbols;
         self.labels = data.labels;
         self.symbols_inv = invert_list(self.symbols);
         self.labels_inv = invert_list(self.labels);
         self.addendum = data.addendum;
         self.max_number = data.max_number;
+      } else {
+        self.loaded = false;
       }
       callback();
     })
   }
 
+  get_description() : string {
+    let ret : string = this.name + ": ";
+    if (this.loaded) {
+      ret += `database contains ${this.labels.length} labels and ${this.symbols.length} symbols`;
+    } else {
+      ret += "not loaded";
+    }
+    return ret;
+  }
+
   load_data(callback : () => void) {
     let self = this;
-    jsonAjax(`/api/1/workset/${this.id}/load`).done(function(data) {
+    this.do_api_request(`load`).done(function(data) {
       self.get_context(callback);
     });
   }
@@ -57,7 +79,7 @@ export class Renderer {
   }
 
   get_global_style() : string {
-    if (this.workset.status !== "loaded") {
+    if (!this.workset.loaded) {
       return "";
     }
     if (this.style === RenderingStyles.ALT_HTML) {
@@ -143,8 +165,18 @@ export class Renderer {
   }
 }
 
+export function check_version(callback : (boolean)=>void) : void {
+  jsonAjax(`/api/version`).done(function(data) {
+    if (data.application === "mmpp" && data.min_version <= API_VERSION && data.max_version >= API_VERSION) {
+      callback(true);
+    } else {
+      callback(false);
+    }
+  });
+}
+
 export function create_workset(callback : (Workset) => void) {
-  jsonAjax("/api/1/workset/create").done(function(data) {
+  jsonAjax(`/api/${API_VERSION}/workset/create`).done(function(data) : void {
     let workset : Workset = new Workset(data.id);
     workset.get_context(function() {
       callback(workset);
@@ -152,7 +184,13 @@ export function create_workset(callback : (Workset) => void) {
   });
 }
 
-export function load_workset(id : number, callback : (Workset) => void) {
+export function list_worksets(callback : (object) => void) : void {
+  jsonAjax(`/api/${API_VERSION}/workset/list`).done(function(data) : void {
+    callback(data.worksets);
+  });
+}
+
+export function load_workset(id : number, callback : (Workset) => void) : void {
   let workset : Workset = new Workset(id);
   workset.get_context(function() {
     callback(workset);

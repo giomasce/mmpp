@@ -9,65 +9,12 @@
   <script src="js/glue.js"></script>
 
   <link rel="stylesheet" type="text/css" href="css/mmpp.css"></link>
-  <style id="local_style"></style>
-
-  <script id="assertion_templ" type="x-tmpl-mustache">
-    Floating hypotheses:<ol>
-    {{ #float_hyps_sent }}
-    <li>{{{ . }}}</li>
-    {{ /float_hyps_sent }}
-    </ol>
-    Essential hypotheses:<ol>
-    {{ #ess_hyps_sent }}
-    <li>{{{ . }}}</li>
-    {{ /ess_hyps_sent }}
-    </ol>
-    Distinct variables:<ol>
-    {{ #dists }}
-    <li>{{{ . }}}</li>
-    {{ /dists }}
-    </ol>
-    Thesis: {{{ thesis }}}<br>
-    Proof:<br>
-    <center><table summary="Proof of theorem" cellspacing="0" border="" bgcolor="#EEFFFA">
-    <caption><b>Proof of theorem <b>{{ label }}</b></caption>
-    <tbody>
-    <tr><th>Step</th><th>Hyp</th><th>Ref</th><th>Expression</th><th>Dists</th></tr>
-    {{{ proof }}}
-    </tbody>
-    </table></center>
-  </script>
-
-  <script id="proof_templ" type="x-tmpl-mustache">
-    {{ #children }}
-    {{{ . }}}
-    {{ /children }}
-    <tr>
-    <td>{{ step }}</td>
-    <td>{{ #children_steps }}{{ . }}, {{ /children_steps }}</td>
-    <td>{{ label }} <span class="r" style="color: {{ number_color }}">{{ number }}</span></td>
-    <td><span class="i">{{{ indentation }}}</span> {{{ sentence }}}</td>
-    <td>{{ #dists }}{{{ . }}}; {{ /dists }}</td>
-    </tr>
-  </script>
+  <style id="global_style"></style>
 </head>
 
 <body>
-  <div class="piece" id="version"></div>
-  <div class="piece" id="create_workset">
-    <button onclick="mmpp.ui_create_workset()">Create workset</button>
-    <button onclick="mmpp.ui_load_workset_0()">Load workset 0</button>
-  </div>
+  <div id="work_area"></div>
   <div class="piece" id="workset">
-    <div id="workset_status"></div>
-    <div id="commands">
-      <button onclick="mmpp.ui_load_data()">Load database</button>
-      <input type="text" id="statement_label"></input>
-      <button onclick="mmpp.show_statement()">Show statement</button>
-      <button onclick="mmpp.show_assertion()">Show assertion</button>
-      <button onclick="mmpp.show_modifier()">Show modifier</button>
-      <button onclick="mmpp.create_editor()">Create editor</button>
-    </div>
     <div class="piece" id="show_statement_div">
       <div id="current_statement_alt"></div>
       <div id="current_statement"></div>

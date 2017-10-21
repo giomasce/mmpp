@@ -20,6 +20,13 @@ export function jsonAjax(url : string, dump : boolean = true, dump_content : boo
   });
 }
 
+export function lastize(list : object[]) : object[] {
+  if (list.length !== 0) {
+    list[list.length-1]["last"] = true;
+  }
+  return list;
+}
+
 export function invert_list(list : string[]) : { [id: string] : number } {
   let ret : { [id: string] : number } = {};
   for (let i : number = 0; i < list.length; i++) {

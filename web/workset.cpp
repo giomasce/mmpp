@@ -38,6 +38,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         return ret;
     } else if (*path_begin == "get_context") {
         json ret;
+        ret["name"] = this->get_name();
         if (this->library == NULL) {
             ret["status"] = "unloaded";
             return ret;
@@ -107,4 +108,14 @@ void Workset::load_library(boost::filesystem::path filename)
     Reader p(ft, false, true);
     p.run();
     this->library = make_unique< LibraryImpl >(p.get_library());
+}
+
+const string &Workset::get_name()
+{
+    return this->name;
+}
+
+void Workset::set_name(const string &name)
+{
+    this->name = name;
 }
