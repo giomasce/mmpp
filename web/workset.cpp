@@ -73,6 +73,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         int tok = safe_stoi(*path_begin);
         try {
             const Assertion &ass = this->library->get_assertion(tok);
+            assert_or_throw< SendError >(ass.is_valid(), 404);
             json ret;
             ret["assertion"] = jsonize(ass);
             return ret;
@@ -88,6 +89,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         int tok = safe_stoi(*path_begin);
         try {
             const Assertion &ass = this->library->get_assertion(tok);
+            assert_or_throw< SendError >(ass.is_valid(), 404);
             const auto &executor = ass.get_proof_executor(*this->library, true);
             executor->execute();
             const auto &proof_tree = executor->get_proof_tree();

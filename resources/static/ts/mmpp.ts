@@ -84,6 +84,7 @@ function render_proof_internal(proof_tree, depth : number, step : number) : [str
   step += 1;
   return [Mustache.render(PROOF_STEP_TEMPL, {
     label: current_workset.labels[proof_tree.label],
+    label_tok: proof_tree.label,
     number: proof_tree.number > 0 ? proof_tree.number.toString() : "",
     number_color: spectrum_to_rgb(proof_tree.number, current_workset.max_number),
     sentence: current_renderer.render_from_codes(proof_tree.sentence),
@@ -202,6 +203,7 @@ class ProofStepCellDelegate implements CellDelegate {
     let params = {
       cell_id: this.step.get_id(),
       sentence: current_renderer.render_from_codes(this.proof_tree.sentence),
+      text_sentence: new Renderer(RenderingStyles.TEXT, current_workset).render_from_codes(this.proof_tree.sentence),
       label: current_workset.labels[this.proof_tree.label],
       number: this.proof_tree.number > 0 ? this.proof_tree.number.toString() : "",
       number_color: spectrum_to_rgb(this.proof_tree.number, current_workset.max_number),
@@ -213,6 +215,11 @@ class ProofStepCellDelegate implements CellDelegate {
       self.get_suggestion();
     }, function() {
       $(`#${self.step.get_id()}_suggestion`).fadeOut();
+    });
+    $(`#${this.step.get_id()}_text_input`).on("input", function() {
+      let tokens : string[] = $(`#${self.step.get_id()}_text_input`).val().split(" ");
+      let sentence = current_renderer.render_from_strings(tokens);
+      $(`#${self.step.get_id()}_sentence`).html(sentence);
     });
   }
 }
@@ -305,7 +312,7 @@ const PROOF_STEP_TEMPL = `
   <tr>
   <td>{{ step }}</td>
   <td>{{ #children_steps }}{{ step }}{{ ^last }}, {{ /last }}{{ /children_steps }}</td>
-  <td>{{ label }} <span class="r" style="color: {{ number_color }}">{{ number }}</span></td>
+  <td>{{ #label_tok }}<a href="#" onclick="mmpp.ui_show_proof_for_label({{ . }})">{{ /label_tok }}{{ label }}{{ #label_tok }}</a>{{ /label_tok }} <span class="r" style="color: {{ number_color }}">{{ number }}</span></td>
   <td><span class="i">{{{ indentation }}}</span> {{{ sentence }}}</td>
   <td>{{ #dists }}{{{ dist }}}{{ ^last }}; {{ /last }}{{ /dists }}</td>
   </tr>
@@ -318,11 +325,12 @@ const DATA1_TEMPL = `
       <div style="display: none;" id="{{ cell_id }}_suggestion" class="inner_above suggestion"></div>
     </div>
   </span>
-  <span class="sentence">{{{ sentence }}}</span>
+  <span id="{{ cell_id }}_sentence" class="sentence">{{{ sentence }}}</span>
 `;
 
 const DATA2_TEMPL = `
-  <span>Distinct variables: {{{ dists }}}</span>
+  <div><input type="text" id="{{ cell_id }}_text_input" class="text_input" value="{{ text_sentence }}"></input></div>
+  <div>Distinct variables: {{{ dists }}}</div>
 `;
 
 const SUGGESTION_TEMPL = `

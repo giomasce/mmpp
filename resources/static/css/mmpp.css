@@ -34,20 +34,25 @@
 
 .step_row {
   width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
+.step_handle {
+  flex-grow: 0;
+  vertical-align: top;
+  margin-right: 3px;
 }
 
 .step_data {
-  display: inline-block;
+  flex-grow: 1;
   vertical-align: top;
 }
 
 .step_children {
   margin-left: 30px;
-}
-
-.step_handle {
-  display: inline-block;
-  vertical-align: top;
 }
 
 .label {
@@ -85,4 +90,10 @@
   position: absolute;
   bottom: 5px;
   left: 0px;
+}
+
+.text_input {
+  font-family: Inconsolata, monospace;
+  width: 100%;
+  box-sizing: border-box;
 }
