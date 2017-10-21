@@ -97,7 +97,7 @@ export function show_assertion() {
     let assertion = data["assertion"];
 
     // Request all the interesting things for the proof
-    let requests : JQueryXHR[] = [];
+    let requests : JQueryPromise<any>[] = [];
     let requests_map = {
       thesis: push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset.id}/get_sentence/${assertion["thesis"]}`)),
       proof_tree: push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset.id}/get_proof_tree/${assertion["thesis"]}`)),
@@ -172,7 +172,7 @@ class ProofStepCellDelegate implements CellDelegate {
       let assertion = data["assertion"];
 
       // Request all the interesting things for the proof
-      let requests : JQueryXHR[] = [];
+      let requests : JQueryPromise<any>[] = [];
       let requests_map = {
         thesis: push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset.id}/get_sentence/${assertion["thesis"]}`)),
         ess_hyps_sent: assertion["ess_hyps"].map(function (el) { return push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset.id}/get_sentence/${el}`)); }),
@@ -237,7 +237,7 @@ export function show_modifier() {
     let assertion = data["assertion"];
 
     // Request all the interesting things for the proof
-    let requests : JQueryXHR[] = [];
+    let requests : JQueryPromise<any>[] = [];
     let requests_map = {
       thesis: push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset.id}/get_sentence/${assertion["thesis"]}`)),
       proof_tree: push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset.id}/get_proof_tree/${assertion["thesis"]}`)),
