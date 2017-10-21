@@ -30,4 +30,4 @@ RUN cd resources && rm -f library.mm && ln -s ../../set.mm/set.mm library.mm
 
 # How to run the application
 EXPOSE 8888
-CMD ./build/webmmpp
+CMD ./build/webmmpp_open
