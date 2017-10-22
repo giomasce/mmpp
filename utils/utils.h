@@ -181,4 +181,15 @@ std::string hash_object(const T &obj) {
     return hasher.get_digest();
 }
 
+// Funny trick from https://stackoverflow.com/a/41485014/807307
+template<typename S>
+struct enable_make : public S
+{
+    template<typename... T>
+    enable_make(T&&... t)
+        : S(std::forward<T>(t)...)
+    {
+    }
+};
+
 #endif // UTILS_H

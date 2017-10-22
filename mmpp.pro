@@ -113,7 +113,8 @@ HEADERS += \
     parsing/unif.h \
     web/httpd_microhttpd.h \
     web/step.h \
-    utils/threadmanager.h
+    utils/threadmanager.h \
+    utils/backref_registry.h
 
 CONFIG(qt) {
 HEADERS += \

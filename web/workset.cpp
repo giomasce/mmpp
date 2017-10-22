@@ -9,9 +9,8 @@
 using namespace std;
 using namespace nlohmann;
 
-Workset::Workset()
+Workset::Workset() : step_backrefs(BackreferenceRegistry< Step >::create()), root_step(this->step_backrefs->make_instance())
 {
-    this->root_step = this->step_backrefs.make_instance();
 }
 
 template< typename TokType >

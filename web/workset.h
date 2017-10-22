@@ -22,7 +22,7 @@ private:
     std::unique_ptr< ExtendedLibrary > library;
     std::mutex global_mutex;
     std::string name;
-    BackreferenceRegistry< Step > step_backrefs;
+    std::shared_ptr< BackreferenceRegistry< Step > > step_backrefs;
     std::shared_ptr< Step > root_step;
 };
 
