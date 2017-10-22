@@ -35,7 +35,7 @@ public:
 
     ~BackreferenceToken() {
         std::shared_ptr< BackreferenceRegistry< T > > strong_reg = this->registry.lock();
-        if (strong_reg != nullptr) {
+        if (strong_reg != NULL) {
             strong_reg->ref_disappearing(this->id);
         }
     }
