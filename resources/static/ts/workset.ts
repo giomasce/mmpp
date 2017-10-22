@@ -8,14 +8,23 @@ const API_VERSION : number = 1;
 export class Step {
   id : number;
   workset : Workset;
+  children : Array< Step >;
 
   constructor(id : number, workset : Workset) {
     this.id = id;
     this.workset = workset;
+    this.children = new Array();
+  }
+
+  do_api_request(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : JQueryPromise<any> {
+    return this.workset.do_api_request(`step/${this.id}/` + url, dump, dump_content, async);
   }
 
   load_from_remote(callback : () => void) : void {
-
+    let self = this;
+    this.do_api_request(`get`).done(function (data) {
+      callback();
+    });
   }
 }
 
@@ -62,9 +71,7 @@ export class Workset {
       self.styles[RenderingStyles.TEXT] = new Renderer(RenderingStyles.TEXT, self);
       self.styles[RenderingStyles.LATEX] = new Renderer(RenderingStyles.LATEX, self);
       self.root_step = new Step(data.root_step_id, self);
-      self.root_step.load_from_remote(function () {
-        callback();
-      })
+      self.root_step.load_from_remote(callback);
     })
   }
 

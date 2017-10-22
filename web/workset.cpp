@@ -28,10 +28,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
     (void) cb;
     (void) method;
     unique_lock< mutex > lock(this->global_mutex);
-    if (path_begin == path_end) {
-        json ret = json::object();
-        return ret;
-    }
+    assert_or_throw< SendError >(path_begin != path_end, 404);
     if (*path_begin == "load") {
         this->load_library(platform_get_resources_base() / "library.mm");
         json ret = { { "status", "ok" } };
@@ -62,8 +59,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             json ret;
             ret["sentence"] = sent;
             return ret;
-        } catch (out_of_range e) {
-            (void) e;
+        } catch (out_of_range) {
             throw SendError(404);
         }
     } else if (*path_begin == "get_assertion") {
@@ -76,8 +72,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             json ret;
             ret["assertion"] = jsonize(ass);
             return ret;
-        } catch (out_of_range e) {
-            (void) e;
+        } catch (out_of_range) {
             throw SendError(404);
         }
     } else if (*path_begin == "get_proof_tree") {
@@ -93,14 +88,41 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             json ret;
             ret["proof_tree"] = jsonize(proof_tree);
             return ret;
-        } catch (out_of_range e) {
-            (void) e;
+        } catch (out_of_range) {
             throw SendError(404);
         }
-    } else if (*path_begin == "get_root_step") {
+    } else if (*path_begin == "step") {
         path_begin++;
-        assert_or_throw< SendError >(path_begin == path_end, 404);
-        return jsonize(*this->root_step);
+        assert_or_throw< SendError >(path_begin != path_end, 404);
+        if (*path_begin == "create") {
+            /*assert_or_throw< SendError >(!this->is_constant(), 403);
+            path_begin++;
+            assert_or_throw< SendError >(path_begin == path_end, 404);
+            auto res = this->create_workset();
+            json ret = { { "id", res.first } };
+            return ret;*/
+        } else if (*path_begin == "list") {
+            /*path_begin++;
+            assert_or_throw< SendError >(path_begin == path_end, 404);
+            json ret = { { "worksets", this->json_list_worksets() } };
+            return ret;*/
+        } else {
+            size_t id = safe_stoi(*path_begin);
+            path_begin++;
+            shared_ptr< Step > step;
+            try {
+                step = this->step_backrefs->at(id);
+            } catch (out_of_range) {
+                throw SendError(404);
+            }
+            return step->answer_api1(cb, path_begin, path_end, method);
+        }
+        try {
+
+            return jsonize(*this->root_step);
+        } catch (out_of_range) {
+            throw SendError(404);
+        }
     }
     throw SendError(404);
 }

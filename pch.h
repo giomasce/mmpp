@@ -28,6 +28,9 @@
 #include <cctype>
 #include <locale>
 #include <iterator>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
 
 #include <boost/serialization/unordered_map.hpp>
 #include <boost/serialization/vector.hpp>

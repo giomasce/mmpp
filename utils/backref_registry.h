@@ -33,6 +33,10 @@ public:
         return this->id;
     }
 
+    BackreferenceToken() = delete;
+    BackreferenceToken(BackreferenceToken&) = delete;
+    BackreferenceToken(BackreferenceToken&&) = default;
+
     ~BackreferenceToken() {
         std::shared_ptr< BackreferenceRegistry< T > > strong_reg = this->registry.lock();
         if (strong_reg != NULL) {
@@ -56,7 +60,7 @@ public:
         assert(!this->weak_this.expired());
         size_t id = this->id_dist.get_id();
         auto token = BackreferenceToken< T >(this->weak_this, id);
-        auto pointer = T::create(token, args...);
+        auto pointer = T::create(std::move(token), args...);
         std::unique_lock< std::mutex > lock(this->refs_mutex);
         this->references[id] = pointer;
         return pointer;

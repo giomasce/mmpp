@@ -90,5 +90,9 @@ json jsonize(const Step &step)
 {
     json ret = json::object();
     ret["id"] = step.get_id();
+    ret["children"] = json::array();
+    for (const auto &child : step.get_children()) {
+        ret["children"].push_back(child->get_id());
+    }
     return ret;
 }

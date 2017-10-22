@@ -315,10 +315,7 @@ json Session::answer_api1(HTTPCallback &cb, vector< string >::const_iterator pat
 {
     if (path_begin != path_end && *path_begin == "workset") {
         path_begin++;
-        if (path_begin == path_end) {
-            throw SendError(404);
-        }
-
+        assert_or_throw< SendError >(path_begin != path_end, 404);
         if (*path_begin == "create") {
             assert_or_throw< SendError >(!this->is_constant(), 403);
             path_begin++;
@@ -334,7 +331,12 @@ json Session::answer_api1(HTTPCallback &cb, vector< string >::const_iterator pat
         } else {
             size_t id = safe_stoi(*path_begin);
             path_begin++;
-            auto workset = this->get_workset(id);
+            shared_ptr< Workset > workset;
+            try {
+                workset = this->get_workset(id);
+            } catch (out_of_range) {
+                throw SendError(404);
+            }
             return workset->answer_api1(cb, path_begin, path_end, method);
         }
     }
@@ -359,12 +361,7 @@ std::pair<size_t, std::shared_ptr<Workset> > Session::create_workset()
 std::shared_ptr<Workset> Session::get_workset(size_t id)
 {
     shared_lock< shared_mutex > lock(this->worksets_mutex);
-    try {
-        return this->worksets.at(id);
-    } catch(out_of_range e) {
-        (void) e;
-        throw SendError(404);
-    }
+    return this->worksets.at(id);
 }
 
 json Session::json_list_worksets()

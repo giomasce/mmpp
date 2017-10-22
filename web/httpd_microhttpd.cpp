@@ -10,6 +10,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "utils/utils.h"
+
 using namespace std;
 
 HTTPD_microhttpd::HTTPD_microhttpd(int port, HTTPTarget &target, bool only_from_localhost) :
@@ -158,8 +160,9 @@ int HTTPD_microhttpd::answer_wrapper(void *cls, MHD_Connection *connection, cons
     cb->set_url(url);
     cb->set_method(method);
     cb->set_version(version);
-    cerr << "Request: " << version << ", " << method << ": " << url << endl;
+    acout() << "Request received: " << method << " " << url << " " << version << endl;
     object->target.answer(*cb);
+    acout() << "Responding " << cb->get_status_code() << " (" << method << " " << url << " " << version << ")" << endl;
 
     struct MHD_Response *response;
     int ret;

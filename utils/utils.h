@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <chrono>
 #include <unordered_map>
+#include <mutex>
 
 #include <boost/filesystem.hpp>
 #include <boost/archive/text_iarchive.hpp>
@@ -190,6 +191,32 @@ struct enable_make : public S
         : S(std::forward<T>(t)...)
     {
     }
+};
+
+// Taken from https://stackoverflow.com/a/45046349/807307 and adapted
+static std::mutex mtx_cout;
+struct acout
+{
+        std::unique_lock<std::mutex> lk;
+        acout()
+            :
+              lk(std::unique_lock<std::mutex>(mtx_cout))
+        {
+
+        }
+
+        template<typename T>
+        acout& operator<<(const T& _t)
+        {
+            std::cout << _t;
+            return *this;
+        }
+
+        acout& operator<<(std::ostream& (*fp)(std::ostream&))
+        {
+            std::cout << fp;
+            return *this;
+        }
 };
 
 #endif // UTILS_H
