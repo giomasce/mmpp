@@ -2,11 +2,13 @@
 #define WORKSET_H
 
 #include <mutex>
+#include <memory>
 
 class Workset;
 
 #include "web/web.h"
 #include "library.h"
+#include "web/step.h"
 
 class Workset {
 public:
@@ -20,6 +22,8 @@ private:
     std::unique_ptr< ExtendedLibrary > library;
     std::mutex global_mutex;
     std::string name;
+    BackreferenceRegistry< Step > step_backrefs;
+    std::shared_ptr< Step > root_step;
 };
 
 #endif // WORKSET_H

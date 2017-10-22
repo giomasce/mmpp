@@ -36,7 +36,9 @@ SOURCES += \
     test/test_parsing.cpp \
     test/test_verification.cpp \
     test/test_minor.cpp \
-    web/httpd_microhttpd.cpp
+    web/httpd_microhttpd.cpp \
+    web/step.cpp \
+    utils/threadmanager.cpp
 
 CONFIG(qt) {
 SOURCES += \
@@ -109,7 +111,9 @@ HEADERS += \
     parsing/earley.h \
     parsing/lr.h \
     parsing/unif.h \
-    web/httpd_microhttpd.h
+    web/httpd_microhttpd.h \
+    web/step.h \
+    utils/threadmanager.h
 
 CONFIG(qt) {
 HEADERS += \

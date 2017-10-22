@@ -11,6 +11,7 @@ using namespace nlohmann;
 
 Workset::Workset()
 {
+    this->root_step = this->step_backrefs.make_instance();
 }
 
 template< typename TokType >
@@ -37,8 +38,11 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         json ret = { { "status", "ok" } };
         return ret;
     } else if (*path_begin == "get_context") {
+        path_begin++;
+        assert_or_throw< SendError >(path_begin == path_end, 404);
         json ret;
         ret["name"] = this->get_name();
+        ret["root_step_id"] = this->root_step->get_id();
         if (this->library == NULL) {
             ret["status"] = "unloaded";
             return ret;
@@ -52,9 +56,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         return ret;
     } else if (*path_begin == "get_sentence") {
         path_begin++;
-        if (path_begin == path_end) {
-            throw SendError(404);
-        }
+        assert_or_throw< SendError >(path_begin != path_end, 404);
         int tok = safe_stoi(*path_begin);
         try {
             const Sentence &sent = this->library->get_sentence(tok);
@@ -67,9 +69,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         }
     } else if (*path_begin == "get_assertion") {
         path_begin++;
-        if (path_begin == path_end) {
-            throw SendError(404);
-        }
+        assert_or_throw< SendError >(path_begin != path_end, 404);
         int tok = safe_stoi(*path_begin);
         try {
             const Assertion &ass = this->library->get_assertion(tok);
@@ -83,9 +83,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         }
     } else if (*path_begin == "get_proof_tree") {
         path_begin++;
-        if (path_begin == path_end) {
-            throw SendError(404);
-        }
+        assert_or_throw< SendError >(path_begin != path_end, 404);
         int tok = safe_stoi(*path_begin);
         try {
             const Assertion &ass = this->library->get_assertion(tok);
@@ -100,6 +98,10 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             (void) e;
             throw SendError(404);
         }
+    } else if (*path_begin == "get_root_step") {
+        path_begin++;
+        assert_or_throw< SendError >(path_begin == path_end, 404);
+        return jsonize(*this->root_step);
     }
     throw SendError(404);
 }

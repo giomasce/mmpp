@@ -2,13 +2,15 @@
 /// <reference path="mustache.d.ts"/>
 
 export function jsonAjax(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : JQueryPromise<any> {
+  if (dump) {
+    $("#console_text").append("\n\nRequesting: " + url);
+  }
   return $.ajax({
     url: url,
     dataType: "json",
     async: async,
   }).then(function(data) {
     if (dump) {
-      $("#console_text").append("\n\nRequested: " + url);
       if (dump_content) {
         $("#console_text").append("\nReceived: " + JSON.stringify(data));
       } else {

@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <sys/resource.h>
 #include <cstdio>
+#include <pthread.h>
+#include <sys/syscall.h>
 
 using namespace std;
 
@@ -16,13 +18,6 @@ void set_max_ram(uint64_t bytes) {
     limit.rlim_cur = bytes;
     limit.rlim_max = bytes;
     setrlimit64(RLIMIT_AS, &limit);
-}
-
-void set_max_ram32(uint64_t bytes) {
-    struct rlimit limit;
-    limit.rlim_cur = bytes;
-    limit.rlim_max = bytes;
-    setrlimit(RLIMIT_AS, &limit);
 }
 
 atomic< bool > signalled;
@@ -58,6 +53,24 @@ bool platform_open_browser(string browser_url) {
 // FIXME
 boost::filesystem::path platform_get_resources_base() {
     return boost::filesystem::path("./resources");
+}
+
+// Here we depend a lot on implementation details of C++ threads
+void set_thread_name(std::thread &t, const string &name) {
+    pthread_t handle = t.native_handle();
+    pthread_setname_np(handle, name.c_str());
+}
+
+void set_current_thread_low_priority() {
+    pthread_t handle = pthread_self();
+    int policy;
+    sched_param sched;
+    pthread_getschedparam(handle, &policy, &sched);
+    // The meaning of these parameters is somewhat complicated; see sched(7)
+    policy = SCHED_BATCH;
+    sched.sched_priority = 0;
+    // We also set the nice level, that on Linux is thread-specific
+    setpriority(PRIO_PROCESS, syscall(SYS_gettid), 19);
 }
 
 

@@ -1,7 +1,7 @@
 /// <reference path="jquery.d.ts"/>
 /// <reference path="mustache.d.ts"/>
 
-import { gen_random_id } from "./utils";
+import { get_serial } from "./utils";
 
 export interface CellDelegate {
   set_step(step : Step) : void;
@@ -118,11 +118,11 @@ export class Editor {
 
   constructor(parent_div : string) {
     this.parent_div = parent_div;
-    this.id = gen_random_id();
+    this.id = get_serial();
     this.steps_map = new Map();
 
     // Construct a dummy root step, with some glue DOM code
-    let root_id = gen_random_id();
+    let root_id = get_serial();
     this.root_step = new Step(root_id, this, null, null);
     this.steps_map[root_id] = this.root_step;
     let html_code = Mustache.render(STEP_ROOT_TMPL, {
@@ -137,7 +137,7 @@ export class Editor {
     if (index === -1) {
       index = parent_step.children.length;
     }
-    let new_id = gen_random_id();
+    let new_id = get_serial();
     let new_step = new Step(new_id, this, parent_step, cell_delegate);
     this.steps_map[new_id] = new_step;
     parent_step.children.splice(index, 0, new_step);

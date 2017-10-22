@@ -85,3 +85,10 @@ json jsonize(const ProofTree &proof_tree) {
     ret["number"] = proof_tree.number;
     return ret;
 }
+
+json jsonize(const Step &step)
+{
+    json ret = json::object();
+    ret["id"] = step.get_id();
+    return ret;
+}

@@ -5,8 +5,21 @@ import { jsonAjax, invert_list } from "./utils";
 
 const API_VERSION : number = 1;
 
-export class Workset {
+export class Step {
+  id : number;
+  workset : Workset;
 
+  constructor(id : number, workset : Workset) {
+    this.id = id;
+    this.workset = workset;
+  }
+
+  load_from_remote(callback : () => void) : void {
+
+  }
+}
+
+export class Workset {
   id : number;
   name : string;
   loaded : boolean;
@@ -15,21 +28,23 @@ export class Workset {
   symbols_inv: { [tok : string] : number };
   labels_inv: { [tok : string] : number };
   max_number : number;
+  styles : Map< RenderingStyles, Renderer >;
+  root_step : Step;
   addendum;
 
   constructor(id : number) {
     this.id = id;
-    this.loaded = false;
+    this.styles = new Map();
   }
 
   do_api_request(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : JQueryPromise<any> {
     return jsonAjax(`/api/${API_VERSION}/workset/${this.id}/` + url, dump, dump_content, async);
   }
 
-  get_context(callback : () => void) {
+  load_from_remote(callback : () => void) : void {
     let self = this;
     this.do_api_request(`get_context`, true, false).done(function(data) {
-    self.name = data.name;
+      self.name = data.name;
       if (data.status === "loaded") {
         self.loaded = true;
         self.symbols = data.symbols;
@@ -41,11 +56,19 @@ export class Workset {
       } else {
         self.loaded = false;
       }
-      callback();
+      // Stupid TypeScript has no sane way to iterate over an enum
+      self.styles[RenderingStyles.HTML] = new Renderer(RenderingStyles.HTML, self);
+      self.styles[RenderingStyles.ALT_HTML] = new Renderer(RenderingStyles.ALT_HTML, self);
+      self.styles[RenderingStyles.TEXT] = new Renderer(RenderingStyles.TEXT, self);
+      self.styles[RenderingStyles.LATEX] = new Renderer(RenderingStyles.LATEX, self);
+      self.root_step = new Step(data.root_step_id, self);
+      self.root_step.load_from_remote(function () {
+        callback();
+      })
     })
   }
 
-  get_description() : string {
+  get_human_description() : string {
     let ret : string = this.name + ": ";
     if (this.loaded) {
       ret += `database contains ${this.labels.length} labels and ${this.symbols.length} symbols`;
@@ -58,7 +81,7 @@ export class Workset {
   load_data(callback : () => void) {
     let self = this;
     this.do_api_request(`load`).done(function(data) {
-      self.get_context(callback);
+      self.load_from_remote(callback);
     });
   }
 }
@@ -178,7 +201,7 @@ export function check_version(callback : (boolean)=>void) : void {
 export function create_workset(callback : (Workset) => void) {
   jsonAjax(`/api/${API_VERSION}/workset/create`).done(function(data) : void {
     let workset : Workset = new Workset(data.id);
-    workset.get_context(function() {
+    workset.load_from_remote(function() {
       callback(workset);
     });
   });
@@ -192,7 +215,7 @@ export function list_worksets(callback : (object) => void) : void {
 
 export function load_workset(id : number, callback : (Workset) => void) : void {
   let workset : Workset = new Workset(id);
-  workset.get_context(function() {
+  workset.load_from_remote(function() {
     callback(workset);
   });
 }

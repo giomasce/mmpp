@@ -44,18 +44,17 @@ function workset_loaded(new_workset : Workset) {
   current_workset = new_workset;
   current_renderer = new Renderer(DEFAULT_STYLE, current_workset);
   $("#workset").html(Mustache.render(WORKSET_TEMPL, {}));
-  update_workset_status();
-  $("#global_style").html(current_renderer.get_global_style());
+  update_workset_globals();
 }
 
-function update_workset_status() : void {
-  $("#workset_status").text(current_workset.get_description());
+function update_workset_globals() : void {
+  $("#workset_status").text(current_workset.get_human_description());
+  $("#global_style").html(current_renderer.get_global_style());
 }
 
 export function ui_load_data() {
   current_workset.load_data(function() {
-    update_workset_status();
-    $("#local_style").html(current_renderer.get_global_style());
+    update_workset_globals();
   });
 }
 
@@ -136,11 +135,15 @@ export function get_editor() {
 
 class ProofStepCellDelegate implements CellDelegate {
   proof_tree;
+  remote_id : number;
+  workset : Workset;
   step : Step;
   suggestion_ready : boolean = false;
 
-  constructor(proof_tree) {
+  constructor(proof_tree, workset : Workset = null, remote_id : number = -1) {
     this.proof_tree = proof_tree;
+    this.workset = workset;
+    this.remote_id = remote_id;
   }
 
   set_step(step : Step) : void {
@@ -214,7 +217,7 @@ function modifier_render_proof(proof_tree, editor : Editor, parent : string) {
   if (!proof_tree["essential"] && !include_non_essentials) {
     return;
   }
-  let cell_delegate = new ProofStepCellDelegate(proof_tree);
+  let cell_delegate = new ProofStepCellDelegate(proof_tree, current_workset);
   let step = editor.create_step(parent, -1, cell_delegate);
   for (let child of proof_tree.children) {
     modifier_render_proof(child, editor, step.id);
