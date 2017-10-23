@@ -53,6 +53,9 @@ bool Step::reparent(std::shared_ptr<Step> parent, size_t idx)
     unique_lock< mutex > parent_lock(parent->global_mutex);
     this->parent = parent;
     auto &pchildren = parent->children;
+    if (idx > pchildren.size()) {
+        return false;
+    }
     pchildren.insert(pchildren.begin() + idx, this->weak_this.lock());
     return true;
 }

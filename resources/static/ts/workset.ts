@@ -50,6 +50,30 @@ export class Workset {
     return jsonAjax(`/api/${API_VERSION}/workset/${this.id}/` + url, dump, dump_content, async);
   }
 
+  create_step(parent : Step, idx : number, callback : (boolean) => void) : void {
+    let self = this;
+    if (this.root_step === null) {
+      throw "The workset was never loaded";
+    }
+    if (idx === -1) {
+      idx = parent.children.length;
+    }
+    if (idx < 0 || parent.children.length < idx) {
+      throw "Wrong index";
+    }
+    this.do_api_request(`create/${parent.id}/${idx}`).done(function (data) {
+      if (!data.success) {
+        callback(false);
+      } else {
+        let new_step = new Step(data.id, self);;
+        parent.children.splice(idx, 0, new_step);
+        new_step.load_from_remote(function () {
+          callback(true);
+        });
+      }
+    });
+  }
+
   load_from_remote(callback : () => void) : void {
     let self = this;
     this.do_api_request(`get_context`, true, false).done(function(data) {

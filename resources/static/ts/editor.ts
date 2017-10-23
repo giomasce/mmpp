@@ -4,27 +4,27 @@
 import { get_serial } from "./utils";
 
 export interface CellDelegate {
-  set_step(step : Step) : void;
+  set_step(step : EditorStep) : void;
   cell_ready() : void;
 }
 
 class TrivialCellDelegate implements CellDelegate {
-  set_step(step : Step) : void {
+  set_step(step : EditorStep) : void {
   }
   cell_ready() : void {
   }
 }
 
-export class Step {
+export class EditorStep {
   id : string;
   editor : Editor;
-  parent : Step;
+  parent : EditorStep;
   cell_delegate : CellDelegate;
-  children : Array< Step >;
+  children : Array< EditorStep >;
   children_open : boolean = true;
   data2_open : boolean = false;
 
-  constructor(id : string, editor : Editor, parent : Step, cell_delegate : CellDelegate) {
+  constructor(id : string, editor : Editor, parent : EditorStep, cell_delegate : CellDelegate) {
     this.id = id;
     this.editor = editor;
     this.parent = parent;
@@ -113,8 +113,8 @@ export class Step {
 export class Editor {
   parent_div : string;
   id : string;
-  root_step : Step;
-  steps_map : Map< string, Step >;
+  root_step : EditorStep;
+  steps_map : Map< string, EditorStep >;
 
   constructor(parent_div : string) {
     this.parent_div = parent_div;
@@ -123,7 +123,7 @@ export class Editor {
 
     // Construct a dummy root step, with some glue DOM code
     let root_id = get_serial();
-    this.root_step = new Step(root_id, this, null, null);
+    this.root_step = new EditorStep(root_id, this, null, null);
     this.steps_map[root_id] = this.root_step;
     let html_code = Mustache.render(STEP_ROOT_TMPL, {
       eid: this.id,
@@ -132,13 +132,13 @@ export class Editor {
     $(`#${parent_div}`).html(html_code);
   }
 
-  create_step(parent : string, index : number, cell_delegate : CellDelegate) : Step {
+  create_step(parent : string, index : number, cell_delegate : CellDelegate) : EditorStep {
     let parent_step = this.steps_map[parent];
     if (index === -1) {
       index = parent_step.children.length;
     }
     let new_id = get_serial();
-    let new_step = new Step(new_id, this, parent_step, cell_delegate);
+    let new_step = new EditorStep(new_id, this, parent_step, cell_delegate);
     this.steps_map[new_id] = new_step;
     parent_step.children.splice(index, 0, new_step);
 

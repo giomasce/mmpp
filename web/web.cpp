@@ -395,11 +395,9 @@ int safe_stoi(string s)
 {
     try {
         return stoi(s);
-    } catch (invalid_argument e) {
-        (void) e;
+    } catch (invalid_argument) {
         throw SendError(404);
-    } catch (out_of_range e) {
-        (void) e;
+    } catch (out_of_range) {
         throw SendError(404);
     }
 }

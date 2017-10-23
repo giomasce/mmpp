@@ -2,8 +2,8 @@
 /// <reference path="mustache.d.ts"/>
 
 import { get_serial, spectrum_to_rgb, push_and_get_index, lastize } from "./utils";
-import { CellDelegate, Editor, Step } from "./editor";
-import { check_version, create_workset, load_workset, list_worksets, Workset, Renderer, RenderingStyles } from "./workset";
+import { CellDelegate, Editor, EditorStep } from "./editor";
+import { check_version, create_workset, load_workset, list_worksets, Step, Workset, Renderer, RenderingStyles } from "./workset";
 
 let current_workset : Workset;
 let current_renderer : Renderer;
@@ -137,7 +137,7 @@ class ProofStepCellDelegate implements CellDelegate {
   proof_tree;
   remote_id : number;
   workset : Workset;
-  step : Step;
+  step : EditorStep;
   suggestion_ready : boolean = false;
 
   constructor(proof_tree, workset : Workset = null, remote_id : number = -1) {
@@ -146,7 +146,7 @@ class ProofStepCellDelegate implements CellDelegate {
     this.remote_id = remote_id;
   }
 
-  set_step(step : Step) : void {
+  set_step(step : EditorStep) : void {
     this.step = step;
   }
 
@@ -218,11 +218,31 @@ function modifier_render_proof(proof_tree, editor : Editor, parent : string) {
     return;
   }
   let cell_delegate = new ProofStepCellDelegate(proof_tree, current_workset);
-  let step = editor.create_step(parent, -1, cell_delegate);
+  let editor_step = editor.create_step(parent, -1, cell_delegate);
   for (let child of proof_tree.children) {
-    modifier_render_proof(child, editor, step.id);
+    modifier_render_proof(child, editor, editor_step.id);
   }
 }
+
+/*function modifier_to_workset(proof_tree, workset : Workset, parent : Step) {
+  if (!proof_tree["essential"] && !include_non_essentials) {
+    return;
+  }
+  let step = workset.create_step(parent, -1, function (success : boolean) {
+    if (success) {
+      let promise = $.when(true);
+      for (let child of proof_tree.children) {
+        promise.then(function (success : boolean) {
+          if (success) {
+
+          } else {
+            return false;
+          }
+        });
+      }
+    }
+  });
+}*/
 
 export function ui_show_modifier() {
   if (!current_workset.loaded) {
