@@ -5,6 +5,7 @@
 #include <functional>
 #include <vector>
 #include <string>
+#include <random>
 
 #include "test/test_env.h"
 #include "toolbox.h"
@@ -132,7 +133,7 @@ void find_generalizable_theorems() {
             auto it = find(ess_hyps.begin(), ess_hyps.end(), label);
             if (it != ess_hyps.end()) {
                 //cout << " \"*\",";
-                reactor.process_hypothesis(tb.get_symbol("wff"), it-ess_hyps.begin());
+                reactor.process_hypothesis(tb.get_turnstile_alias(), it-ess_hyps.begin());
             } else if (tb.get_assertion(label).is_valid() && tb.get_sentence(label).at(0) == tb.get_turnstile()) {
                 //cout << " \"" << tb.resolve_label(label) << "\",";
                 reactor.process_label(label);
@@ -212,4 +213,67 @@ int find_generalizable_theorems_main(int argc, char *argv[]) {
 }
 static_block {
     register_main_function("mmpp_generalizable_theorems", find_generalizable_theorems_main);
+}
+
+int gen_random_theorems_main(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    random_device rand_dev;
+    mt19937 rand_mt;
+    rand_mt.seed(rand_dev());
+
+    auto &data = get_set_mm();
+    auto &lib = data.lib;
+    auto &tb = data.tb;
+
+    vector< const Assertion* > useful_asses;
+    for (const auto &ass : lib.get_assertions()) {
+        if (ass.is_valid() && lib.get_sentence(ass.get_thesis()).at(0) == tb.get_turnstile()) {
+            useful_asses.push_back(&ass);
+        }
+    }
+    cout << "There are " << useful_asses.size() << " useful theorems" << endl;
+
+    Unificator< SymTok, LabTok > unif(tb.get_standard_is_var());
+    vector< ParsingTree< SymTok, LabTok > > open_hyps;
+    LabTok th_label;
+    tie(th_label, ignore) = tb.new_temp_var(tb.get_turnstile_alias());
+    ParsingTree< SymTok, LabTok > final_thesis;
+    final_thesis.label = th_label;
+    final_thesis.type = tb.get_turnstile_alias();
+    open_hyps.push_back(final_thesis);
+
+    for (size_t i = 0; i < 2; i++) {
+        // Select a random hypothesis, a random open hypothesis and let them match
+        if (open_hyps.empty()) {
+            cout << "Terminating early" << endl;
+            break;
+        }
+        size_t ass_idx = uniform_int_distribution< size_t >(0, useful_asses.size()-1)(rand_mt);
+        size_t hyp_idx = uniform_int_distribution< size_t >(0, open_hyps.size()-1)(rand_mt);
+        const Assertion &ass = *useful_asses[ass_idx];
+        ParsingTree< SymTok, LabTok > thesis;
+        vector< ParsingTree< SymTok, LabTok > > hyps;
+        tie(hyps, thesis) = tb.refresh_assertion(ass);
+        unif.add_parsing_trees(open_hyps[hyp_idx], thesis);
+        open_hyps.erase(open_hyps.begin() + hyp_idx);
+        open_hyps.insert(open_hyps.end(), hyps.begin(), hyps.end());
+    }
+
+    SubstMap< SymTok, LabTok > subst;
+    bool res;
+    tie(res, subst) = unif.unify2();
+
+    if (res) {
+        cout << "Unification succedeed" << endl;
+        cout << tb.print_sentence(substitute(final_thesis, tb.get_standard_is_var(), subst)) << endl;
+    } else {
+        cout << "Unification failed" << endl;
+    }
+
+    return 0;
+}
+static_block {
+    register_main_function("mmpp_gen_random_theorems", gen_random_theorems_main);
 }
