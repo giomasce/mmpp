@@ -6,5 +6,6 @@
         "sourceMap": false,
         "outDir": "../js",
         "module": "system"
-    }
+    },
+    "compileOnSave": true
 }

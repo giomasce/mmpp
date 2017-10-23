@@ -99,6 +99,7 @@ export enum RenderingStyles {
   LATEX,
   TEXT,
 }
+
 export class Renderer {
   style : RenderingStyles;
   workset : Workset;
