@@ -50,6 +50,80 @@ private:
     std::unordered_map< LabType, size_t > rank;
 };
 
+// Incremental cycle detector
+// State of the art at the moment of writing seems to be https://arxiv.org/pdf/1112.0784.pdf?fname=cm&font=TypeI
+// However, for now I implement a naive algorithm
+// For the record, most graphs from actual unifications seem to be very sparse, rarely with twice more edges than nodes
+template< typename LabType >
+class NaiveIncrementalCycleDetector {
+public:
+    void make_edge(LabType from, LabType to) {
+        this->deps[from].insert(to);
+    }
+
+    bool is_acyclic() const {
+        return CycleDetectorInternal(this->deps).template run< false >().first;
+    }
+
+    std::pair< bool, std::vector< LabType > > find_topo_sort() const {
+        return CycleDetectorInternal(this->deps).template run< true >();
+    }
+
+    enum Status { Unvisited = 0, Visiting, Visited };
+
+    class CycleDetectorInternal {
+    public:
+        CycleDetectorInternal(const std::unordered_map< LabType, std::set< LabType > > &deps) : deps(deps) {
+            topo_sort.reserve(this->deps.size());
+        }
+
+        template< bool keep_trace >
+        std::pair< bool, std::vector< LabType > > run() {
+            for (const auto &x : this->deps) {
+                if (!this->run_on< keep_trace >(x.first)) {
+                    this->topo_sort.clear();
+                    return std::make_pair(false, this->topo_sort);
+                }
+            }
+            return std::make_pair(true, this->topo_sort);
+        }
+
+    private:
+        template< bool keep_trace >
+        bool run_on(LabType lab) {
+            auto it = this->deps.find(lab);
+            if (it == this->deps.end()) {
+                return true;
+            }
+            if (this->status[lab] == Visited) {
+                return true;
+            }
+            if (this->status[lab] == Visiting) {
+                return false;
+            }
+            this->status[lab] = Visiting;
+            for (const auto &new_lab : it->second) {
+                bool res = this->run_on< keep_trace >(new_lab);
+                if (!res) {
+                    return false;
+                }
+            }
+            this->status[lab] = Visited;
+            if (keep_trace) {
+                this->topo_sort.push_back(lab);
+            }
+            return true;
+        }
+
+        const std::unordered_map< LabType, std::set< LabType > > &deps;
+        std::unordered_map< LabType, Status > status;
+        std::vector< LabType > topo_sort;
+    };
+
+private:
+    std::unordered_map< LabType, std::set< LabType > > deps;
+};
+
 template< typename SymType, typename LabType >
 void collect_variables(const ParsingTree< SymType, LabType > &pt, const std::function< bool(LabType) > &is_var, std::set< LabType > &vars) {
     if (is_var(pt.label)) {
@@ -211,12 +285,12 @@ bool unify2_slow(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< 
 template< typename SymType, typename LabType >
 bool unify2_quick_process_tree(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
                                const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst,
-                               std::unordered_map< LabType, std::set< LabType > > &deps,
+                               NaiveIncrementalCycleDetector< LabType > &cycle_detector,
                                DisjointSet< LabType > &djs) {
     if (pt1.label == pt2.label) {
         assert(pt1.children.size() == pt2.children.size());
         for (size_t i = 0; i < pt1.children.size(); i++) {
-            bool res = unify2_quick_process_tree(pt1.children[i], pt2.children[i], is_var, subst, deps, djs);
+            bool res = unify2_quick_process_tree(pt1.children[i], pt2.children[i], is_var, subst, cycle_detector, djs);
             if (!res) {
                 return false;
             }
@@ -269,46 +343,25 @@ bool unify2_quick_process_tree(const ParsingTree< SymType, LabType > &pt1, const
         typename SubstMap< SymType, LabType >::iterator it;
         std::tie(it, res) = subst.insert(std::make_pair(var, *content));
         if (res) {
-            collect_variables(*content, is_var, deps[var]);
+            std::set< LabType > vars;
+            collect_variables(*content, is_var, vars);
+            for (const auto &var2 : vars) {
+                cycle_detector.make_edge(var, var2);
+            }
             return true;
         } else {
-            return unify2_quick_process_tree(it->second, *content, is_var, subst, deps, djs);
+            return unify2_quick_process_tree(it->second, *content, is_var, subst, cycle_detector, djs);
         }
     }
-}
-
-enum Status { Unvisited = 0, Visiting, Visited };
-template< typename SymType, typename LabType >
-bool unify2_quick_resolve_deps(LabType lab, SubstMap< SymType, LabType > &subst, std::unordered_map< LabType, Status > &status, const std::function< bool(LabType) > &is_var, const std::unordered_map< LabType, std::set< LabType > > &deps) {
-    auto it = deps.find(lab);
-    if (it == deps.end()) {
-        return true;
-    }
-    if (status[lab] == Visited) {
-        return true;
-    }
-    if (status[lab] == Visiting) {
-        return false;
-    }
-    status[lab] = Visiting;
-    for (const auto &new_lab : it->second) {
-        bool res = unify2_quick_resolve_deps(new_lab, subst, status, is_var, deps);
-        if (!res) {
-            return false;
-        }
-    }
-    subst[lab] = substitute(subst[lab], is_var, subst);
-    status[lab] = Visited;
-    return true;
 }
 
 template< typename SymType, typename LabType >
 std::pair< bool, SubstMap< SymType, LabType > > unify2_quick(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
                   const std::function< bool(LabType) > &is_var) {
     SubstMap< SymType, LabType > subst;
-    std::unordered_map< LabType, std::set< LabType > > deps;
     DisjointSet< LabType > djs;
-    bool res = unify2_quick_process_tree(pt1, pt2, is_var, subst, deps, djs);
+    NaiveIncrementalCycleDetector< LabType > cycle_detector;
+    bool res = unify2_quick_process_tree(pt1, pt2, is_var, subst, cycle_detector, djs);
 #ifdef UNIFICATOR_SELF_TEST
     SubstMap< SymType, LabType > subst2;
     bool res2 = unify2_slow(pt1, pt2, is_var, subst2);
@@ -320,16 +373,22 @@ std::pair< bool, SubstMap< SymType, LabType > > unify2_quick(const ParsingTree< 
         subst.clear();
         return std::make_pair(false, subst);
     }
-    std::unordered_map< LabType, Status > status;
-    for (const auto &p : deps) {
-        bool res = unify2_quick_resolve_deps(p.first, subst, status, is_var, deps);
-        if (!res) {
+    /*size_t num_edges = 0;
+    for (const auto &x : deps) {
+        num_edges += x.second.size();
+    }
+    std::cerr << "Final graph has " << deps.size() << " nodes and " << num_edges << " edges (load factor: " << ((double) num_edges) / ((double) deps.size()) << std::endl;*/
+    std::vector< LabType > topo_sort;
+    tie(res, topo_sort) = cycle_detector.find_topo_sort();
+    if (!res) {
 #ifdef UNIFICATOR_SELF_TEST
             assert(!res2);
 #endif
-            subst.clear();
-            return std::make_pair(false, subst);
-        }
+        subst.clear();
+        return std::make_pair(false, subst);
+    }
+    for (const LabTok &lab : topo_sort) {
+        subst[lab] = substitute(subst[lab], is_var, subst);
     }
 #ifdef UNIFICATOR_SELF_TEST
     assert(res2);
