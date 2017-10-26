@@ -73,7 +73,7 @@ public:
 
     bool compute_unification() {
         bool res;
-        tie(res, this->subst) = this->unificator.unify2();
+        tie(res, this->subst) = this->unificator.unify();
         return res;
     }
 
@@ -101,7 +101,7 @@ public:
 private:
     LibraryToolbox &tb;
     const std::function< bool(LabTok) > is_var;
-    Unificator< SymTok, LabTok > unificator;
+    BilateralUnificator< SymTok, LabTok > unificator;
     vector< ParsingTree< SymTok, LabTok > > stack;
     //map< size_t, LabTok > hypotheses;
     vector< LabTok > hypotheses;
@@ -146,7 +146,7 @@ void find_generalizable_theorems() {
         assert(res);
 
         SubstMap< SymTok, LabTok > subst2;
-        Unificator< SymTok, LabTok > unif(tb.get_standard_is_var());
+        UnilateralUnificator< SymTok, LabTok > unif(tb.get_standard_is_var());
         unif.add_parsing_trees(reactor.get_theorem(), tb.get_parsed_sents()[ass.get_thesis()]);
         auto hypotheses = reactor.get_hypotheses();
         for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
@@ -235,7 +235,7 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     }
     cout << "There are " << useful_asses.size() << " useful theorems" << endl;
 
-    Unificator< SymTok, LabTok > unif(tb.get_standard_is_var());
+    BilateralUnificator< SymTok, LabTok > unif(tb.get_standard_is_var());
     vector< ParsingTree< SymTok, LabTok > > open_hyps;
     LabTok th_label;
     tie(th_label, ignore) = tb.new_temp_var(tb.get_turnstile_alias());
@@ -263,7 +263,7 @@ int gen_random_theorems_main(int argc, char *argv[]) {
 
     SubstMap< SymTok, LabTok > subst;
     bool res;
-    tie(res, subst) = unif.unify2();
+    tie(res, subst) = unif.unify();
 
     if (res) {
         cout << "Unification succedeed" << endl;

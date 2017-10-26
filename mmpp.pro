@@ -114,7 +114,8 @@ HEADERS += \
     web/httpd_microhttpd.h \
     web/step.h \
     utils/threadmanager.h \
-    utils/backref_registry.h
+    utils/backref_registry.h \
+    parsing/algos.h
 
 CONFIG(qt) {
 HEADERS += \
