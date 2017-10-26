@@ -72,6 +72,13 @@ LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, boo
     cache(cache), temp_syms(lib.get_symbols_num()+1), temp_labs(lib.get_labels_num()+1)
 {
     assert(this->lib.is_immutable());
+    this->standard_is_var = [&](LabTok x)->bool {
+        const auto &types_set = this->get_types_set();
+        if (types_set.find(x) == types_set.end()) {
+            return false;
+        }
+        return !this->is_constant(this->get_sentence(x).at(1));
+    };
     if (compute) {
         this->compute_everything();
     }
@@ -337,7 +344,7 @@ std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok>
 {
     // Collect all variables
     std::set< LabTok > var_labs;
-    auto is_var = this->get_standard_is_var();
+    const auto &is_var = this->get_standard_is_var();
     const ParsingTree< SymTok, LabTok > &thesis_pt = this->get_parsed_sents().at(ass.get_thesis());
     collect_variables(thesis_pt, is_var, var_labs);
     for (const auto hyp : ass.get_ess_hyps()) {
@@ -372,7 +379,7 @@ ParsingTree<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree(const ParsingTr
 {
     // Collect all variables
     std::set< LabTok > var_labs;
-    auto is_var = this->get_standard_is_var();
+    const auto &is_var = this->get_standard_is_var();
     collect_variables(pt, is_var, var_labs);
 
     // Build a substitution map
@@ -606,7 +613,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
     ParsingTree< SymTok, LabTok > pt_thesis = this->parse_sentence(thesis.begin()+1, thesis.end(), this->turnstile_alias);
 
     auto assertions_gen = this->list_assertions();
-    const std::function< bool(LabTok) > is_var = this->get_standard_is_var();
+    const auto &is_var = this->get_standard_is_var();
     while (true) {
         const Assertion *ass2 = assertions_gen();
         if (ass2 == NULL) {
@@ -695,14 +702,8 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
     return this->unification_cache.at(idx);
 }
 
-const std::function<bool (LabTok)> LibraryToolbox::get_standard_is_var() const {
-    return [&](LabTok x)->bool {
-        const auto &types_set = this->get_types_set();
-        if (types_set.find(x) == types_set.end()) {
-            return false;
-        }
-        return !this->is_constant(this->get_sentence(x).at(1));
-    };
+const std::function<bool (LabTok)> &LibraryToolbox::get_standard_is_var() const {
+    return this->standard_is_var;
 }
 
 SymTok LibraryToolbox::get_turnstile() const

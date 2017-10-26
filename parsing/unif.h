@@ -291,7 +291,7 @@ bool unify2_quick_process_tree(const ParsingTree< SymType, LabType > &pt1, const
 template< typename SymType, typename LabType >
 class BilateralUnificator {
 public:
-    BilateralUnificator(const std::function< bool(LabType) > &is_var) : failed(false), is_var(is_var) {
+    BilateralUnificator(const std::function< bool(LabType) > &is_var) : failed(false), is_var(&is_var) {
 #ifdef UNIFICATOR_SELF_TEST
         this->pt1.label = {};
         this->pt2.label = {};
@@ -308,7 +308,7 @@ public:
         if (this->failed) {
             return;
         }
-        bool res = unify2_quick_process_tree(pt1, pt2, this->is_var, this->subst, this->cycle_detector, this->djs);
+        bool res = unify2_quick_process_tree(pt1, pt2, *this->is_var, this->subst, this->cycle_detector, this->djs);
         if (!res) {
             this->fail();
         }
@@ -338,7 +338,7 @@ public:
         }
         SubstMap< SymType, LabType > actual_subst;
         for (const LabTok &lab : topo_sort) {
-            actual_subst[lab] = substitute(this->subst[lab], this->is_var, actual_subst);
+            actual_subst[lab] = substitute(this->subst[lab], *this->is_var, actual_subst);
         }
 #ifdef UNIFICATOR_SELF_TEST
         assert(res2);
@@ -352,6 +352,14 @@ public:
         return std::make_pair(true, actual_subst);
     }
 
+    /*
+     * Return an approximation from above of failer: is has_failed() returns true, then all unifications from now on will return false.
+     * However, it is possible that has_failed() returns false, but unification fails anyway.
+     */
+    bool has_failed() {
+        return this->failed;
+    }
+
 private:
     void fail() {
         // Once we have failed, there is not turning back: we can directly release resources
@@ -362,7 +370,7 @@ private:
     }
 
     bool failed;
-    const std::function< bool(LabType) > &is_var;
+    const std::function< bool(LabType) > *is_var;
     SubstMap< SymType, LabType > subst;
     DisjointSet< LabType > djs;
     NaiveIncrementalCycleDetector< LabType > cycle_detector;

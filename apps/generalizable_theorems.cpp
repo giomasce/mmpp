@@ -38,37 +38,43 @@ public:
         return it;
     }*/
 
-    void process_hypothesis(SymTok type_sym, size_t idx) {
+    bool process_hypothesis(SymTok type_sym, size_t idx) {
         //auto it = this->create_hypothesis(type_sym, idx);
         LabTok type = this->hypotheses[idx];
         ParsingTree< SymTok, LabTok > pt;
         pt.label = type;
         pt.type = type_sym;
         this->stack.push_back(pt);
+        return true;
     }
 
-    void process_sentence(const Sentence &sent) {
-        this->process_parsing_tree(tb.parse_sentence(sent));
+    bool process_sentence(const Sentence &sent) {
+        return this->process_parsing_tree(tb.parse_sentence(sent));
     }
 
-    void process_parsing_tree(const ParsingTree< SymTok, LabTok > &pt) {
+    bool process_parsing_tree(const ParsingTree< SymTok, LabTok > &pt) {
         this->stack.push_back(tb.refresh_parsing_tree(pt));
+        return true;
     }
 
-    void process_assertion(const Assertion &ass) {
+    bool process_assertion(const Assertion &ass) {
         ParsingTree< SymTok, LabTok > thesis;
         vector< ParsingTree< SymTok, LabTok > > hyps;
         tie(hyps, thesis) = tb.refresh_assertion(ass);
         assert(stack.size() >= hyps.size());
         for (size_t i = 0; i < hyps.size(); i++) {
             this->unificator.add_parsing_trees(this->stack[this->stack.size()-hyps.size()+i], hyps[i]);
+            if (this->unificator.has_failed()) {
+                return false;
+            }
         }
         this->stack.resize(this->stack.size() - hyps.size());
         this->stack.push_back(thesis);
+        return true;
     }
 
-    void process_label(LabTok lab) {
-        this->process_assertion(tb.get_assertion(lab));
+    bool process_label(LabTok lab) {
+        return this->process_assertion(tb.get_assertion(lab));
     }
 
     bool compute_unification() {
@@ -100,7 +106,7 @@ public:
 
 private:
     LibraryToolbox &tb;
-    const std::function< bool(LabTok) > is_var;
+    const std::function< bool(LabTok) > &is_var;
     BilateralUnificator< SymTok, LabTok > unificator;
     vector< ParsingTree< SymTok, LabTok > > stack;
     //map< size_t, LabTok > hypotheses;
@@ -133,10 +139,12 @@ void find_generalizable_theorems() {
             auto it = find(ess_hyps.begin(), ess_hyps.end(), label);
             if (it != ess_hyps.end()) {
                 //cout << " \"*\",";
-                reactor.process_hypothesis(tb.get_turnstile_alias(), it-ess_hyps.begin());
+                bool res = reactor.process_hypothesis(tb.get_turnstile_alias(), it-ess_hyps.begin());
+                assert(res);
             } else if (tb.get_assertion(label).is_valid() && tb.get_sentence(label).at(0) == tb.get_turnstile()) {
                 //cout << " \"" << tb.resolve_label(label) << "\",";
-                reactor.process_label(label);
+                bool res = reactor.process_label(label);
+                assert(res);
             }
         }
         //cout << " }" << endl;
@@ -244,21 +252,29 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     final_thesis.type = tb.get_turnstile_alias();
     open_hyps.push_back(final_thesis);
 
-    for (size_t i = 0; i < 2; i++) {
-        // Select a random hypothesis, a random open hypothesis and let them match
+    for (size_t i = 0; i < 5; i++) {
         if (open_hyps.empty()) {
             cout << "Terminating early" << endl;
             break;
         }
-        size_t ass_idx = uniform_int_distribution< size_t >(0, useful_asses.size()-1)(rand_mt);
-        size_t hyp_idx = uniform_int_distribution< size_t >(0, open_hyps.size()-1)(rand_mt);
-        const Assertion &ass = *useful_asses[ass_idx];
-        ParsingTree< SymTok, LabTok > thesis;
-        vector< ParsingTree< SymTok, LabTok > > hyps;
-        tie(hyps, thesis) = tb.refresh_assertion(ass);
-        unif.add_parsing_trees(open_hyps[hyp_idx], thesis);
-        open_hyps.erase(open_hyps.begin() + hyp_idx);
-        open_hyps.insert(open_hyps.end(), hyps.begin(), hyps.end());
+        while (true) {
+            // Select a random hypothesis, a random open hypothesis and let them match
+            size_t ass_idx = uniform_int_distribution< size_t >(0, useful_asses.size()-1)(rand_mt);
+            size_t hyp_idx = uniform_int_distribution< size_t >(0, open_hyps.size()-1)(rand_mt);
+            const Assertion &ass = *useful_asses[ass_idx];
+            ParsingTree< SymTok, LabTok > thesis;
+            vector< ParsingTree< SymTok, LabTok > > hyps;
+            tie(hyps, thesis) = tb.refresh_assertion(ass);
+            auto unif2 = unif;
+            unif2.add_parsing_trees(open_hyps[hyp_idx], thesis);
+            if (unif2.unify().first) {
+                cout << "Attaching " << tb.resolve_label(ass.get_thesis()) << " in position " << hyp_idx << endl;
+                unif = unif2;
+                open_hyps.erase(open_hyps.begin() + hyp_idx);
+                open_hyps.insert(open_hyps.end(), hyps.begin(), hyps.end());
+                break;
+            }
+        }
     }
 
     SubstMap< SymTok, LabTok > subst;
@@ -266,8 +282,12 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     tie(res, subst) = unif.unify();
 
     if (res) {
-        cout << "Unification succedeed" << endl;
+        cout << "Unification succedeed and proved:" << endl;
         cout << tb.print_sentence(substitute(final_thesis, tb.get_standard_is_var(), subst)) << endl;
+        cout << "with the hypotheses:" << endl;
+        for (const auto &hyp : open_hyps) {
+            cout << " * " << tb.print_sentence(substitute(hyp, tb.get_standard_is_var(), subst)) << endl;
+        }
     } else {
         cout << "Unification failed" << endl;
     }

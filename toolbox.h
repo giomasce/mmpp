@@ -169,7 +169,7 @@ public:
     std::pair< std::vector< ParsingTree< SymTok, LabTok > >, ParsingTree< SymTok, LabTok > > refresh_assertion(const Assertion &ass);
     ParsingTree< SymTok, LabTok > refresh_parsing_tree(const ParsingTree< SymTok, LabTok > &pt);
 
-    const std::function< bool(LabTok) > get_standard_is_var() const;
+    const std::function<bool (LabTok)> &get_standard_is_var() const;
     SymTok get_turnstile() const;
     SymTok get_turnstile_alias() const;
 
@@ -244,6 +244,7 @@ private:
     StringCache< LabTok > temp_labs;
     std::map< SymTok, std::vector< std::pair< LabTok, SymTok > > > free_temp_vars;
     std::map< SymTok, std::vector< std::pair< LabTok, SymTok > > > used_temp_vars;
+    std::function< bool(LabTok) > standard_is_var;
 };
 
 #endif // LIBRARYTOOLBOX_H

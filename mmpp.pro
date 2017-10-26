@@ -79,9 +79,9 @@ QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -
 #QMAKE_LIBS += -fsanitize=undefined -fno-sanitize-recover=all
 
 # Experiments with address checking
-#QMAKE_CFLAGS += -fsanitize=address -fno-sanitize-recover=all
-#QMAKE_CXXFLAGS += -fsanitize=address -fno-sanitize-recover=all
-#QMAKE_LIBS += -fsanitize=address -fno-sanitize-recover=all
+#QMAKE_CFLAGS += -fsanitize=address -fno-sanitize-recover=all -fsanitize-address-use-after-scope
+#QMAKE_CXXFLAGS += -fsanitize=address -fno-sanitize-recover=all -fsanitize-address-use-after-scope
+#QMAKE_LIBS += -fsanitize=address -fno-sanitize-recover=all -fsanitize-address-use-after-scope
 
 PRECOMPILED_HEADER += pch.h
 
