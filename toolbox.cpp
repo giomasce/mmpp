@@ -329,7 +329,36 @@ std::pair<LabTok, SymTok> LibraryToolbox::new_temp_var(SymTok type_sym)
     return ret;
 }
 
-void LibraryToolbox::release_all_temp_vars()
+void LibraryToolbox::new_temp_var_frame()
+{
+    std::map< SymTok, size_t > x;
+    for (const auto &v : this->used_temp_vars) {
+        x[v.first] = v.second.size();
+    }
+    this->temp_vars_stack.push_back(x);
+}
+
+void LibraryToolbox::release_temp_var_frame()
+{
+    const auto &stack_pos = this->temp_vars_stack.back();
+    for (auto &v : this->used_temp_vars) {
+        SymTok type_sym = v.first;
+        auto &used_vars = v.second;
+        auto &free_vars = this->free_temp_vars.at(type_sym);
+        auto it = stack_pos.find(type_sym);
+        size_t pos = 0;
+        if (it != stack_pos.end()) {
+            pos = it->second;
+        }
+        for (auto it = used_vars.begin()+pos; it != used_vars.end(); it++) {
+            free_vars.push_back(*it);
+        }
+        used_vars.resize(pos);
+    }
+    this->temp_vars_stack.pop_back();
+}
+
+/*void LibraryToolbox::release_all_temp_vars()
 {
     for (auto &v : this->used_temp_vars) {
         for (const auto &p : v.second) {
@@ -337,7 +366,7 @@ void LibraryToolbox::release_all_temp_vars()
         }
     }
     this->used_temp_vars.clear();
-}
+}*/
 
 // FIXME Deduplicate with refresh_parsing_tree()
 std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok> > LibraryToolbox::refresh_assertion(const Assertion &ass)

@@ -314,6 +314,17 @@ public:
         }
     }
 
+    bool is_unifiable() {
+        if (this->failed) {
+            return false;
+        }
+        if (!this->cycle_detector.is_acyclic()) {
+            this->fail();
+            return false;
+        }
+        return true;
+    }
+
     std::pair< bool, SubstMap< SymType, LabType > > unify() {
 #ifdef UNIFICATOR_SELF_TEST
         SubstMap< SymType, LabType > subst2;

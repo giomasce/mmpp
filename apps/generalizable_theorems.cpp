@@ -128,6 +128,7 @@ void find_generalizable_theorems() {
         if (ass.is_modif_disc() || ass.is_usage_disc()) {
             continue;
         }
+        tb.new_temp_var_frame();
 
         auto pe = ass.get_proof_executor(tb);
         auto proof = pe->uncompress();
@@ -207,7 +208,7 @@ void find_generalizable_theorems() {
             cout << endl;
         }
 
-        tb.release_all_temp_vars();
+        tb.release_temp_var_frame();
     }
 }
 
@@ -221,6 +222,64 @@ int find_generalizable_theorems_main(int argc, char *argv[]) {
 }
 static_block {
     register_main_function("mmpp_generalizable_theorems", find_generalizable_theorems_main);
+}
+
+void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
+                  const vector< ParsingTree< SymTok, LabTok > > &open_hyps,
+                  size_t hyps_pos,
+                  const vector< const Assertion* > &useful_asses,
+                  const ParsingTree< SymTok, LabTok > &final_thesis,
+                  LibraryToolbox &tb,
+                  size_t depth,
+                  const function< void(const ParsingTree< SymTok, LabTok >&, const vector< ParsingTree< SymTok, LabTok > >&, LibraryToolbox&)> &callback) {
+    if (depth == 0 || hyps_pos == open_hyps.size()) {
+        auto unif2 = unif;
+        SubstMap< SymTok, LabTok > subst;
+        bool res;
+        tie(res, subst) = unif2.unify();
+        if (!res) {
+            return;
+        }
+        auto thesis = substitute(final_thesis, tb.get_standard_is_var(), subst);
+        vector< ParsingTree< SymTok, LabTok > > hyps;
+        for (const auto &hyp : open_hyps) {
+            hyps.push_back(substitute(hyp, tb.get_standard_is_var(), subst));
+        }
+        callback(thesis, hyps, tb);
+    } else {
+        gen_theorems(unif, open_hyps, hyps_pos+1, useful_asses, final_thesis, tb, depth, callback);
+        for (const auto assp : useful_asses) {
+            tb.new_temp_var_frame();
+            const Assertion &ass = *assp;
+            ParsingTree< SymTok, LabTok > thesis;
+            vector< ParsingTree< SymTok, LabTok > > hyps;
+            tie(hyps, thesis) = tb.refresh_assertion(ass);
+            auto unif2 = unif;
+            unif2.add_parsing_trees(open_hyps[hyps_pos], thesis);
+            if (unif2.is_unifiable()) {
+                //cout << "Attaching " << tb.resolve_label(ass.get_thesis()) << " in position " << hyps_pos << endl;
+                auto open_hyps2 = open_hyps;
+                open_hyps2.erase(open_hyps2.begin() + hyps_pos);
+                open_hyps2.insert(open_hyps2.end(), hyps.begin(), hyps.end());
+                gen_theorems(unif2, open_hyps2, hyps_pos, useful_asses, final_thesis, tb, depth-1, callback);
+            }
+            tb.release_temp_var_frame();
+        }
+    }
+}
+
+size_t count = 0;
+void print_theorem(const ParsingTree< SymTok, LabTok > &thesis, const vector< ParsingTree< SymTok, LabTok > >&hyps, LibraryToolbox &tb) {
+    ::count++;
+    if (::count % 10000 == 0) {
+        cout << ::count << endl;
+    }
+    return;
+    cout << tb.print_sentence(thesis) << endl;
+    cout << "with the hypotheses:" << endl;
+    for (const auto &hyp : hyps) {
+        cout << " * " << tb.print_sentence(hyp) << endl;
+    }
 }
 
 int gen_random_theorems_main(int argc, char *argv[]) {
@@ -252,7 +311,9 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     final_thesis.type = tb.get_turnstile_alias();
     open_hyps.push_back(final_thesis);
 
-    for (size_t i = 0; i < 5; i++) {
+    gen_theorems(unif, open_hyps, 0, useful_asses, final_thesis, tb, 2, print_theorem);
+
+    /*for (size_t i = 0; i < 5; i++) {
         if (open_hyps.empty()) {
             cout << "Terminating early" << endl;
             break;
@@ -290,7 +351,7 @@ int gen_random_theorems_main(int argc, char *argv[]) {
         }
     } else {
         cout << "Unification failed" << endl;
-    }
+    }*/
 
     return 0;
 }
