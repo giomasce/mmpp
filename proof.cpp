@@ -522,7 +522,7 @@ void ProofEngine::process_sentence(const std::vector<SymTok> &sent, LabTok label
 {
     this->push_stack(sent, {});
     if (this->gen_proof_tree) {
-    this->proof_tree = { sent, label, {}, {}, true, 0 };
+        this->proof_tree = { sent, label, {}, {}, true, 0 };
         this->tree_stack.push_back(this->proof_tree);
     }
     this->proof.push_back(label);
