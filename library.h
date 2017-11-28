@@ -185,6 +185,7 @@ class Assertion {
 public:
     Assertion();
     Assertion(bool theorem,
+              bool _has_proof,
               std::set< std::pair< SymTok, SymTok > > mand_dists,
               std::set< std::pair< SymTok, SymTok > > opt_dists,
               std::vector< LabTok > float_hyps,
@@ -208,6 +209,10 @@ public:
     bool is_usage_disc() const
     {
         return this->usage_disc;
+    }
+    bool has_proof() const
+    {
+        return this->_has_proof;
     }
     const std::set< std::pair< SymTok, SymTok > > &get_mand_dists() const {
         return this->mand_dists;
@@ -260,11 +265,20 @@ private:
     std::string comment;
     bool modif_disc;
     bool usage_disc;
+    bool _has_proof;
 
     std::shared_ptr< Proof > get_proof() const
     {
         return this->proof;
     }
+};
+
+enum SentenceType {
+    UNKNOWN = 0,
+    ESSENTIAL_HYP,
+    FLOATING_HYP,
+    PROPOSITION,
+    AXIOM,
 };
 
 class Library {
@@ -277,6 +291,7 @@ public:
     virtual std::size_t get_labels_num() const = 0;
     virtual bool is_constant(SymTok c) const = 0;
     virtual const Sentence &get_sentence(LabTok label) const = 0;
+    virtual SentenceType get_sentence_type(LabTok label) const = 0;
     virtual const Assertion &get_assertion(LabTok label) const = 0;
     virtual std::function< const Assertion*() > list_assertions() const = 0;
     virtual const StackFrame &get_final_stack_frame() const = 0;
@@ -290,6 +305,8 @@ class ExtendedLibrary : public Library {
 public:
     virtual const std::unordered_map< SymTok, std::string > &get_symbols() const = 0;
     virtual const std::unordered_map<LabTok, std::string> &get_labels() const = 0;
+    virtual const std::vector< Sentence > &get_sentences() const = 0;
+    virtual const std::vector< SentenceType > &get_sentence_types() const = 0;
     virtual const std::vector< Assertion > &get_assertions() const = 0;
     const ExtendedLibraryAddendum &get_addendum() const = 0;
     virtual LabTok get_max_number() const = 0;
@@ -308,7 +325,10 @@ public:
     const std::unordered_map< SymTok, std::string > &get_symbols() const;
     const std::unordered_map<LabTok, std::string> &get_labels() const;
     const std::vector<SymTok> &get_sentence(LabTok label) const;
+    SentenceType get_sentence_type(LabTok label) const;
     const Assertion &get_assertion(LabTok label) const;
+    const std::vector< Sentence > &get_sentences() const;
+    const std::vector< SentenceType > &get_sentence_types() const;
     const std::vector< Assertion > &get_assertions() const;
     bool is_constant(SymTok c) const;
     const StackFrame &get_final_stack_frame() const;
@@ -321,7 +341,7 @@ public:
     SymTok create_symbol(std::string s);
     SymTok create_or_get_symbol(std::string s);
     LabTok create_label(std::string s);
-    void add_sentence(LabTok label, std::vector< SymTok > content);
+    void add_sentence(LabTok label, const Sentence &content, SentenceType type);
     void add_assertion(LabTok label, const Assertion &ass);
     void set_constant(SymTok c, bool is_const);
     void set_final_stack_frame(const StackFrame &final_stack_frame);
@@ -338,7 +358,8 @@ private:
 
     // vector is more efficient than unordered_map if labels are known to be contiguous and starting from 1; in the general case the unordered_map might be better
     //std::unordered_map< LabTok, std::vector< SymTok > > sentences;
-    std::vector< std::vector< SymTok > > sentences;
+    std::vector< Sentence > sentences;
+    std::vector< SentenceType > sentence_types;
     std::vector< Assertion > assertions;
 
     StackFrame final_stack_frame;

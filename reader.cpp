@@ -44,14 +44,38 @@ vector< string > tokenize(const string &in) {
 {
 }*/
 
-FileTokenizer::FileTokenizer(const path &filename) :
-    fin(filename), base_path(filename.parent_path()), cascade(NULL), white(true)
+FileTokenizer::FileTokenizer(const path &filename, Reportable *reportable) :
+    fin(filename), base_path(filename.parent_path()), cascade(NULL), white(true), reportable(reportable)
 {
+    this->set_file_size();
 }
 
 FileTokenizer::FileTokenizer(string filename, path base_path) :
-    fin(filename), base_path(base_path), cascade(NULL), white(true)
+    fin(filename), base_path(base_path), cascade(NULL), white(true), reportable(NULL)
 {
+    this->set_file_size();
+}
+
+void FileTokenizer::set_file_size()
+{
+    auto pos = this->fin.tellg();
+    this->fin.seekg(0, ios_base::end);
+    this->filesize = this->fin.tellg();
+    this->fin.seekg(pos, ios_base::beg);
+    if (this->reportable != NULL) {
+        this->reportable->set_total(this->filesize);
+    }
+}
+
+char FileTokenizer::get_char()
+{
+    char c;
+    this->fin.get(c);
+    this->pos++;
+    if (this->reportable != NULL) {
+        this->reportable->report(this->pos);
+    }
+    return c;
 }
 
 std::pair<bool, string> FileTokenizer::finalize_token(bool comment) {
@@ -310,7 +334,7 @@ void Reader::parse_f()
     assert_or_throw< MMPPParsingError >(var_tok != 0, "Second member of a $f statement is not defined");
     assert_or_throw< MMPPParsingError >(this->check_const(const_tok), "First member of a $f statement is not a constant");
     assert_or_throw< MMPPParsingError >(this->check_var(var_tok), "Second member of a $f statement is not a variable");
-    this->lib.add_sentence(this->label, { const_tok, var_tok });
+    this->lib.add_sentence(this->label, { const_tok, var_tok }, SentenceType::FLOATING_HYP);
     this->stack.back().types.push_back(this->label);
     this->stack.back().types_set.insert(this->label);
 }
@@ -327,7 +351,7 @@ void Reader::parse_e()
         tmp.push_back(tok);
     }
     assert_or_throw< MMPPParsingError >(this->check_const(tmp[0]), "First symbol of $e statement is not a constant");
-    this->lib.add_sentence(this->label, tmp);
+    this->lib.add_sentence(this->label, tmp, SentenceType::ESSENTIAL_HYP);
     this->stack.back().hyps.push_back(this->label);
 }
 
@@ -463,7 +487,7 @@ void Reader::parse_a()
         tmp.push_back(tok);
     }
     assert_or_throw< MMPPParsingError >(this->check_const(tmp[0]), "First symbol of $a statement is not a constant");
-    this->lib.add_sentence(this->label, tmp);
+    this->lib.add_sentence(this->label, tmp, SentenceType::AXIOM);
 
     // Collect things
     set< SymTok > mand_vars = this->collect_mand_vars(tmp);
@@ -472,7 +496,7 @@ void Reader::parse_a()
     set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
 
     // Finally build assertion
-    Assertion ass(false, mand_dists, {}, float_hyps, ess_hyps, {}, this->label, this->number, this->last_comment);
+    Assertion ass(false, false, mand_dists, {}, float_hyps, ess_hyps, {}, this->label, this->number, this->last_comment);
     this->number++;
     this->last_comment = "";
     this->lib.add_assertion(this->label, ass);
@@ -541,7 +565,7 @@ void Reader::parse_p()
     }
     assert_or_throw< MMPPParsingError >(this->check_const(tmp[0]), "First symbol of $p statement is not a constant");
     assert(compressed_proof == -1 || compressed_proof == 2 || compressed_proof == 3);
-    this->lib.add_sentence(this->label, tmp);
+    this->lib.add_sentence(this->label, tmp, SentenceType::PROPOSITION);
 
     // Collect things
     set< SymTok > mand_vars = this->collect_mand_vars(tmp);
@@ -558,7 +582,7 @@ void Reader::parse_p()
     set< pair< SymTok, SymTok > > opt_dists = this->collect_opt_dists(opt_vars, mand_vars);
 
     // Finally build assertion and attach proof
-    Assertion ass(true, mand_dists, opt_dists, float_hyps, ess_hyps, opt_hyps, this->label, this->number, this->last_comment);
+    Assertion ass(true, compressed_proof != 3, mand_dists, opt_dists, float_hyps, ess_hyps, opt_hyps, this->label, this->number, this->last_comment);
     this->number++;
     this->last_comment = "";
     if (compressed_proof != 3) {

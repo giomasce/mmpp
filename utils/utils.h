@@ -219,4 +219,25 @@ struct acout
         }
 };
 
+class Reportable {
+public:
+    virtual void report(double current) = 0;
+    virtual void set_total(double total) = 0;
+    virtual ~Reportable();
+};
+
+class TextProgressBar : public Reportable {
+public:
+    TextProgressBar(size_t length=100, double total=0.0);
+    void set_total(double total);
+    void report(double current, bool force);
+    void report(double current);
+    void finished();
+
+private:
+    std::chrono::steady_clock::time_point last_report;
+    double total;
+    size_t length;
+};
+
 #endif // UTILS_H

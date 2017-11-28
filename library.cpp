@@ -42,6 +42,7 @@ LabTok LibraryImpl::create_label(string s)
     }
     //cerr << "Resizing from " << this->assertions.size() << " to " << res+1 << endl;
     this->sentences.resize(res+1);
+    this->sentence_types.resize(res+1);
     this->assertions.resize(res+1);
     return res;
 }
@@ -86,14 +87,20 @@ const std::unordered_map<LabTok, string> &LibraryImpl::get_labels() const
     return this->labels.get_cache();
 }
 
-void LibraryImpl::add_sentence(LabTok label, std::vector<SymTok> content) {
+void LibraryImpl::add_sentence(LabTok label, const Sentence &content, SentenceType type) {
     //this->sentences.insert(make_pair(label, content));
     assert(label < this->sentences.size());
     this->sentences[label] = content;
+    this->sentence_types[label] = type;
 }
 
 const std::vector<SymTok> &LibraryImpl::get_sentence(LabTok label) const {
     return this->sentences.at(label);
+}
+
+SentenceType LibraryImpl::get_sentence_type(LabTok label) const
+{
+    return this->sentence_types.at(label);
 }
 
 void LibraryImpl::add_assertion(LabTok label, const Assertion &ass)
@@ -104,6 +111,16 @@ void LibraryImpl::add_assertion(LabTok label, const Assertion &ass)
 const Assertion &LibraryImpl::get_assertion(LabTok label) const
 {
     return this->assertions.at(label);
+}
+
+const std::vector<Sentence> &LibraryImpl::get_sentences() const
+{
+    return this->sentences;
+}
+
+const std::vector<SentenceType> &LibraryImpl::get_sentence_types() const
+{
+    return this->sentence_types;
 }
 
 const std::vector<Assertion> &LibraryImpl::get_assertions() const
@@ -207,18 +224,18 @@ void LibraryImpl::set_max_number(LabTok max_number)
 }
 
 Assertion::Assertion() :
-    valid(false), theorem(false), modif_disc(false), usage_disc(false)
+    valid(false), theorem(false), modif_disc(false), usage_disc(false), _has_proof(false)
 {
 }
 
-Assertion::Assertion(bool theorem,
+Assertion::Assertion(bool theorem, bool _has_proof,
                      std::set<std::pair<SymTok, SymTok> > dists,
                      std::set<std::pair<SymTok, SymTok> > opt_dists,
                      std::vector<LabTok> float_hyps, std::vector<LabTok> ess_hyps, std::set<LabTok> opt_hyps,
                      LabTok thesis, LabTok number, string comment) :
     valid(true), theorem(theorem), mand_dists(dists), opt_dists(opt_dists),
     float_hyps(float_hyps), ess_hyps(ess_hyps), opt_hyps(opt_hyps), thesis(thesis), number(number), proof(NULL),
-    comment(comment), modif_disc(false), usage_disc(false)
+    comment(comment), modif_disc(false), usage_disc(false), _has_proof(_has_proof)
 {
     if (this->comment.find("(Proof modification is discouraged.)") != string::npos) {
         this->modif_disc = true;

@@ -13,7 +13,48 @@ using namespace std;
 bool mmpp_abort = false;
 
 //const string DEFAULT_MAIN_FUNCTION = "mmpp_test_z3";
-const string DEFAULT_MAIN_FUNCTION = "mmpp_test_setmm";
+//const string DEFAULT_MAIN_FUNCTION = "mmpp_test_setmm";
+const string DEFAULT_MAIN_FUNCTION = "mmpp";
+
+void list_subcommands() {
+    cout << "Supported subcommands:" << endl;
+    for (const auto &subcmd : get_main_functions()) {
+        cout << " * " << subcmd.first << endl;
+    }
+}
+
+int main_help(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    list_subcommands();
+
+    return 0;
+}
+static_block {
+    register_main_function("help", main_help);
+}
+
+int main_mmpp(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    if (argc == 1) {
+        return main_help(argc, argv);
+    }
+    string subcmd(argv[1]);
+    function< int(int, char*[]) > main_func;
+    try {
+        main_func = get_main_functions().at(subcmd);
+    } catch (out_of_range) {
+        list_subcommands();
+        return 1;
+    }
+    return main_func(argc-1, argv+1);
+}
+static_block {
+    register_main_function("mmpp", main_mmpp);
+}
 
 int main(int argc, char *argv[]) {
     set_max_ram(1024 * 1024 * 1024);
@@ -29,7 +70,7 @@ int main(int argc, char *argv[]) {
         try {
             main_func = get_main_functions().at(DEFAULT_MAIN_FUNCTION);
         } catch (out_of_range e) {
-            cerr << "Could not find the main function..." << endl;
+            list_subcommands();
             return 1;
         }
     }

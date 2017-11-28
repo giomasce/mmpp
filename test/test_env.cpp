@@ -10,9 +10,11 @@ using namespace std;
 TestEnvironmentInner::TestEnvironmentInner(const string &filename, const string &cache_filename)
 {
     cout << "Reading database from file " << filename << " using cache in file " << cache_filename << endl;
-    FileTokenizer ft(filename);
+    TextProgressBar tpb;
+    FileTokenizer ft(filename, &tpb);
     Reader p(ft, false, true);
     p.run();
+    tpb.finished();
     this->lib = new LibraryImpl(p.get_library());
     shared_ptr< ToolboxCache > cache = make_shared< FileToolboxCache >(cache_filename);
     this->tb = new LibraryToolbox(*this->lib, "|-", true, cache);

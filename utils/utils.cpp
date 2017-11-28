@@ -133,3 +133,48 @@ string HasherSink::get_digest() {
     this->hasher.Final(digest);
     return std::string(reinterpret_cast< const char* >(digest), sizeof(decltype(digest)));
 }
+
+TextProgressBar::TextProgressBar(size_t length, double total) : total(total), length(length) {
+    cout << fixed << setprecision(0);
+}
+
+void TextProgressBar::set_total(double total)
+{
+    this->total = total;
+}
+
+void TextProgressBar::report(double current, bool force) {
+    auto now = std::chrono::steady_clock::now();
+    if (!force && current != this->total && now - this->last_report < 0.1s) {
+        return;
+    }
+    this->last_report = now;
+    // Truncation happens by default
+    size_t cur_len = current / this->total * this->length;
+    cout << "\033[2K\r";
+    cout << "|";
+    size_t i = 0;
+    for (; i < cur_len; i++) {
+        cout << "#";
+    }
+    for (; i < this->length; i++) {
+        cout << "-";
+    }
+    cout << "|";
+    cout << " " << current << " / " << this->total;
+    cout.flush();
+}
+
+void TextProgressBar::report(double current)
+{
+    this->report(current, false);
+}
+
+void TextProgressBar::finished()
+{
+    this->report(this->total, true);
+    cout << defaultfloat << endl;
+}
+
+Reportable::~Reportable() {
+}

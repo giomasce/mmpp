@@ -489,6 +489,11 @@ const Sentence &LibraryToolbox::get_sentence(LabTok label) const
     }
 }
 
+SentenceType LibraryToolbox::get_sentence_type(LabTok label) const
+{
+    return this->lib.get_sentence_type(label);
+}
+
 const Assertion &LibraryToolbox::get_assertion(LabTok label) const
 {
     return this->lib.get_assertion(label);

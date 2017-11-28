@@ -182,6 +182,7 @@ public:
     std::size_t get_labels_num() const;
     bool is_constant(SymTok c) const;
     const Sentence &get_sentence(LabTok label) const;
+    SentenceType get_sentence_type(LabTok label) const;
     const Assertion &get_assertion(LabTok label) const;
     std::function< const Assertion*() > list_assertions() const;
     const StackFrame &get_final_stack_frame() const;

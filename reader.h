@@ -31,17 +31,13 @@ public:
 class FileTokenizer : public TokenGenerator {
 public:
     //FileTokenizer(const std::string &filename);
-    FileTokenizer(const boost::filesystem::path &filename);
+    FileTokenizer(const boost::filesystem::path &filename, Reportable *reportable = NULL);
     std::pair< bool, std::string > next();
     ~FileTokenizer();
 private:
     FileTokenizer(std::string filename, boost::filesystem::path base_path);
-    char get_char()
-    {
-        char c;
-        this->fin.get(c);
-        return c;
-    }
+    void set_file_size();
+    char get_char();
 
     boost::filesystem::ifstream fin;
     boost::filesystem::path base_path;
@@ -49,6 +45,9 @@ private:
     bool white;
     std::vector< char > buf;
     std::pair< bool, std::string > finalize_token(bool comment);
+    boost::filesystem::ifstream::pos_type filesize;
+    size_t pos = 0;
+    Reportable *reportable;
 };
 
 class Reader {
