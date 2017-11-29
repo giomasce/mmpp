@@ -28,6 +28,13 @@ void test_parsers(const std::vector<SymType> &sent, SymType type, const std::uno
     assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent);
 
     assert(earley_pt == lr_pt);
+
+    cout << "PT and PT2" << endl;
+    ParsingTree2< SymType, LabType > pt2 = pt_to_pt2(lr_pt);
+    ParsingTree< SymType, LabType > pt = pt2_to_pt(pt2);
+    ParsingTree2< SymType, LabType > pt2_2 = pt_to_pt2(pt);
+    assert(pt == lr_pt);
+    assert(pt2 == pt2_2);
 }
 
 void test_grammar1() {

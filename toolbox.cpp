@@ -73,11 +73,15 @@ LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, boo
 {
     assert(this->lib.is_immutable());
     this->standard_is_var = [&](LabTok x)->bool {
-        const auto &types_set = this->get_types_set();
+        /*const auto &types_set = this->get_types_set();
         if (types_set.find(x) == types_set.end()) {
             return false;
         }
-        return !this->is_constant(this->get_sentence(x).at(1));
+        return !this->is_constant(this->get_sentence(x).at(1));*/
+        if (x >= this->lib.get_labels_num()) {
+            return true;
+        }
+        return this->get_is_var_by_type()[x];
     };
     if (compute) {
         this->compute_everything();
@@ -482,11 +486,11 @@ bool LibraryToolbox::is_constant(SymTok c) const
 
 const Sentence &LibraryToolbox::get_sentence(LabTok label) const
 {
-    try {
-        return this->lib.get_sentence(label);
-    } catch (out_of_range) {
-        return this->temp_types.at(label);
+    const Sentence *sent = this->lib.get_sentence_ptr(label);
+    if (sent != NULL) {
+        return *sent;
     }
+    return this->temp_types.at(label);
 }
 
 SentenceType LibraryToolbox::get_sentence_type(LabTok label) const
@@ -663,10 +667,10 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
         if (thesis[0] != this->get_sentence(ass.get_thesis())[0]) {
             continue;
         }
-        std::unordered_map< LabTok, ParsingTree< SymTok, LabTok > > thesis_subst;
+        UnilateralUnificator< SymTok, LabTok > unif(is_var);
         auto &templ_pt = this->get_parsed_sents().at(ass.get_thesis());
-        bool res = unify(templ_pt, pt_thesis, is_var, thesis_subst);
-        if (!res) {
+        unif.add_parsing_trees(templ_pt, pt_thesis);
+        if (!unif.is_unifiable()) {
             continue;
         }
         // We have to generate all the hypotheses' permutations; fortunately usually hypotheses are not many
@@ -677,19 +681,25 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
             perm.push_back(i);
         }
         do {
-            std::unordered_map< LabTok, ParsingTree< SymTok, LabTok > > subst = thesis_subst;
-            res = true;
+            UnilateralUnificator< SymTok, LabTok > unif2 = unif;
+            bool res = true;
             for (size_t i = 0; i < hypotheses.size(); i++) {
                 res = (hypotheses[i][0] == this->get_sentence(ass.get_ess_hyps()[perm[i]])[0]);
                 if (!res) {
                     break;
                 }
                 auto &templ_pt = this->get_parsed_sents().at(ass.get_ess_hyps()[perm[i]]);
-                res = unify(templ_pt, pt_hyps[i], is_var, subst);
+                unif2.add_parsing_trees(templ_pt, pt_hyps[i]);
+                res = unif2.is_unifiable();
                 if (!res) {
                     break;
                 }
             }
+            if (!res) {
+                continue;
+            }
+            SubstMap< SymTok, LabTok > subst;
+            tie(res, subst) = unif.unify();
             if (!res) {
                 continue;
             }
@@ -765,6 +775,7 @@ void LibraryToolbox::compute_everything()
     //cout << "Computing everything" << endl;
     //auto t = tic();
     this->compute_types_by_var();
+    this->compute_is_var_by_type();
     this->compute_assertions_by_type();
     this->compute_derivations();
     this->compute_ders_by_label();
@@ -787,7 +798,7 @@ const std::set<LabTok> &LibraryToolbox::get_types_set() const
 void LibraryToolbox::compute_types_by_var()
 {
     for (auto &type : this->get_types()) {
-        const SymTok &var = this->get_sentence(type).at(1);
+        const SymTok var = this->get_sentence(type).at(1);
         this->types_by_var.resize(max(this->types_by_var.size(), (size_t) var+1));
         this->types_by_var[var] = type;
     }
@@ -808,6 +819,32 @@ const std::vector<LabTok> &LibraryToolbox::get_types_by_var() const
         throw MMPPException("computation required on const object");
     }
     return this->types_by_var;
+}
+
+void LibraryToolbox::compute_is_var_by_type()
+{
+    const auto &types_set = this->get_types_set();
+    this->is_var_by_type.resize(this->lib.get_labels_num());
+    for (LabTok label = 1; label < this->lib.get_labels_num(); label++) {
+        this->is_var_by_type[label] = types_set.find(label) != types_set.end() && !this->is_constant(this->get_sentence(label).at(1));
+    }
+    this->is_var_by_type_computed = true;
+}
+
+const std::vector<bool> &LibraryToolbox::get_is_var_by_type()
+{
+    if (!this->is_var_by_type_computed) {
+        this->compute_is_var_by_type();
+    }
+    return this->is_var_by_type;
+}
+
+const std::vector<bool> &LibraryToolbox::get_is_var_by_type() const
+{
+    if (!this->is_var_by_type_computed) {
+        throw MMPPException("computation required on const object");
+    }
+    return this->is_var_by_type;
 }
 
 void LibraryToolbox::compute_assertions_by_type()

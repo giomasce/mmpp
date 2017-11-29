@@ -126,6 +126,9 @@ public:
     void compute_types_by_var();
     const std::vector< LabTok > &get_types_by_var();
     const std::vector< LabTok > &get_types_by_var() const;
+    void compute_is_var_by_type();
+    const std::vector< bool > &get_is_var_by_type();
+    const std::vector< bool > &get_is_var_by_type() const;
     void compute_assertions_by_type();
     const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type();
     const std::unordered_map< SymTok, std::vector< LabTok > > &get_assertions_by_type() const;
@@ -206,6 +209,9 @@ private:
 
     std::vector< LabTok > types_by_var;
     bool types_by_var_computed = false;
+
+    std::vector< bool > is_var_by_type;
+    bool is_var_by_type_computed = false;
 
     std::unordered_map< SymTok, std::vector< LabTok > > assertions_by_type;
     bool assertions_by_type_computed = false;

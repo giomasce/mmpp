@@ -107,6 +107,11 @@ public:
     virtual const CompressedProof compress(CompressionStrategy strategy=CS_ANY) = 0;
     virtual const UncompressedProof uncompress() = 0;
     virtual bool check_syntax() = 0;
+    /*
+     * A proof is trivial if it has only one essential step
+     * (which can either be an hypothesis or a previous assertion).
+     */
+    virtual bool is_trivial() const = 0;
     virtual ~ProofExecutor();
 protected:
     ProofExecutor(const Library &lib, const Assertion &ass, bool gen_proof_tree);
@@ -127,6 +132,7 @@ public:
     const CompressedProof compress(CompressionStrategy strategy=CS_ANY);
     const UncompressedProof uncompress();
     bool check_syntax();
+    bool is_trivial() const;
 private:
     CompressedProofExecutor(const Library &lib, const Assertion &ass, const CompressedProof &proof, bool gen_proof_tree=false);
 
@@ -140,6 +146,7 @@ public:
     const CompressedProof compress(CompressionStrategy strategy=CS_ANY);
     const UncompressedProof uncompress();
     bool check_syntax();
+    bool is_trivial() const;
 private:
     UncompressedProofExecutor(const Library &lib, const Assertion &ass, const UncompressedProof &proof, bool gen_proof_tree=false);
 

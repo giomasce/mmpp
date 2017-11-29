@@ -303,6 +303,7 @@ public:
 
 class ExtendedLibrary : public Library {
 public:
+    virtual const Sentence *get_sentence_ptr(LabTok label) const = 0;
     virtual const std::unordered_map< SymTok, std::string > &get_symbols() const = 0;
     virtual const std::unordered_map<LabTok, std::string> &get_labels() const = 0;
     virtual const std::vector< Sentence > &get_sentences() const = 0;
@@ -324,7 +325,8 @@ public:
     std::size_t get_labels_num() const;
     const std::unordered_map< SymTok, std::string > &get_symbols() const;
     const std::unordered_map<LabTok, std::string> &get_labels() const;
-    const std::vector<SymTok> &get_sentence(LabTok label) const;
+    const Sentence &get_sentence(LabTok label) const;
+    const Sentence *get_sentence_ptr(LabTok label) const;
     SentenceType get_sentence_type(LabTok label) const;
     const Assertion &get_assertion(LabTok label) const;
     const std::vector< Sentence > &get_sentences() const;

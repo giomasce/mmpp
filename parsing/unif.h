@@ -11,6 +11,27 @@ template< typename SymType, typename LabType >
 using SubstMap = std::unordered_map< LabType, ParsingTree< SymType, LabType > >;
 
 template< typename SymType, typename LabType >
+using SubstMap2 = std::unordered_map< LabType, ParsingTree2< SymType, LabType > >;
+
+template< typename SymType, typename LabType >
+SubstMap2< SymType, LabType > subst_to_subst2(const SubstMap< SymType, LabType > &subst) {
+    SubstMap2< SymType, LabType > subst2;
+    for (const auto &x : subst) {
+        subst2.insert(make_pair(x.first, pt_to_pt2(x.second)));
+    }
+    return subst2;
+}
+
+template< typename SymType, typename LabType >
+SubstMap< SymType, LabType > subst2_to_subst(const SubstMap2< SymType, LabType > &subst2) {
+    SubstMap< SymType, LabType > subst;
+    for (const auto &x : subst2) {
+        subst.insert(make_pair(x.first, pt2_to_pt(x.second)));
+    }
+    return subst;
+}
+
+template< typename SymType, typename LabType >
 ParsingTree< SymType, LabType > substitute(const ParsingTree< SymType, LabType > &pt,
                                            const std::function< bool(LabType) > &is_var,
                                            const SubstMap< SymType, LabType > &subst) {
@@ -31,6 +52,43 @@ ParsingTree< SymType, LabType > substitute(const ParsingTree< SymType, LabType >
         }
         return ret;
     }
+}
+
+template< typename SymType, typename LabType >
+ParsingTree2< SymType, LabType > substitute2(const ParsingTree2< SymType, LabType > &pt,
+                                             const std::function< bool(LabType) > &is_var,
+                                             const SubstMap2< SymType, LabType > &subst) {
+    ParsingTree2Generator< SymType, LabType > gen;
+    auto it = pt.get_multi_iterator();
+    bool discard_next_close = false;
+    for (const auto &x = it.next(); x.first != it.Finished; x = it.next()) {
+        if (x.first == it.Open) {
+            assert(!discard_next_close);
+            if (is_var(x.second.label)) {
+                auto it = subst.find(x.second.label);
+                if (it != subst.end()) {
+                    discard_next_close = true;
+                    gen.copy_tree(it->second);
+                } else {
+                    gen.open_node(x.second.label, x.second.type);
+                }
+            } else {
+                gen.open_node(x.second.label, x.second.type);
+            }
+        } else {
+            assert(x.first == it.Close);
+            if (discard_next_close) {
+                discard_next_close = false;
+            } else {
+                gen.close_node();
+            }
+        }
+    }
+    ParsingTree2< SymType, LabType > ret = gen.get_parsing_tree();
+#ifdef UNIFICATOR_SELF_TEST
+    assert(ret == pt_to_pt2(substitute(pt2_to_pt(pt), is_var, subst2_to_subst(subst))));
+#endif
+    return ret;
 }
 
 template< typename SymType, typename LabType >
@@ -56,11 +114,48 @@ SubstMap< SymType, LabType > compose(const SubstMap< SymType, LabType > &first, 
 }
 
 template< typename SymType, typename LabType >
+SubstMap2< SymType, LabType > compose2(const SubstMap2< SymType, LabType > &first, const SubstMap2< SymType, LabType > &second, const std::function< bool(LabType) > &is_var) {
+    // Algorithm described in Chang, Lee (Symbolic logic and mechanical theorem proving), section 5.3 Substitution and unification
+    SubstMap2< SymType, LabType > ret;
+    for (auto &first_pair : first) {
+        auto tmp = substitute(first_pair.second, is_var, second);
+        if (is_var(tmp.label)) {
+            assert(tmp.children.empty());
+            // We skip trivial substitutions, both for efficiency and to avoid hiding actual sostitutions from the second map
+            if (tmp.label == first_pair.first) {
+                continue;
+            }
+        }
+        ret.insert(std::make_pair(first_pair.first, tmp));
+    }
+    for (auto &second_pair : second) {
+        // Substitutions from the second map are automatically discarded by unordered_set if they are hidden by the first one
+        ret.insert(second_pair);
+    }
+#ifdef UNIFICATOR_SELF_TEST
+    assert(ret == subst_to_subst2(compose(subst2_to_subst(first), subst2_to_subst(second), is_var)));
+#endif
+    return ret;
+}
+
+template< typename SymType, typename LabType >
 SubstMap< SymType, LabType > update(const SubstMap< SymType, LabType > &first, const SubstMap< SymType, LabType > &second) {
     SubstMap< SymType, LabType > ret = first;
     for (auto &second_pair : second) {
         ret.insert(second_pair);
     }
+    return ret;
+}
+
+template< typename SymType, typename LabType >
+SubstMap2< SymType, LabType > update2(const SubstMap2< SymType, LabType > &first, const SubstMap2< SymType, LabType > &second) {
+    SubstMap< SymType, LabType > ret = first;
+    for (auto &second_pair : second) {
+        ret.insert(second_pair);
+    }
+#ifdef UNIFICATOR_SELF_TEST
+    assert(ret == subst_to_subst2(update(subst2_to_subst(first), subst2_to_subst(second))));
+#endif
     return ret;
 }
 
@@ -81,6 +176,7 @@ bool contains_var(const ParsingTree< SymType, LabType > &pt, LabType var) {
 // Unilateral unification
 
 template< typename SymType, typename LabType >
+[[deprecated]]
 bool unify_internal(const ParsingTree< SymType, LabType > &templ, const ParsingTree< SymType, LabType > &target,
                     const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst) {
     if (is_var(templ.label)) {
@@ -98,7 +194,11 @@ bool unify_internal(const ParsingTree< SymType, LabType > &templ, const ParsingT
         } else {
             assert(templ.children.size() == target.children.size());
             for (size_t i = 0; i < templ.children.size(); i++) {
-                if (!unify(templ.children[i], target.children[i], is_var, subst)) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+                auto res = unify(templ.children[i], target.children[i], is_var, subst);
+#pragma GCC diagnostic pop
+                if (!res) {
                     return false;
                 }
             }
@@ -108,9 +208,13 @@ bool unify_internal(const ParsingTree< SymType, LabType > &templ, const ParsingT
 }
 
 template< typename SymType, typename LabType >
+[[deprecated]]
 bool unify(const ParsingTree< SymType, LabType > &templ, const ParsingTree< SymType, LabType > &target,
            const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     bool ret = unify_internal(templ, target, is_var, subst);
+#pragma GCC diagnostic pop
 #ifdef UNIFICATOR_SELF_TEST
     if (ret) {
         assert(substitute(templ, is_var, subst) == target);
@@ -120,11 +224,15 @@ bool unify(const ParsingTree< SymType, LabType > &templ, const ParsingTree< SymT
 }
 
 template< typename SymType, typename LabType >
+[[deprecated]]
 std::pair< bool, SubstMap< SymType, LabType > > unify(const ParsingTree< SymType, LabType > &templ,
                                                       const ParsingTree< SymType, LabType > &target,
                                                       const std::function< bool(LabType) > &is_var) {
     SubstMap< SymType, LabType > subst;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     bool res = unify(templ, target, is_var, subst);
+#pragma GCC diagnostic pop
     if (!res) {
         subst = {};
     }
@@ -146,10 +254,17 @@ public:
         this->pt2.children.push_back(new_pt2);
     }
 
+    bool is_unifiable() {
+        return true;
+    }
+
     std::pair< bool, SubstMap< SymType, LabType > > unify() const {
         bool ret1;
         SubstMap< SymType, LabType > ret2;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
         std::tie(ret1, ret2) = ::unify(this->pt1, this->pt2, this->is_var);
+#pragma GCC diagnostic pop
         return std::make_pair(ret1, ret2);
     }
 
@@ -162,6 +277,7 @@ private:
 // Slow bilateral unification
 
 template< typename SymType, typename LabType >
+[[deprecated]]
 std::tuple< bool, bool > unify2_slow_step(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
                                                    const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst) {
     if (pt1.label == pt2.label) {
@@ -169,7 +285,10 @@ std::tuple< bool, bool > unify2_slow_step(const ParsingTree< SymType, LabType > 
         for (size_t i = 0; i < pt1.children.size(); i++) {
             bool finished;
             bool success;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
             std::tie(finished, success) = unify2_slow_step(pt1.children[i], pt2.children[i], is_var, subst);
+#pragma GCC diagnostic pop
             if (!finished || !success) {
                 return std::make_pair(finished, success);
             }
@@ -191,6 +310,7 @@ std::tuple< bool, bool > unify2_slow_step(const ParsingTree< SymType, LabType > 
 }
 
 template< typename SymType, typename LabType >
+[[deprecated]]
 bool unify2_slow(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
                           const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst) {
     // Algorithm described in Chang, Lee (Symbolic logic and mechanical theorem proving), section 5.4 Unification algorithm
@@ -202,7 +322,10 @@ bool unify2_slow(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< 
         bool finished;
         bool success;
         SubstMap< SymType, LabType > new_subst;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
         std::tie(finished, success) = unify2_slow_step(pt1s, pt2s, is_var, new_subst);
+#pragma GCC diagnostic pop
         if (finished) {
             return success;
         }
@@ -328,7 +451,10 @@ public:
     std::pair< bool, SubstMap< SymType, LabType > > unify() {
 #ifdef UNIFICATOR_SELF_TEST
         SubstMap< SymType, LabType > subst2;
-        bool res2 = unify2_slow(pt1, pt2, is_var, subst2);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+        bool res2 = unify2_slow(this->pt1, this->pt2, *this->is_var, subst2);
+#pragma GCC diagnostic pop
 #endif
         if (this->failed) {
 #ifdef UNIFICATOR_SELF_TEST
@@ -353,10 +479,10 @@ public:
         }
 #ifdef UNIFICATOR_SELF_TEST
         assert(res2);
-        auto s1 = substitute(this->pt1, this->is_var, actual_subst);
-        auto s2 = substitute(this->pt2, this->is_var, actual_subst);
-        auto s3 = substitute(this->pt1, this->is_var, subst2);
-        auto s4 = substitute(this->pt2, this->is_var, subst2);
+        auto s1 = substitute(this->pt1, *this->is_var, actual_subst);
+        auto s2 = substitute(this->pt2, *this->is_var, actual_subst);
+        auto s3 = substitute(this->pt1, *this->is_var, subst2);
+        auto s4 = substitute(this->pt2, *this->is_var, subst2);
         assert(s1 == s2);
         assert(s3 == s4);
 #endif

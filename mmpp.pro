@@ -71,7 +71,7 @@ QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -
 
 # Disable these to have faster code; enable them to spot bugs
 #QMAKE_CXXFLAGS += -DLR_PARSER_SELF_TEST
-#QMAKE_CXXFLAGS += -DUNIFICATOR_SELF_TEST
+QMAKE_CXXFLAGS += -DUNIFICATOR_SELF_TEST
 #QMAKE_CXXFLAGS += -DTOOLBOX_SELF_TEST
 
 # Experiments with undefined behavior checking

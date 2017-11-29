@@ -18,6 +18,249 @@ struct ParsingTree {
 };
 
 template< typename SymType, typename LabType >
+struct ParsingTree2;
+
+/*template< typename SymType, typename LabType >
+struct ParsingTreeView;*/
+
+template< typename SymType, typename LabType >
+struct ParsingTreeNode {
+    LabType label;
+    SymType type;
+    //size_t children_num;
+    size_t descendants_num;
+
+    bool operator==(const ParsingTreeNode< SymType, LabType > &other) const {
+        return this->label == other.label && this->descendants_num == other.descendants_num;
+    }
+};
+
+template< typename SymType, typename LabType >
+struct ParsingTreeIterator {
+    const ParsingTree2< SymType, LabType > &tree;
+    size_t item_num;
+
+    const ParsingTreeNode< SymType, LabType > &get_node () const {
+        return this->tree.get_nodes()[this->item_num];
+    }
+
+    ParsingTreeIterator< SymType, LabType > get_first_child() const {
+        return { this->tree, this->item_num + 1 };
+    }
+
+    ParsingTreeIterator< SymType, LabType > get_next_siebling() const {
+        return { this->tree, this->item_num + 1 + this->get_node().descendants_num };
+    }
+
+    ParsingTree2< SymType, LabType > get_view() const {
+        return ParsingTree2(this->tree.get_nodes() + this->item_num, this->get_node().descendants_num + 1);
+    }
+
+    // Iterator interface for accessing children
+
+    ParsingTreeIterator< SymType, LabType > begin() const {
+        return this->get_first_child();
+    }
+
+    ParsingTreeIterator< SymType, LabType > end() const {
+        return this->get_next_siebling();
+    }
+
+    const ParsingTreeIterator< SymType, LabType > &operator*() const {
+        return *this;
+    }
+
+    ParsingTreeIterator< SymType, LabType > &operator++() {
+        this->item_num += 1 + this->get_node().descendants_num;
+        return *this;
+    }
+
+    /*ParsingTreeIterator< SymType, LabType > operator++(int) {
+        auto tmp = *this;
+        this->operator++();
+        return tmp;
+    }*/
+
+    bool operator==(const ParsingTreeIterator< SymType, LabType > &node) const {
+        return this->item_num == node.item_num;
+    }
+
+    bool operator!=(const ParsingTreeIterator< SymType, LabType > &node) const {
+        return !this->operator==(node);
+    }
+};
+
+template< typename SymType, typename LabType >
+struct ParsingTreeMultiIterator {
+    enum Status {
+        Open,
+        Close,
+        Finished,
+    };
+
+    std::vector< std::pair< ParsingTreeIterator< SymType, LabType >, ParsingTreeIterator< SymType, LabType > > > stack;
+
+    ParsingTreeMultiIterator(const ParsingTreeIterator<SymType, LabType> &node) : ParsingTreeMultiIterator(node, node.get_next_siebling()) {
+    }
+
+    ParsingTreeMultiIterator(const ParsingTreeIterator< SymType, LabType > &begin, const ParsingTreeIterator< SymType, LabType > &end) : stack({ { begin, end } }) {
+    }
+
+    std::pair< Status, ParsingTreeNode< SymType, LabType > > next() {
+        if (this->stack.empty()) {
+            return Finished;
+        }
+        auto &stack_top = this->stack.back();
+        if (stack_top.first == stack_top.second) {
+            this->stack.pop_back();
+            return make_pair(Close, ParsingTreeNode< SymType, LabType >{});
+        } else {
+            auto it = stack_top.first;
+            stack_top.first++;
+            this->stack.push_back(make_pair(it.begin(), it.end()));
+            return make_pair(Open, *it);
+        }
+    }
+};
+
+/*template< typename SymType, typename LabType >
+struct ParsingTreeView {
+    const ParsingTreeNodeImpl< SymType, LabType > *nodes;
+
+    //ParsingTreeView(const ParsingTree2< SymType, LabType > &pt) : ParsingTreeView(pt.get_view()) {
+    //}
+
+    ParsingTreeNode< SymType, LabType > get_root() const {
+        return { *this, 0 };
+    }
+};*/
+
+template< typename SymType, typename LabType >
+struct ParsingTree2 {
+    std::vector< ParsingTreeNode< SymType, LabType > > nodes_storage;
+    const ParsingTreeNode< SymType, LabType > *nodes;
+    size_t nodes_len;
+
+    /*ParsingTreeView< SymType, LabType > get_view() const {
+        return { this->tree.nodes.data() };
+    }*/
+
+    ParsingTree2() : nodes(NULL), nodes_len(0) {
+    }
+
+    ParsingTree2(const ParsingTreeNode< SymType, LabType > *nodes, size_t nodes_len) : nodes(nodes), nodes_len(nodes_len) {
+    }
+
+    /*ParsingTree2(const ParsingTree2< SymType, LabType > &pt, size_t item_num) : nodes(pt.get_nodes()), nodes_len(pt.get_nodes_len()) {
+    }*/
+
+    const ParsingTreeNode< SymType, LabType > *get_nodes() const {
+        if (this->nodes != NULL) {
+            return this->nodes;
+        } else {
+            return this->nodes_storage.data();
+        }
+    }
+
+    size_t get_nodes_len() const {
+        if (this->nodes != NULL) {
+            return this->nodes_len;
+        } else {
+            return this->nodes_storage.size();
+        }
+    }
+
+    ParsingTreeIterator< SymType, LabType > get_root() const {
+        return { *this, 0 };
+    }
+
+    ParsingTreeMultiIterator< SymType, LabType > get_multi_iterator() const {
+        return ParsingTreeMultiIterator< SymType, LabType >(this->get_root());
+    }
+
+    bool operator==(const ParsingTree2< SymType, LabType > &other) const {
+        return this->get_nodes_len() == other.get_nodes_len() && std::equal(this->get_nodes(), this->get_nodes() + this->get_nodes_len(), other.get_nodes());
+    }
+};
+
+template< typename SymType, typename LabType >
+class ParsingTree2Generator {
+public:
+    void open_node(LabType label, SymType type) {
+        this->stack.push_back(pt.nodes_storage.size());
+        this->pt.nodes_storage.push_back({ label, type, 0 });
+    }
+
+    void close_node() {
+        this->pt.nodes_storage[this->stack.back()].descendants_num = this->pt.nodes_storage.size() - this->stack.back() - 1;
+        this->stack.pop_back();
+    }
+
+    void copy_tree(const ParsingTree2< SymTok, LabTok > &pt) {
+        this->pt.nodes_storage.insert(pt.get_nodes(), pt.get_nodes() + pt.get_nodes_len());
+    }
+
+    ParsingTree2< SymType, LabType > &&get_parsing_tree() {
+        this->pt.nodes_storage.shrink_to_fit();
+        assert(this->stack.empty());
+        return std::move(this->pt);
+    }
+
+private:
+    ParsingTree2< SymType, LabType > pt;
+    std::vector< size_t > stack;
+};
+
+template< typename SymType, typename LabType >
+ParsingTree< SymType, LabType > pt2_to_pt(const ParsingTree2< SymType, LabType > &pt2) {
+    ParsingTree< SymType, LabType > pt;
+    auto &node = pt2.get_root().get_node();
+    pt.label = node.label;
+    pt.type = node.type;
+    for (const auto &child : pt2.get_root()) {
+        pt.children.push_back(pt2_to_pt(child.get_view()));
+    }
+    return pt;
+}
+
+/*template< typename SymType, typename LabType >
+size_t pt_to_pt2_impl(const ParsingTree< SymType, LabType > &pt, std::vector< ParsingTreeNode< SymType, LabType > > &nodes_storage) {
+    size_t idx = nodes_storage.size();
+    nodes_storage.push_back({ pt.label, pt.type, 0 });
+    size_t descendants_num = 0;
+    for (const auto &child : pt.children) {
+        descendants_num += pt_to_pt2_impl(child, nodes_storage) + 1;
+    }
+    nodes_storage[idx].descendants_num = descendants_num;
+    return descendants_num;
+}
+
+template< typename SymType, typename LabType >
+ParsingTree2< SymType, LabType > pt_to_pt2(const ParsingTree< SymType, LabType > &pt) {
+    ParsingTree2< SymType, LabType > pt2;
+    size_t descendants_num = pt_to_pt2_impl(pt, pt2.nodes_storage);
+    pt2.nodes_storage.shrink_to_fit();
+    assert(pt2.nodes_storage.size() == descendants_num + 1);
+    return pt2;
+}*/
+
+template< typename SymType, typename LabType >
+void pt_to_pt2_impl(const ParsingTree< SymType, LabType > &pt, ParsingTree2Generator< SymType, LabType > &gen) {
+    gen.open_node(pt.label, pt.type);
+    for (const auto &child : pt.children) {
+        pt_to_pt2_impl(child, gen);
+    }
+    gen.close_node();
+}
+
+template< typename SymType, typename LabType >
+ParsingTree2< SymType, LabType > pt_to_pt2(const ParsingTree< SymType, LabType > &pt) {
+    ParsingTree2Generator< SymType, LabType > gen;
+    pt_to_pt2_impl(pt, gen);
+    return gen.get_parsing_tree();
+}
+
+template< typename SymType, typename LabType >
 class Parser {
 public:
     virtual ParsingTree< SymType, LabType > parse(const std::vector<SymType> &sent, SymType type) const {

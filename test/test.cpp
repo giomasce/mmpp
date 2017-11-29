@@ -105,14 +105,16 @@ void test_tree_unification() {
     auto &lib = data.lib;
     auto &tb = data.tb;
 
-    std::function< bool(LabTok) > is_var = [&lib](LabTok x)->bool { return !lib.is_constant(lib.get_sentence(x).at(1)); };
+    auto is_var = tb.get_standard_is_var();
 
     auto pt_templ = tb.parse_sentence(tb.read_sentence("( ps -> ph )"), lib.get_symbol("wff"));
     auto pt_sent = tb.parse_sentence(tb.read_sentence("( ph -> ( ps -> ch ) )"), lib.get_symbol("wff"));
 
     bool res;
     unordered_map< LabTok, ParsingTree< SymTok, LabTok > > subst;
-    tie(res, subst) = unify(pt_templ, pt_sent, is_var);
+    UnilateralUnificator< SymTok, LabTok > unif(is_var);
+    unif.add_parsing_trees(pt_templ, pt_sent);
+    tie(res, subst) = unif.unify();
 
     for (auto &i : subst) {
         cout << lib.resolve_symbol(lib.get_sentence(i.first).at(1)) << ": " << tb.print_sentence(tb.reconstruct_sentence(i.second)) << endl;

@@ -94,8 +94,17 @@ void LibraryImpl::add_sentence(LabTok label, const Sentence &content, SentenceTy
     this->sentence_types[label] = type;
 }
 
-const std::vector<SymTok> &LibraryImpl::get_sentence(LabTok label) const {
+const Sentence &LibraryImpl::get_sentence(LabTok label) const {
     return this->sentences.at(label);
+}
+
+const Sentence *LibraryImpl::get_sentence_ptr(LabTok label) const
+{
+    if (label  < this->sentences.size()) {
+        return &this->sentences[label];
+    } else {
+        return NULL;
+    }
 }
 
 SentenceType LibraryImpl::get_sentence_type(LabTok label) const

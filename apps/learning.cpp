@@ -119,12 +119,13 @@ static_block {
 
 void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
                   const vector< ParsingTree< SymTok, LabTok > > &open_hyps,
+                  const vector< LabTok > &steps,
                   size_t hyps_pos,
                   const vector< const Assertion* > &useful_asses,
                   const ParsingTree< SymTok, LabTok > &final_thesis,
                   LibraryToolbox &tb,
                   size_t depth,
-                  const function< void(const ParsingTree< SymTok, LabTok >&, const vector< ParsingTree< SymTok, LabTok > >&, LibraryToolbox&)> &callback) {
+                  const function< void(const ParsingTree< SymTok, LabTok >&, const vector< ParsingTree< SymTok, LabTok > >&, const vector< LabTok >&, LibraryToolbox&)> &callback) {
     if (depth == 0 || hyps_pos == open_hyps.size()) {
         auto unif2 = unif;
         SubstMap< SymTok, LabTok > subst;
@@ -138,9 +139,9 @@ void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
         for (const auto &hyp : open_hyps) {
             hyps.push_back(substitute(hyp, tb.get_standard_is_var(), subst));
         }
-        callback(thesis, hyps, tb);
+        callback(thesis, hyps, steps, tb);
     } else {
-        gen_theorems(unif, open_hyps, hyps_pos+1, useful_asses, final_thesis, tb, depth, callback);
+        gen_theorems(unif, open_hyps, steps, hyps_pos+1, useful_asses, final_thesis, tb, depth, callback);
         for (const auto assp : useful_asses) {
             tb.new_temp_var_frame();
             const Assertion &ass = *assp;
@@ -148,13 +149,15 @@ void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
             vector< ParsingTree< SymTok, LabTok > > hyps;
             tie(hyps, thesis) = tb.refresh_assertion(ass);
             auto unif2 = unif;
+            auto steps2 = steps;
             unif2.add_parsing_trees(open_hyps[hyps_pos], thesis);
+            steps2.push_back(ass.get_thesis());
             if (unif2.is_unifiable()) {
                 //cout << "Attaching " << tb.resolve_label(ass.get_thesis()) << " in position " << hyps_pos << endl;
                 auto open_hyps2 = open_hyps;
                 open_hyps2.erase(open_hyps2.begin() + hyps_pos);
                 open_hyps2.insert(open_hyps2.end(), hyps.begin(), hyps.end());
-                gen_theorems(unif2, open_hyps2, hyps_pos, useful_asses, final_thesis, tb, depth-1, callback);
+                gen_theorems(unif2, open_hyps2, steps2, hyps_pos, useful_asses, final_thesis, tb, depth-1, callback);
             }
             tb.release_temp_var_frame();
         }
@@ -162,16 +165,19 @@ void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
 }
 
 size_t count = 0;
-void print_theorem(const ParsingTree< SymTok, LabTok > &thesis, const vector< ParsingTree< SymTok, LabTok > >&hyps, LibraryToolbox &tb) {
+void print_theorem(const ParsingTree< SymTok, LabTok > &thesis, const vector< ParsingTree< SymTok, LabTok > >&hyps, const vector< LabTok > &steps, LibraryToolbox &tb) {
     ::count++;
     if (::count % 10000 == 0) {
         cout << ::count << endl;
+        cout << tb.print_sentence(thesis) << endl;
+        cout << "with the hypotheses:" << endl;
+        for (const auto &hyp : hyps) {
+            cout << " * " << tb.print_sentence(hyp) << endl;
+        }
+        cout << "Proved with steps: " << tb.print_proof(steps) << endl;
     }
-    return;
-    cout << tb.print_sentence(thesis) << endl;
-    cout << "with the hypotheses:" << endl;
-    for (const auto &hyp : hyps) {
-        cout << " * " << tb.print_sentence(hyp) << endl;
+    if (::count == 100000) {
+        exit(0);
     }
 }
 
@@ -190,7 +196,11 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     vector< const Assertion* > useful_asses;
     for (const auto &ass : lib.get_assertions()) {
         if (ass.is_valid() && lib.get_sentence(ass.get_thesis()).at(0) == tb.get_turnstile()) {
-            useful_asses.push_back(&ass);
+            if (ass.is_theorem() && ass.has_proof() && ass.get_proof_executor(lib)->is_trivial()) {
+                //cout << "Proof for " << lib.resolve_label(ass.get_thesis()) << " is trivial" << endl;
+            } else {
+                useful_asses.push_back(&ass);
+            }
         }
     }
     cout << "There are " << useful_asses.size() << " useful theorems" << endl;
@@ -202,9 +212,12 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     ParsingTree< SymTok, LabTok > final_thesis;
     final_thesis.label = th_label;
     final_thesis.type = tb.get_turnstile_alias();
+    final_thesis = tb.get_parsed_sents()[tb.get_label("absmod0")];
     open_hyps.push_back(final_thesis);
+    vector< LabTok > steps;
 
-    //gen_theorems(unif, open_hyps, 0, useful_asses, final_thesis, tb, 2, print_theorem);
+    gen_theorems(unif, open_hyps, steps, 0, useful_asses, final_thesis, tb, 2, print_theorem);
+    return 0;
 
     for (size_t i = 0; i < 5; i++) {
         if (open_hyps.empty()) {

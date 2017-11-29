@@ -136,6 +136,24 @@ bool CompressedProofExecutor::check_syntax()
     return true;
 }
 
+bool CompressedProofExecutor::is_trivial() const
+{
+    bool first_ess_found = false;
+    for (const auto &code : this->proof.codes) {
+        if (code == 0) {
+            return false;
+        }
+        if (code <= this->ass.get_float_hyps().size()) {
+            continue;
+        }
+        if (first_ess_found) {
+            return false;
+        }
+        first_ess_found = true;
+    }
+    return true;
+}
+
 UncompressedProof::UncompressedProof(const std::vector<LabTok> &labels) :
     labels(labels)
 {
@@ -270,6 +288,22 @@ bool UncompressedProofExecutor::check_syntax()
         if (!this->lib.get_assertion(label).is_valid() && mand_hyps_set.find(label) == mand_hyps_set.end()) {
             return false;
         }
+    }
+    return true;
+}
+
+bool UncompressedProofExecutor::is_trivial() const
+{
+    bool first_ess_found = false;
+    for (const auto &label : this->proof.labels) {
+        auto it = find(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end(), label);
+        if (it != this->ass.get_float_hyps().end()) {
+            continue;
+        }
+        if (first_ess_found) {
+            return false;
+        }
+        first_ess_found = true;
     }
     return true;
 }

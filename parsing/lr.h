@@ -328,7 +328,7 @@ public:
             if (res) {
                 auto state_data = get_state_data(state);
                 const size_t state_idx = state_data->first;
-                std::cout << state_idx << std::endl;
+                //std::cout << state_idx << std::endl;
                 //print_state(state, sym_printer, lab_printer);
 
                 // Build the shift map and enqueue new states
