@@ -426,13 +426,12 @@ std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTo
     }
 
     // Build a substitution map
-    SubstMap2< SymTok, LabTok > subst;
+    SimpleSubstMap2< SymTok, LabTok > subst;
     for (const auto var_lab : var_labs) {
         SymTok type_sym = this->get_sentence(var_lab).at(0);
-        SymTok new_sym;
         LabTok new_lab;
-        tie(new_lab, new_sym) = this->new_temp_var(type_sym);
-        subst[var_lab] = var_parsing_tree(new_lab, type_sym);
+        tie(new_lab, ignore) = this->new_temp_var(type_sym);
+        subst[var_lab] = new_lab;
     }
 
     // Substitute and return
@@ -477,13 +476,12 @@ ParsingTree2<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree2(const Parsing
     collect_variables2(pt, is_var, var_labs);
 
     // Build a substitution map
-    SubstMap2< SymTok, LabTok > subst;
+    SimpleSubstMap2< SymTok, LabTok > subst;
     for (const auto var_lab : var_labs) {
         SymTok type_sym = this->get_sentence(var_lab).at(0);
-        SymTok new_sym;
         LabTok new_lab;
-        tie(new_lab, new_sym) = this->new_temp_var(type_sym);
-        subst[var_lab] = var_parsing_tree(new_lab, type_sym);
+        tie(new_lab, ignore) = this->new_temp_var(type_sym);
+        subst[var_lab] = new_lab;
     }
 
     // Substitute and return

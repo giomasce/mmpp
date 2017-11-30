@@ -14,6 +14,9 @@ template< typename SymType, typename LabType >
 using SubstMap2 = std::unordered_map< LabType, ParsingTree2< SymType, LabType > >;
 
 template< typename SymType, typename LabType >
+using SimpleSubstMap2 = std::unordered_map< LabType, LabType >;
+
+template< typename SymType, typename LabType >
 SubstMap2< SymType, LabType > subst_to_subst2(const SubstMap< SymType, LabType > &subst) {
     SubstMap2< SymType, LabType > subst2;
     for (const auto &x : subst) {
@@ -93,6 +96,23 @@ ParsingTree2< SymType, LabType > substitute2(const ParsingTree2< SymType, LabTyp
 #ifdef UNIFICATOR_SELF_TEST
     assert(ret == pt_to_pt2(substitute(pt2_to_pt(pt), is_var, subst2_to_subst(subst))));
 #endif
+    return ret;
+}
+
+template< typename SymType, typename LabType >
+ParsingTree2< SymType, LabType > substitute2(const ParsingTree2< SymType, LabType > &pt,
+                                             const std::function< bool(LabType) > &is_var,
+                                             const SimpleSubstMap2< SymType, LabType > &subst) {
+    ParsingTree2< SymType, LabType > ret = pt;
+    ret.refresh();
+    for (auto &x : ret.nodes_storage) {
+        if (is_var(x.label)) {
+            auto it = subst.find(x.label);
+            if (it != subst.end()) {
+                x.label = it->second;
+            }
+        }
+    }
     return ret;
 }
 
@@ -399,72 +419,75 @@ bool unify2_slow(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< 
 
 template< typename SymType, typename LabType >
 [[deprecated]]
-bool unify2_quick_process_tree(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
-                               const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst,
+bool unify2_quick_process_tree(const ParsingTreeIterator< SymType, LabType > &pt1, const ParsingTreeIterator< SymType, LabType > &pt2,
+                               const std::function< bool(LabType) > &is_var, SubstMap2< SymType, LabType > &subst,
                                NaiveIncrementalCycleDetector< LabType > &cycle_detector,
                                DisjointSet< LabType > &djs) {
-    if (pt1.label == pt2.label) {
-        assert(pt1.children.size() == pt2.children.size());
-        for (size_t i = 0; i < pt1.children.size(); i++) {
+    const auto &n1 = pt1.get_node();
+    const auto &n2 = pt2.get_node();
+    if (n1.label == n2.label) {
+        auto it1 = pt1.begin();
+        auto it2 = pt2.begin();
+        while (it1 != pt1.end() && it2 != pt2.end()) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-            bool res = unify2_quick_process_tree(pt1.children[i], pt2.children[i], is_var, subst, cycle_detector, djs);
+            bool res = unify2_quick_process_tree(*it1, *it2, is_var, subst, cycle_detector, djs);
 #pragma GCC diagnostic pop
             if (!res) {
                 return false;
             }
+            ++it1;
+            ++it2;
         }
+        assert(it1 == pt1.end() && it2 == pt2.end());
         return true;
     } else {
         LabType var;
-        ParsingTree< SymTok, LabTok > pt_temp;
-        const ParsingTree< SymType, LabType > *content;
-        bool v1 = is_var(pt1.label);
-        bool v2 = is_var(pt2.label);
-        assert(!(v1 && !pt1.children.empty()));
-        assert(!(v2 && !pt2.children.empty()));
+        ParsingTree2< SymTok, LabTok > pt_temp;
+        bool v1 = is_var(n1.label);
+        bool v2 = is_var(n2.label);
+        assert(!(v1 && pt1.has_children()));
+        assert(!(v2 && pt2.has_children()));
         if (v1 && v2) {
             // If both are variables, then we use the disjoint set structure to determine how to substitute
-            djs.make_set(pt1.label);
-            djs.make_set(pt2.label);
-            LabType l1 = djs.find_set(pt1.label);
-            LabType l2 = djs.find_set(pt2.label);
+            djs.make_set(n1.label);
+            djs.make_set(n2.label);
+            LabType l1 = djs.find_set(n1.label);
+            LabType l2 = djs.find_set(n2.label);
             if (l1 != l2) {
                 bool res;
-                LabTok l3;
+                LabType l3;
                 std::tie(res, l3) = djs.union_set(l1, l2);
                 assert(res);
                 assert(l3 == l1 || l3 == l2);
                 if (l3 == l1) {
-                    pt_temp.label = l1;
-                    pt_temp.type = pt1.type;
+                    pt_temp = var_parsing_tree(l1, n1.type);
                     var = l2;
-                    content = &pt_temp;
                 } else {
-                    pt_temp.label = l2;
-                    pt_temp.type = pt2.type;
+                    pt_temp = var_parsing_tree(l2, n2.type);
                     var = l1;
-                    content = &pt_temp;
                 }
             } else {
                 return true;
             }
         } else if (v1) {
-            var = pt1.label;
-            content = &pt2;
+            var = n1.label;
+            pt_temp = pt2.get_view();
         } else if (v2) {
-            var = pt2.label;
-            content = &pt1;
+            var = n2.label;
+            pt_temp = pt1.get_view();
         } else {
             return false;
         }
         bool res;
-        typename SubstMap< SymType, LabType >::iterator it;
-        std::tie(it, res) = subst.insert(std::make_pair(var, *content));
+        typename SubstMap2< SymType, LabType >::iterator it;
+        // In general we cannot assume that the caller will retain pt1 and pt2 for a long time
+        pt_temp.refresh();
+        std::tie(it, res) = subst.insert(std::make_pair(var, pt_temp));
         cycle_detector.make_node(var);
         if (res) {
             std::set< LabType > vars;
-            collect_variables(*content, is_var, vars);
+            collect_variables2(pt_temp, is_var, vars);
             for (const auto &var2 : vars) {
                 cycle_detector.make_edge(var, var2);
             }
@@ -472,7 +495,7 @@ bool unify2_quick_process_tree(const ParsingTree< SymType, LabType > &pt1, const
         } else {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-            return unify2_quick_process_tree(it->second, *content, is_var, subst, cycle_detector, djs);
+            return unify2_quick_process_tree(it->second.get_root(), pt_temp.get_root(), is_var, subst, cycle_detector, djs);
 #pragma GCC diagnostic pop
         }
     }
@@ -491,16 +514,28 @@ public:
     }
 
     void add_parsing_trees(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2) {
+        this->add_parsing_trees2(pt_to_pt2(pt1), pt_to_pt2(pt2));
+    }
+
+    /*
+     * Return an approximation from above of failer: is has_failed() returns true, then all unifications from now on will return false.
+     * However, it is possible that has_failed() returns false, but unification fails anyway.
+     */
+    bool has_failed() {
+        return this->failed;
+    }
+
+    void add_parsing_trees2(const ParsingTree2< SymType, LabType > &pt1, const ParsingTree2< SymType, LabType > &pt2) {
 #ifdef UNIFICATOR_SELF_TEST
-        this->pt1.children.push_back(pt1);
-        this->pt2.children.push_back(pt2);
+        this->pt1.children.push_back(pt2_to_pt(pt1));
+        this->pt2.children.push_back(pt2_to_pt(pt2));
 #endif
         if (this->failed) {
             return;
         }
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-        bool res = unify2_quick_process_tree(pt1, pt2, *this->is_var, this->subst, this->cycle_detector, this->djs);
+        bool res = unify2_quick_process_tree(pt1.get_root(), pt2.get_root(), *this->is_var, this->subst, this->cycle_detector, this->djs);
 #pragma GCC diagnostic pop
         if (!res) {
             this->fail();
@@ -519,6 +554,11 @@ public:
     }
 
     std::pair< bool, SubstMap< SymType, LabType > > unify() {
+        auto ret = this->unify2();
+        return std::make_pair(ret.first, subst2_to_subst(ret.second));
+    }
+
+    std::pair< bool, SubstMap2< SymType, LabType > > unify2() {
 #ifdef UNIFICATOR_SELF_TEST
         SubstMap< SymType, LabType > subst2;
 #pragma GCC diagnostic push
@@ -543,39 +583,20 @@ public:
             this->fail();
             return std::make_pair(false, this->subst);
         }
-        SubstMap< SymType, LabType > actual_subst;
+        SubstMap2< SymType, LabType > actual_subst;
         for (const LabTok &lab : topo_sort) {
-            actual_subst[lab] = substitute(this->subst[lab], *this->is_var, actual_subst);
+            actual_subst[lab] = substitute2(this->subst[lab], *this->is_var, actual_subst);
         }
 #ifdef UNIFICATOR_SELF_TEST
         assert(res2);
-        auto s1 = substitute(this->pt1, *this->is_var, actual_subst);
-        auto s2 = substitute(this->pt2, *this->is_var, actual_subst);
+        auto s1 = substitute(this->pt1, *this->is_var, subst2_to_subst(actual_subst));
+        auto s2 = substitute(this->pt2, *this->is_var, subst2_to_subst(actual_subst));
         auto s3 = substitute(this->pt1, *this->is_var, subst2);
         auto s4 = substitute(this->pt2, *this->is_var, subst2);
         assert(s1 == s2);
         assert(s3 == s4);
 #endif
         return std::make_pair(true, actual_subst);
-    }
-
-    /*
-     * Return an approximation from above of failer: is has_failed() returns true, then all unifications from now on will return false.
-     * However, it is possible that has_failed() returns false, but unification fails anyway.
-     */
-    bool has_failed() {
-        return this->failed;
-    }
-
-    void add_parsing_trees2(const ParsingTree2< SymType, LabType > &new_pt1, const ParsingTree2< SymType, LabType > &new_pt2) {
-        this->add_parsing_trees(pt2_to_pt(new_pt1), pt2_to_pt(new_pt2));
-    }
-
-    std::pair< bool, SubstMap2< SymType, LabType > > unify2() {
-        bool ret1;
-        SubstMap< SymType, LabType > ret2;
-        std::tie(ret1, ret2) = this->unify();
-        return std::make_pair(ret1, subst_to_subst2(ret2));
     }
 
 private:
@@ -589,7 +610,7 @@ private:
 
     bool failed;
     const std::function< bool(LabType) > *is_var;
-    SubstMap< SymType, LabType > subst;
+    SubstMap2< SymType, LabType > subst;
     DisjointSet< LabType > djs;
     NaiveIncrementalCycleDetector< LabType > cycle_detector;
 
