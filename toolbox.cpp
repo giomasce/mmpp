@@ -699,7 +699,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
                 continue;
             }
             SubstMap< SymTok, LabTok > subst;
-            tie(res, subst) = unif.unify();
+            tie(res, subst) = unif2.unify();
             if (!res) {
                 continue;
             }
