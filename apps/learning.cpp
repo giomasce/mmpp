@@ -118,26 +118,26 @@ static_block {
 }
 
 void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
-                  const vector< ParsingTree< SymTok, LabTok > > &open_hyps,
+                  const vector< ParsingTree2< SymTok, LabTok > > &open_hyps,
                   const vector< LabTok > &steps,
                   size_t hyps_pos,
                   const vector< const Assertion* > &useful_asses,
-                  const ParsingTree< SymTok, LabTok > &final_thesis,
+                  const ParsingTree2< SymTok, LabTok > &final_thesis,
                   LibraryToolbox &tb,
                   size_t depth,
-                  const function< void(const ParsingTree< SymTok, LabTok >&, const vector< ParsingTree< SymTok, LabTok > >&, const vector< LabTok >&, LibraryToolbox&)> &callback) {
+                  const function< void(const ParsingTree2< SymTok, LabTok >&, const vector< ParsingTree2< SymTok, LabTok > >&, const vector< LabTok >&, LibraryToolbox&)> &callback) {
     if (depth == 0 || hyps_pos == open_hyps.size()) {
         auto unif2 = unif;
-        SubstMap< SymTok, LabTok > subst;
+        SubstMap2< SymTok, LabTok > subst;
         bool res;
-        tie(res, subst) = unif2.unify();
+        tie(res, subst) = unif2.unify2();
         if (!res) {
             return;
         }
-        auto thesis = substitute(final_thesis, tb.get_standard_is_var(), subst);
-        vector< ParsingTree< SymTok, LabTok > > hyps;
+        auto thesis = substitute2(final_thesis, tb.get_standard_is_var(), subst);
+        vector< ParsingTree2< SymTok, LabTok > > hyps;
         for (const auto &hyp : open_hyps) {
-            hyps.push_back(substitute(hyp, tb.get_standard_is_var(), subst));
+            hyps.push_back(substitute2(hyp, tb.get_standard_is_var(), subst));
         }
         callback(thesis, hyps, steps, tb);
     } else {
@@ -145,12 +145,12 @@ void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
         for (const auto assp : useful_asses) {
             tb.new_temp_var_frame();
             const Assertion &ass = *assp;
-            ParsingTree< SymTok, LabTok > thesis;
-            vector< ParsingTree< SymTok, LabTok > > hyps;
-            tie(hyps, thesis) = tb.refresh_assertion(ass);
+            ParsingTree2< SymTok, LabTok > thesis;
+            vector< ParsingTree2< SymTok, LabTok > > hyps;
+            tie(hyps, thesis) = tb.refresh_assertion2(ass);
             auto unif2 = unif;
             auto steps2 = steps;
-            unif2.add_parsing_trees(open_hyps[hyps_pos], thesis);
+            unif2.add_parsing_trees2(open_hyps[hyps_pos], thesis);
             steps2.push_back(ass.get_thesis());
             if (unif2.is_unifiable()) {
                 //cout << "Attaching " << tb.resolve_label(ass.get_thesis()) << " in position " << hyps_pos << endl;
@@ -165,7 +165,7 @@ void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
 }
 
 size_t count = 0;
-void print_theorem(const ParsingTree< SymTok, LabTok > &thesis, const vector< ParsingTree< SymTok, LabTok > >&hyps, const vector< LabTok > &steps, LibraryToolbox &tb) {
+void print_theorem(const ParsingTree2< SymTok, LabTok > &thesis, const vector< ParsingTree2< SymTok, LabTok > >&hyps, const vector< LabTok > &steps, LibraryToolbox &tb) {
     ::count++;
     if (::count % 10000 == 0) {
         cout << ::count << endl;
@@ -206,13 +206,11 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     cout << "There are " << useful_asses.size() << " useful theorems" << endl;
 
     BilateralUnificator< SymTok, LabTok > unif(tb.get_standard_is_var());
-    vector< ParsingTree< SymTok, LabTok > > open_hyps;
+    vector< ParsingTree2< SymTok, LabTok > > open_hyps;
     LabTok th_label;
     tie(th_label, ignore) = tb.new_temp_var(tb.get_turnstile_alias());
-    ParsingTree< SymTok, LabTok > final_thesis;
-    final_thesis.label = th_label;
-    final_thesis.type = tb.get_turnstile_alias();
-    final_thesis = tb.get_parsed_sents()[tb.get_label("absmod0")];
+    ParsingTree2< SymTok, LabTok > final_thesis = var_parsing_tree(th_label, tb.get_turnstile_alias());
+    //final_thesis = tb.get_parsed_sents2()[tb.get_label("absmod0")];
     open_hyps.push_back(final_thesis);
     vector< LabTok > steps;
 
@@ -235,12 +233,12 @@ int gen_random_theorems_main(int argc, char *argv[]) {
             if (i > 1 && ass.get_ess_hyps().size() > 0) {
                 continue;
             }
-            ParsingTree< SymTok, LabTok > thesis;
-            vector< ParsingTree< SymTok, LabTok > > hyps;
-            tie(hyps, thesis) = tb.refresh_assertion(ass);
+            ParsingTree2< SymTok, LabTok > thesis;
+            vector< ParsingTree2< SymTok, LabTok > > hyps;
+            tie(hyps, thesis) = tb.refresh_assertion2(ass);
             auto unif2 = unif;
-            unif2.add_parsing_trees(open_hyps[hyp_idx], thesis);
-            if (unif2.unify().first) {
+            unif2.add_parsing_trees2(open_hyps[hyp_idx], thesis);
+            if (unif2.unify2().first) {
                 cout << "Attaching " << tb.resolve_label(ass.get_thesis()) << " in position " << hyp_idx << endl;
                 unif = unif2;
                 open_hyps.erase(open_hyps.begin() + hyp_idx);
@@ -250,16 +248,16 @@ int gen_random_theorems_main(int argc, char *argv[]) {
         }
     }
 
-    SubstMap< SymTok, LabTok > subst;
+    SubstMap2< SymTok, LabTok > subst;
     bool res;
-    tie(res, subst) = unif.unify();
+    tie(res, subst) = unif.unify2();
 
     if (res) {
         cout << "Unification succedeed and proved:" << endl;
-        cout << tb.print_sentence(substitute(final_thesis, tb.get_standard_is_var(), subst)) << endl;
+        cout << tb.print_sentence(substitute2(final_thesis, tb.get_standard_is_var(), subst)) << endl;
         cout << "with the hypotheses:" << endl;
         for (const auto &hyp : open_hyps) {
-            cout << " * " << tb.print_sentence(substitute(hyp, tb.get_standard_is_var(), subst)) << endl;
+            cout << " * " << tb.print_sentence(substitute2(hyp, tb.get_standard_is_var(), subst)) << endl;
         }
     } else {
         cout << "Unification failed" << endl;

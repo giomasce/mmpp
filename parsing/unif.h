@@ -17,7 +17,7 @@ template< typename SymType, typename LabType >
 SubstMap2< SymType, LabType > subst_to_subst2(const SubstMap< SymType, LabType > &subst) {
     SubstMap2< SymType, LabType > subst2;
     for (const auto &x : subst) {
-        subst2.insert(make_pair(x.first, pt_to_pt2(x.second)));
+        subst2.insert(std::make_pair(x.first, pt_to_pt2(x.second)));
     }
     return subst2;
 }
@@ -26,7 +26,7 @@ template< typename SymType, typename LabType >
 SubstMap< SymType, LabType > subst2_to_subst(const SubstMap2< SymType, LabType > &subst2) {
     SubstMap< SymType, LabType > subst;
     for (const auto &x : subst2) {
-        subst.insert(make_pair(x.first, pt2_to_pt(x.second)));
+        subst.insert(std::make_pair(x.first, pt2_to_pt(x.second)));
     }
     return subst;
 }
@@ -61,7 +61,12 @@ ParsingTree2< SymType, LabType > substitute2(const ParsingTree2< SymType, LabTyp
     ParsingTree2Generator< SymType, LabType > gen;
     auto it = pt.get_multi_iterator();
     bool discard_next_close = false;
-    for (const auto &x = it.next(); x.first != it.Finished; x = it.next()) {
+    //for (auto x = it.next(); x.first != it.Finished; x = it.next()) {
+    while (true) {
+        const auto x = it.next();
+        if (x.first == it.Finished) {
+            break;
+        }
         if (x.first == it.Open) {
             assert(!discard_next_close);
             if (is_var(x.second.label)) {
@@ -162,7 +167,6 @@ SubstMap2< SymType, LabType > update2(const SubstMap2< SymType, LabType > &first
 template< typename SymType, typename LabType >
 bool contains_var(const ParsingTree< SymType, LabType > &pt, LabType var) {
     if (pt.label == var) {
-        assert(pt.children.empty());
         return true;
     }
     for (auto &child : pt.children) {
@@ -171,6 +175,51 @@ bool contains_var(const ParsingTree< SymType, LabType > &pt, LabType var) {
         }
     }
     return false;
+}
+
+template< typename SymType, typename LabType >
+bool contains_var2(const ParsingTreeIterator< SymType, LabType > &it, LabType var) {
+    if (it.get_node().label == var) {
+        return true;
+    }
+    for (auto &child : it) {
+        if (contains_var2(child, var)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+template< typename SymType, typename LabType >
+bool contains_var2(const ParsingTree2< SymType, LabType > &pt, LabType var) {
+    return contains_var2(pt.get_root(), var);
+}
+
+template< typename SymType, typename LabType >
+void collect_variables(const ParsingTree< SymType, LabType > &pt, const std::function< bool(LabType) > &is_var, std::set< LabType > &vars) {
+    if (is_var(pt.label)) {
+        vars.insert(pt.label);
+    } else {
+        for (const auto &child : pt.children) {
+            collect_variables(child, is_var, vars);
+        }
+    }
+}
+
+template< typename SymType, typename LabType >
+void collect_variables2(const ParsingTreeIterator< SymType, LabType > &it, const std::function< bool(LabType) > &is_var, std::set< LabType > &vars) {
+    if (is_var(it.get_node().label)) {
+        vars.insert(it.get_node().label);
+    } else {
+        for (const auto &child : it) {
+            collect_variables2(child, is_var, vars);
+        }
+    }
+}
+
+template< typename SymType, typename LabType >
+void collect_variables2(const ParsingTree2< SymType, LabType > &pt, const std::function< bool(LabType) > &is_var, std::set< LabType > &vars) {
+    return collect_variables2(pt.get_root(), is_var, vars);
 }
 
 // Unilateral unification
@@ -258,7 +307,7 @@ public:
         return true;
     }
 
-    std::pair< bool, SubstMap< SymType, LabType > > unify() const {
+    std::pair< bool, SubstMap< SymType, LabType > > unify() {
         bool ret1;
         SubstMap< SymType, LabType > ret2;
 #pragma GCC diagnostic push
@@ -266,6 +315,17 @@ public:
         std::tie(ret1, ret2) = ::unify(this->pt1, this->pt2, this->is_var);
 #pragma GCC diagnostic pop
         return std::make_pair(ret1, ret2);
+    }
+
+    void add_parsing_trees2(const ParsingTree2< SymType, LabType > &new_pt1, const ParsingTree2< SymType, LabType > &new_pt2) {
+        this->add_parsing_trees(pt2_to_pt(new_pt1), pt2_to_pt(new_pt2));
+    }
+
+    std::pair< bool, SubstMap2< SymType, LabType > > unify2() {
+        bool ret1;
+        SubstMap< SymType, LabType > ret2;
+        std::tie(ret1, ret2) = this->unify();
+        return std::make_pair(ret1, subst_to_subst2(ret2));
     }
 
 private:
@@ -338,6 +398,7 @@ bool unify2_slow(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< 
 // Quick bilateral unification
 
 template< typename SymType, typename LabType >
+[[deprecated]]
 bool unify2_quick_process_tree(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
                                const std::function< bool(LabType) > &is_var, SubstMap< SymType, LabType > &subst,
                                NaiveIncrementalCycleDetector< LabType > &cycle_detector,
@@ -345,7 +406,10 @@ bool unify2_quick_process_tree(const ParsingTree< SymType, LabType > &pt1, const
     if (pt1.label == pt2.label) {
         assert(pt1.children.size() == pt2.children.size());
         for (size_t i = 0; i < pt1.children.size(); i++) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
             bool res = unify2_quick_process_tree(pt1.children[i], pt2.children[i], is_var, subst, cycle_detector, djs);
+#pragma GCC diagnostic pop
             if (!res) {
                 return false;
             }
@@ -406,7 +470,10 @@ bool unify2_quick_process_tree(const ParsingTree< SymType, LabType > &pt1, const
             }
             return true;
         } else {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
             return unify2_quick_process_tree(it->second, *content, is_var, subst, cycle_detector, djs);
+#pragma GCC diagnostic pop
         }
     }
 }
@@ -431,7 +498,10 @@ public:
         if (this->failed) {
             return;
         }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
         bool res = unify2_quick_process_tree(pt1, pt2, *this->is_var, this->subst, this->cycle_detector, this->djs);
+#pragma GCC diagnostic pop
         if (!res) {
             this->fail();
         }
@@ -495,6 +565,17 @@ public:
      */
     bool has_failed() {
         return this->failed;
+    }
+
+    void add_parsing_trees2(const ParsingTree2< SymType, LabType > &new_pt1, const ParsingTree2< SymType, LabType > &new_pt2) {
+        this->add_parsing_trees(pt2_to_pt(new_pt1), pt2_to_pt(new_pt2));
+    }
+
+    std::pair< bool, SubstMap2< SymType, LabType > > unify2() {
+        bool ret1;
+        SubstMap< SymType, LabType > ret2;
+        std::tie(ret1, ret2) = this->unify();
+        return std::make_pair(ret1, subst_to_subst2(ret2));
     }
 
 private:

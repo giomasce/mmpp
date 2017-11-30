@@ -107,18 +107,20 @@ struct ParsingTreeMultiIterator {
     }
 
     std::pair< Status, ParsingTreeNode< SymType, LabType > > next() {
-        if (this->stack.empty()) {
-            return Finished;
-        }
+        assert(!this->stack.empty());
         auto &stack_top = this->stack.back();
         if (stack_top.first == stack_top.second) {
-            this->stack.pop_back();
-            return make_pair(Close, ParsingTreeNode< SymType, LabType >{});
+            if (this->stack.size() > 1) {
+                this->stack.pop_back();
+                return std::make_pair(Close, ParsingTreeNode< SymType, LabType >{});
+            } else {
+                return std::make_pair(Finished, ParsingTreeNode< SymType, LabType >{});
+            }
         } else {
             auto it = stack_top.first;
-            stack_top.first++;
-            this->stack.push_back(make_pair(it.begin(), it.end()));
-            return make_pair(Open, *it);
+            ++stack_top.first;
+            this->stack.push_back(std::make_pair(it.begin(), it.end()));
+            return std::make_pair(Open, it.get_node());
         }
     }
 };
@@ -197,7 +199,7 @@ public:
     }
 
     void copy_tree(const ParsingTree2< SymTok, LabTok > &pt) {
-        this->pt.nodes_storage.insert(pt.get_nodes(), pt.get_nodes() + pt.get_nodes_len());
+        this->pt.nodes_storage.insert(this->pt.nodes_storage.end(), pt.get_nodes(), pt.get_nodes() + pt.get_nodes_len());
     }
 
     ParsingTree2< SymType, LabType > &&get_parsing_tree() {
@@ -210,6 +212,14 @@ private:
     ParsingTree2< SymType, LabType > pt;
     std::vector< size_t > stack;
 };
+
+template< typename SymType, typename LabType >
+ParsingTree2< SymType, LabType > var_parsing_tree(LabType label, SymType type) {
+    ParsingTree2Generator< SymType, LabType > gen;
+    gen.open_node(label, type);
+    gen.close_node();
+    return gen.get_parsing_tree();
+}
 
 template< typename SymType, typename LabType >
 ParsingTree< SymType, LabType > pt2_to_pt(const ParsingTree2< SymType, LabType > &pt2) {

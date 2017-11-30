@@ -34,9 +34,9 @@ struct SentencePrinter {
         STYLE_ALTHTML,
         STYLE_LATEX,
     };
-    bool is_sent;
-    const Sentence &sent;
-    const ParsingTree<SymTok, LabTok> &pt;
+    const Sentence *sent;
+    const ParsingTree<SymTok, LabTok> *pt;
+    const ParsingTree2<SymTok, LabTok> *pt2;
     const LibraryToolbox &tb;
     const Style style;
 
@@ -117,6 +117,7 @@ public:
     std::vector< SymTok > read_sentence(const std::string &in) const;
     SentencePrinter print_sentence(const std::vector< SymTok > &sent, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
     SentencePrinter print_sentence(const ParsingTree< SymTok, LabTok > &pt, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
+    SentencePrinter print_sentence(const ParsingTree2< SymTok, LabTok > &pt, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
     ProofPrinter print_proof(const std::vector< LabTok > &proof, bool only_assertions = false) const;
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
 
@@ -154,6 +155,8 @@ public:
     void compute_sentences_parsing();
     const std::vector< ParsingTree< SymTok, LabTok > > &get_parsed_sents();
     const std::vector< ParsingTree< SymTok, LabTok > > &get_parsed_sents() const;
+    const std::vector<ParsingTree2<SymTok, LabTok> > &get_parsed_sents2();
+    const std::vector<ParsingTree2<SymTok, LabTok> > &get_parsed_sents2() const;
 
     static RegisteredProver register_prover(const std::vector< std::string > &templ_hyps, const std::string &templ_thesis);
     Prover build_registered_prover(const RegisteredProver &prover, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers) const;
@@ -170,7 +173,9 @@ public:
     void new_temp_var_frame();
     void release_temp_var_frame();
     std::pair< std::vector< ParsingTree< SymTok, LabTok > >, ParsingTree< SymTok, LabTok > > refresh_assertion(const Assertion &ass);
+    std::pair< std::vector< ParsingTree2< SymTok, LabTok > >, ParsingTree2< SymTok, LabTok > > refresh_assertion2(const Assertion &ass);
     ParsingTree< SymTok, LabTok > refresh_parsing_tree(const ParsingTree< SymTok, LabTok > &pt);
+    ParsingTree2<SymTok, LabTok> refresh_parsing_tree2(const ParsingTree2< SymTok, LabTok > &pt);
 
     const std::function<bool (LabTok)> &get_standard_is_var() const;
     SymTok get_turnstile() const;
@@ -230,6 +235,7 @@ private:
     bool parser_initialization_computed = false;
 
     std::vector< ParsingTree< SymTok, LabTok > > parsed_sents;
+    std::vector< ParsingTree2< SymTok, LabTok > > parsed_sents2;
     bool sentences_parsing_computed = false;
 
     // This is an instance of the Construct On First Use idiom, which prevents the static initialization fiasco;

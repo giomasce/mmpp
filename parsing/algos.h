@@ -145,16 +145,4 @@ private:
     size_t edge_num;
 };
 
-template< typename SymType, typename LabType >
-void collect_variables(const ParsingTree< SymType, LabType > &pt, const std::function< bool(LabType) > &is_var, std::set< LabType > &vars) {
-    if (is_var(pt.label)) {
-        assert(pt.children.empty());
-        vars.insert(pt.label);
-    } else {
-        for (const auto &child : pt.children) {
-            collect_variables(child, is_var, vars);
-        }
-    }
-}
-
 #endif // ALGOS_H

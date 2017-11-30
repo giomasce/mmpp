@@ -20,11 +20,16 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
     }
     Sentence sent2;
     const Sentence *sentp = NULL;
-    if (sp.is_sent) {
-        sentp = &sp.sent;
-    } else {
-        sent2 = sp.tb.reconstruct_sentence(sp.pt);
+    if (sp.sent != NULL) {
+        sentp = sp.sent;
+    } else if (sp.pt != NULL) {
+        sent2 = sp.tb.reconstruct_sentence(*sp.pt);
         sentp = &sent2;
+    } else if (sp.pt2 != NULL) {
+        sent2 = sp.tb.reconstruct_sentence(pt2_to_pt(*sp.pt2));
+        sentp = &sent2;
+    } else {
+        assert("Should never arrive here" == NULL);
     }
     const Sentence &sent = *sentp;
     for (auto &tok : sent) {
@@ -408,6 +413,38 @@ std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok>
     return make_pair(hyps_new_pts, thesis_new_pt);
 }
 
+std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTok> > LibraryToolbox::refresh_assertion2(const Assertion &ass)
+{
+    // Collect all variables
+    std::set< LabTok > var_labs;
+    const auto &is_var = this->get_standard_is_var();
+    const ParsingTree2< SymTok, LabTok > &thesis_pt = this->get_parsed_sents2().at(ass.get_thesis());
+    collect_variables2(thesis_pt, is_var, var_labs);
+    for (const auto hyp : ass.get_ess_hyps()) {
+        const ParsingTree2< SymTok, LabTok > &hyp_pt = this->get_parsed_sents2().at(hyp);
+        collect_variables2(hyp_pt, is_var, var_labs);
+    }
+
+    // Build a substitution map
+    SubstMap2< SymTok, LabTok > subst;
+    for (const auto var_lab : var_labs) {
+        SymTok type_sym = this->get_sentence(var_lab).at(0);
+        SymTok new_sym;
+        LabTok new_lab;
+        tie(new_lab, new_sym) = this->new_temp_var(type_sym);
+        subst[var_lab] = var_parsing_tree(new_lab, type_sym);
+    }
+
+    // Substitute and return
+    ParsingTree2< SymTok, LabTok > thesis_new_pt = ::substitute2(thesis_pt, is_var, subst);
+    vector< ParsingTree2< SymTok, LabTok > > hyps_new_pts;
+    for (const auto hyp : ass.get_ess_hyps()) {
+        const ParsingTree2< SymTok, LabTok > &hyp_pt = this->get_parsed_sents2().at(hyp);
+        hyps_new_pts.push_back(::substitute2(hyp_pt, is_var, subst));
+    }
+    return make_pair(hyps_new_pts, thesis_new_pt);
+}
+
 ParsingTree<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree(const ParsingTree<SymTok, LabTok> &pt)
 {
     // Collect all variables
@@ -430,6 +467,27 @@ ParsingTree<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree(const ParsingTr
 
     // Substitute and return
     return ::substitute(pt, is_var, subst);
+}
+
+ParsingTree2<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree2(const ParsingTree2<SymTok, LabTok> &pt)
+{
+    // Collect all variables
+    std::set< LabTok > var_labs;
+    const auto &is_var = this->get_standard_is_var();
+    collect_variables2(pt, is_var, var_labs);
+
+    // Build a substitution map
+    SubstMap2< SymTok, LabTok > subst;
+    for (const auto var_lab : var_labs) {
+        SymTok type_sym = this->get_sentence(var_lab).at(0);
+        SymTok new_sym;
+        LabTok new_lab;
+        tie(new_lab, new_sym) = this->new_temp_var(type_sym);
+        subst[var_lab] = var_parsing_tree(new_lab, type_sym);
+    }
+
+    // Substitute and return
+    return ::substitute2(pt, is_var, subst);
 }
 
 SymTok LibraryToolbox::get_symbol(string s) const
@@ -550,12 +608,17 @@ std::vector<SymTok> LibraryToolbox::read_sentence(const string &in) const
 
 SentencePrinter LibraryToolbox::print_sentence(const std::vector<SymTok> &sent, SentencePrinter::Style style) const
 {
-    return SentencePrinter({ true, sent, {}, *this, style });
+    return SentencePrinter({ &sent, {}, {}, *this, style });
 }
 
 SentencePrinter LibraryToolbox::print_sentence(const ParsingTree<SymTok, LabTok> &pt, SentencePrinter::Style style) const
 {
-    return SentencePrinter({ false, {}, pt, *this, style });
+    return SentencePrinter({ {}, &pt, {}, *this, style });
+}
+
+SentencePrinter LibraryToolbox::print_sentence(const ParsingTree2<SymTok, LabTok> &pt, SentencePrinter::Style style) const
+{
+    return SentencePrinter({ {}, {}, &pt, *this, style });
 }
 
 ProofPrinter LibraryToolbox::print_proof(const std::vector<LabTok> &proof, bool only_assertions) const
@@ -1055,6 +1118,8 @@ void LibraryToolbox::compute_sentences_parsing()
         }
         this->parsed_sents.resize(i+1);
         this->parsed_sents[i] = pt;
+        this->parsed_sents2.resize(i+1);
+        this->parsed_sents2[i] = pt_to_pt2(pt);
     }
     this->sentences_parsing_computed = true;
 }
@@ -1073,6 +1138,22 @@ const std::vector<ParsingTree<SymTok, LabTok> > &LibraryToolbox::get_parsed_sent
         throw MMPPException("computation required on const object");
     }
     return this->parsed_sents;
+}
+
+const std::vector<ParsingTree2<SymTok, LabTok> > &LibraryToolbox::get_parsed_sents2()
+{
+    if (!this->sentences_parsing_computed) {
+        this->compute_sentences_parsing();
+    }
+    return this->parsed_sents2;
+}
+
+const std::vector<ParsingTree2<SymTok, LabTok> > &LibraryToolbox::get_parsed_sents2() const
+{
+    if (!this->sentences_parsing_computed) {
+        throw MMPPException("computation required on const object");
+    }
+    return this->parsed_sents2;
 }
 
 void LibraryToolbox::compute_registered_prover(size_t index)
