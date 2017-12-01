@@ -157,6 +157,8 @@ public:
     const std::vector< ParsingTree< SymTok, LabTok > > &get_parsed_sents() const;
     const std::vector<ParsingTree2<SymTok, LabTok> > &get_parsed_sents2();
     const std::vector<ParsingTree2<SymTok, LabTok> > &get_parsed_sents2() const;
+    const std::vector<std::vector<std::pair< ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode< SymTok, LabTok > > > > &get_parsed_iters();
+    const std::vector<std::vector<std::pair< ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode< SymTok, LabTok > > > > &get_parsed_iters() const;
 
     static RegisteredProver register_prover(const std::vector< std::string > &templ_hyps, const std::string &templ_thesis);
     Prover build_registered_prover(const RegisteredProver &prover, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers) const;
@@ -236,6 +238,7 @@ private:
 
     std::vector< ParsingTree< SymTok, LabTok > > parsed_sents;
     std::vector< ParsingTree2< SymTok, LabTok > > parsed_sents2;
+    std::vector< std::vector< std::pair< ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode< SymTok, LabTok > > > > parsed_iters;
     bool sentences_parsing_computed = false;
 
     // This is an instance of the Construct On First Use idiom, which prevents the static initialization fiasco;

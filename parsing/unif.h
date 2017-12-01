@@ -3,18 +3,28 @@
 
 #include <functional>
 #include <unordered_map>
+#include <map>
 
 #include "parsing/parser.h"
 #include "parsing/algos.h"
 
 template< typename SymType, typename LabType >
+using SubstMap = std::map< LabType, ParsingTree< SymType, LabType > >;
+
+template< typename SymType, typename LabType >
+using SubstMap2 = std::map< LabType, ParsingTree2< SymType, LabType > >;
+
+template< typename SymType, typename LabType >
+using SimpleSubstMap2 = std::map< LabType, LabType >;
+
+/*template< typename SymType, typename LabType >
 using SubstMap = std::unordered_map< LabType, ParsingTree< SymType, LabType > >;
 
 template< typename SymType, typename LabType >
 using SubstMap2 = std::unordered_map< LabType, ParsingTree2< SymType, LabType > >;
 
 template< typename SymType, typename LabType >
-using SimpleSubstMap2 = std::unordered_map< LabType, LabType >;
+using SimpleSubstMap2 = std::unordered_map< LabType, LabType >;*/
 
 template< typename SymType, typename LabType >
 SubstMap2< SymType, LabType > subst_to_subst2(const SubstMap< SymType, LabType > &subst) {
@@ -57,11 +67,33 @@ ParsingTree< SymType, LabType > substitute(const ParsingTree< SymType, LabType >
     }
 }
 
+
+template< typename SymType, typename LabType >
+size_t substitute2_count(const ParsingTree2< SymType, LabType > &pt,
+                         const std::function< bool(LabType) > &is_var,
+                         const SubstMap2< SymType, LabType > &subst) {
+    auto nodes_len = pt.get_nodes_len();
+    const auto &nodes = pt.get_nodes();
+    size_t ret = nodes_len;
+    for (size_t i = 0; i < nodes_len; i++) {
+        auto lab = nodes[i].label;
+        if (is_var(lab)) {
+            auto it = subst.find(lab);
+            if (it != subst.end()) {
+                ret += it->second.get_nodes_len() - 1;
+            }
+        }
+    }
+    return ret;
+}
+
 template< typename SymType, typename LabType >
 ParsingTree2< SymType, LabType > substitute2(const ParsingTree2< SymType, LabType > &pt,
                                              const std::function< bool(LabType) > &is_var,
                                              const SubstMap2< SymType, LabType > &subst) {
+    size_t final_size = substitute2_count(pt, is_var, subst);
     ParsingTree2Generator< SymType, LabType > gen;
+    gen.reserve(final_size);
     auto it = pt.get_multi_iterator();
     bool discard_next_close = false;
     //for (auto x = it.next(); x.first != it.Finished; x = it.next()) {
@@ -96,11 +128,48 @@ ParsingTree2< SymType, LabType > substitute2(const ParsingTree2< SymType, LabTyp
 #ifdef UNIFICATOR_SELF_TEST
     assert(ret == pt_to_pt2(substitute(pt2_to_pt(pt), is_var, subst2_to_subst(subst))));
 #endif
+    assert(final_size == ret.nodes_storage.size());
     return ret;
 }
 
+/*template< typename SymType, typename LabType >
+ParsingTree2< SymType, LabType > substitute2_its(const std::vector< std::pair< typename ParsingTreeMultiIterator< SymType, LabType >::Status, ParsingTreeNode< SymType, LabType > > > &its,
+                                             const std::function< bool(LabType) > &is_var,
+                                             const SubstMap2< SymType, LabType > &subst) {
+    using Status = typename ParsingTreeMultiIterator< SymType, LabType >::Status;
+    ParsingTree2Generator< SymType, LabType > gen;
+    bool discard_next_close = false;
+    for (const auto &x : its) {
+        if (x.first == Status::Finished) {
+            break;
+        }
+        if (x.first == Status::Open) {
+            assert(!discard_next_close);
+            if (is_var(x.second.label)) {
+                auto it = subst.find(x.second.label);
+                if (it != subst.end()) {
+                    discard_next_close = true;
+                    gen.copy_tree(it->second);
+                } else {
+                    gen.open_node(x.second.label, x.second.type);
+                }
+            } else {
+                gen.open_node(x.second.label, x.second.type);
+            }
+        } else {
+            assert(x.first == Status::Close);
+            if (discard_next_close) {
+                discard_next_close = false;
+            } else {
+                gen.close_node();
+            }
+        }
+    }
+    return gen.get_parsing_tree();
+}*/
+
 template< typename SymType, typename LabType >
-ParsingTree2< SymType, LabType > substitute2(const ParsingTree2< SymType, LabType > &pt,
+ParsingTree2< SymType, LabType > substitute2_simple(const ParsingTree2< SymType, LabType > &pt,
                                              const std::function< bool(LabType) > &is_var,
                                              const SimpleSubstMap2< SymType, LabType > &subst) {
     ParsingTree2< SymType, LabType > ret = pt;
@@ -228,11 +297,13 @@ void collect_variables(const ParsingTree< SymType, LabType > &pt, const std::fun
 
 template< typename SymType, typename LabType >
 void collect_variables2(const ParsingTreeIterator< SymType, LabType > &it, const std::function< bool(LabType) > &is_var, std::set< LabType > &vars) {
-    if (is_var(it.get_node().label)) {
-        vars.insert(it.get_node().label);
-    } else {
-        for (const auto &child : it) {
-            collect_variables2(child, is_var, vars);
+    const auto tree = it.get_view();
+    auto nodes_len = tree.get_nodes_len();
+    const auto &nodes = tree.get_nodes();
+    for (size_t i = 0; i < nodes_len; i++) {
+        auto lab = nodes[i].label;
+        if (is_var(lab)) {
+            vars.insert(lab);
         }
     }
 }

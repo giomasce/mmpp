@@ -435,11 +435,11 @@ std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTo
     }
 
     // Substitute and return
-    ParsingTree2< SymTok, LabTok > thesis_new_pt = ::substitute2(thesis_pt, is_var, subst);
+    ParsingTree2< SymTok, LabTok > thesis_new_pt = ::substitute2_simple(thesis_pt, is_var, subst);
     vector< ParsingTree2< SymTok, LabTok > > hyps_new_pts;
     for (const auto hyp : ass.get_ess_hyps()) {
         const ParsingTree2< SymTok, LabTok > &hyp_pt = this->get_parsed_sents2().at(hyp);
-        hyps_new_pts.push_back(::substitute2(hyp_pt, is_var, subst));
+        hyps_new_pts.push_back(::substitute2_simple(hyp_pt, is_var, subst));
     }
     return make_pair(hyps_new_pts, thesis_new_pt);
 }
@@ -485,7 +485,7 @@ ParsingTree2<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree2(const Parsing
     }
 
     // Substitute and return
-    return ::substitute2(pt, is_var, subst);
+    return ::substitute2_simple(pt, is_var, subst);
 }
 
 SymTok LibraryToolbox::get_symbol(string s) const
@@ -1118,6 +1118,15 @@ void LibraryToolbox::compute_sentences_parsing()
         this->parsed_sents[i] = pt;
         this->parsed_sents2.resize(i+1);
         this->parsed_sents2[i] = pt_to_pt2(pt);
+        this->parsed_iters.resize(i+1);
+        ParsingTreeMultiIterator< SymTok, LabTok > it = this->parsed_sents2[i].get_multi_iterator();
+        while (true) {
+            auto x = it.next();
+            this->parsed_iters[i].push_back(x);
+            if (x.first == it.Finished) {
+                break;
+            }
+        }
     }
     this->sentences_parsing_computed = true;
 }
@@ -1152,6 +1161,22 @@ const std::vector<ParsingTree2<SymTok, LabTok> > &LibraryToolbox::get_parsed_sen
         throw MMPPException("computation required on const object");
     }
     return this->parsed_sents2;
+}
+
+const std::vector<std::vector<std::pair<ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode<SymTok, LabTok> > > > &LibraryToolbox::get_parsed_iters()
+{
+    if (!this->sentences_parsing_computed) {
+        this->compute_sentences_parsing();
+    }
+    return this->parsed_iters;
+}
+
+const std::vector<std::vector<std::pair<ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode<SymTok, LabTok> > > > &LibraryToolbox::get_parsed_iters() const
+{
+    if (!this->sentences_parsing_computed) {
+        throw MMPPException("computation required on const object");
+    }
+    return this->parsed_iters;
 }
 
 void LibraryToolbox::compute_registered_prover(size_t index)

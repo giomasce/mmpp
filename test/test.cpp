@@ -111,7 +111,7 @@ void test_tree_unification() {
     auto pt_sent = tb.parse_sentence(tb.read_sentence("( ph -> ( ps -> ch ) )"), lib.get_symbol("wff"));
 
     bool res;
-    unordered_map< LabTok, ParsingTree< SymTok, LabTok > > subst;
+    SubstMap< SymTok, LabTok > subst;
     UnilateralUnificator< SymTok, LabTok > unif(is_var);
     unif.add_parsing_trees(pt_templ, pt_sent);
     tie(res, subst) = unif.unify();

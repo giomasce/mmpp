@@ -57,7 +57,7 @@ struct ParsingTreeIterator {
     }
 
     ParsingTree2< SymType, LabType > get_view() const {
-        return ParsingTree2(this->tree.get_nodes() + this->item_num, this->get_node().descendants_num + 1);
+        return ParsingTree2< SymType, LabType >(this->tree.get_nodes() + this->item_num, this->get_node().descendants_num + 1);
     }
 
     // Iterator interface for accessing children
@@ -157,6 +157,9 @@ struct ParsingTree2 {
     ParsingTree2(const ParsingTreeNode< SymType, LabType > *nodes, size_t nodes_len) : nodes(nodes), nodes_len(nodes_len) {
     }
 
+    ParsingTree2(std::vector< ParsingTreeNode< SymType, LabType > > &&nodes_storage, const ParsingTreeNode< SymType, LabType > *nodes, size_t nodes_len) : nodes_storage(std::move(nodes_storage)), nodes(nodes), nodes_len(nodes_len) {
+    }
+
     /*ParsingTree2(const ParsingTree2< SymType, LabType > &pt, size_t item_num) : nodes(pt.get_nodes()), nodes_len(pt.get_nodes_len()) {
     }*/
 
@@ -210,8 +213,12 @@ public:
         this->stack.pop_back();
     }
 
-    void copy_tree(const ParsingTree2< SymTok, LabTok > &pt) {
+    void copy_tree(const ParsingTree2< SymType, LabType > &pt) {
         this->pt.nodes_storage.insert(this->pt.nodes_storage.end(), pt.get_nodes(), pt.get_nodes() + pt.get_nodes_len());
+    }
+
+    void reserve(size_t x) {
+        this->pt.nodes_storage.reserve(x);
     }
 
     ParsingTree2< SymType, LabType > &&get_parsing_tree() {
@@ -235,9 +242,10 @@ ParsingTree2< SymType, LabType > var_parsing_tree(LabType label, SymType type) {
 
 template< typename SymType, typename LabType >
 ParsingTree2< SymType, LabType > var_parsing_tree(LabType label, SymType type) {
-    ParsingTree2< SymType, LabType > pt;
-    pt.nodes_storage.push_back({ label, type, 0 });
-    return pt;
+    //ParsingTree2< SymType, LabType > pt;
+    //pt.nodes_storage.push_back({ label, type, 0 });
+    //return pt;
+    return ParsingTree2< SymType, LabType >{ { { label, type, 0 } }, NULL, 0 };
 }
 
 template< typename SymType, typename LabType >
