@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <random>
+#include <functional>
 
 #include "test/test_env.h"
 #include "toolbox.h"
@@ -167,7 +168,8 @@ void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
 size_t count = 0;
 void print_theorem(const ParsingTree2< SymTok, LabTok > &thesis, const vector< ParsingTree2< SymTok, LabTok > >&hyps, const vector< LabTok > &steps, LibraryToolbox &tb) {
     ::count++;
-    if (::count % 10000 == 0) {
+    bool finished = hyps.empty();
+    if (::count % 10000 == 0 || finished) {
         cout << ::count << endl;
         cout << tb.print_sentence(thesis) << endl;
         cout << "with the hypotheses:" << endl;
@@ -176,9 +178,12 @@ void print_theorem(const ParsingTree2< SymTok, LabTok > &thesis, const vector< P
         }
         cout << "Proved with steps: " << tb.print_proof(steps) << endl;
     }
-    if (::count == 100000) {
+    if (finished) {
         exit(0);
     }
+    /*if (::count == 100000) {
+        exit(0);
+    }*/
 }
 
 int gen_random_theorems_main(int argc, char *argv[]) {
@@ -192,25 +197,42 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     auto &data = get_set_mm();
     auto &lib = data.lib;
     auto &tb = data.tb;
+    auto standard_is_var = tb.get_standard_is_var();
 
+    LabTok target_label = lib.get_label("elsni");
     vector< const Assertion* > useful_asses;
     for (const auto &ass : lib.get_assertions()) {
         if (ass.is_valid() && lib.get_sentence(ass.get_thesis()).at(0) == tb.get_turnstile()) {
+            /*if (ass.get_thesis() >= target_label) {
+                break;
+            }*/
             if (ass.is_theorem() && ass.has_proof() && ass.get_proof_executor(lib)->is_trivial()) {
                 //cout << "Proof for " << lib.resolve_label(ass.get_thesis()) << " is trivial" << endl;
             } else {
-                useful_asses.push_back(&ass);
+                if (ass.get_thesis() != target_label && ass.get_thesis()) {
+                    useful_asses.push_back(&ass);
+                }
             }
         }
     }
     cout << "There are " << useful_asses.size() << " useful theorems" << endl;
 
-    BilateralUnificator< SymTok, LabTok > unif(tb.get_standard_is_var());
+    sort(useful_asses.begin(), useful_asses.end(), [&lib](const auto &x, const auto &y) { return lib.get_sentence(x->get_thesis()).size() > lib.get_sentence(y->get_thesis()).size(); });
+    set< LabTok > target_vars;
+    collect_variables2(tb.get_parsed_sents2()[target_label], standard_is_var, target_vars);
+    std::function< bool(LabTok) > is_var = [&target_vars,&standard_is_var](LabTok x) {
+        if (target_vars.find(x) != target_vars.end()) {
+            return false;
+        }
+        return standard_is_var(x);
+    };
+
+    BilateralUnificator< SymTok, LabTok > unif(is_var);
     vector< ParsingTree2< SymTok, LabTok > > open_hyps;
     LabTok th_label;
     tie(th_label, ignore) = tb.new_temp_var(tb.get_turnstile_alias());
     ParsingTree2< SymTok, LabTok > final_thesis = var_parsing_tree(th_label, tb.get_turnstile_alias());
-    //final_thesis = tb.get_parsed_sents2()[tb.get_label("absmod0")];
+    final_thesis = tb.get_parsed_sents2()[target_label];
     open_hyps.push_back(final_thesis);
     vector< LabTok > steps;
 
