@@ -187,9 +187,6 @@ void print_theorem(const ParsingTree2< SymTok, LabTok > &thesis, const vector< P
 }
 
 int gen_random_theorems_main(int argc, char *argv[]) {
-    (void) argc;
-    (void) argv;
-
     random_device rand_dev;
     mt19937 rand_mt;
     rand_mt.seed(rand_dev());
@@ -199,7 +196,19 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     auto &tb = data.tb;
     auto standard_is_var = tb.get_standard_is_var();
 
-    LabTok target_label = lib.get_label("elsni");
+    //string target_label_str(argv[1]);
+    //LabTok target_label = lib.get_label(target_label_str);
+    //auto target_pt = tb.get_parsed_sents2()[target_label];
+
+    ostringstream oss;
+    for (size_t i = 1; i < argc; i++) {
+        oss << argv[i] << " ";
+    }
+    Sentence target_sent = tb.read_sentence(oss.str());
+    auto target_pt1 = tb.parse_sentence(target_sent, tb.get_turnstile_alias());
+    auto target_pt = pt_to_pt2(target_pt1);
+    LabTok target_label = 0;
+
     vector< const Assertion* > useful_asses;
     for (const auto &ass : lib.get_assertions()) {
         if (ass.is_valid() && lib.get_sentence(ass.get_thesis()).at(0) == tb.get_turnstile()) {
@@ -217,9 +226,11 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     }
     cout << "There are " << useful_asses.size() << " useful theorems" << endl;
 
-    sort(useful_asses.begin(), useful_asses.end(), [&lib](const auto &x, const auto &y) { return lib.get_sentence(x->get_thesis()).size() > lib.get_sentence(y->get_thesis()).size(); });
+    sort(useful_asses.begin(), useful_asses.end(), [&lib](const auto &x, const auto &y) {
+        return x->get_ess_hyps().size() < y->get_ess_hyps().size() || (x->get_ess_hyps().size() < y->get_ess_hyps().size() && lib.get_sentence(x->get_thesis()).size() > lib.get_sentence(y->get_thesis()).size());
+    });
     set< LabTok > target_vars;
-    collect_variables2(tb.get_parsed_sents2()[target_label], standard_is_var, target_vars);
+    collect_variables2(target_pt, standard_is_var, target_vars);
     std::function< bool(LabTok) > is_var = [&target_vars,&standard_is_var](LabTok x) {
         if (target_vars.find(x) != target_vars.end()) {
             return false;
@@ -232,7 +243,7 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     LabTok th_label;
     tie(th_label, ignore) = tb.new_temp_var(tb.get_turnstile_alias());
     ParsingTree2< SymTok, LabTok > final_thesis = var_parsing_tree(th_label, tb.get_turnstile_alias());
-    final_thesis = tb.get_parsed_sents2()[target_label];
+    final_thesis = target_pt;
     open_hyps.push_back(final_thesis);
     vector< LabTok > steps;
 
