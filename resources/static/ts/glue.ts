@@ -21,4 +21,4 @@ System.config({
 });
 System.import("./js/mmpp.js").then(function (module) {
   mmpp = module;
-})
+});

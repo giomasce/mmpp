@@ -15,6 +15,9 @@
 using namespace std;
 using namespace nlohmann;
 
+const bool SERVE_STATIC_FILES = true;
+const bool PUBLICLY_SERVE_STATIC_FILES = true;
+
 mt19937 rand_mt;
 
 void init_random() {
@@ -145,7 +148,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
         }
     }
 
-    // Check auth cookie and recover session
+    // Check auth cookie and recover session; at this point we allow a NULL session if we are publicly serving static files
     string session_cookie;
     try {
         session_cookie = cb.get_cookies().at(cookie_name);
@@ -153,6 +156,78 @@ void WebEndpoint::answer(HTTPCallback &cb)
         session_cookie = "";
     }
     shared_ptr< Session > session = this->get_session(session_cookie);
+    if (!PUBLICLY_SERVE_STATIC_FILES && session == NULL) {
+        cb.set_status_code(403);
+        cb.add_header("Content-Type", "text/plain");
+        cb.set_answer("403 Forbidden");
+        return;
+    }
+
+    // Serve static files
+    // TODO This is not the greatest static file server ever...
+    if (SERVE_STATIC_FILES) {
+        string static_url = "/static/";
+        boost::filesystem::path static_dir = boost::filesystem::canonical(platform_get_resources_base() / "static");
+        if (method == "GET" && starts_with(url, static_url)) {
+            boost::filesystem::path filename = platform_get_resources_base() / string(url.begin(), url.end());
+            // First we have to check if the file exists, because canonical() requires it
+            if (!boost::filesystem::exists(filename)) {
+                cb.set_status_code(404);
+                cb.add_header("Content-Type", "text/plain");
+                cb.set_answer("404 Not Found");
+                return;
+            }
+            // Then we canonicalize the path and check that it still is under the right directory by repeatedly passing to the parent directory
+            boost::filesystem::path canonical_filename = boost::filesystem::canonical(filename);
+            bool is_in_static = false;
+            for (boost::filesystem::path i = canonical_filename; !i.empty(); i = i.parent_path()) {
+                if (i == static_dir) {
+                    is_in_static = true;
+                    break;
+                }
+            }
+            if (!is_in_static) {
+                // We respond 404 and not 403, because the client could query the existence of files outside the static dir
+                cb.set_status_code(404);
+                cb.add_header("Content-Type", "text/plain");
+                cb.set_answer("404 Not Found");
+                return;
+            }
+            // Ok, we are cleared to send the file
+            auto infile = make_shared< boost::filesystem::ifstream >(filename, ios::binary);
+            if (!(*infile)) {
+                cb.set_status_code(404);
+                cb.add_header("Content-Type", "text/plain");
+                cb.set_answer("404 Not Found");
+                return;
+            }
+            cb.set_status_code(200);
+            cb.add_header("Content-Type", guess_content_type(url));
+            /*string content;
+            try {
+                content = string(istreambuf_iterator< char >(infile), istreambuf_iterator< char >());
+            } catch(exception) {
+                cb.set_status_code(404);
+                cb.add_header("Content-Type", "text/plain");
+                cb.set_answer("404 Not Found");
+                return;
+            }
+            cb.set_answer(move(content));*/
+            cb.set_answerer([infile]() mutable {
+                if (*infile) {
+                    char buffer[HTTP_BUFFER_SIZE];
+                    infile->read(buffer, HTTP_BUFFER_SIZE);
+                    auto bytes_num = infile->gcount();
+                    return string(buffer, bytes_num);
+                } else {
+                    return string("");
+                }
+            });
+            return;
+        }
+    }
+
+    // Check again the session: if you do not have a valid one, you cannot go past here
     if (session == NULL) {
         cb.set_status_code(403);
         cb.add_header("Content-Type", "text/plain");
@@ -165,68 +240,6 @@ void WebEndpoint::answer(HTTPCallback &cb)
         cb.add_header("Location", "/static/index.html");
         cb.set_status_code(302);
         cb.set_answer("");
-        return;
-    }
-
-    // Serve static files
-    // TODO This is not the greatest static file server ever...
-    string static_url = "/static/";
-    boost::filesystem::path static_dir = boost::filesystem::canonical(platform_get_resources_base() / "static");
-    if (method == "GET" && starts_with(url, static_url)) {
-        boost::filesystem::path filename = platform_get_resources_base() / string(url.begin(), url.end());
-        // First we have to check if the file exists, because canonical() requires it
-        if (!boost::filesystem::exists(filename)) {
-            cb.set_status_code(404);
-            cb.add_header("Content-Type", "text/plain");
-            cb.set_answer("404 Not Found");
-            return;
-        }
-        // Then we canonicalize the path and check that it still is under the right directory by repeatedly passing to the parent directory
-        boost::filesystem::path canonical_filename = boost::filesystem::canonical(filename);
-        bool is_in_static = false;
-        for (boost::filesystem::path i = canonical_filename; !i.empty(); i = i.parent_path()) {
-            if (i == static_dir) {
-                is_in_static = true;
-                break;
-            }
-        }
-        if (!is_in_static) {
-            // We respond 404 and not 403, because the client could query the existence of files outside the static dir
-            cb.set_status_code(404);
-            cb.add_header("Content-Type", "text/plain");
-            cb.set_answer("404 Not Found");
-            return;
-        }
-        // Ok, we are cleared to send the file
-        auto infile = make_shared< boost::filesystem::ifstream >(filename, ios::binary);
-        if (!(*infile)) {
-            cb.set_status_code(404);
-            cb.add_header("Content-Type", "text/plain");
-            cb.set_answer("404 Not Found");
-            return;
-        }
-        cb.set_status_code(200);
-        cb.add_header("Content-Type", guess_content_type(url));
-        /*string content;
-        try {
-            content = string(istreambuf_iterator< char >(infile), istreambuf_iterator< char >());
-        } catch(exception) {
-            cb.set_status_code(404);
-            cb.add_header("Content-Type", "text/plain");
-            cb.set_answer("404 Not Found");
-            return;
-        }
-        cb.set_answer(move(content));*/
-        cb.set_answerer([infile]() mutable {
-            if (*infile) {
-                char buffer[HTTP_BUFFER_SIZE];
-                infile->read(buffer, HTTP_BUFFER_SIZE);
-                auto bytes_num = infile->gcount();
-                return string(buffer, bytes_num);
-            } else {
-                return string("");
-            }
-        });
         return;
     }
 
