@@ -60,6 +60,10 @@
   font-size: small;
 }
 
+.loading {
+  color: gray;
+}
+
 .sentence {
 }
 
@@ -70,6 +74,7 @@
   border-width: 1px;
   border-color: rgb(0, 0, 0);
   padding: 2px;
+  font-size: small;
 }
 
 .mini_button {

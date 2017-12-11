@@ -35,6 +35,10 @@ function workset_loaded(new_workset : Workset) {
   update_workset_globals();
 }
 
+export function get_current_workset() : Workset {
+  return current_workset;
+}
+
 export function ui_create_workset() {
   create_workset().then(workset_loaded).catch(catch_all);
 }
@@ -143,13 +147,14 @@ class ProofStepCellDelegate implements CellDelegate {
   }
 
   show_suggestion() : void {
+    $(`.suggestion`).fadeOut();
     $(`#${this.step.get_id()}_suggestion`).fadeIn();
   }
 
   get_suggestion() : void {
     let self = this;
-    if (this.suggestion_ready) {
       this.show_suggestion();
+    if (this.suggestion_ready) {
       return;
     }
     let label : number = this.proof_tree["label"];
@@ -173,7 +178,6 @@ class ProofStepCellDelegate implements CellDelegate {
           dists: assertion["dists"].map(function(el) { return current_renderer.render_from_codes([el[0]]) + ", " + current_renderer.render_from_codes([el[1]]); }),
         }));
         self.suggestion_ready = true;
-        self.show_suggestion();
       });
     }).catch(catch_all);
   }
@@ -309,10 +313,14 @@ const PROOF_STEP_TEMPL = `
 `;
 
 const DATA1_TEMPL = `
-  <span id="{{ cell_id }}_label" class="label" style="position: relative;">
-    {{ label }} <span class="r" style="color: {{ number_color }}">{{ number }}</span>
+  <span style="position: relative;">
+    <span id="{{ cell_id }}_label" class="label">
+      {{ label }} <span class="r" style="color: {{ number_color }}">{{ number }}</span>
+    </span>
     <div class="outer_above">
-      <div style="display: none;" id="{{ cell_id }}_suggestion" class="inner_above suggestion"></div>
+      <div style="display: none;" id="{{ cell_id }}_suggestion" class="inner_above suggestion">
+        <span class="loading">Loading...</span>
+      </div>
     </div>
   </span>
   <span id="{{ cell_id }}_sentence" class="sentence">{{{ sentence }}}</span>
