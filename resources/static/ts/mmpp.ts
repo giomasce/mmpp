@@ -264,8 +264,62 @@ export function ui_show_modifier() {
     // Fire all the requests and then feed the results to the template
     return Promise.all(requests).then(function(responses : Array<any>) : void {
       editor = new Editor("workset_area");
-      modifier_render_proof(responses[requests_map["proof_tree"]]["proof_tree"], editor, editor.root_step.id);
+      modifier_render_proof(responses[requests_map["proof_tree"]].proof_tree, editor, editor.root_step.id);
     });
+  }).catch(catch_all);
+}
+
+// The Promise<[Promise<void>]> is just a workaround for the fact that it is not possible to construct a Promise<Promise<void>> object
+function render_proof_in_workset(proof_tree, workset : Workset, parent : Step) : Promise<[Promise<void>]> {
+  if (!proof_tree["essential"] && !include_non_essentials) {
+    let x : [Promise<void>] = [Promise.resolve()];
+    return Promise.resolve(x);
+  }
+  return workset.create_step(parent, -1).then(function (new_step : Step) : Promise<[Promise<void>]> {
+    let x : [Promise<void>] = [Promise.resolve()];
+    let promise : Promise<[Promise<void>]> = Promise.resolve(x);
+    for (let child of proof_tree.children) {
+      promise = promise.then(function(prev_completion_ : [Promise<void>]) : Promise<[Promise<void>]> {
+        let prev_completion : Promise<void> = prev_completion_[0];
+        return render_proof_in_workset(child, workset, new_step).then(function (this_completion_ : [Promise<void>]) : Promise<[Promise<void>]> {
+          let this_completion : Promise<void> = this_completion_[0];
+          // The then clause is only to convert the type
+          let next_completion : Promise<void> = Promise.all([prev_completion, this_completion]).then(function() : void {});
+          let next_completion_ : [Promise<void>] = [next_completion];
+          return Promise.resolve(next_completion_);
+        });
+      });
+    }
+    return promise;
+  });
+}
+
+export function ui_build_tree() {
+  if (!current_workset.loaded) {
+    return;
+  }
+
+  // Resolve the label and request the corresponding assertion
+  let label : string = $("#statement_label").val();
+  let label_tok : number = current_workset.labels_inv[label];
+  current_workset.do_api_request(`get_assertion/${label_tok}`).then(function(data) : Promise<void> {
+    let assertion = data["assertion"];
+
+    // Request all the interesting things for the proof
+    let requests : Promise<any>[] = [];
+    let requests_map = {
+      proof_tree: push_and_get_index(requests, current_workset.do_api_request(`get_proof_tree/${assertion["thesis"]}`)),
+    };
+
+    // Fire all the requests and then feed the results to the template
+    return Promise.all(requests).then(function(responses : Array<any>) : Promise<[Promise<void>]> {
+      let x = render_proof_in_workset(responses[requests_map["proof_tree"]].proof_tree, current_workset, current_workset.get_root_step());
+      return x;
+    }).then(function (completion_ : [Promise<void>]) : Promise<void> {
+      let completion : Promise<void> = completion_[0];
+      return completion;
+    });
+  }).then(function () {
   }).catch(catch_all);
 }
 
@@ -361,6 +415,7 @@ const WORKSET_TEMPL = `
     <input type="text" id="statement_label"></input>
     <button onclick="mmpp.ui_show_proof()">Show proof</button>
     <button onclick="mmpp.ui_show_modifier()">Show modifier</button>
+    <button onclick="mmpp.ui_build_tree()">Build tree</button>
   </div>
   <div id="workset_area"></div>
 `;

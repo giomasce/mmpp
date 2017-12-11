@@ -49,7 +49,7 @@ export class Workset {
     return jsonAjax(`/api/${API_VERSION}/workset/${this.id}/` + url, dump, dump_content, async);
   }
 
-  create_step(parent : Step, idx : number) : Promise<void> {
+  create_step(parent : Step, idx : number) : Promise<Step> {
     let self = this;
     if (this.root_step === null) {
       throw "The workset was never loaded";
@@ -60,15 +60,21 @@ export class Workset {
     if (idx < 0 || parent.children.length < idx) {
       throw "Wrong index";
     }
-    return this.do_api_request(`create/${parent.id}/${idx}`).then(function (data : any) : Promise<void> {
+    return this.do_api_request(`step/create/${parent.id}/${idx}`).then(function (data : any) : Promise<Step> {
       if (!data.success) {
         throw "Failed to load step data";
       } else {
         let new_step = new Step(data.id, self);
         parent.children.splice(idx, 0, new_step);
-        return new_step.load_from_remote();
+        return new_step.load_from_remote().then(function () : Step {
+          return new_step;
+        });
       }
     });
+  }
+
+  get_root_step() : Step {
+    return this.root_step;
   }
 
   load_from_remote() : Promise<void> {
