@@ -1,15 +1,15 @@
 /// <reference path="jquery.d.ts"/>
 /// <reference path="mustache.d.ts"/>
 
-export function jsonAjax(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : JQueryPromise<any> {
+export function jsonAjax(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : Promise<object> {
   if (dump) {
     $("#console_text").append("\n\nRequesting: " + url);
   }
-  return $.ajax({
+  return Promise.resolve($.ajax({
     url: url,
     dataType: "json",
     async: async,
-  }).then(function(data) {
+  })).then(function(data : object) : object {
     if (dump) {
       if (dump_content) {
         $("#console_text").append("\nReceived: " + JSON.stringify(data));
@@ -20,6 +20,11 @@ export function jsonAjax(url : string, dump : boolean = true, dump_content : boo
     }
     return data;
   });
+}
+
+export function catch_all(reason : any) : void {
+  console.log("Catched error:");
+  console.log(reason);
 }
 
 export function lastize(list : object[]) : object[] {
@@ -106,5 +111,5 @@ export function push_and_get_index<T>(array : T[], object : T) : number {
 }
 
 export function serialize(array : (callback : (bool)=>void)=>void[]) : void {
-  
+
 }

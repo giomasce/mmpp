@@ -1,7 +1,7 @@
 /// <reference path="jquery.d.ts"/>
 /// <reference path="mustache.d.ts"/>
 
-import { get_serial, spectrum_to_rgb, push_and_get_index, lastize } from "./utils";
+import { get_serial, spectrum_to_rgb, push_and_get_index, lastize, catch_all } from "./utils";
 import { CellDelegate, Editor, EditorStep } from "./editor";
 import { check_version, create_workset, load_workset, list_worksets, Step, Workset, Renderer, RenderingStyles } from "./workset";
 
@@ -13,30 +13,18 @@ const DEFAULT_STYLE : RenderingStyles = RenderingStyles.ALT_HTML;
 let include_non_essentials : boolean = false;
 
 $(function() {
-  check_version(function (res : boolean) {
-    if (res) {
-      $("#work_area").html(Mustache.render(WORK_AREA_TEMPL, {}));
-      reload_workset_list();
-    } else {
-      $("#work_area").html("ERROR! Could not find a compatible API");
-    }
-  });
+  check_version().then(function() : void {
+    $("#work_area").html(Mustache.render(WORK_AREA_TEMPL, {}));
+    reload_workset_list();
+  }).catch(catch_all);
 });
 
 function reload_workset_list() : void {
-  list_worksets(function (worksets : object) : void {
+  list_worksets().then(function (worksets) : void {
     $("#workset_list").html(Mustache.render(WORKSET_LIST_TEMPL, {
       worksets: worksets,
     }))
-  })
-}
-
-export function ui_create_workset() {
-  create_workset(workset_loaded);
-}
-
-export function ui_load_workset(id : number) {
-  load_workset(id, workset_loaded);
+  }).catch(catch_all);
 }
 
 function workset_loaded(new_workset : Workset) {
@@ -47,15 +35,21 @@ function workset_loaded(new_workset : Workset) {
   update_workset_globals();
 }
 
+export function ui_create_workset() {
+  create_workset().then(workset_loaded).catch(catch_all);
+}
+
+export function ui_load_workset(id : number) {
+  load_workset(id).then(workset_loaded).catch(catch_all);
+}
+
 function update_workset_globals() : void {
   $("#workset_status").text(current_workset.get_human_description());
   $("#global_style").html(current_renderer.get_global_style());
 }
 
 export function ui_load_data() {
-  current_workset.load_data(function() {
-    update_workset_globals();
-  });
+  current_workset.load_data().then(update_workset_globals).catch(catch_all);
 }
 
 function render_proof_internal(proof_tree, depth : number, step : number) : [string, number] {
@@ -87,11 +81,11 @@ function render_proof(proof_tree) {
 }
 
 export function ui_show_proof_for_label(label_tok : number) {
-  current_workset.do_api_request(`get_assertion/${label_tok}`).done(function(data) {
+  current_workset.do_api_request(`get_assertion/${label_tok}`).then(function(data) : Promise<void> {
     let assertion = data["assertion"];
 
     // Request all the interesting things for the proof
-    let requests : JQueryPromise<any>[] = [];
+    let requests : Promise<any>[] = [];
     let requests_map = {
       thesis: push_and_get_index(requests, current_workset.do_api_request(`get_sentence/${assertion["thesis"]}`)),
       proof_tree: push_and_get_index(requests, current_workset.do_api_request(`get_proof_tree/${assertion["thesis"]}`)),
@@ -102,8 +96,7 @@ export function ui_show_proof_for_label(label_tok : number) {
     };
 
     // Fire all the requests and then feed the results to the template
-    $.when.apply($, requests).done(function() {
-      let responses = arguments;
+    return Promise.all(requests).then(function(responses : Array<any>) : void {
       $("#workset_area").html(Mustache.render(PROOF_TEMPL, {
         thesis: current_renderer.render_from_codes(responses[requests_map["thesis"]]["sentence"]),
         ess_hyps_sent: requests_map["ess_hyps_sent"].map(function(el) { return current_renderer.render_from_codes(responses[el]["sentence"]); }),
@@ -111,9 +104,8 @@ export function ui_show_proof_for_label(label_tok : number) {
         dists: lastize(assertion["dists"].map(function(el) { return { dist: current_renderer.render_from_codes([el[0]]) + ", " + current_renderer.render_from_codes([el[1]]) }; })),
         proof: render_proof(responses[requests_map["proof_tree"]]["proof_tree"]),
       }));
-
     });
-  });
+  }).catch(catch_all);
 }
 
 export function ui_show_proof() {
@@ -161,11 +153,11 @@ class ProofStepCellDelegate implements CellDelegate {
       return;
     }
     let label : number = this.proof_tree["label"];
-    current_workset.do_api_request(`get_assertion/${label}`).done(function(data) {
+    current_workset.do_api_request(`get_assertion/${label}`).then(function(data) : Promise<void> {
       let assertion = data["assertion"];
 
       // Request all the interesting things for the proof
-      let requests : JQueryPromise<any>[] = [];
+      let requests : Promise<any>[] = [];
       let requests_map = {
         thesis: push_and_get_index(requests, current_workset.do_api_request(`get_sentence/${assertion["thesis"]}`)),
         ess_hyps_sent: assertion["ess_hyps"].map(function (el) { return push_and_get_index(requests, current_workset.do_api_request(`get_sentence/${el}`)); }),
@@ -173,8 +165,7 @@ class ProofStepCellDelegate implements CellDelegate {
       };
 
       // Fire all the requests and then feed the results to the template
-      $.when.apply($, requests).done(function() {
-        let responses = arguments;
+      return Promise.all(requests).then(function(responses : Array<any>) : void {
         $(`#${self.step.get_id()}_suggestion`).html(Mustache.render(SUGGESTION_TEMPL, {
           thesis: current_renderer.render_from_codes(responses[requests_map["thesis"]]["sentence"]),
           ess_hyps_sent: requests_map["ess_hyps_sent"].map(function(el) { return current_renderer.render_from_codes(responses[el]["sentence"]); }),
@@ -184,7 +175,7 @@ class ProofStepCellDelegate implements CellDelegate {
         self.suggestion_ready = true;
         self.show_suggestion();
       });
-    });
+    }).catch(catch_all);
   }
 
   cell_ready() : void {
@@ -252,11 +243,11 @@ export function ui_show_modifier() {
   // Resolve the label and request the corresponding assertion
   let label : string = $("#statement_label").val();
   let label_tok : number = current_workset.labels_inv[label];
-  current_workset.do_api_request(`get_assertion/${label_tok}`).done(function(data) {
+  current_workset.do_api_request(`get_assertion/${label_tok}`).then(function(data) : Promise<void> {
     let assertion = data["assertion"];
 
     // Request all the interesting things for the proof
-    let requests : JQueryPromise<any>[] = [];
+    let requests : Promise<any>[] = [];
     let requests_map = {
       thesis: push_and_get_index(requests, current_workset.do_api_request(`get_sentence/${assertion["thesis"]}`)),
       proof_tree: push_and_get_index(requests, current_workset.do_api_request(`get_proof_tree/${assertion["thesis"]}`)),
@@ -267,12 +258,11 @@ export function ui_show_modifier() {
     };
 
     // Fire all the requests and then feed the results to the template
-    $.when.apply($, requests).done(function() {
-      let responses = arguments;
+    return Promise.all(requests).then(function(responses : Array<any>) : void {
       editor = new Editor("workset_area");
       modifier_render_proof(responses[requests_map["proof_tree"]]["proof_tree"], editor, editor.root_step.id);
     });
-  });
+  }).catch(catch_all);
 }
 
 /*function retrieve_sentence(label_tok : number) : number[] {

@@ -16,14 +16,13 @@ export class Step {
     this.children = new Array();
   }
 
-  do_api_request(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : JQueryPromise<any> {
+  do_api_request(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : Promise<object> {
     return this.workset.do_api_request(`step/${this.id}/` + url, dump, dump_content, async);
   }
 
-  load_from_remote(callback : () => void) : void {
-    let self = this;
-    this.do_api_request(`get`).done(function (data) {
-      callback();
+  load_from_remote() : Promise<void> {
+    return this.do_api_request(`get`).then(function (x : object) : void {
+      // We might do something here
     });
   }
 }
@@ -46,11 +45,11 @@ export class Workset {
     this.styles = new Map();
   }
 
-  do_api_request(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : JQueryPromise<any> {
+  do_api_request(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : Promise<object> {
     return jsonAjax(`/api/${API_VERSION}/workset/${this.id}/` + url, dump, dump_content, async);
   }
 
-  create_step(parent : Step, idx : number, callback : (boolean) => void) : void {
+  create_step(parent : Step, idx : number) : Promise<void> {
     let self = this;
     if (this.root_step === null) {
       throw "The workset was never loaded";
@@ -61,22 +60,20 @@ export class Workset {
     if (idx < 0 || parent.children.length < idx) {
       throw "Wrong index";
     }
-    this.do_api_request(`create/${parent.id}/${idx}`).done(function (data) {
+    return this.do_api_request(`create/${parent.id}/${idx}`).then(function (data : any) : Promise<void> {
       if (!data.success) {
-        callback(false);
+        throw "Failed to load step data";
       } else {
-        let new_step = new Step(data.id, self);;
+        let new_step = new Step(data.id, self);
         parent.children.splice(idx, 0, new_step);
-        new_step.load_from_remote(function () {
-          callback(true);
-        });
+        return new_step.load_from_remote();
       }
     });
   }
 
-  load_from_remote(callback : () => void) : void {
+  load_from_remote() : Promise<void> {
     let self = this;
-    this.do_api_request(`get_context`, true, false).done(function(data) {
+    return this.do_api_request(`get_context`, true, false).then(function(data : any) : Promise<void> {
       self.name = data.name;
       if (data.status === "loaded") {
         self.loaded = true;
@@ -95,7 +92,7 @@ export class Workset {
       self.styles[RenderingStyles.TEXT] = new Renderer(RenderingStyles.TEXT, self);
       self.styles[RenderingStyles.LATEX] = new Renderer(RenderingStyles.LATEX, self);
       self.root_step = new Step(data.root_step_id, self);
-      self.root_step.load_from_remote(callback);
+      return self.root_step.load_from_remote();
     })
   }
 
@@ -109,10 +106,10 @@ export class Workset {
     return ret;
   }
 
-  load_data(callback : () => void) {
+  load_data() : Promise<void> {
     let self = this;
-    this.do_api_request(`load`).done(function(data) {
-      self.load_from_remote(callback);
+    return this.do_api_request(`load`).then(function(data : any) : Promise<void> {
+      return self.load_from_remote();
     });
   }
 }
@@ -220,34 +217,37 @@ export class Renderer {
   }
 }
 
-export function check_version(callback : (boolean)=>void) : void {
-  jsonAjax(`/api/version`).done(function(data) {
-    if (data.application === "mmpp" && data.min_version <= API_VERSION && data.max_version >= API_VERSION) {
-      callback(true);
-    } else {
-      callback(false);
+export function check_version() : Promise<void> {
+  return jsonAjax(`/api/version`).then(function(data : any) : void {
+    if (!(data.application === "mmpp" && data.min_version <= API_VERSION && data.max_version >= API_VERSION)) {
+      throw "Invalid application or version";
     }
   });
 }
 
-export function create_workset(callback : (Workset) => void) {
-  jsonAjax(`/api/${API_VERSION}/workset/create`).done(function(data) : void {
+export function create_workset() : Promise<Workset> {
+  return jsonAjax(`/api/${API_VERSION}/workset/create`).then(function(data : any) : Promise<Workset> {
     let workset : Workset = new Workset(data.id);
-    workset.load_from_remote(function() {
-      callback(workset);
+    return workset.load_from_remote().then(function() : Workset {
+      return workset;
     });
   });
 }
 
-export function list_worksets(callback : (object) => void) : void {
-  jsonAjax(`/api/${API_VERSION}/workset/list`).done(function(data) : void {
-    callback(data.worksets);
+export interface WorksetDescr {
+  id : number;
+  name : string;
+}
+
+export function list_worksets() : Promise<Array<WorksetDescr>> {
+  return jsonAjax(`/api/${API_VERSION}/workset/list`).then(function(data : any) : Array<WorksetDescr> {
+    return data.worksets;
   });
 }
 
-export function load_workset(id : number, callback : (Workset) => void) : void {
+export function load_workset(id : number) : Promise<Workset> {
   let workset : Workset = new Workset(id);
-  workset.load_from_remote(function() {
-    callback(workset);
+  return workset.load_from_remote().then(function() : Workset {
+    return workset;
   });
 }
