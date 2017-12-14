@@ -275,7 +275,11 @@ function render_proof_in_workset(proof_tree, workset : Workset, parent : Step) :
     let x : [Promise<void>] = [Promise.resolve()];
     return Promise.resolve(x);
   }
-  return workset.create_step(parent, -1).then(function (new_step : Step) : Promise<[Promise<void>]> {
+  return workset.create_step(parent, -1).then(function (new_step : Step) : Promise<Step> {
+    return new_step.set_sentence(proof_tree["sentence"]).then(function () : Step {
+      return new_step;
+    });
+  }).then(function (new_step : Step) : Promise<[Promise<void>]> {
     let x : [Promise<void>] = [Promise.resolve()];
     let promise : Promise<[Promise<void>]> = Promise.resolve(x);
     for (let child of proof_tree.children) {

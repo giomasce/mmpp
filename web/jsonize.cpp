@@ -94,5 +94,6 @@ json jsonize(const Step &step)
     for (const auto &child : step.get_children()) {
         ret["children"].push_back(child->get_id());
     }
+    ret["sentence"] = step.get_sentence();
     return ret;
 }

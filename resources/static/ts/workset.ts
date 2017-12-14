@@ -9,6 +9,7 @@ export class Step {
   id : number;
   workset : Workset;
   children : Array< Step >;
+  sentence : number[];
 
   constructor(id : number, workset : Workset) {
     this.id = id;
@@ -33,6 +34,12 @@ export class Step {
       }
       return promise;
     });
+  }
+
+  set_sentence(sentence : number[]) : Promise<void> {
+    this.sentence = sentence;
+    return this.do_api_request(`set_sentence`, {sentence: sentence.join(" ")}).then(function (data : object) : void {
+    })
   }
 }
 

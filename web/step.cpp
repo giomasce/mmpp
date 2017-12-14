@@ -1,8 +1,11 @@
 #include "step.h"
 
+#include <boost/algorithm/string.hpp>
+
 #include "web/jsonize.h"
 
 using namespace std;
+using namespace nlohmann;
 
 Step::Step(BackreferenceToken<Step> &&token) : token(move(token))
 {
@@ -83,7 +86,21 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
     } else if (*path_begin == "set_sentence") {
         path_begin++;
         assert_or_throw< SendError >(path_begin == path_end, 404);
-        // ...
+        assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+        throw WaitForPost([this] (const auto &post_data) {
+            unique_lock< mutex > lock(this->global_mutex);
+            string sent_str = safe_at(post_data, "sentence").value;
+            vector< string> toks;
+            boost::split(toks, sent_str, boost::is_any_of(" "));
+            Sentence sent;
+            for (const auto &x : toks) {
+                sent.push_back(safe_stoi(x));
+            }
+            this->set_sentence(sent);
+            json ret = json::object();
+            ret["success"] = true;
+            return ret;
+        });
     }
     throw SendError(404);
 }

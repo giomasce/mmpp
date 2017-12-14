@@ -97,6 +97,7 @@ public:
             return;
         }
         PostItem &pi = this->items[key];
+        // FIXME This breaks if parameters are repeated
         assert(offset == pi.value.size());
         if (offset == 0) {
             pi.filename = filename;
