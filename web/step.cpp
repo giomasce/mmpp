@@ -18,6 +18,16 @@ const std::vector<std::shared_ptr<Step> > &Step::get_children() const
     return this->children;
 }
 
+const Sentence &Step::get_sentence() const
+{
+    return this->sentence;
+}
+
+void Step::set_sentence(const Sentence &sentence)
+{
+    this->sentence = sentence;
+}
+
 std::shared_ptr<Step> Step::get_parent() const
 {
     return this->parent.lock();
@@ -70,6 +80,10 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         path_begin++;
         assert_or_throw< SendError >(path_begin == path_end, 404);
         return jsonize(*this);
+    } else if (*path_begin == "set_sentence") {
+        path_begin++;
+        assert_or_throw< SendError >(path_begin == path_end, 404);
+        // ...
     }
     throw SendError(404);
 }

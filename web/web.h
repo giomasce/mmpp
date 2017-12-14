@@ -12,19 +12,52 @@
 
 class SendError {
 public:
-    SendError(unsigned int status_code);
-    unsigned int get_status_code();
-    std::string get_descr();
+    SendError(unsigned int status_code) : status_code(status_code)
+    {
+    }
+
+    unsigned int get_status_code()
+    {
+        return this->status_code;
+    }
+
+    std::string get_descr()
+    {
+        return this->errors.at(this->get_status_code());
+    }
 
 private:
     unsigned int status_code;
     const std::unordered_map< unsigned int, std::string > errors = {
-        { 404, "Not found" },
         { 403, "Forbidden" },
+        { 404, "Not found" },
+        { 405, "Method Not Allowed" },
     };
 };
 
-int safe_stoi(std::string s);
+class WaitForPost {
+public:
+    WaitForPost(const std::function< nlohmann::json(const std::unordered_map< std::string, PostItem >&) > &callback) : callback(callback) {
+    }
+
+    const std::function< nlohmann::json(const std::unordered_map< std::string, PostItem >&) > &get_callback() const {
+        return this->callback;
+    }
+
+private:
+    std::function< nlohmann::json(const std::unordered_map< std::string, PostItem >&) > callback;
+};
+
+int safe_stoi(const std::string &s);
+
+template< typename Container >
+const typename Container::mapped_type &safe_at(const Container &cont, const typename Container::key_type &key) {
+    try {
+        return cont.at(key);
+    } catch (std::out_of_range) {
+        throw SendError(404);
+    }
+}
 
 class Session {
 public:

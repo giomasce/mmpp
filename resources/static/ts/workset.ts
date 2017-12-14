@@ -16,13 +16,22 @@ export class Step {
     this.children = new Array();
   }
 
-  do_api_request(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : Promise<object> {
-    return this.workset.do_api_request(`step/${this.id}/` + url, dump, dump_content, async);
+  do_api_request(url : string, data : object = null) : Promise<object> {
+    return this.workset.do_api_request(`step/${this.id}/` + url, data);
   }
 
   load_from_remote() : Promise<void> {
-    return this.do_api_request(`get`).then(function (x : object) : void {
-      // We might do something here
+    let self : Step = this;
+    return this.do_api_request(`get`).then(function (x : any) : Promise<void> {
+      let promise : Promise<void> = Promise.resolve();
+      for (let child_id of x.children) {
+        promise.then(function () : Promise<void> {
+          let child : Step = new Step(child_id, self.workset);
+          self.children.push(child);
+          return child.load_from_remote();
+        })
+      }
+      return promise;
     });
   }
 }
@@ -45,12 +54,12 @@ export class Workset {
     this.styles = new Map();
   }
 
-  do_api_request(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : Promise<object> {
-    return jsonAjax(`/api/${API_VERSION}/workset/${this.id}/` + url, dump, dump_content, async);
+  do_api_request(url : string, data : object = null) : Promise<object> {
+    return jsonAjax(`/api/${API_VERSION}/workset/${this.id}/` + url, data);
   }
 
   create_step(parent : Step, idx : number) : Promise<Step> {
-    let self = this;
+    let self : Workset = this;
     if (this.root_step === null) {
       throw "The workset was never loaded";
     }
@@ -60,7 +69,7 @@ export class Workset {
     if (idx < 0 || parent.children.length < idx) {
       throw "Wrong index";
     }
-    return this.do_api_request(`step/create/${parent.id}/${idx}`).then(function (data : any) : Promise<Step> {
+    return this.do_api_request(`step/create`, {parent: parent.id, index: idx}).then(function (data : any) : Promise<Step> {
       if (!data.success) {
         throw "Failed to load step data";
       } else {
@@ -79,7 +88,7 @@ export class Workset {
 
   load_from_remote() : Promise<void> {
     let self = this;
-    return this.do_api_request(`get_context`, true, false).then(function(data : any) : Promise<void> {
+    return this.do_api_request(`get_context`).then(function(data : any) : Promise<void> {
       self.name = data.name;
       if (data.status === "loaded") {
         self.loaded = true;

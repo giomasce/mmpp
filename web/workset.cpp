@@ -96,27 +96,27 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         assert_or_throw< SendError >(path_begin != path_end, 404);
         if (*path_begin == "create") {
             path_begin++;
-            assert_or_throw< SendError >(path_begin != path_end, 404);
-            size_t parent_id = safe_stoi(*path_begin);
-            path_begin++;
-            assert_or_throw< SendError >(path_begin != path_end, 404);
-            size_t idx = safe_stoi(*path_begin);
-            path_begin++;
             assert_or_throw< SendError >(path_begin == path_end, 404);
-            shared_ptr< Step > parent_step;
-            try {
-                parent_step = this->step_backrefs->at(parent_id);
-            } catch (out_of_range) {
-                throw SendError(404);
-            }
-            shared_ptr< Step > new_step = this->step_backrefs->make_instance();
-            bool res = new_step->reparent(parent_step, idx);
-            json ret = json::object();
-            ret["success"] = res;
-            if (res) {
-                ret["id"] = new_step->get_id();
-            }
-            return ret;
+            assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+            throw WaitForPost([this] (const auto &post_data) {
+                unique_lock< mutex > lock(this->global_mutex);
+                size_t parent_id = safe_stoi(safe_at(post_data, "parent").value);
+                size_t idx = safe_stoi(safe_at(post_data, "index").value);
+                shared_ptr< Step > parent_step;
+                try {
+                    parent_step = this->step_backrefs->at(parent_id);
+                } catch (out_of_range) {
+                    throw SendError(404);
+                }
+                shared_ptr< Step > new_step = this->step_backrefs->make_instance();
+                bool res = new_step->reparent(parent_step, idx);
+                json ret = json::object();
+                ret["success"] = res;
+                if (res) {
+                    ret["id"] = new_step->get_id();
+                }
+                return ret;
+            });
         } else if (*path_begin == "list") {
             /*path_begin++;
             assert_or_throw< SendError >(path_begin == path_end, 404);

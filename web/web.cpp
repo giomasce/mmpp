@@ -213,16 +213,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
                 return;
             }
             cb.set_answer(move(content));*/
-            cb.set_answerer([infile]() mutable {
-                if (*infile) {
-                    char buffer[HTTP_BUFFER_SIZE];
-                    infile->read(buffer, HTTP_BUFFER_SIZE);
-                    auto bytes_num = infile->gcount();
-                    return string(buffer, bytes_num);
-                } else {
-                    return string("");
-                }
-            });
+            cb.set_answerer(make_unique< HTTPFileAnswerer >(infile));
             return;
         }
     }
@@ -285,6 +276,22 @@ void WebEndpoint::answer(HTTPCallback &cb)
             cb.add_header("Content-Type", "text/plain");
             cb.set_status_code(se.get_status_code());
             cb.set_answer(to_string(se.get_status_code()) + " " + se.get_descr());
+            return;
+        } catch (WaitForPost wfp) {
+            auto callback = [wfp,&cb] (const auto &post_data) {
+                try {
+                    json res = wfp.get_callback()(post_data);
+                    cb.add_header("Content-Type", "application/json");
+                    cb.set_status_code(200);
+                    cb.set_answer(res.dump());
+                } catch (SendError se) {
+                    cb.add_header("Content-Type", "text/plain");
+                    cb.set_status_code(se.get_status_code());
+                    cb.set_answer(to_string(se.get_status_code()) + " " + se.get_descr());
+                }
+            };
+            std::function< void(const std::unordered_map< std::string, PostItem >&) > cb2 = callback;
+            cb.set_post_iterator(make_unique< HTTPSimplePostIterator >(cb2));
             return;
         }
     }
@@ -390,27 +397,13 @@ json Session::json_list_worksets()
     return ret;
 }
 
-SendError::SendError(unsigned int status_code) : status_code(status_code)
-{
-}
-
-unsigned int SendError::get_status_code()
-{
-    return this->status_code;
-}
-
-string SendError::get_descr()
-{
-    return this->errors.at(this->get_status_code());
-}
-
-int safe_stoi(string s)
+int safe_stoi(const string &s)
 {
     try {
         return stoi(s);
-    } catch (invalid_argument) {
+    } catch (std::invalid_argument) {
         throw SendError(404);
-    } catch (out_of_range) {
+    } catch (std::out_of_range) {
         throw SendError(404);
     }
 }

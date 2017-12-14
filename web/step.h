@@ -24,6 +24,8 @@ public:
     }
     size_t get_id() const;
     const std::vector< std::shared_ptr< Step > > &get_children() const;
+    const Sentence &get_sentence() const;
+    void set_sentence(const Sentence &sentence);
     std::shared_ptr<Step> get_parent() const;
     bool orphan();
     bool reparent(std::shared_ptr< Step > parent, size_t idx);
@@ -38,6 +40,8 @@ private:
     std::weak_ptr< Step > parent;
     std::mutex global_mutex;
     std::weak_ptr< Step > weak_this;
+
+    Sentence sentence;
 };
 
 #endif // STEP_H

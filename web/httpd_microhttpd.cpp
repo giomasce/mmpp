@@ -111,7 +111,7 @@ public:
         assert(pos == this->total_pos);
         size_t bytes_avail = this->buffer.size() - this->pos;
         if (bytes_avail == 0) {
-            this->buffer = this->answerer();
+            this->buffer = this->answerer.answer();
             if (this->buffer.empty()) {
                 return MHD_CONTENT_READER_END_OF_STREAM;
             }
@@ -154,14 +154,26 @@ int HTTPD_microhttpd::answer_wrapper(void *cls, MHD_Connection *connection, cons
     if (*con_cls == NULL) {
         cb = new HTTPCallback_microhttpd(connection);
         *con_cls = cb;
+        cb->set_url(url);
+        cb->set_method(method);
+        cb->set_version(version);
+        acout() << "Request received: " << method << " " << url << " " << version << endl;
+        object->target.answer(*cb);
+        if (!cb->get_send_response()) {
+            return MHD_YES;
+        }
     } else {
         cb = reinterpret_cast< HTTPCallback_microhttpd* >(*con_cls);
+        if (*upload_data_size != 0) {
+            cb->process_post_data(upload_data, *upload_data_size);
+            *upload_data_size = 0;
+            return MHD_YES;
+        } else {
+            cb->close_post_processor();
+            cb->get_post_iterator().finish();
+        }
     }
-    cb->set_url(url);
-    cb->set_method(method);
-    cb->set_version(version);
-    acout() << "Request received: " << method << " " << url << " " << version << endl;
-    object->target.answer(*cb);
+
     acout() << "Responding " << cb->get_status_code() << " (" << method << " " << url << " " << version << ")" << endl;
 
     struct MHD_Response *response;
@@ -191,23 +203,21 @@ int HTTPD_microhttpd::answer_wrapper(void *cls, MHD_Connection *connection, cons
     return ret;
 }
 
-HTTPD::~HTTPD()
-{
-}
-
-HTTPCallback::~HTTPCallback()
-{
-}
-
 HTTPCallback_microhttpd::HTTPCallback_microhttpd(MHD_Connection *connection) :
-    connection(connection), status_code(200), req_headers_extracted(false), cookies_extracted(false),
-    answerer([]() { return ""; }), size(-1)
+    connection(connection), post_processor(NULL), status_code(200), req_headers_extracted(false), cookies_extracted(false),
+    answerer(std::make_unique< HTTPStringAnswerer >()), size(-1), send_response(false)
 {
+}
+
+HTTPCallback_microhttpd::~HTTPCallback_microhttpd()
+{
+    this->close_post_processor();
 }
 
 void HTTPCallback_microhttpd::set_status_code(unsigned int status_code)
 {
     this->status_code = status_code;
+    this->send_response = true;
 }
 
 void HTTPCallback_microhttpd::add_header(string header, string content)
@@ -215,16 +225,19 @@ void HTTPCallback_microhttpd::add_header(string header, string content)
     this->headers.push_back(make_pair(header, content));
 }
 
+void HTTPCallback_microhttpd::set_post_iterator(std::unique_ptr<HTTPPostIterator> &&post_iterator)
+{
+    this->post_iterator = std::move(post_iterator);
+}
+
+void HTTPCallback_microhttpd::set_answerer(std::unique_ptr< HTTPAnswerer > &&answerer)
+{
+    this->answerer = std::move(answerer);
+}
+
 void HTTPCallback_microhttpd::set_answer(string &&answer)
 {
-    this->answerer = [answer,printed=false]() mutable ->string {
-        if (!printed) {
-            printed = true;
-            return answer;
-        } else {
-            return "";
-        }
-    };
+    this->answerer = make_unique< HTTPStringAnswerer >(answer);
 }
 
 void HTTPCallback_microhttpd::set_size(uint64_t size)
@@ -246,11 +259,6 @@ const string &HTTPCallback_microhttpd::get_version()
 {
     return this->version;
 };
-
-void HTTPCallback_microhttpd::set_answerer(HTTPAnswerer &&answerer)
-{
-    this->answerer = answerer;
-}
 
 const std::unordered_map<string, string> &HTTPCallback_microhttpd::get_request_headers()
 {
@@ -285,6 +293,11 @@ uint64_t HTTPCallback_microhttpd::get_size()
     return this->size;
 }
 
+bool HTTPCallback_microhttpd::get_send_response() const
+{
+    return this->send_response;
+}
+
 void HTTPCallback_microhttpd::set_url(const string &url)
 {
     this->url = url;
@@ -300,9 +313,30 @@ void HTTPCallback_microhttpd::set_version(const string &version)
     this->version = version;
 }
 
+void HTTPCallback_microhttpd::process_post_data(const char *data, size_t size)
+{
+    if (this->post_processor == NULL) {
+        this->post_processor = MHD_create_post_processor(this->connection, HTTP_BUFFER_SIZE, HTTPCallback_microhttpd::post_data_iterator, this);
+    }
+    MHD_post_process(this->post_processor, data, size);
+}
+
+void HTTPCallback_microhttpd::close_post_processor()
+{
+    if (this->post_processor != NULL) {
+        MHD_destroy_post_processor(this->post_processor);
+        this->post_processor = NULL;
+    }
+}
+
 HTTPAnswerer &HTTPCallback_microhttpd::get_answerer()
 {
-    return this->answerer;
+    return *this->answerer;
+}
+
+HTTPPostIterator &HTTPCallback_microhttpd::get_post_iterator()
+{
+    return *this->post_iterator;
 }
 
 int HTTPCallback_microhttpd::iterator_wrapper(void *cls, MHD_ValueKind kind, const char *key, const char *value)
@@ -314,6 +348,27 @@ int HTTPCallback_microhttpd::iterator_wrapper(void *cls, MHD_ValueKind kind, con
     return MHD_YES;
 }
 
-HTTPTarget::~HTTPTarget()
+int HTTPCallback_microhttpd::post_data_iterator(void *cls, MHD_ValueKind kind, const char *key, const char *filename, const char *content_type, const char *transfer_encoding, const char *data, uint64_t off, size_t size)
 {
+    (void) kind;
+
+    auto self = reinterpret_cast< HTTPCallback_microhttpd* >(cls);
+    string skey(key);
+    string sfilename;
+    if (filename != NULL) {
+        sfilename = filename;
+    }
+    string scontent_type;
+    if (content_type != NULL) {
+        scontent_type = content_type;
+    }
+    string stransfer_encoding;
+    if (transfer_encoding != NULL) {
+        stransfer_encoding = transfer_encoding;
+    }
+    string sdata(data, size);
+    self->get_post_iterator().receive(skey, sfilename, scontent_type, stransfer_encoding, sdata, off);
+    return MHD_YES;
 }
+
+

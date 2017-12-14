@@ -1,25 +1,20 @@
 /// <reference path="jquery.d.ts"/>
 /// <reference path="mustache.d.ts"/>
 
-export function jsonAjax(url : string, dump : boolean = true, dump_content : boolean = true, async : boolean = true) : Promise<object> {
-  if (dump) {
-    $("#console_text").append("\n\nRequesting: " + url);
+export function jsonAjax(url : string, data : object = null) : Promise<object> {
+  if (data === null) {
+    return Promise.resolve($.ajax({
+      url: url,
+      dataType: "json",
+    }));
+  } else {
+    return Promise.resolve($.ajax({
+      url: url,
+      dataType: "json",
+      data: data,
+      type: "POST",
+    }));
   }
-  return Promise.resolve($.ajax({
-    url: url,
-    dataType: "json",
-    async: async,
-  })).then(function(data : object) : object {
-    if (dump) {
-      if (dump_content) {
-        $("#console_text").append("\nReceived: " + JSON.stringify(data));
-      } else {
-        $("#console_text").append("\nReceived: [hidden]");
-      }
-      $('#console_text').scrollTop($('#console_text')[0].scrollHeight);
-    }
-    return data;
-  });
 }
 
 export function catch_all(reason : any) : void {
