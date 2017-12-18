@@ -55,7 +55,7 @@ QMAKE_CXX = g++
 QMAKE_LINK = g++
 QMAKE_CFLAGS += -std=c11 -g
 QMAKE_CXXFLAGS += -std=c++17 -g -ftemplate-backtrace-limit=0
-QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lpthread -lz3
+QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread -lz3
 
 # Compile to native instruction set
 #QMAKE_CFLAGS += -march=native
