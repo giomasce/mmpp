@@ -17,17 +17,22 @@ class Step;
 
 class StepOperationsListener {
 public:
-    virtual void after_adopting_child(size_t child_id) {
-        (void) child_id;
+    virtual void after_adopting(std::shared_ptr< Step > step, size_t child_idx) {
+        (void) step;
+        (void) child_idx;
     }
-    virtual void after_gaining_parent() {
+    virtual void after_being_adopted(std::shared_ptr< Step > step) {
+        (void) step;
     }
-    virtual void before_orphaning_child(size_t child_id) {
-        (void) child_id;
+    virtual void before_orphaning(std::shared_ptr< Step > step, size_t child_idx) {
+        (void) step;
+        (void) child_idx;
     }
-    virtual void before_losing_parent() {
+    virtual void before_being_orphaned(std::shared_ptr< Step > step) {
+        (void) step;
     }
-    virtual void after_new_sentence(const Sentence &old_sent) {
+    virtual void after_new_sentence(std::shared_ptr< Step > step, const Sentence &old_sent) {
+        (void) step;
         (void) old_sent;
     }
 };
@@ -59,7 +64,7 @@ private:
     BackreferenceToken< Step > token;
     std::vector< std::shared_ptr< Step > > children;
     std::weak_ptr< Step > parent;
-    std::mutex global_mutex;
+    std::recursive_mutex global_mutex;
     std::weak_ptr< Step > weak_this;
     std::list< std::weak_ptr< StepOperationsListener > > listeners;
 

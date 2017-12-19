@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "utils/utils.h"
+#include "platform.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -16,14 +17,6 @@ Coroutine number_generator(int x, int z=-1) {
             this_thread::sleep_for(1s);
         }
     });
-}
-
-void thread_run() {
-    Coroutine gen = number_generator(22);
-    cout << "Beginning..." << endl;
-    while (true) {
-        gen.run();
-    }
 }
 
 int thread_test_main(int argc, char *argv[]) {
@@ -51,6 +44,7 @@ static_block {
 CoroutineThreadManager::CoroutineThreadManager(size_t thread_num) : running(true) {
     for (size_t i = 0; i < thread_num; i++) {
         this->threads.emplace_back([this]() { this->thread_fn(); });
+        set_thread_name(this->threads.back(), string("CTM-") + to_string(i));
     }
 }
 
@@ -79,6 +73,7 @@ void CoroutineThreadManager::join() {
 }
 
 void CoroutineThreadManager::thread_fn() {
+    set_current_thread_low_priority();
     while (this->running) {
         CoroutineRuntimeData tmp;
         if (dequeue_coroutine(tmp)) {

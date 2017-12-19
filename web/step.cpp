@@ -13,7 +13,7 @@ Step::Step(BackreferenceToken<Step> &&token) : token(move(token))
 
 void Step::clean_listeners()
 {
-    unique_lock< mutex > lock(this->global_mutex);
+    unique_lock< recursive_mutex > lock(this->global_mutex);
     this->listeners.remove_if([](const auto &x) { return x.expired(); });
 }
 
@@ -34,14 +34,16 @@ const Sentence &Step::get_sentence() const
 
 void Step::set_sentence(const Sentence &sentence)
 {
-    this->clean_listeners();
-    unique_lock< mutex > lock(this->global_mutex);
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    auto strong_this = this->weak_this.lock();
+    assert(strong_this != NULL);
     Sentence old_sentence = this->sentence;
     this->sentence = sentence;
-    for (auto &x : this->listeners) {
-        auto locked = x.lock();
+    this->clean_listeners();
+    for (auto &listener : this->listeners) {
+        auto locked = listener.lock();
         if (locked != NULL) {
-            locked->after_new_sentence(old_sentence);
+            locked->after_new_sentence(strong_this, old_sentence);
         }
     }
 }
@@ -56,16 +58,36 @@ bool Step::orphan()
     // We assume that a global lock is held by the Workset, so here we can lock both
     // this and the parent without fear of deadlocks; we still need to lock both,
     // because answer_api1() has already released the Workset's lock
-    unique_lock< mutex > lock(this->global_mutex);
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    auto strong_this = this->weak_this.lock();
+    assert(strong_this != NULL);
     shared_ptr< Step > strong_parent = this->get_parent();
     if (strong_parent == NULL) {
         return false;
     }
-    unique_lock< mutex > parent_lock(strong_parent->global_mutex);
-    this->parent = weak_ptr< Step >();
+    unique_lock< recursive_mutex > parent_lock(strong_parent->global_mutex);
     auto &pchildren = strong_parent->children;
     auto it = find_if(pchildren.begin(), pchildren.end(), [this](const shared_ptr< Step > &s)->bool { return s.get() == this; });
     assert(it != pchildren.end());
+
+    // Call listeners
+    strong_parent->clean_listeners();
+    for (auto &listener : strong_parent->listeners) {
+        auto locked = listener.lock();
+        if (locked != NULL) {
+            locked->before_orphaning(strong_parent, it - pchildren.begin());
+        }
+    }
+    this->clean_listeners();
+    for (auto &listener : this->listeners) {
+        auto locked = listener.lock();
+        if (locked != NULL) {
+            locked->before_being_orphaned(strong_this);
+        }
+    }
+
+    // Actual orphaning
+    this->parent = weak_ptr< Step >();
     pchildren.erase(it);
     return true;
 }
@@ -73,24 +95,44 @@ bool Step::orphan()
 bool Step::reparent(std::shared_ptr<Step> parent, size_t idx)
 {
     // See comments in orphan() about locking
-    unique_lock< mutex > lock(this->global_mutex);
-    assert(!this->weak_this.expired());
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    auto strong_this = this->weak_this.lock();
+    assert(strong_this != NULL);
     if (!this->parent.expired()) {
         return false;
     }
-    unique_lock< mutex > parent_lock(parent->global_mutex);
-    this->parent = parent;
+    unique_lock< recursive_mutex > parent_lock(parent->global_mutex);
     auto &pchildren = parent->children;
     if (idx > pchildren.size()) {
         return false;
     }
-    pchildren.insert(pchildren.begin() + idx, this->weak_this.lock());
+
+    // Actual reparenting
+    this->parent = parent;
+    pchildren.insert(pchildren.begin() + idx, strong_this);
+
+    // Call listeners
+    parent->clean_listeners();
+    for (auto &listener : parent->listeners) {
+        auto locked = listener.lock();
+        if (locked != NULL) {
+            locked->after_adopting(parent, idx);
+        }
+    }
+    this->clean_listeners();
+    for (auto &listener : this->listeners) {
+        auto locked = listener.lock();
+        if (locked != NULL) {
+            locked->after_being_adopted(strong_this);
+        }
+    }
+
     return true;
 }
 
 nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end)
 {
-    unique_lock< mutex > lock(this->global_mutex);
+    unique_lock< recursive_mutex > lock(this->global_mutex);
     assert_or_throw< SendError >(path_begin != path_end, 404);
     if (*path_begin == "get") {
         path_begin++;
@@ -101,7 +143,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         assert_or_throw< SendError >(path_begin == path_end, 404);
         assert_or_throw< SendError >(cb.get_method() == "POST", 405);
         throw WaitForPost([this] (const auto &post_data) {
-            unique_lock< mutex > lock(this->global_mutex);
+            unique_lock< recursive_mutex > lock(this->global_mutex);
             string sent_str = safe_at(post_data, "sentence").value;
             vector< string> toks;
             boost::split(toks, sent_str, boost::is_any_of(" "));
