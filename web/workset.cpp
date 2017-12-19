@@ -9,7 +9,7 @@
 using namespace std;
 using namespace nlohmann;
 
-Workset::Workset() : step_backrefs(BackreferenceRegistry< Step >::create()), root_step(this->step_backrefs->make_instance())
+Workset::Workset() : thread_manager(make_unique< CoroutineThreadManager >(4)), step_backrefs(BackreferenceRegistry< Step >::create()), root_step(this->step_backrefs->make_instance())
 {
 }
 
@@ -30,7 +30,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
     unique_lock< mutex > lock(this->global_mutex);
     assert_or_throw< SendError >(path_begin != path_end, 404);
     if (*path_begin == "load") {
-        this->load_library(platform_get_resources_base() / "library.mm");
+        this->load_library(platform_get_resources_base() / "library.mm", platform_get_resources_base() / "library.mm.cache", "|-");
         json ret = { { "status", "ok" } };
         return ret;
     } else if (*path_begin == "get_context") {
@@ -143,12 +143,14 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
     throw SendError(404);
 }
 
-void Workset::load_library(boost::filesystem::path filename)
+void Workset::load_library(boost::filesystem::path filename, boost::filesystem::path cache_filename, std::string turnstile)
 {
     FileTokenizer ft(filename);
     Reader p(ft, false, true);
     p.run();
     this->library = make_unique< LibraryImpl >(p.get_library());
+    shared_ptr< ToolboxCache > cache = make_shared< FileToolboxCache >(cache_filename);
+    this->toolbox = make_unique< LibraryToolbox >(*this->library, turnstile, true, cache);
 }
 
 const string &Workset::get_name()
