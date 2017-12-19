@@ -11,6 +11,12 @@ Step::Step(BackreferenceToken<Step> &&token) : token(move(token))
 {
 }
 
+void Step::clean_listeners()
+{
+    unique_lock< mutex > lock(this->global_mutex);
+    this->listeners.remove_if([](const auto &x) { return x.expired(); });
+}
+
 size_t Step::get_id() const
 {
     return this->token.get_id();
@@ -28,7 +34,16 @@ const Sentence &Step::get_sentence() const
 
 void Step::set_sentence(const Sentence &sentence)
 {
+    this->clean_listeners();
+    unique_lock< mutex > lock(this->global_mutex);
+    Sentence old_sentence = this->sentence;
     this->sentence = sentence;
+    for (auto &x : this->listeners) {
+        auto locked = x.lock();
+        if (locked != NULL) {
+            locked->after_new_sentence(old_sentence);
+        }
+    }
 }
 
 std::shared_ptr<Step> Step::get_parent() const
@@ -73,10 +88,8 @@ bool Step::reparent(std::shared_ptr<Step> parent, size_t idx)
     return true;
 }
 
-nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end, std::string method)
+nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end)
 {
-    (void) cb;
-    (void) method;
     unique_lock< mutex > lock(this->global_mutex);
     assert_or_throw< SendError >(path_begin != path_end, 404);
     if (*path_begin == "get") {
@@ -103,6 +116,11 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         });
     }
     throw SendError(404);
+}
+
+void Step::add_listener(const std::shared_ptr<StepOperationsListener> &listener)
+{
+    this->listeners.push_back(listener);
 }
 
 

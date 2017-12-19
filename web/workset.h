@@ -15,7 +15,7 @@ class Workset;
 class Workset {
 public:
     Workset();
-    nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end, std::string method);
+    nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end);
     void load_library(boost::filesystem::path filename, boost::filesystem::path cache_filename, std::string turnstile);
     const std::string &get_name();
     void set_name(const std::string &name);

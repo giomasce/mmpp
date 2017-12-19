@@ -62,7 +62,7 @@ const typename Container::mapped_type &safe_at(const Container &cont, const type
 class Session {
 public:
     Session(bool constant = false);
-    nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end, std::string method);
+    nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end);
     bool is_constant();
     std::pair< size_t, std::shared_ptr< Workset > > create_workset();
     std::shared_ptr< Workset > get_workset(size_t id);

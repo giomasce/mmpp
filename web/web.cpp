@@ -267,7 +267,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
         boost::tokenizer< boost::char_separator< char > > tokens(url.begin() + api_url.size(), url.end(), sep);
         const vector< string > path(tokens.begin(), tokens.end());
         try {
-            json res = session->answer_api1(cb, path.begin(), path.end(), method);
+            json res = session->answer_api1(cb, path.begin(), path.end());
             cb.add_header("Content-Type", "application/json");
             cb.set_status_code(200);
             cb.set_answer(res.dump());
@@ -331,7 +331,7 @@ Session::Session(bool constant) : constant(constant)
 {
 }
 
-json Session::answer_api1(HTTPCallback &cb, vector< string >::const_iterator path_begin, vector< string >::const_iterator path_end, string method)
+json Session::answer_api1(HTTPCallback &cb, vector< string >::const_iterator path_begin, vector< string >::const_iterator path_end)
 {
     if (path_begin != path_end && *path_begin == "workset") {
         path_begin++;
@@ -357,7 +357,7 @@ json Session::answer_api1(HTTPCallback &cb, vector< string >::const_iterator pat
             } catch (out_of_range) {
                 throw SendError(404);
             }
-            return workset->answer_api1(cb, path_begin, path_end, method);
+            return workset->answer_api1(cb, path_begin, path_end);
         }
     }
     throw SendError(404);

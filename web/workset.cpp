@@ -23,10 +23,8 @@ std::vector< std::string > map_to_vect(const std::unordered_map< TokType, std::s
     return ret;
 }
 
-json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end, std::string method)
+json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end)
 {
-    (void) cb;
-    (void) method;
     unique_lock< mutex > lock(this->global_mutex);
     assert_or_throw< SendError >(path_begin != path_end, 404);
     if (*path_begin == "load") {
@@ -131,10 +129,9 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             } catch (out_of_range) {
                 throw SendError(404);
             }
-            return step->answer_api1(cb, path_begin, path_end, method);
+            return step->answer_api1(cb, path_begin, path_end);
         }
         try {
-
             return jsonize(*this->root_step);
         } catch (out_of_range) {
             throw SendError(404);
