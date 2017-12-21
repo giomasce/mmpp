@@ -17,6 +17,26 @@ void Step::clean_listeners()
     this->listeners.remove_if([](const auto &x) { return x.expired(); });
 }
 
+void Step::after_adopting(size_t child_idx) {
+    (void) child_idx;
+}
+
+void Step::after_being_adopted(size_t child_idx) {
+    (void) child_idx;
+}
+
+void Step::before_orphaning(size_t child_idx) {
+    (void) child_idx;
+}
+
+void Step::before_being_orphaned(size_t child_idx) {
+    (void) child_idx;
+}
+
+void Step::after_new_sentence(const Sentence &old_sent) {
+    (void) old_sent;
+}
+
 size_t Step::get_id() const
 {
     return this->token.get_id();
@@ -40,6 +60,7 @@ void Step::set_sentence(const Sentence &sentence)
     Sentence old_sentence = this->sentence;
     this->sentence = sentence;
     this->clean_listeners();
+    this->after_new_sentence(old_sentence);
     for (auto &listener : this->listeners) {
         auto locked = listener.lock();
         if (locked != NULL) {
@@ -71,18 +92,21 @@ bool Step::orphan()
     assert(it != pchildren.end());
 
     // Call listeners
+    size_t idx = it - pchildren.begin();
     strong_parent->clean_listeners();
+    strong_parent->before_orphaning(idx);
     for (auto &listener : strong_parent->listeners) {
         auto locked = listener.lock();
         if (locked != NULL) {
-            locked->before_orphaning(strong_parent, it - pchildren.begin());
+            locked->before_orphaning(strong_parent, idx);
         }
     }
     this->clean_listeners();
+    this->before_being_orphaned(idx);
     for (auto &listener : this->listeners) {
         auto locked = listener.lock();
         if (locked != NULL) {
-            locked->before_being_orphaned(strong_this);
+            locked->before_being_orphaned(strong_this, idx);
         }
     }
 
@@ -113,6 +137,7 @@ bool Step::reparent(std::shared_ptr<Step> parent, size_t idx)
 
     // Call listeners
     parent->clean_listeners();
+    parent->after_adopting(idx);
     for (auto &listener : parent->listeners) {
         auto locked = listener.lock();
         if (locked != NULL) {
@@ -120,10 +145,11 @@ bool Step::reparent(std::shared_ptr<Step> parent, size_t idx)
         }
     }
     this->clean_listeners();
+    this->after_being_adopted(idx);
     for (auto &listener : this->listeners) {
         auto locked = listener.lock();
         if (locked != NULL) {
-            locked->after_being_adopted(strong_this);
+            locked->after_being_adopted(strong_this, idx);
         }
     }
 

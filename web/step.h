@@ -21,15 +21,17 @@ public:
         (void) step;
         (void) child_idx;
     }
-    virtual void after_being_adopted(std::shared_ptr< Step > step) {
+    virtual void after_being_adopted(std::shared_ptr< Step > step, size_t child_idx) {
         (void) step;
+        (void) child_idx;
     }
     virtual void before_orphaning(std::shared_ptr< Step > step, size_t child_idx) {
         (void) step;
         (void) child_idx;
     }
-    virtual void before_being_orphaned(std::shared_ptr< Step > step) {
+    virtual void before_being_orphaned(std::shared_ptr< Step > step, size_t child_idx) {
         (void) step;
+        (void) child_idx;
     }
     virtual void after_new_sentence(std::shared_ptr< Step > step, const Sentence &old_sent) {
         (void) step;
@@ -60,6 +62,11 @@ protected:
 
 private:
     void clean_listeners();
+    void after_adopting(size_t child_idx);
+    void after_being_adopted(size_t child_idx);
+    void before_orphaning(size_t child_idx);
+    void before_being_orphaned(size_t child_idx);
+    void after_new_sentence(const Sentence &old_sent);
 
     BackreferenceToken< Step > token;
     std::vector< std::shared_ptr< Step > > children;

@@ -9,14 +9,18 @@ using namespace std;
 using namespace std::chrono;
 using namespace boost::coroutines;
 
-Coroutine number_generator(int x, int z=-1) {
-    return Coroutine([x,z](Yield &yield) {
+vector< shared_ptr< Coroutine > > coroutines;
+
+shared_ptr< Coroutine > number_generator(int x, int z=-1) {
+    auto coro = make_shared< Coroutine >([x,z](Yield &yield) {
         for (int i = 0; i != z; i++) {
             acout() << x << " " << i << endl;
             yield();
             this_thread::sleep_for(1s);
         }
     });
+    coroutines.push_back(coro);
+    return coro;
 }
 
 int thread_test_main(int argc, char *argv[]) {
@@ -52,9 +56,9 @@ CoroutineThreadManager::~CoroutineThreadManager() {
     this->stop();
 }
 
-void CoroutineThreadManager::add_coroutine(Coroutine &&coro) {
+void CoroutineThreadManager::add_coroutine(std::weak_ptr<Coroutine> coro) {
     CoroutineRuntimeData coro_rd;
-    coro_rd.coroutine = std::move(coro);
+    coro_rd.coroutine = coro;
     this->enqueue_coroutine(coro_rd);
 }
 
@@ -78,10 +82,14 @@ void CoroutineThreadManager::thread_fn() {
         CoroutineRuntimeData tmp;
         if (dequeue_coroutine(tmp)) {
             bool reenqueue = true;
+            auto strong_coro = tmp.coroutine.lock();
+            if (strong_coro == NULL) {
+                continue;
+            }
             tmp.budget += BUDGET_QUANTUM;
             while (tmp.budget > std::chrono::seconds(0)) {
                 auto start_time = std::chrono::steady_clock::now();
-                reenqueue = tmp.coroutine.run();
+                reenqueue = strong_coro->run();
                 auto stop_time = std::chrono::steady_clock::now();
                 auto running_time = stop_time - start_time;
                 tmp.running_time += running_time;

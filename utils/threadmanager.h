@@ -45,7 +45,7 @@ public:
     struct CoroutineRuntimeData {
         CoroutineRuntimeData() : coroutine(), running_time(0), budget(0) {}
 
-        Coroutine coroutine;
+        std::weak_ptr< Coroutine > coroutine;
         std::chrono::steady_clock::duration running_time;
         std::chrono::steady_clock::duration budget;
     };
@@ -54,7 +54,7 @@ public:
 
     CoroutineThreadManager(size_t thread_num);
     ~CoroutineThreadManager();
-    void add_coroutine(Coroutine &&coro);
+    void add_coroutine(std::weak_ptr<Coroutine> coro);
     void stop();
     void join();
 
