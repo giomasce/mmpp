@@ -29,13 +29,22 @@ typedef std::function< void(Yield&) > CoroutineBody;
 class Coroutine {
 public:
     Coroutine();
-    Coroutine(CoroutineBody &&body);
+    Coroutine(CoroutineBody &&body) : coro_impl(make_coroutine(std::move(body))) {}
+    template< typename T >
+    Coroutine(T &&body) : coro_impl(make_coroutine(std::move(body))) {}
     Coroutine(Coroutine &&other);
     void operator=(Coroutine &&other);
     bool run();
 
 private:
-    static boost::coroutines::asymmetric_coroutine< void >::pull_type make_coroutine(CoroutineBody &&body);
+    template< typename T >
+    static boost::coroutines::asymmetric_coroutine< void >::pull_type make_coroutine(T &&body) {
+        return boost::coroutines::asymmetric_coroutine< void >::pull_type([body{std::move(body)}](boost::coroutines::asymmetric_coroutine< void >::push_type &yield_impl) mutable {
+            Yield yield(yield_impl);
+            yield();
+            body(yield);
+        });
+    }
 
     boost::coroutines::asymmetric_coroutine< void >::pull_type coro_impl;
 };

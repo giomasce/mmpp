@@ -23,9 +23,19 @@ shared_ptr< Coroutine > number_generator(int x, int z=-1) {
     return coro;
 }
 
+class Test {
+public:
+    void operator()(Yield &yield) {
+        yield();
+    }
+};
+
 int thread_test_main(int argc, char *argv[]) {
     (void) argc;
     (void) argv;
+
+    Test test;
+    Coroutine coro(test);
 
     CoroutineThreadManager th(2);
     CoroutineThreadManager th2(2);
@@ -127,7 +137,7 @@ bool CoroutineThreadManager::dequeue_coroutine(CoroutineThreadManager::Coroutine
 
 Coroutine::Coroutine() : coro_impl() {}
 
-Coroutine::Coroutine(CoroutineBody &&body) : coro_impl(make_coroutine(move(body))) {}
+
 
 Coroutine::Coroutine(Coroutine &&other) : coro_impl(std::move(other.coro_impl)) {}
 
@@ -144,13 +154,7 @@ bool Coroutine::run() {
     }
 }
 
-asymmetric_coroutine< void >::pull_type Coroutine::make_coroutine(CoroutineBody &&body) {
-    return boost::coroutines::asymmetric_coroutine< void >::pull_type([body](boost::coroutines::asymmetric_coroutine< void >::push_type &yield_impl) {
-        Yield yield(yield_impl);
-        yield();
-        body(yield);
-    });
-}
+
 
 Yield::Yield(asymmetric_coroutine< void >::push_type &base_yield) : yield_impl(base_yield) {
 }
