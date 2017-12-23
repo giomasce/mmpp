@@ -9,7 +9,7 @@
 using namespace std;
 using namespace nlohmann;
 
-Workset::Workset() : thread_manager(make_unique< CoroutineThreadManager >(4)), step_backrefs(BackreferenceRegistry< Step >::create()), root_step(this->step_backrefs->make_instance())
+Workset::Workset() : thread_manager(make_unique< CoroutineThreadManager >(4)), root_step(this->step_backrefs->make_instance())
 {
 }
 

@@ -7,7 +7,7 @@
 using namespace std;
 using namespace nlohmann;
 
-Step::Step(BackreferenceToken<Step> &&token) : token(move(token))
+Step::Step(BackreferenceToken<Step, Workset> &&token) : token(move(token))
 {
 }
 
@@ -37,19 +37,41 @@ void Step::after_new_sentence(const Sentence &old_sent) {
     (void) old_sent;
 }
 
-size_t Step::get_id() const
+void Step::restart_coroutine()
 {
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    vector< Sentence > hyps;
+    for (const auto &child : this->get_children()) {
+        hyps.push_back(child->get_sentence());
+    }
+    auto workset = this->get_workset().lock();
+    if (workset != NULL) {
+        auto comp = make_shared< StepComputation >(this->weak_this, this->get_sentence(), hyps, workset->get_toolbox());
+    }
+}
+
+size_t Step::get_id()
+{
+    unique_lock< recursive_mutex > lock(this->global_mutex);
     return this->token.get_id();
 }
 
-const std::vector<std::shared_ptr<Step> > &Step::get_children() const
+const std::vector<std::shared_ptr<Step> > &Step::get_children()
 {
+    unique_lock< recursive_mutex > lock(this->global_mutex);
     return this->children;
 }
 
-const Sentence &Step::get_sentence() const
+const Sentence &Step::get_sentence()
 {
+    unique_lock< recursive_mutex > lock(this->global_mutex);
     return this->sentence;
+}
+
+std::weak_ptr<Workset> Step::get_workset()
+{
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    return this->token.get_main();
 }
 
 void Step::set_sentence(const Sentence &sentence)
@@ -195,12 +217,12 @@ void Step::add_listener(const std::shared_ptr<StepOperationsListener> &listener)
     this->listeners.push_back(listener);
 }
 
-StepCoroutine::StepCoroutine(std::weak_ptr< Step > parent, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox)
+StepComputation::StepComputation(std::weak_ptr< Step > parent, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox)
     : parent(parent), thesis(thesis), hypotheses(hypotheses), toolbox(toolbox), finished(false), success(false)
 {
 }
 
-void StepCoroutine::operator()(Yield &yield)
+void StepComputation::operator()(Yield &yield)
 {
     (void) yield;
 

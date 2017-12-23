@@ -371,7 +371,7 @@ std::pair<size_t, std::shared_ptr<Workset> > Session::create_workset()
 {
     unique_lock< shared_mutex > lock(this->worksets_mutex);
     size_t id = this->worksets.size();
-    auto workset = make_shared< Workset >();
+    auto workset = Workset::create();
     workset->set_name("Workset " + to_string(id + 1));
     this->worksets.push_back(workset);
 

@@ -42,9 +42,9 @@ public:
     }
 };
 
-class StepCoroutine {
+class StepComputation {
 public:
-    StepCoroutine(std::weak_ptr< Step > parent, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox);
+    StepComputation(std::weak_ptr< Step > parent, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox);
     void operator()(Yield &yield);
 
 private:
@@ -61,14 +61,15 @@ private:
 class Step
 {
 public:
-    static std::shared_ptr< Step > create(BackreferenceToken< Step > &&token) {
+    static std::shared_ptr< Step > create(BackreferenceToken< Step, Workset > &&token) {
         auto pointer = std::make_shared< enable_make< Step > >(std::move(token));
         pointer->weak_this = pointer;
         return pointer;
     }
-    size_t get_id() const;
-    const std::vector< std::shared_ptr< Step > > &get_children() const;
-    const Sentence &get_sentence() const;
+    size_t get_id();
+    const std::vector< std::shared_ptr< Step > > &get_children();
+    const Sentence &get_sentence();
+    std::weak_ptr<Workset> get_workset();
     void set_sentence(const Sentence &sentence);
     std::shared_ptr<Step> get_parent() const;
     bool orphan();
@@ -78,7 +79,7 @@ public:
     void add_listener(const std::shared_ptr<StepOperationsListener> &listener);
 
 protected:
-    explicit Step(BackreferenceToken<Step> &&token);
+    explicit Step(BackreferenceToken< Step, Workset > &&token);
 
 private:
     void clean_listeners();
@@ -87,8 +88,9 @@ private:
     void before_orphaning(size_t child_idx);
     void before_being_orphaned(size_t child_idx);
     void after_new_sentence(const Sentence &old_sent);
+    void restart_coroutine();
 
-    BackreferenceToken< Step > token;
+    BackreferenceToken< Step, Workset > token;
     std::vector< std::shared_ptr< Step > > children;
     std::weak_ptr< Step > parent;
     std::recursive_mutex global_mutex;
@@ -96,6 +98,8 @@ private:
     std::list< std::weak_ptr< StepOperationsListener > > listeners;
 
     Sentence sentence;
+    std::shared_ptr< StepComputation > last_comp;
+    std::shared_ptr< Coroutine > last_coro;
 };
 
 #endif // STEP_H
