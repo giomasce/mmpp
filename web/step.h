@@ -5,9 +5,12 @@
 #include <memory>
 #include <mutex>
 #include <list>
+#include <unordered_map>
 
 #include "utils/utils.h"
 #include "utils/backref_registry.h"
+#include "toolbox.h"
+#include "utils/threadmanager.h"
 
 class Step;
 
@@ -39,6 +42,22 @@ public:
     }
 };
 
+class StepCoroutine {
+public:
+    StepCoroutine(std::weak_ptr< Step > parent, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox);
+    void operator()(Yield &yield);
+
+private:
+    std::weak_ptr< Step > parent;
+    Sentence thesis;
+    std::vector< Sentence > hypotheses;
+    const LibraryToolbox &toolbox;
+
+    std::atomic< bool > finished;
+    bool success;
+    std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > result;
+};
+
 class Step
 {
 public:
@@ -54,6 +73,7 @@ public:
     std::shared_ptr<Step> get_parent() const;
     bool orphan();
     bool reparent(std::shared_ptr< Step > parent, size_t idx);
+    void step_coroutine_finished();
     nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end);
     void add_listener(const std::shared_ptr<StepOperationsListener> &listener);
 

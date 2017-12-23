@@ -28,13 +28,12 @@ typedef std::function< void(Yield&) > CoroutineBody;
 
 class Coroutine {
 public:
-    Coroutine();
-    Coroutine(CoroutineBody &&body) : coro_impl(make_coroutine(std::move(body))) {}
+    Coroutine() : coro_impl() {}
     template< typename T >
     Coroutine(T &&body) : coro_impl(make_coroutine(std::move(body))) {}
-    Coroutine(Coroutine &&other);
-    void operator=(Coroutine &&other);
-    bool run();
+    //Coroutine(Coroutine &&other);
+    //void operator=(Coroutine &&other);
+    bool execute();
 
 private:
     template< typename T >

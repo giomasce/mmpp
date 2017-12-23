@@ -156,6 +156,10 @@ bool Step::reparent(std::shared_ptr<Step> parent, size_t idx)
     return true;
 }
 
+void Step::step_coroutine_finished()
+{
+}
+
 nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end)
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
@@ -191,6 +195,25 @@ void Step::add_listener(const std::shared_ptr<StepOperationsListener> &listener)
     this->listeners.push_back(listener);
 }
 
+StepCoroutine::StepCoroutine(std::weak_ptr< Step > parent, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox)
+    : parent(parent), thesis(thesis), hypotheses(hypotheses), toolbox(toolbox), finished(false), success(false)
+{
+}
 
+void StepCoroutine::operator()(Yield &yield)
+{
+    (void) yield;
 
+    auto res = this->toolbox.unify_assertion(this->hypotheses, this->thesis);
+    if (!res.empty()) {
+        this->success = true;
+        this->result = res[0];
+    }
 
+    // Set termination and signal parent
+    this->finished = true;
+    auto strong_parent = this->parent.lock();
+    if (strong_parent != NULL) {
+        strong_parent->step_coroutine_finished();
+    }
+}

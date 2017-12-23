@@ -99,7 +99,7 @@ void CoroutineThreadManager::thread_fn() {
             tmp.budget += BUDGET_QUANTUM;
             while (tmp.budget > std::chrono::seconds(0)) {
                 auto start_time = std::chrono::steady_clock::now();
-                reenqueue = strong_coro->run();
+                reenqueue = strong_coro->execute();
                 auto stop_time = std::chrono::steady_clock::now();
                 auto running_time = stop_time - start_time;
                 tmp.running_time += running_time;
@@ -135,17 +135,15 @@ bool CoroutineThreadManager::dequeue_coroutine(CoroutineThreadManager::Coroutine
     return true;
 }
 
-Coroutine::Coroutine() : coro_impl() {}
 
 
-
-Coroutine::Coroutine(Coroutine &&other) : coro_impl(std::move(other.coro_impl)) {}
+/*Coroutine::Coroutine(Coroutine &&other) : coro_impl(std::move(other.coro_impl)) {}
 
 void Coroutine::operator=(Coroutine &&other) {
     this->coro_impl.swap(other.coro_impl);
-}
+}*/
 
-bool Coroutine::run() {
+bool Coroutine::execute() {
     if (this->coro_impl) {
         this->coro_impl();
         return true;
@@ -153,8 +151,6 @@ bool Coroutine::run() {
         return false;
     }
 }
-
-
 
 Yield::Yield(asymmetric_coroutine< void >::push_type &base_yield) : yield_impl(base_yield) {
 }
