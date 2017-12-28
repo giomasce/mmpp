@@ -240,4 +240,15 @@ private:
     size_t length;
 };
 
+class Finally {
+public:
+    Finally(std::function< void() > &&finally) : finally(std::move(finally)) {}
+    ~Finally() {
+        this->finally();
+    }
+
+private:
+    std::function< void() > finally;
+};
+
 #endif // UTILS_H

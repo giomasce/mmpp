@@ -20,6 +20,14 @@ class Step;
 
 class StepOperationsListener {
 public:
+    virtual void before_adopting(std::shared_ptr< Step > step, size_t child_idx) {
+        (void) step;
+        (void) child_idx;
+    }
+    virtual void before_being_adopted(std::shared_ptr< Step > step, size_t child_idx) {
+        (void) step;
+        (void) child_idx;
+    }
     virtual void after_adopting(std::shared_ptr< Step > step, size_t child_idx) {
         (void) step;
         (void) child_idx;
@@ -36,6 +44,14 @@ public:
         (void) step;
         (void) child_idx;
     }
+    virtual void after_orphaning(std::shared_ptr< Step > step, size_t child_idx) {
+        (void) step;
+        (void) child_idx;
+    }
+    virtual void after_being_orphaned(std::shared_ptr< Step > step, size_t child_idx) {
+        (void) step;
+        (void) child_idx;
+    }
     virtual void after_new_sentence(std::shared_ptr< Step > step, const Sentence &old_sent) {
         (void) step;
         (void) old_sent;
@@ -46,6 +62,8 @@ class StepComputation {
 public:
     StepComputation(std::weak_ptr< Step > parent, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox);
     void operator()(Yield &yield);
+    bool get_success() const;
+    const std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > &get_result() const;
 
 private:
     std::weak_ptr< Step > parent;
@@ -74,19 +92,25 @@ public:
     std::shared_ptr<Step> get_parent() const;
     bool orphan();
     bool reparent(std::shared_ptr< Step > parent, size_t idx);
-    void step_coroutine_finished();
+    void step_coroutine_finished(StepComputation *step_comp);
     nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end);
     void add_listener(const std::shared_ptr<StepOperationsListener> &listener);
+    bool get_success();
+    std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > get_result();
 
 protected:
     explicit Step(BackreferenceToken< Step, Workset > &&token);
 
 private:
     void clean_listeners();
+    void before_adopting(size_t child_idx);
+    void before_being_adopted(size_t child_idx);
     void after_adopting(size_t child_idx);
     void after_being_adopted(size_t child_idx);
     void before_orphaning(size_t child_idx);
     void before_being_orphaned(size_t child_idx);
+    void after_orphaning(size_t child_idx);
+    void after_being_orphaned(size_t child_idx);
     void after_new_sentence(const Sentence &old_sent);
     void restart_coroutine();
 

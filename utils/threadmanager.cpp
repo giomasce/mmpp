@@ -12,13 +12,15 @@ using namespace boost::coroutines;
 vector< shared_ptr< Coroutine > > coroutines;
 
 shared_ptr< Coroutine > number_generator(int x, int z=-1) {
-    auto coro = make_shared< Coroutine >([x,z](Yield &yield) {
+    auto body = [x,z](Yield &yield) {
         for (int i = 0; i != z; i++) {
             acout() << x << " " << i << endl;
             yield();
             this_thread::sleep_for(1s);
         }
-    });
+    };
+    auto shared_body = make_shared< decltype(body) >(body);
+    auto coro = make_shared< Coroutine >(shared_body);
     coroutines.push_back(coro);
     return coro;
 }
@@ -35,7 +37,7 @@ int thread_test_main(int argc, char *argv[]) {
     (void) argv;
 
     Test test;
-    Coroutine coro(test);
+    Coroutine coro(make_shared< decltype(test) >(test));
 
     CoroutineThreadManager th(2);
     CoroutineThreadManager th2(2);
@@ -134,8 +136,6 @@ bool CoroutineThreadManager::dequeue_coroutine(CoroutineThreadManager::Coroutine
     this->coros.pop_front();
     return true;
 }
-
-
 
 /*Coroutine::Coroutine(Coroutine &&other) : coro_impl(std::move(other.coro_impl)) {}
 

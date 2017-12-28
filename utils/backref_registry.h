@@ -91,7 +91,12 @@ public:
         return this->main;
     }
 
+    void set_main(std::weak_ptr< U > main) {
+        this->main = main;
+    }
+
 protected:
+    BackreferenceRegistry() {}
     BackreferenceRegistry(std::weak_ptr< U > main) : main(main) {}
 
 private:

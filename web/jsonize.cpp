@@ -26,12 +26,12 @@ vector< string > fix_htmldefs_for_web(const vector< string > &htmldefs) {
 }
 
 // Support for serializing pairs
-namespace nlohmann {
+/*namespace nlohmann {
     template< typename A, typename B >
     void to_json(json &j, const pair< A, B > &p) {
         j = { p.first, p.second };
     }
-}
+}*/
 
 json jsonize(const ExtendedLibraryAddendum &addendum)
 {
@@ -95,5 +95,7 @@ json jsonize(Step &step)
         ret["children"].push_back(child->get_id());
     }
     ret["sentence"] = step.get_sentence();
+    ret["success"] = step.get_success();
+    ret["result"] = step.get_result();
     return ret;
 }

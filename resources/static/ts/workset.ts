@@ -54,6 +54,7 @@ export class Workset {
   max_number : number;
   styles : Map< RenderingStyles, Renderer >;
   root_step : Step;
+  receiving_events : boolean = false;
   addendum;
 
   constructor(id : number) {
@@ -63,6 +64,36 @@ export class Workset {
 
   do_api_request(url : string, data : object = null) : Promise<object> {
     return jsonAjax(`/api/${API_VERSION}/workset/${this.id}/` + url, data);
+  }
+
+  process_event(data : object) : void {
+    if (!this.receiving_events) {
+      return;
+    }
+    console.log(data);
+  }
+
+  receive_event() : void {
+    let self = this;
+    this.do_api_request(`queue`, {}).then(function (data : object) : void {
+      self.process_event(data);
+    }).catch(function (reason) : void {
+      console.log("receive_event() failed because of " + reason);
+    }).then(function () : void {
+      if (self.receiving_events) {
+	self.receive_event();
+      }
+    });
+  }
+
+  start_receiving_events() : void {
+    let self = this;
+    this.receiving_events = true;
+    this.receive_event();
+  }
+
+  stop_receiving_events() : void {
+    this.receiving_events = false;
   }
 
   create_step(parent : Step, idx : number) : Promise<Step> {

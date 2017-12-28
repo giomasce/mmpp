@@ -16,7 +16,7 @@ class Workset {
 public:
     static std::shared_ptr< Workset > create() {
         auto pointer = std::make_shared< enable_make< Workset > >();
-        pointer->step_backrefs = BackreferenceRegistry< Step, Workset >::create(pointer);
+        pointer->step_backrefs->set_main(pointer);
         return pointer;
     }
     nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end);
@@ -26,6 +26,9 @@ public:
     const LibraryToolbox &get_toolbox() const {
         return *this->toolbox;
     }
+
+    void add_coroutine(std::weak_ptr<Coroutine> coro);
+    void add_to_queue(nlohmann::json data);
 
 protected:
     Workset();
@@ -38,6 +41,10 @@ private:
     std::string name;
     std::shared_ptr< BackreferenceRegistry< Step, Workset > > step_backrefs;
     std::shared_ptr< Step > root_step;
+
+    std::mutex queue_mutex;
+    std::condition_variable queue_variable;
+    std::list< nlohmann::json > queue;
 };
 
 #endif // WORKSET_H

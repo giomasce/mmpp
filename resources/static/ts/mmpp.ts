@@ -33,6 +33,7 @@ function workset_loaded(new_workset : Workset) {
   current_renderer = new Renderer(DEFAULT_STYLE, current_workset);
   $("#workset").html(Mustache.render(WORKSET_TEMPL, {}));
   update_workset_globals();
+  current_workset.start_receiving_events();
 }
 
 export function get_current_workset() : Workset {

@@ -14,9 +14,16 @@
 
 using namespace std;
 
+static void microhttpd_panic(void *cls, const char *file, unsigned int line, const char *reason) {
+    (void) cls;
+    cout << "Microhttpd panic in " << file << ":" << line << " beacuse of \"" << reason << "\"" << endl;
+    abort();
+}
+
 HTTPD_microhttpd::HTTPD_microhttpd(int port, HTTPTarget &target, bool only_from_localhost) :
     port(port), daemon(NULL), target(target), restrict_to_localhost(only_from_localhost)
 {
+    MHD_set_panic_func(microhttpd_panic, NULL);
 }
 
 void HTTPD_microhttpd::start()

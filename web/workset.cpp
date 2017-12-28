@@ -9,7 +9,7 @@
 using namespace std;
 using namespace nlohmann;
 
-Workset::Workset() : thread_manager(make_unique< CoroutineThreadManager >(4)), root_step(this->step_backrefs->make_instance())
+Workset::Workset() : thread_manager(make_unique< CoroutineThreadManager >(4)), step_backrefs(BackreferenceRegistry< Step, Workset >::create()), root_step(this->step_backrefs->make_instance())
 {
 }
 
@@ -73,6 +73,20 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         } catch (out_of_range) {
             throw SendError(404);
         }
+    } else if (*path_begin == "queue") {
+        path_begin++;
+        assert_or_throw< SendError >(path_begin == path_end, 404);
+        assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+        throw WaitForPost([this] (const auto &post_data) {
+            (void) post_data;
+            unique_lock< mutex > queue_lock(this->queue_mutex);
+            while (this->queue.empty()) {
+                this->queue_variable.wait(queue_lock);
+            }
+            auto ret = this->queue.front();
+            this->queue.pop_front();
+            return ret;
+        });
     } else if (*path_begin == "get_proof_tree") {
         path_begin++;
         assert_or_throw< SendError >(path_begin != path_end, 404);
@@ -158,4 +172,16 @@ const string &Workset::get_name()
 void Workset::set_name(const string &name)
 {
     this->name = name;
+}
+
+void Workset::add_coroutine(std::weak_ptr<Coroutine> coro)
+{
+    this->thread_manager->add_coroutine(coro);
+}
+
+void Workset::add_to_queue(json data)
+{
+    unique_lock< mutex > lock(this->queue_mutex);
+    this->queue.push_back(data);
+    this->queue_variable.notify_one();
 }
