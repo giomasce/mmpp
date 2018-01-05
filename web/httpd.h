@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <functional>
 #include <memory>
+#include <cassert>
+#include <istream>
 
 const size_t HTTP_BUFFER_SIZE = 65536;
 

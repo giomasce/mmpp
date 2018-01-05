@@ -1,53 +1,17 @@
 
-# Comment this to enable QT
-CONFIG -= qt
-
-CONFIG(qt) {
-    QT       += core gui
-    greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-    DEFINES += USE_QT
-}
+# Enable or disable various components
+USE_QT = false
+USE_MICROHTTPD = false
+USE_Z3 = false
 
 TEMPLATE = app
 CONFIG += link_pkgconfig
-CONFIG += precompile_header
 #CONFIG += object_parallel_to_source
-PKGCONFIG += libmicrohttpd libcrypto++
 
-SOURCES += \
-    main.cpp \
-    library.cpp \
-    proof.cpp \
-    old/unification.cpp \
-    wff.cpp \
-    toolbox.cpp \
-    test/test.cpp \
-    utils/utils.cpp \
-    web/web.cpp \
-    platform.cpp \
-    web/workset.cpp \
-    web/jsonize.cpp \
-    z3/z3prover.cpp \
-    reader.cpp \
-    apps/unificator.cpp \
-    temp.cpp \
-    test/test_env.cpp \
-    apps/generalizable_theorems.cpp \
-    test/test_parsing.cpp \
-    test/test_verification.cpp \
-    test/test_minor.cpp \
-    web/httpd_microhttpd.cpp \
-    web/step.cpp \
-    utils/threadmanager.cpp \
-    apps/learning.cpp
+#CONFIG += precompile_header
+#PRECOMPILED_HEADER += pch.h
 
-CONFIG(qt) {
-SOURCES += \
-    qt/mainwindow.cpp \
-    qt/prooftreemodel.cpp \
-    qt/htmldelegate.cpp \
-    qt/main_qt.cpp
-}
+PKGCONFIG += libcrypto++
 
 # Compile with gcc
 QMAKE_CC = gcc
@@ -55,7 +19,7 @@ QMAKE_CXX = g++
 QMAKE_LINK = g++
 QMAKE_CFLAGS += -std=c11 -g
 QMAKE_CXXFLAGS += -std=c++17 -g -ftemplate-backtrace-limit=0
-QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread -lz3
+QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread
 
 # Compile to native instruction set
 #QMAKE_CFLAGS += -march=native
@@ -84,7 +48,30 @@ QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -
 #QMAKE_CXXFLAGS += -fsanitize=address -fno-sanitize-recover=all -fsanitize-address-use-after-scope
 #QMAKE_LIBS += -fsanitize=address -fno-sanitize-recover=all -fsanitize-address-use-after-scope
 
-PRECOMPILED_HEADER += pch.h
+SOURCES += \
+    main.cpp \
+    library.cpp \
+    proof.cpp \
+    old/unification.cpp \
+    wff.cpp \
+    toolbox.cpp \
+    test/test.cpp \
+    utils/utils.cpp \
+    web/web.cpp \
+    platform.cpp \
+    web/workset.cpp \
+    web/jsonize.cpp \
+    reader.cpp \
+    apps/unificator.cpp \
+    temp.cpp \
+    test/test_env.cpp \
+    apps/generalizable_theorems.cpp \
+    test/test_parsing.cpp \
+    test/test_verification.cpp \
+    test/test_minor.cpp \
+    web/step.cpp \
+    utils/threadmanager.cpp \
+    apps/learning.cpp
 
 HEADERS += \
     pch.h \
@@ -112,24 +99,50 @@ HEADERS += \
     parsing/earley.h \
     parsing/lr.h \
     parsing/unif.h \
-    web/httpd_microhttpd.h \
     web/step.h \
     utils/threadmanager.h \
     utils/backref_registry.h \
     parsing/algos.h
 
-CONFIG(qt) {
-HEADERS += \
-    qt/mainwindow.h \
-    qt/prooftreemodel.h \
-    qt/htmldelegate.h
-}
-
 DISTFILES += \
     README
 
-FORMS += \
-    qt/mainwindow.ui
+!equals(USE_QT, "true") {
+    CONFIG -= qt
+}
+
+equals(USE_QT, "true") {
+    DEFINES += USE_QT
+    QT += core gui
+    greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+    SOURCES += \
+        qt/mainwindow.cpp \
+        qt/prooftreemodel.cpp \
+        qt/htmldelegate.cpp \
+        qt/main_qt.cpp
+    HEADERS += \
+        qt/mainwindow.h \
+        qt/prooftreemodel.h \
+        qt/htmldelegate.h
+    FORMS += \
+        qt/mainwindow.ui
+}
+
+equals(USE_MICROHTTPD, "true") {
+    DEFINES += USE_MICROHTTPD
+    SOURCES += \
+        web/httpd_microhttpd.cpp
+    HEADERS += \
+        web/httpd_microhttpd.h
+    PKGCONFIG += libmicrohttpd
+}
+
+equals(USE_Z3, "true") {
+    DEFINES += USE_Z3
+    SOURCES += \
+        z3/z3prover.cpp
+    QMAKE_LIBS += -lz3
+}
 
 #create_links.commands = for i in mmpp_dissector mmpp_gen_random_theorems mmpp_verify_one mmpp_simple_verify_one mmpp_verify_all mmpp_test_setmm mmpp_unificator webmmpp webmmpp_open qmmpp mmpp_test_z3 mmpp_generalizable_theorems ; do ln -s mmpp \$\$i 2>/dev/null || true ; done
 #QMAKE_EXTRA_TARGETS += create_links

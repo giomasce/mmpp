@@ -35,6 +35,18 @@ string generate_id() {
     return string(id.begin(), id.end());
 }
 
+unique_ptr< HTTPD > make_server(int port, WebEndpoint &endpoint, bool open_server) {
+#if defined(USE_MICROHTTPD)
+    return make_unique< HTTPD_microhttpd >(port, endpoint, !open_server);
+#else
+    // If no HTTP implementation is provided, we return NULL
+    (void) port;
+    (void) endpoint;
+    (void) open_server;
+    return NULL;
+#endif
+}
+
 int webmmpp_main_common(int argc, char *argv[], bool open_server) {
     if (!platform_init(argc, argv)) {
         return 1;
@@ -44,7 +56,11 @@ int webmmpp_main_common(int argc, char *argv[], bool open_server) {
 
     int port = 8888;
     WebEndpoint endpoint(port, open_server);
-    HTTPD_microhttpd httpd(port, endpoint, !open_server);
+    unique_ptr< HTTPD > httpd = make_server(port, endpoint, open_server);
+    if (httpd == NULL) {
+        cerr << "Could not build an HTTP server, exiting" << endl;
+        return 1;
+    }
 
     if (open_server) {
         // The session is already available, but it is constant; we need to populate it with some content
@@ -55,7 +71,7 @@ int webmmpp_main_common(int argc, char *argv[], bool open_server) {
         workset->load_library(platform_get_resources_base() / "library.mm", platform_get_resources_base() / "library.mm.cache", "|-");
     }
 
-    httpd.start();
+    httpd->start();
 
     if (!open_server) {
         // Generate a session and pass it to the browser
@@ -68,12 +84,12 @@ int webmmpp_main_common(int argc, char *argv[], bool open_server) {
     while (true) {
         if (platform_should_stop()) {
             cerr << "Signal received, stopping..." << endl;
-            httpd.stop();
+            httpd->stop();
             break;
         }
         sleep(1);
     }
-    httpd.join();
+    httpd->join();
 
     return 0;
 }
