@@ -1,7 +1,8 @@
 
 # Enable or disable various components
 USE_QT = false
-USE_MICROHTTPD = false
+USE_MICROHTTPD = true
+USE_BEAST = false
 USE_Z3 = false
 
 TEMPLATE = app
@@ -135,6 +136,14 @@ equals(USE_MICROHTTPD, "true") {
     HEADERS += \
         web/httpd_microhttpd.h
     PKGCONFIG += libmicrohttpd
+}
+
+equals(USE_BEAST, "true") {
+    DEFINES += USE_BEAST
+    SOURCES += \
+        web/httpd_beast.cpp
+    HEADERS += \
+        web/httpd_beast.h
 }
 
 equals(USE_Z3, "true") {
