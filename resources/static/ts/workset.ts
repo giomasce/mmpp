@@ -81,7 +81,7 @@ export class Workset {
       console.log("receive_event() failed because of " + reason);
     }).then(function () : void {
       if (self.receiving_events) {
-	self.receive_event();
+        self.receive_event();
       }
     });
   }
@@ -146,7 +146,7 @@ export class Workset {
       self.styles[RenderingStyles.LATEX] = new Renderer(RenderingStyles.LATEX, self);
       self.root_step = new Step(data.root_step_id, self);
       return self.root_step.load_from_remote();
-    })
+    });
   }
 
   get_human_description() : string {
@@ -254,7 +254,7 @@ export class Renderer {
       for (let tok of tokens) {
         let resolved : number = this.workset.symbols_inv[tok];
         if (resolved === undefined) {
-          ret += ` \textrm{${tok}} `;
+          ret += ` \\textrm{${tok}} `;
         } else {
           ret += this.workset.addendum.latexdefs[tok];
         }

@@ -46,9 +46,17 @@ export function gen_random_id() : string {
 }
 
 let last_serial : number = 0;
-export function get_serial() : string {
+export function get_serial() : number {
   last_serial += 1;
-  return last_serial.toString();
+  return last_serial;
+}
+
+export function get_serial_string() : string {
+  return get_serial().toString();
+}
+
+export function assert(test : boolean, message? : string) {
+  console.assert(test, message);
 }
 
 /* Implementation of the the function spectrumToRGB() in the official metamath;

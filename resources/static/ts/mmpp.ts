@@ -4,9 +4,13 @@
 import { get_serial, spectrum_to_rgb, push_and_get_index, lastize, catch_all } from "./utils";
 import { CellDelegate, Editor, EditorStep } from "./editor";
 import { check_version, create_workset, load_workset, list_worksets, Step, Workset, Renderer, RenderingStyles } from "./workset";
+import { Tree } from "./tree";
+import { EditorManager } from "./tree_editor";
+import { WorksetManager } from "./tree_workset";
 
 let current_workset : Workset;
 let current_renderer : Renderer;
+let current_tree : Tree;
 const DEFAULT_STYLE : RenderingStyles = RenderingStyles.ALT_HTML;
 
 // Whether to include non essential steps or not
@@ -38,6 +42,10 @@ function workset_loaded(new_workset : Workset) {
 
 export function get_current_workset() : Workset {
   return current_workset;
+}
+
+export function get_current_tree() : Tree {
+  return current_tree;
 }
 
 export function ui_create_workset() {
@@ -328,6 +336,13 @@ export function ui_build_tree() {
   }).catch(catch_all);
 }
 
+export function ui_show_tree() {
+  let editor_manager = new EditorManager("workset_area");
+  let workset_manager = new WorksetManager(get_current_workset().id);
+  current_tree = new Tree(get_serial(), [editor_manager, workset_manager]);
+  workset_manager.load_data(current_tree);
+}
+
 /*function retrieve_sentence(label_tok : number) : number[] {
   let sentence : number[];
   jsonAjax(`/api/1/workset/${workset.id}/get_sentence/${label_tok}`, true, true, false).done(function(data) {
@@ -421,6 +436,7 @@ const WORKSET_TEMPL = `
     <button onclick="mmpp.ui_show_proof()">Show proof</button>
     <button onclick="mmpp.ui_show_modifier()">Show modifier</button>
     <button onclick="mmpp.ui_build_tree()">Build tree</button>
+    <button onclick="mmpp.ui_show_tree()">Show tree</button>
   </div>
   <div id="workset_area"></div>
 `;
