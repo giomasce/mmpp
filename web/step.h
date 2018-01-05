@@ -96,7 +96,11 @@ public:
     nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end);
     void add_listener(const std::shared_ptr<StepOperationsListener> &listener);
     bool get_success();
-    std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > get_result();
+    //std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > get_result();
+    LabTok get_label();
+    LabTok get_number();
+    const std::vector< size_t > &get_permutation();
+    const std::unordered_map< SymTok, std::vector< SymTok > > &get_subst_map();
 
 protected:
     explicit Step(BackreferenceToken< Step, Workset > &&token);
@@ -124,6 +128,10 @@ private:
     Sentence sentence;
     std::shared_ptr< StepComputation > last_comp;
     std::shared_ptr< Coroutine > last_coro;
+
+    /*LabTok label;
+    std::vector< size_t > permutation;
+    std::unordered_map< SymTok, std::vector< SymTok > > subst_map;*/
 };
 
 #endif // STEP_H

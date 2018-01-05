@@ -57,7 +57,7 @@ static_block {
 }
 
 int main(int argc, char *argv[]) {
-    set_max_ram(1024 * 1024 * 1024);
+    set_max_ram(4 * 1024 * 1024 * 1024LL);
     char *tmp = strdup(argv[0]);
     string bname(basename(tmp));
     // string constructor should have made a copy

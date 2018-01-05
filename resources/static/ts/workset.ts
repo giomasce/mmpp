@@ -39,8 +39,12 @@ export class Step {
   set_sentence(sentence : number[]) : Promise<void> {
     this.sentence = sentence;
     return this.do_api_request(`set_sentence`, {sentence: sentence.join(" ")}).then(function (data : object) : void {
-    })
+    });
   }
+}
+
+export interface WorksetEventListener {
+  receive_event(event : object) : void;
 }
 
 export class Workset {
@@ -55,22 +59,49 @@ export class Workset {
   styles : Map< RenderingStyles, Renderer >;
   root_step : Step;
   receiving_events : boolean = false;
+  event_listeners : WorksetEventListener[];
   addendum;
 
   constructor(id : number) {
     this.id = id;
     this.styles = new Map();
+    this.event_listeners = [];
   }
 
   do_api_request(url : string, data : object = null) : Promise<object> {
     return jsonAjax(`/api/${API_VERSION}/workset/${this.id}/` + url, data);
   }
 
+  get_renderer(style : RenderingStyles) : Renderer {
+    return this.styles.get(style);
+  }
+
+  get_default_renderer() : Renderer {
+    return this.get_renderer(DEFAULT_STYLE);
+  }
+
+  add_event_listener(listener : WorksetEventListener) : void {
+    this.event_listeners.push(listener);
+  }
+
+  delete_event_listener(listener : WorksetEventListener) : void {
+    let idx = this.event_listeners.indexOf(listener);
+    if (idx >= 0) {
+      this.event_listeners.splice(idx, 1);
+    }
+  }
+
   process_event(data : object) : void {
     if (!this.receiving_events) {
       return;
     }
-    console.log(data);
+    if (data["event"] === "nothing") {
+      return;
+    }
+    //console.log(data);
+    for (let listener of this.event_listeners) {
+      listener.receive_event(data);
+    }
   }
 
   receive_event() : void {
@@ -124,7 +155,7 @@ export class Workset {
     return this.root_step;
   }
 
-  load_from_remote() : Promise<void> {
+  load_from_remote(load_steps : boolean) : Promise<void> {
     let self = this;
     return this.do_api_request(`get_context`).then(function(data : any) : Promise<void> {
       self.name = data.name;
@@ -140,12 +171,17 @@ export class Workset {
         self.loaded = false;
       }
       // Stupid TypeScript has no sane way to iterate over an enum
-      self.styles[RenderingStyles.HTML] = new Renderer(RenderingStyles.HTML, self);
-      self.styles[RenderingStyles.ALT_HTML] = new Renderer(RenderingStyles.ALT_HTML, self);
-      self.styles[RenderingStyles.TEXT] = new Renderer(RenderingStyles.TEXT, self);
-      self.styles[RenderingStyles.LATEX] = new Renderer(RenderingStyles.LATEX, self);
-      self.root_step = new Step(data.root_step_id, self);
-      return self.root_step.load_from_remote();
+      self.styles.set(RenderingStyles.HTML, new Renderer(RenderingStyles.HTML, self));
+      self.styles.set(RenderingStyles.ALT_HTML, new Renderer(RenderingStyles.ALT_HTML, self));
+      self.styles.set(RenderingStyles.TEXT, new Renderer(RenderingStyles.TEXT, self));
+      self.styles.set(RenderingStyles.LATEX, new Renderer(RenderingStyles.LATEX, self));
+      if (load_steps) {
+        self.root_step = new Step(data.root_step_id, self);
+        return self.root_step.load_from_remote();
+      } else {
+        self.root_step = null;
+        return Promise.resolve();
+      }
     });
   }
 
@@ -162,7 +198,15 @@ export class Workset {
   load_data() : Promise<void> {
     let self = this;
     return this.do_api_request(`load`).then(function(data : any) : Promise<void> {
-      return self.load_from_remote();
+      return self.load_from_remote(false);
+    });
+  }
+
+  // FIXME Temporary workaround
+  reload_with_steps() : Promise<Workset> {
+    let workset : Workset = new Workset(this.id);
+    return workset.load_from_remote(true).then(function() : Workset {
+      return workset;
     });
   }
 }
@@ -173,6 +217,8 @@ export enum RenderingStyles {
   LATEX,
   TEXT,
 }
+
+const DEFAULT_STYLE : RenderingStyles = RenderingStyles.ALT_HTML;
 
 export class Renderer {
   style : RenderingStyles;
@@ -221,6 +267,19 @@ export class Renderer {
         ret += this.workset.symbols[tok] + " ";
       }
       ret = ret.slice(0, -1);
+    }
+    return ret;
+  }
+
+  parse_from_strings(tokens : string[]) : number[] {
+    let ret : number[] = [];
+    for (let tok of tokens) {
+      let resolved : number = this.workset.symbols_inv[tok];
+      if (resolved === undefined) {
+        return null;
+      } else {
+        ret.push(resolved);
+      }
     }
     return ret;
   }
@@ -281,7 +340,7 @@ export function check_version() : Promise<void> {
 export function create_workset() : Promise<Workset> {
   return jsonAjax(`/api/${API_VERSION}/workset/create`).then(function(data : any) : Promise<Workset> {
     let workset : Workset = new Workset(data.id);
-    return workset.load_from_remote().then(function() : Workset {
+    return workset.load_from_remote(false).then(function() : Workset {
       return workset;
     });
   });
@@ -300,7 +359,7 @@ export function list_worksets() : Promise<Array<WorksetDescr>> {
 
 export function load_workset(id : number) : Promise<Workset> {
   let workset : Workset = new Workset(id);
-  return workset.load_from_remote().then(function() : Workset {
+  return workset.load_from_remote(false).then(function() : Workset {
     return workset;
   });
 }

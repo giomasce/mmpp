@@ -53,7 +53,12 @@ void Step::after_being_orphaned(size_t child_idx) {
 
 void Step::after_new_sentence(const Sentence &old_sent) {
     (void) old_sent;
+    unique_lock< recursive_mutex > lock(this->global_mutex);
     this->restart_coroutine();
+    auto strong_parent = this->parent.lock();
+    if (strong_parent) {
+        strong_parent->restart_coroutine();
+    }
 }
 
 void Step::restart_coroutine()
@@ -248,6 +253,8 @@ void Step::step_coroutine_finished(StepComputation *step_comp)
         return;
     }
 
+    //tie(this->label, this->permutation, this->subst_map) = this->last_comp->get_result();
+
     // Push an event to queue
     json ret = json::object();
     ret["event"] = "step_updated";
@@ -301,7 +308,42 @@ bool Step::get_success()
     }
 }
 
-std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > Step::get_result()
+LabTok Step::get_label()
+{
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    return get< 0 >(this->last_comp->get_result());
+}
+
+LabTok Step::get_number()
+{
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    LabTok label = this->get_label();
+    auto strong_workset = this->get_workset().lock();
+    if (strong_workset) {
+        auto ass = strong_workset->get_toolbox().get_assertion(label);
+        if (ass.is_valid()) {
+            return ass.get_number();
+        } else {
+            return {};
+        }
+    } else {
+        return {};
+    }
+}
+
+const std::vector<size_t> &Step::get_permutation()
+{
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    return get< 1 >(this->last_comp->get_result());
+}
+
+const std::unordered_map<SymTok, std::vector<SymTok> > &Step::get_subst_map()
+{
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    return get< 2 >(this->last_comp->get_result());
+}
+
+/*std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > Step::get_result()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
     if (this->last_comp) {
@@ -309,7 +351,7 @@ std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<S
     } else {
         return {};
     }
-}
+}*/
 
 StepComputation::StepComputation(std::weak_ptr< Step > parent, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox)
     : parent(parent), thesis(thesis), hypotheses(hypotheses), toolbox(toolbox), finished(false), success(false)

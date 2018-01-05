@@ -4,16 +4,26 @@
 import { assert } from "./utils";
 import { TreeManager, TreeNode } from "./tree";
 
+export interface NodePainter {
+  paint_node(node : TreeNode) : void;
+  set_editor_manager(editor_manager : EditorManager) : void;
+}
+
 export class EditorManagerObject {
   visible : boolean = false;
+  children_open : boolean;
+  data2_open : boolean;
 }
 
 export class EditorManager extends TreeManager {
   parent_div : string;
+  painter : NodePainter;
 
-  constructor(parent_div : string) {
+  constructor(parent_div : string, painter : NodePainter) {
     super();
     this.parent_div = parent_div;
+    this.painter = painter;
+    this.painter.set_editor_manager(this);
   }
 
   creating_node(node : TreeNode) : void {
@@ -46,7 +56,92 @@ export class EditorManager extends TreeManager {
     }
   }
 
+  compute_full_id(node : TreeNode) : string {
+    return `${node.get_tree().get_id()}_step_${node.get_id()}`;
+  }
+
+  compute_data1_element(node : TreeNode) : JQuery {
+    return $(`#${this.compute_full_id(node)}_data1`);
+  }
+
+  compute_data2_element(node : TreeNode) : JQuery {
+    return $(`#${this.compute_full_id(node)}_data2`);
+  }
+
+  toggle_children(node : TreeNode, animation : boolean = true) : void {
+    let obj : EditorManagerObject = this.get_manager_object(node);
+    let full_id = this.compute_full_id(node);
+    if (obj.children_open) {
+      $(`#${full_id}_btn_toggle_children`).removeClass("mini_button_open").addClass("mini_button_closed");
+      if (animation) {
+        $(`#${full_id}_children`).slideUp();
+      } else {
+        $(`#${full_id}_children`).hide();
+      }
+      obj.children_open = false;
+    } else {
+      $(`#${full_id}_btn_toggle_children`).removeClass("mini_button_closed").addClass("mini_button_open");
+      if (animation) {
+        $(`#${full_id}_children`).slideDown();
+      } else {
+        $(`#${full_id}_children`).show();
+      }
+      obj.children_open = true;
+    }
+  }
+
+  open_children(node : TreeNode, animation : boolean = true) : void {
+    let obj : EditorManagerObject = this.get_manager_object(node);
+    if (!obj.children_open) {
+      this.toggle_children(node, animation);
+    }
+  }
+
+  close_children(node : TreeNode, animation : boolean = true) : void {
+    let obj : EditorManagerObject = this.get_manager_object(node);
+    if (obj.children_open) {
+      this.toggle_children(node, animation);
+    }
+  }
+
+  toggle_data2(node : TreeNode, animation : boolean = true) : void {
+    let obj : EditorManagerObject = this.get_manager_object(node);
+    let full_id = this.compute_full_id(node);
+    if (obj.data2_open) {
+      $(`#${full_id}_btn_toggle_data2`).removeClass("mini_button_open").addClass("mini_button_closed");
+      if (animation) {
+        $(`#${full_id}_data2`).slideUp();
+      } else {
+        $(`#${full_id}_data2`).hide();
+      }
+      obj.data2_open = false;
+    } else {
+      $(`#${full_id}_btn_toggle_data2`).removeClass("mini_button_closed").addClass("mini_button_open");
+      if (animation) {
+        $(`#${full_id}_data2`).slideDown();
+      } else {
+        $(`#${full_id}_data2`).show();
+      }
+      obj.data2_open = true;
+    }
+  }
+
+  open_data2(node : TreeNode, animation : boolean = true) : void {
+    let obj : EditorManagerObject = this.get_manager_object(node);
+    if (!obj.data2_open) {
+      this.toggle_data2(node, animation);
+    }
+  }
+
+  close_data2(node : TreeNode, animation : boolean = true) : void {
+    let obj : EditorManagerObject = this.get_manager_object(node);
+    if (obj.data2_open) {
+      this.toggle_data2(node, animation);
+    }
+  }
+
   make_subtree_visible(parent : TreeNode, child : TreeNode, idx : number) : void {
+    let self = this;
     let parent_obj : EditorManagerObject = this.get_manager_object(parent);
     let child_obj : EditorManagerObject = this.get_manager_object(child);
     assert(!child_obj.visible);
@@ -56,7 +151,8 @@ export class EditorManager extends TreeManager {
 
     let tree_id = child.get_tree().get_id();
     let child_id = child.get_id();
-    let parent_id = parent.get_id();
+    let child_full_id = this.compute_full_id(child);
+    let parent_full_id = this.compute_full_id(parent);
 
     // Add new code to DOM
     let html_code = Mustache.render(STEP_TMPL, {
@@ -64,11 +160,23 @@ export class EditorManager extends TreeManager {
       id: child.get_id(),
     });
     if (idx === 0) {
-      $(`#${tree_id}_step_${parent_id}_children`).prepend(html_code);
+      $(`#${parent_full_id}_children`).prepend(html_code);
     } else {
-      let prev_child_id = parent.get_child(idx-1).get_id();
-      $(`#${tree_id}_step_${prev_child_id}`).after(html_code);
+      let prev_child_full_id = this.compute_full_id(parent.get_child(idx-1));
+      $(`#${prev_child_full_id}`).after(html_code);
     }
+    this.open_children(child, false);
+    $(`#${child_full_id}_btn_toggle_children`).click(this.toggle_children.bind(this, child));
+    this.open_data2(child, false);
+    this.close_data2(child, false);
+    $(`#${child_full_id}_btn_toggle_data2`).click(this.toggle_data2.bind(this, child));
+    $(`#${child_full_id}_btn_close_all_children`).click(function() {
+      self.open_children(child);
+      for (let child2 of child.get_children()) {
+        self.close_children(child2);
+      }
+    });
+    this.painter.paint_node(child);
 
     // Recur on children
     for (let [idx2, child2] of child.get_children().entries()) {

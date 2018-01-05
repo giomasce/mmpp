@@ -112,7 +112,3 @@ export function push_and_get_index<T>(array : T[], object : T) : number {
   array.push(object);
   return index;
 }
-
-export function serialize(array : (callback : (bool)=>void)=>void[]) : void {
-
-}

@@ -85,6 +85,14 @@
   vertical-align: middle;
 }
 
+.mini_button_closed {
+  background-color: red;
+}
+
+.mini_button_open {
+  background-color: green;
+}
+
 .outer_above {
   position: absolute;
   top: 0px;

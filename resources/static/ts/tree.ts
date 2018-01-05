@@ -77,11 +77,11 @@ export class TreeNode {
   }
 
   get_manager_object(id : number) : any {
-    return this.manager_objects[id];
+    return this.manager_objects.get(id);
   }
 
   set_manager_object(id : number, obj : any) : void {
-    this.manager_objects[id] = obj;
+    this.manager_objects.set(id, obj);
   }
 
   is_root() : boolean {
@@ -161,10 +161,13 @@ export class Tree {
     return this.id;
   }
 
-  create_node(id : number) : TreeNode {
+  create_node(id : number, is_root : boolean) : TreeNode {
     let node = new TreeNode(id, this);
     assert(!this.node_map.has(id));
-    this.node_map[id] = node;
+    this.node_map.set(id, node);
+    if (is_root) {
+      this.root_node = node;
+    }
     for (let manager of this.managers) {
       manager.creating_node(node);
     }
@@ -186,9 +189,7 @@ export class Tree {
     return this.root_node;
   }
 
-  set_root_node(node : TreeNode) : void {
-    assert(this.root_node === null);
-    assert(node.parent === null);
-    this.root_node = node;
+  get_node(id : number) : TreeNode {
+    return this.node_map.get(id);
   }
 }

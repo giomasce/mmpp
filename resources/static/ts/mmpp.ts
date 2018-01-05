@@ -8,10 +8,9 @@ import { Tree } from "./tree";
 import { EditorManager } from "./tree_editor";
 import { WorksetManager } from "./tree_workset";
 
-let current_workset : Workset;
-let current_renderer : Renderer;
-let current_tree : Tree;
-const DEFAULT_STYLE : RenderingStyles = RenderingStyles.ALT_HTML;
+let current_workset : Workset = null;
+let current_renderer : Renderer = null;
+let current_tree : Tree = null;
 
 // Whether to include non essential steps or not
 let include_non_essentials : boolean = false;
@@ -33,8 +32,11 @@ function reload_workset_list() : void {
 
 function workset_loaded(new_workset : Workset) {
   reload_workset_list();
+  if (current_workset !== null) {
+    current_workset.stop_receiving_events();
+  }
   current_workset = new_workset;
-  current_renderer = new Renderer(DEFAULT_STYLE, current_workset);
+  current_renderer = current_workset.get_default_renderer();
   $("#workset").html(Mustache.render(WORKSET_TEMPL, {}));
   update_workset_globals();
   current_workset.start_receiving_events();
@@ -322,11 +324,13 @@ export function ui_build_tree() {
     let requests : Promise<any>[] = [];
     let requests_map = {
       proof_tree: push_and_get_index(requests, current_workset.do_api_request(`get_proof_tree/${assertion["thesis"]}`)),
+      fresh_workset: push_and_get_index(requests, current_workset.reload_with_steps()),
     };
 
     // Fire all the requests and then feed the results to the template
     return Promise.all(requests).then(function(responses : Array<any>) : Promise<[Promise<void>]> {
-      let x = render_proof_in_workset(responses[requests_map["proof_tree"]].proof_tree, current_workset, current_workset.get_root_step());
+      let fresh_workset = responses[requests_map["fresh_workset"]];
+      let x = render_proof_in_workset(responses[requests_map["proof_tree"]].proof_tree, fresh_workset, fresh_workset.get_root_step());
       return x;
     }).then(function (completion_ : [Promise<void>]) : Promise<void> {
       let completion : Promise<void> = completion_[0];
@@ -337,8 +341,8 @@ export function ui_build_tree() {
 }
 
 export function ui_show_tree() {
-  let editor_manager = new EditorManager("workset_area");
-  let workset_manager = new WorksetManager(get_current_workset().id);
+  let workset_manager = new WorksetManager(get_current_workset());
+  let editor_manager = new EditorManager("workset_area", workset_manager);
   current_tree = new Tree(get_serial(), [editor_manager, workset_manager]);
   workset_manager.load_data(current_tree);
 }

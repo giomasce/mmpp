@@ -124,7 +124,7 @@ export class Editor {
     // Construct a dummy root step, with some glue DOM code
     let root_id = get_serial_string();
     this.root_step = new EditorStep(root_id, this, null, null);
-    this.steps_map[root_id] = this.root_step;
+    this.steps_map.set(root_id, this.root_step);
     let html_code = Mustache.render(STEP_ROOT_TMPL, {
       eid: this.id,
       id: root_id,
@@ -133,13 +133,13 @@ export class Editor {
   }
 
   create_step(parent : string, index : number, cell_delegate : CellDelegate) : EditorStep {
-    let parent_step = this.steps_map[parent];
+    let parent_step = this.steps_map.get(parent);
     if (index === -1) {
       index = parent_step.children.length;
     }
     let new_id = get_serial_string();
     let new_step = new EditorStep(new_id, this, parent_step, cell_delegate);
-    this.steps_map[new_id] = new_step;
+    this.steps_map.set(new_id, new_step);
     parent_step.children.splice(index, 0, new_step);
 
     // Add code to the DOM
@@ -157,7 +157,7 @@ export class Editor {
   }
 
   delete_step(id : string) {
-    let step = this.steps_map[id];
+    let step = this.steps_map.get(id);
     let parent_step = step.parent;
     if (parent_step === null) {
       throw "Cannot delete root step";

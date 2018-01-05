@@ -95,7 +95,14 @@ json jsonize(Step &step)
         ret["children"].push_back(child->get_id());
     }
     ret["sentence"] = step.get_sentence();
-    ret["success"] = step.get_success();
-    ret["result"] = step.get_result();
+    bool success = step.get_success();
+    ret["success"] = success;
+    if (success) {
+        //ret["result"] = step.get_result();
+        ret["label"] = step.get_label();
+        ret["number"] = step.get_number();
+        ret["permutation"] = step.get_permutation();
+        ret["subst_map"] = step.get_subst_map();
+    }
     return ret;
 }

@@ -7,6 +7,7 @@
 #include "jsonize.h"
 
 using namespace std;
+using namespace chrono;
 using namespace nlohmann;
 
 Workset::Workset() : thread_manager(make_unique< CoroutineThreadManager >(4)), step_backrefs(BackreferenceRegistry< Step, Workset >::create()), root_step(this->step_backrefs->make_instance())
@@ -80,8 +81,15 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         throw WaitForPost([this] (const auto &post_data) {
             (void) post_data;
             unique_lock< mutex > queue_lock(this->queue_mutex);
+            // Queue automatically returns after some timeout
+            auto timeout = steady_clock::now() + 1s;
             while (this->queue.empty()) {
-                this->queue_variable.wait(queue_lock);
+                auto reason = this->queue_variable.wait_until(queue_lock, timeout);
+                if (reason == cv_status::timeout) {
+                    json ret = json::object();
+                    ret["event"] = "nothing";
+                    return ret;
+                }
             }
             auto ret = this->queue.front();
             this->queue.pop_front();
