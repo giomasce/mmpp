@@ -10,8 +10,16 @@ using namespace std;
 using namespace chrono;
 using namespace nlohmann;
 
-Workset::Workset() : thread_manager(make_unique< CoroutineThreadManager >(4)), step_backrefs(BackreferenceRegistry< Step, Workset >::create()), root_step(this->step_backrefs->make_instance())
+Workset::Workset() : thread_manager(make_unique< CoroutineThreadManager >(4)) /*, step_backrefs(BackreferenceRegistry< Step, Workset >::create()) */
 {
+    this->root_step = this->create_step();
+}
+
+std::shared_ptr<Step> Workset::create_step()
+{
+    shared_ptr< Step > new_step = Step::create(this->id_dist.get_id(), this->weak_this);
+    this->steps[new_step->get_id()] = new_step;
+    return new_step;
 }
 
 template< typename TokType >
@@ -37,7 +45,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         assert_or_throw< SendError >(path_begin == path_end, 404);
         json ret;
         ret["name"] = this->get_name();
-        ret["root_step_id"] = this->root_step->get_id();
+        ret["root_step_id"] = this->root_step.lock()->get_id();
         if (this->library == NULL) {
             ret["status"] = "unloaded";
             return ret;
@@ -129,7 +137,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
                 } catch (out_of_range) {
                     throw SendError(404);
                 }*/
-                shared_ptr< Step > new_step = this->step_backrefs->make_instance();
+                auto new_step = this->create_step();
                 //bool res = new_step->reparent(parent_step, idx);
                 json ret = json::object();
                 ret["id"] = new_step->get_id();
@@ -143,16 +151,11 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         } else {
             size_t id = safe_stoi(*path_begin);
             path_begin++;
-            shared_ptr< Step > step;
-            try {
-                step = this->step_backrefs->at(id);
-            } catch (out_of_range) {
-                throw SendError(404);
-            }
+            shared_ptr< Step > step = safe_at(this->steps, id);
             return step->answer_api1(cb, path_begin, path_end);
         }
         try {
-            return jsonize(*this->root_step);
+            return jsonize(*this->root_step.lock());
         } catch (out_of_range) {
             throw SendError(404);
         }
@@ -192,7 +195,18 @@ void Workset::add_to_queue(json data)
     this->queue_variable.notify_one();
 }
 
-std::shared_ptr<BackreferenceRegistry<Step, Workset> > Workset::get_step_backrefs() const
+std::shared_ptr<Step> Workset::get_step(size_t id)
+{
+    unique_lock< mutex > lock(this->global_mutex);
+    return this->steps.at(id);
+}
+
+std::shared_ptr<Step> Workset::at(size_t id)
+{
+    return this->get_step(id);
+}
+
+/*std::shared_ptr<BackreferenceRegistry<Step, Workset> > Workset::get_step_backrefs() const
 {
     return this->step_backrefs;
-}
+}*/

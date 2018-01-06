@@ -92,7 +92,7 @@ json jsonize(Step &step)
     ret["id"] = step.get_id();
     ret["children"] = json::array();
     for (const auto &child : step.get_children()) {
-        ret["children"].push_back(child->get_id());
+        ret["children"].push_back(child.lock()->get_id());
     }
     ret["sentence"] = step.get_sentence();
     bool success = step.get_success();

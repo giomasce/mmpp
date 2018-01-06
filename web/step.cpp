@@ -7,9 +7,9 @@
 using namespace std;
 using namespace nlohmann;
 
-Step::Step(BackreferenceToken<Step, Workset> &&token) : token(move(token))
+/*Step::Step(BackreferenceToken<Step, Workset> &&token) : token(move(token))
 {
-}
+}*/
 
 void Step::clean_listeners()
 {
@@ -66,7 +66,7 @@ void Step::restart_coroutine()
     unique_lock< recursive_mutex > lock(this->global_mutex);
     vector< Sentence > hyps;
     for (const auto &child : this->get_children()) {
-        hyps.push_back(child->get_sentence());
+        hyps.push_back(child.lock()->get_sentence());
     }
     auto workset = this->get_workset().lock();
     if (workset != NULL) {
@@ -99,10 +99,11 @@ bool Step::reaches_by_parents(const Step &to)
 size_t Step::get_id()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
-    return this->token.get_id();
+    //return this->token.get_id();
+    return this->id;
 }
 
-const std::vector<std::shared_ptr<Step> > &Step::get_children()
+const std::vector<SafeWeakPtr<Step> > &Step::get_children()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
     return this->children;
@@ -117,7 +118,8 @@ const Sentence &Step::get_sentence()
 std::weak_ptr<Workset> Step::get_workset()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
-    return this->token.get_main();
+    //return this->token.get_main();
+    return this->workset;
 }
 
 void Step::set_sentence(const Sentence &sentence)
@@ -156,7 +158,7 @@ bool Step::orphan()
     }
     unique_lock< recursive_mutex > parent_lock(strong_parent->global_mutex);
     auto &pchildren = strong_parent->children;
-    auto it = find_if(pchildren.begin(), pchildren.end(), [this](const shared_ptr< Step > &s)->bool { return s.get() == this; });
+    auto it = find_if(pchildren.begin(), pchildren.end(), [this](const SafeWeakPtr< Step > &s)->bool { return s.lock().get() == this; });
     assert(it != pchildren.end());
     size_t idx = it - pchildren.begin();
 
@@ -322,7 +324,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             shared_ptr< Step > parent_step;
             auto strong_workset = this->get_workset().lock();
             assert_or_throw< SendError >(strong_workset.operator bool(), 404);
-            parent_step = safe_at(*strong_workset->get_step_backrefs(), parent_id);
+            parent_step = safe_at(*strong_workset, parent_id);
             bool res = this->reparent(parent_step, idx);
             json ret = json::object();
             ret["success"] = res;
@@ -349,7 +351,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             unique_lock< recursive_mutex > lock(this->global_mutex);
             // ...
             json ret = json::object();
-            ret["success"] = res;
+            ret["success"] = true;
             return ret;
         });
     }
@@ -405,6 +407,10 @@ const std::unordered_map<SymTok, std::vector<SymTok> > &Step::get_subst_map()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
     return get< 2 >(this->last_comp->get_result());
+}
+
+Step::Step(size_t id, std::weak_ptr< Workset > workset) : id(id), workset(workset)
+{
 }
 
 /*std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > Step::get_result()

@@ -79,13 +79,18 @@ private:
 class Step
 {
 public:
-    static std::shared_ptr< Step > create(BackreferenceToken< Step, Workset > &&token) {
+    /*static std::shared_ptr< Step > create(BackreferenceToken< Step, Workset > &&token) {
         auto pointer = std::make_shared< enable_make< Step > >(std::move(token));
+        pointer->weak_this = pointer;
+        return pointer;
+    }*/
+    static std::shared_ptr< Step > create(size_t id, std::weak_ptr< Workset > workset) {
+        auto pointer = std::make_shared< enable_make< Step > >(id, workset);
         pointer->weak_this = pointer;
         return pointer;
     }
     size_t get_id();
-    const std::vector< std::shared_ptr< Step > > &get_children();
+    const std::vector<SafeWeakPtr<Step> > &get_children();
     const Sentence &get_sentence();
     std::weak_ptr<Workset> get_workset();
     void set_sentence(const Sentence &sentence);
@@ -103,7 +108,8 @@ public:
     const std::unordered_map< SymTok, std::vector< SymTok > > &get_subst_map();
 
 protected:
-    explicit Step(BackreferenceToken< Step, Workset > &&token);
+    //explicit Step(BackreferenceToken< Step, Workset > &&token);
+    explicit Step(size_t id, std::weak_ptr< Workset > workset);
 
 private:
     void clean_listeners();
@@ -120,11 +126,13 @@ private:
 
     bool reaches_by_parents(const Step &to);
 
-    BackreferenceToken< Step, Workset > token;
-    std::vector< std::shared_ptr< Step > > children;
+    //BackreferenceToken< Step, Workset > token;
+    size_t id;
+    std::weak_ptr< Workset > workset;
+    std::vector< SafeWeakPtr< Step > > children;
     std::weak_ptr< Step > parent;
     std::recursive_mutex global_mutex;
-    std::weak_ptr< Step > weak_this;
+    SafeWeakPtr< Step > weak_this;
     std::list< std::weak_ptr< StepOperationsListener > > listeners;
 
     Sentence sentence;

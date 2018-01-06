@@ -251,4 +251,21 @@ private:
     std::function< void() > finally;
 };
 
+template< class T >
+class SafeWeakPtr : public std::weak_ptr< T > {
+public:
+    constexpr SafeWeakPtr() noexcept : std::weak_ptr< T >() {
+    }
+
+    template< class U >
+    SafeWeakPtr(const std::shared_ptr< U > &r) noexcept : std::weak_ptr< T >(r) {
+    }
+
+    std::shared_ptr< T > lock() const noexcept {
+        auto strong = this->std::weak_ptr<T>::lock();
+        assert(strong);
+        return strong;
+    }
+};
+
 #endif // UTILS_H

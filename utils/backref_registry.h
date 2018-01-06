@@ -22,7 +22,7 @@ private:
     std::atomic< size_t > last_id;
 };
 
-template< typename T, typename U >
+/*template< typename T, typename U >
 class BackreferenceRegistry;
 
 template< typename T, typename U >
@@ -114,6 +114,6 @@ private:
     std::unordered_map< size_t, std::shared_ptr< T > > references;
     std::weak_ptr< BackreferenceRegistry< T, U > > weak_this;
     std::weak_ptr< U > main;
-};
+};*/
 
 #endif // BACKREF_REGISTRY_H
