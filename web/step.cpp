@@ -76,6 +76,26 @@ void Step::restart_coroutine()
     }
 }
 
+bool Step::reaches_by_parents(const Step &to)
+{
+    vector< unique_lock< recursive_mutex > > locks;
+    vector< shared_ptr< Step > > parents;
+    locks.emplace_back(this->global_mutex);
+    parents.push_back(this->weak_this.lock());
+    assert(parents.back());
+    while (true) {
+        auto new_parent = parents.back()->parent.lock();
+        if (!new_parent) {
+            return false;
+        }
+        if (new_parent.get() == &to) {
+            return true;
+        }
+        locks.emplace_back(new_parent->global_mutex);
+        parents.push_back(new_parent);
+    }
+}
+
 size_t Step::get_id()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
@@ -197,6 +217,9 @@ bool Step::reparent(std::shared_ptr<Step> parent, size_t idx)
     if (idx > pchildren.size()) {
         return false;
     }
+    if (parent->reaches_by_parents(*this)) {
+        return false;
+    }
 
     // Clean listeners
     parent->clean_listeners();
@@ -286,6 +309,47 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             this->set_sentence(sent);
             json ret = json::object();
             ret["success"] = true;
+            return ret;
+        });
+    } else if (*path_begin == "reparent") {
+        path_begin++;
+        assert_or_throw< SendError >(path_begin == path_end, 404);
+        assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+        throw WaitForPost([this] (const auto &post_data) {
+            unique_lock< recursive_mutex > lock(this->global_mutex);
+            size_t parent_id = safe_stoi(safe_at(post_data, "parent").value);
+            size_t idx = safe_stoi(safe_at(post_data, "index").value);
+            shared_ptr< Step > parent_step;
+            auto strong_workset = this->get_workset().lock();
+            assert_or_throw< SendError >(strong_workset.operator bool(), 404);
+            parent_step = safe_at(*strong_workset->get_step_backrefs(), parent_id);
+            bool res = this->reparent(parent_step, idx);
+            json ret = json::object();
+            ret["success"] = res;
+            return ret;
+        });
+    } else if (*path_begin == "orphan") {
+        path_begin++;
+        assert_or_throw< SendError >(path_begin == path_end, 404);
+        assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+        throw WaitForPost([this] (const auto &post_data) {
+            (void) post_data;
+            unique_lock< recursive_mutex > lock(this->global_mutex);
+            bool res = this->orphan();
+            json ret = json::object();
+            ret["success"] = res;
+            return ret;
+        });
+    } else if (*path_begin == "destroy") {
+        path_begin++;
+        assert_or_throw< SendError >(path_begin == path_end, 404);
+        assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+        throw WaitForPost([this] (const auto &post_data) {
+            (void) post_data;
+            unique_lock< recursive_mutex > lock(this->global_mutex);
+            // ...
+            json ret = json::object();
+            ret["success"] = res;
             return ret;
         });
     }

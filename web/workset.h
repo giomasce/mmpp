@@ -29,6 +29,7 @@ public:
 
     void add_coroutine(std::weak_ptr<Coroutine> coro);
     void add_to_queue(nlohmann::json data);
+    std::shared_ptr< BackreferenceRegistry< Step, Workset > > get_step_backrefs() const;
 
 protected:
     Workset();

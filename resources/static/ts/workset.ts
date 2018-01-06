@@ -138,16 +138,19 @@ export class Workset {
     if (idx < 0 || parent.children.length < idx) {
       throw "Wrong index";
     }
-    return this.do_api_request(`step/create`, {parent: parent.id, index: idx}).then(function (data : any) : Promise<Step> {
-      if (!data.success) {
-        throw "Failed to load step data";
-      } else {
-        let new_step = new Step(data.id, self);
-        parent.children.splice(idx, 0, new_step);
-        return new_step.load_from_remote().then(function () : Step {
-          return new_step;
-        });
-      }
+    return this.do_api_request(`step/create`, {}).then(function (data : any) : Promise<Step> {
+      let step_id : number = data.id;
+      return self.do_api_request(`step/${step_id}/reparent`, {parent: parent.id, index: idx}).then(function (data : any) : Promise< Step > {
+        if (!data.success) {
+          throw "Failed to reparent new step";
+        } else {
+          let new_step = new Step(step_id, self);
+          parent.children.splice(idx, 0, new_step);
+          return new_step.load_from_remote().then(function () : Step {
+            return new_step;
+          });
+        }
+      });
     });
   }
 

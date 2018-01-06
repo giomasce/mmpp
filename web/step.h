@@ -118,6 +118,8 @@ private:
     void after_new_sentence(const Sentence &old_sent);
     void restart_coroutine();
 
+    bool reaches_by_parents(const Step &to);
+
     BackreferenceToken< Step, Workset > token;
     std::vector< std::shared_ptr< Step > > children;
     std::weak_ptr< Step > parent;

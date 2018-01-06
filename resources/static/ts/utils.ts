@@ -112,3 +112,9 @@ export function push_and_get_index<T>(array : T[], object : T) : number {
   array.push(object);
   return index;
 }
+
+export function tokenize(str : string) : string[] {
+  return str.split(" ").filter(function (x : string) : boolean {
+    return x !== "";
+  });
+}

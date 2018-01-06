@@ -4,7 +4,7 @@
 import { get_serial, spectrum_to_rgb, push_and_get_index, lastize, catch_all } from "./utils";
 import { CellDelegate, Editor, EditorStep } from "./editor";
 import { check_version, create_workset, load_workset, list_worksets, Step, Workset, Renderer, RenderingStyles } from "./workset";
-import { Tree } from "./tree";
+import { Tree, TreeNode } from "./tree";
 import { EditorManager } from "./tree_editor";
 import { WorksetManager } from "./tree_workset";
 
@@ -340,11 +340,17 @@ export function ui_build_tree() {
   }).catch(catch_all);
 }
 
-export function ui_show_tree() {
+export function ui_show_tree() : void {
   let workset_manager = new WorksetManager(get_current_workset());
   let editor_manager = new EditorManager("workset_area", workset_manager);
   current_tree = new Tree(get_serial(), [editor_manager, workset_manager]);
   workset_manager.load_data(current_tree);
+}
+
+export function ui_create_node() : void {
+  current_tree.create_node(get_serial(), false).then(function (node : TreeNode) : void {
+    node.reparent(current_tree.get_root_node(), -1);
+  });
 }
 
 /*function retrieve_sentence(label_tok : number) : number[] {
@@ -441,6 +447,7 @@ const WORKSET_TEMPL = `
     <button onclick="mmpp.ui_show_modifier()">Show modifier</button>
     <button onclick="mmpp.ui_build_tree()">Build tree</button>
     <button onclick="mmpp.ui_show_tree()">Show tree</button>
+    <button onclick="mmpp.ui_create_node()">Create node</button>
   </div>
   <div id="workset_area"></div>
 `;

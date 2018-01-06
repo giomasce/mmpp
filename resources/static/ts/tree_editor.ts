@@ -26,7 +26,7 @@ export class EditorManager extends TreeManager {
     this.painter.set_editor_manager(this);
   }
 
-  creating_node(node : TreeNode) : void {
+  creating_node(node : TreeNode) : Promise< void > {
     let obj = new EditorManagerObject();
     this.set_manager_object(node, obj);
     if (node.is_root()) {
@@ -37,14 +37,17 @@ export class EditorManager extends TreeManager {
       });
       $(`#${this.parent_div}`).html(html_code);
     }
+    return Promise.resolve();
   }
 
-  destroying_node(node : TreeNode) : void {
+  destroying_node(node : TreeNode) : Promise< void > {
     let obj : EditorManagerObject = this.get_manager_object(node);
     if (node.is_root()) {
+      assert(obj.visible);
       obj.visible = false;
       $(`#${this.parent_div}`).html("");
     }
+    return Promise.resolve();
   }
 
   after_reparenting(parent : TreeNode, child : TreeNode, idx : number) : void {
@@ -54,6 +57,17 @@ export class EditorManager extends TreeManager {
     if (parent_obj.visible) {
       this.make_subtree_visible(parent, child, idx);
     }
+  }
+
+  before_orphaning(parent : TreeNode, child : TreeNode, idx : number) : void {
+    let parent_obj : EditorManagerObject = this.get_manager_object(parent);
+    let child_obj : EditorManagerObject = this.get_manager_object(child);
+    assert(parent_obj.visible === child_obj.visible);
+    if (child_obj.visible) {
+      this.make_subtree_hidden(child);
+    }
+    let full_id = this.compute_full_id(child);
+    $(`#${full_id}`).remove();
   }
 
   compute_full_id(node : TreeNode) : string {
@@ -183,6 +197,15 @@ export class EditorManager extends TreeManager {
       this.make_subtree_visible(child, child2, idx2);
     }
   }
+
+  make_subtree_hidden(node : TreeNode) : void {
+    let obj : EditorManagerObject = this.get_manager_object(node);
+    assert(obj.visible);
+    obj.visible = false;
+    for (let child of node.children) {
+      this.make_subtree_hidden(child);
+    }
+  }
 }
 
 const STEP_ROOT_TMPL = `
@@ -198,6 +221,8 @@ const STEP_TMPL = `
       <button id="{{ eid }}_step_{{ id }}_btn_toggle_children" class="mini_button"></button>
       <button id="{{ eid }}_step_{{ id }}_btn_toggle_data2" class="mini_button"></button>
       <button id="{{ eid }}_step_{{ id }}_btn_close_all_children" class="mini_button"></button>
+      <button id="{{ eid }}_step_{{ id }}_btn_create" class="mini_button"><object style="display: block;" data="svg/c_icon.svg" type="image/svg+xml"></object></button>
+      <button id="{{ eid }}_step_{{ id }}_btn_kill" class="mini_button"><object style="display: block;" data="svg/k_icon.svg" type="image/svg+xml"></object></button>
     </div>
     <div id="{{ eid }}_step_{{ id }}_data" class="step_data">
       <div id="{{ eid }}_step_{{ id }}_data1" class="step_data1"></div>

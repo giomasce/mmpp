@@ -22,10 +22,12 @@ export class TreeManager {
     node.set_manager_object(this.get_manager_id(), obj);
   }
 
-  creating_node(node : TreeNode) : void {
+  creating_node(node : TreeNode) : Promise< void > {
+    return Promise.resolve();
   }
 
-  destroying_node(node : TreeNode) : void {
+  destroying_node(node : TreeNode) : Promise< void > {
+    return Promise.resolve();
   }
 
   before_reparenting(parent : TreeNode, child : TreeNode, idx : number) {
@@ -119,6 +121,9 @@ export class TreeNode {
   }
 
   reparent(parent : TreeNode, idx : number) : void {
+    if (idx === -1) {
+      idx = parent.children.length;
+    }
     // Check assertions
     assert(this.parent === null);
     assert(idx >= 0);
@@ -161,28 +166,38 @@ export class Tree {
     return this.id;
   }
 
-  create_node(id : number, is_root : boolean) : TreeNode {
+  create_node(id : number, is_root : boolean) : Promise< TreeNode > {
     let node = new TreeNode(id, this);
     assert(!this.node_map.has(id));
     this.node_map.set(id, node);
     if (is_root) {
       this.root_node = node;
     }
+    let ret = Promise.resolve();
     for (let manager of this.managers) {
-      manager.creating_node(node);
+      ret = ret.then(function () : Promise< void > {
+        return manager.creating_node(node);
+      });
     }
-    return node;
+    return ret.then(function () : TreeNode {
+      return node;
+    });
   }
 
-  destroy_node(node : TreeNode) : void {
+  destroy_node(node : TreeNode) : Promise< void > {
     assert(this.node_map.has(node.id));
     assert(node.parent === null);
     assert(node.children.length === 0);
+    let ret = Promise.resolve();
     for (let manager of this.managers) {
-      manager.destroying_node(node);
+      ret = ret.then(function () : void {
+        manager.destroying_node(node);
+      });
     }
-    this.node_map.delete(node.id);
-    node.null_tree();
+    return ret.then(function () : void {
+      this.node_map.delete(node.id);
+      node.null_tree();
+    });
   }
 
   get_root_node() : TreeNode {

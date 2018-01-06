@@ -119,22 +119,20 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             assert_or_throw< SendError >(path_begin == path_end, 404);
             assert_or_throw< SendError >(cb.get_method() == "POST", 405);
             throw WaitForPost([this] (const auto &post_data) {
+                (void) post_data;
                 unique_lock< mutex > lock(this->global_mutex);
-                size_t parent_id = safe_stoi(safe_at(post_data, "parent").value);
+                /*size_t parent_id = safe_stoi(safe_at(post_data, "parent").value);
                 size_t idx = safe_stoi(safe_at(post_data, "index").value);
                 shared_ptr< Step > parent_step;
                 try {
                     parent_step = this->step_backrefs->at(parent_id);
                 } catch (out_of_range) {
                     throw SendError(404);
-                }
+                }*/
                 shared_ptr< Step > new_step = this->step_backrefs->make_instance();
-                bool res = new_step->reparent(parent_step, idx);
+                //bool res = new_step->reparent(parent_step, idx);
                 json ret = json::object();
-                ret["success"] = res;
-                if (res) {
-                    ret["id"] = new_step->get_id();
-                }
+                ret["id"] = new_step->get_id();
                 return ret;
             });
         } else if (*path_begin == "list") {
@@ -192,4 +190,9 @@ void Workset::add_to_queue(json data)
     unique_lock< mutex > lock(this->queue_mutex);
     this->queue.push_back(data);
     this->queue_variable.notify_one();
+}
+
+std::shared_ptr<BackreferenceRegistry<Step, Workset> > Workset::get_step_backrefs() const
+{
+    return this->step_backrefs;
 }

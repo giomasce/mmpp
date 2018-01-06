@@ -35,7 +35,7 @@ public:
 
     std::weak_ptr< U > get_main() const {
         auto strong_reg = this->registry.lock();
-        if (strong_reg == NULL) {
+        if (!strong_reg) {
             return {};
         } else {
             return strong_reg->get_main();
@@ -48,7 +48,7 @@ public:
 
     ~BackreferenceToken() {
         std::shared_ptr< BackreferenceRegistry< T, U > > strong_reg = this->registry.lock();
-        if (strong_reg != NULL) {
+        if (strong_reg) {
             strong_reg->ref_disappearing(this->id);
         }
     }
@@ -64,6 +64,10 @@ template< typename T, typename U >
 class BackreferenceRegistry {
     friend class BackreferenceToken< T, U >;
 public:
+    // Emulate the behaviour of a map
+    typedef size_t key_type;
+    typedef std::shared_ptr< T > mapped_type;
+
     template< typename... Args >
     std::shared_ptr< T > make_instance(const Args&... args) {
         assert(!this->weak_this.expired());

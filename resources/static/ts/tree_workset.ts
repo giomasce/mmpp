@@ -1,7 +1,7 @@
 /// <reference path="jquery.d.ts"/>
 /// <reference path="mustache.d.ts"/>
 
-import { jsonAjax, assert, get_serial, spectrum_to_rgb, catch_all, push_and_get_index } from "./utils";
+import { jsonAjax, assert, get_serial, spectrum_to_rgb, catch_all, push_and_get_index, tokenize } from "./utils";
 import { TreeManager, TreeNode, Tree } from "./tree";
 import { Workset, RenderingStyles, WorksetEventListener } from "./workset";
 import { NodePainter, EditorManager } from "./tree_editor";
@@ -67,30 +67,31 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
 
   _load_step(tree : Tree, parent : TreeNode, remote_id : number, idx : number) : Promise< void > {
     let self = this;
-    let node = tree.create_node(get_serial(), parent === null);
-    let step : StepManager = this.get_manager_object(node);
-    step.remote_id = remote_id;
-    assert(!this.remote_id_map.has(remote_id));
-    this.remote_id_map.set(remote_id, node.get_id());
-    step.sentence = [];
-    return step.do_api_request(this, `get`).then(function (data : any) : Promise<void> {
-      step.sentence = data.sentence;
+    return tree.create_node(get_serial(), parent === null).then(function (node : TreeNode) : Promise< void > {
+      let step : StepManager = self.get_manager_object(node);
+      step.remote_id = remote_id;
+      assert(!self.remote_id_map.has(remote_id));
+      self.remote_id_map.set(remote_id, node.get_id());
+      step.sentence = [];
+      return step.do_api_request(self, `get`).then(function (data : any) : Promise<void> {
+        step.sentence = data.sentence;
         step.success = data.success;
-      if (step.success) {
-        step.label = data.label;
-        step.number = data.number;
-      }
-      let promise : Promise<void> = Promise.resolve();
-      for (let [child_idx, child_id] of data.children.entries()) {
-        promise = promise.then(function () : Promise<void> {
-          return self._load_step(tree, node, child_id, child_idx);
-        })
-      }
-      return promise;
-    }).then(function () : void {
-      if (parent !== null) {
-        node.reparent(parent, idx);
-      }
+        if (step.success) {
+          step.label = data.label;
+          step.number = data.number;
+        }
+        let promise : Promise<void> = Promise.resolve();
+        for (let [child_idx, child_id] of data.children.entries()) {
+          promise = promise.then(function () : Promise<void> {
+            return self._load_step(tree, node, child_id, child_idx);
+          })
+        }
+        return promise;
+      }).then(function () : void {
+        if (parent !== null) {
+          node.reparent(parent, idx);
+        }
+      });
     });
   }
 
@@ -197,7 +198,7 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
       $(`#${full_id}_suggestion`).fadeOut();
     });
     $(`#${full_id}_text_input`).on("input", function() {
-      let tokens : string[] = $(`#${full_id}_text_input`).val().split(" ");
+      let tokens : string[] = tokenize($(`#${full_id}_text_input`).val());
       let parsed_tokens : number[] = default_renderer.parse_from_strings(tokens);
       let sentence : string;
       if (parsed_tokens === null) {
@@ -220,22 +221,56 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
     });
   }
 
-  creating_node(node : TreeNode) : void {
-    let obj = new StepManager();
-    this.set_manager_object(node, obj);
+  creating_node(node : TreeNode) : Promise< void > {
+    let self = this;
+    let step = new StepManager();
+    this.set_manager_object(node, step);
     if (!this.loading) {
-      // TODO create the node on remote end
-      assert(!this.remote_id_map.has(obj.remote_id));
-      this.remote_id_map.set(obj.remote_id, node.get_id());
+      return this.do_api_request(`step/create`, {}).then(function (data : any) : Promise< void > {
+        step.remote_id = data.id;
+        assert(!self.remote_id_map.has(step.remote_id));
+        self.remote_id_map.set(step.remote_id, node.get_id());
+        return step.do_api_request(self, `get`).then(function (data : any) : void {
+          step.sentence = data.sentence;
+          step.success = data.success;
+          if (step.success) {
+            step.label = data.label;
+            step.number = data.number;
+          }
+        });
+      });
+    } else {
+      return Promise.resolve();
     }
   }
 
-  destroying_node(node : TreeNode) : void {
-    let obj : StepManager = this.get_manager_object(node);
-    assert(this.remote_id_map.has(obj.remote_id));
-    this.remote_id_map.delete(obj.remote_id);
+  destroying_node(node : TreeNode) : Promise< void > {
+    let step : StepManager = this.get_manager_object(node);
+    let remote_id = step.remote_id;
+    assert(this.remote_id_map.has(step.remote_id));
+    this.remote_id_map.delete(step.remote_id);
+    assert(!this.loading);
+    return this.do_api_request(`step/${remote_id}/destroy`).then(function (data : any) : void {
+      if (!data.success) {
+        throw "Failed to reparent new step";
+      }
+    });
+  }
+
+  after_reparenting(parent : TreeNode, child : TreeNode, idx : number) : void {
     if (!this.loading) {
-      // TODO destroy node on remote end
+      let self = this;
+      let child_step : StepManager = this.get_manager_object(child);
+      let parent_step : StepManager = this.get_manager_object(parent);
+      let child_remote_id = child_step.remote_id;
+      let parent_remote_id = parent_step.remote_id;
+      this.enqueue_operation(function () : Promise< void > {
+        return self.do_api_request(`step/${child_remote_id}/reparent`, {parent: parent_remote_id, index: idx}).then(function (data : any) : void {
+          if (!data.success) {
+            throw "Failed to reparent new step";
+          }
+        });
+      });
     }
   }
 
