@@ -13,17 +13,16 @@ class Workset;
 #include "toolbox.h"
 #include "utils/threadmanager.h"
 
-class Workset {
+class Workset : public enable_create< Workset > {
 public:
     // Emulate the behaviour of a map
     typedef size_t key_type;
     typedef std::shared_ptr< Step > mapped_type;
 
     static std::shared_ptr< Workset > create() {
-        auto pointer = std::make_shared< enable_make< Workset > >();
+        auto pointer = enable_create< Workset >::create();
         //pointer->step_backrefs->set_main(pointer);
-        pointer->weak_this = pointer;
-        // We cannot create the root step before assigning weak_this, so we do it now
+        // We cannot create the root step before create() has returned (i.e., in the constructor)
         pointer->root_step = pointer->create_step();
         return pointer;
     }
@@ -55,7 +54,6 @@ private:
     std::string name;
     //std::shared_ptr< BackreferenceRegistry< Step, Workset > > step_backrefs;
     IdDistributor id_dist;
-    SafeWeakPtr< Workset > weak_this;
     std::unordered_map< size_t, std::shared_ptr< Step > > steps;
     SafeWeakPtr< Step > root_step;
 

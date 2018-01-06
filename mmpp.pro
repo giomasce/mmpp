@@ -72,7 +72,8 @@ SOURCES += \
     test/test_minor.cpp \
     web/step.cpp \
     utils/threadmanager.cpp \
-    apps/learning.cpp
+    apps/learning.cpp \
+    uct.cpp
 
 HEADERS += \
     pch.h \
@@ -103,7 +104,8 @@ HEADERS += \
     web/step.h \
     utils/threadmanager.h \
     utils/backref_registry.h \
-    parsing/algos.h
+    parsing/algos.h \
+    uct.h
 
 DISTFILES += \
     README

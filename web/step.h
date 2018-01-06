@@ -76,19 +76,9 @@ private:
     std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > result;
 };
 
-class Step
+class Step : public enable_create< Step >
 {
 public:
-    /*static std::shared_ptr< Step > create(BackreferenceToken< Step, Workset > &&token) {
-        auto pointer = std::make_shared< enable_make< Step > >(std::move(token));
-        pointer->weak_this = pointer;
-        return pointer;
-    }*/
-    static std::shared_ptr< Step > create(size_t id, std::shared_ptr< Workset > workset) {
-        auto pointer = std::make_shared< enable_make< Step > >(id, workset);
-        pointer->weak_this = pointer;
-        return pointer;
-    }
     size_t get_id();
     const std::vector<SafeWeakPtr<Step> > &get_children();
     const Sentence &get_sentence();
@@ -134,7 +124,6 @@ private:
     std::vector< SafeWeakPtr< Step > > children;
     std::weak_ptr< Step > parent;
     std::recursive_mutex global_mutex;
-    SafeWeakPtr< Step > weak_this;
     std::list< std::weak_ptr< StepOperationsListener > > listeners;
 
     Sentence sentence;

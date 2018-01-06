@@ -17,7 +17,7 @@ Workset::Workset() : thread_manager(make_unique< CoroutineThreadManager >(4)) /*
 std::shared_ptr<Step> Workset::create_step()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
-    shared_ptr< Step > new_step = Step::create(this->id_dist.get_id(), this->weak_this.lock());
+    shared_ptr< Step > new_step = Step::create(this->id_dist.get_id(), this->shared_from_this());
     this->steps[new_step->get_id()] = new_step;
     return new_step;
 }

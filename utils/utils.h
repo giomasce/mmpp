@@ -15,6 +15,7 @@
 #include <chrono>
 #include <unordered_map>
 #include <mutex>
+#include <memory>
 
 #include <boost/filesystem.hpp>
 #include <boost/archive/text_iarchive.hpp>
@@ -191,6 +192,16 @@ struct enable_make : public S
         : S(std::forward<T>(t)...)
     {
     }
+};
+
+template< typename T >
+struct enable_create : public std::enable_shared_from_this< T > {
+    template< typename... Args >
+    static std::shared_ptr< T > create(Args&&... args) {
+        auto pointer = std::make_shared< enable_make< T > >(std::forward< Args >(args)...);
+        return pointer;
+    }
+
 };
 
 // Taken from https://stackoverflow.com/a/45046349/807307 and adapted

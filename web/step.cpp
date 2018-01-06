@@ -72,7 +72,7 @@ void Step::restart_coroutine()
     }
     auto workset = this->get_workset().lock();
     if (workset != NULL) {
-        this->last_comp = make_shared< StepComputation >(this->weak_this, this->get_sentence(), hyps, workset->get_toolbox());
+        this->last_comp = make_shared< StepComputation >(this->shared_from_this(), this->get_sentence(), hyps, workset->get_toolbox());
         this->last_coro = make_shared< Coroutine >(this->last_comp);
         workset->add_coroutine(this->last_coro);
     }
@@ -83,7 +83,7 @@ bool Step::reaches_by_parents(const Step &to)
     vector< unique_lock< recursive_mutex > > locks;
     vector< shared_ptr< Step > > parents;
     locks.emplace_back(this->global_mutex);
-    parents.push_back(this->weak_this.lock());
+    parents.push_back(this->shared_from_this());
     assert(parents.back());
     while (true) {
         auto new_parent = parents.back()->parent.lock();
@@ -127,7 +127,7 @@ std::weak_ptr<Workset> Step::get_workset()
 void Step::set_sentence(const Sentence &sentence)
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
-    auto strong_this = this->weak_this.lock();
+    auto strong_this = this->shared_from_this();
     assert(strong_this != NULL);
     Sentence old_sentence = this->sentence;
     this->sentence = sentence;
@@ -150,7 +150,7 @@ bool Step::destroy()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
     // Take a strong reference to this, so that the object is not deallocated while this method is still running
-    auto strong_this = this->weak_this.lock();
+    auto strong_this = this->shared_from_this();
     auto strong_parent = this->get_parent();
     if (strong_parent) {
         return false;
@@ -168,7 +168,7 @@ bool Step::orphan()
     // this and the parent without fear of deadlocks; we still need to lock both,
     // because answer_api1() has already released the Workset's lock
     unique_lock< recursive_mutex > lock(this->global_mutex);
-    auto strong_this = this->weak_this.lock();
+    auto strong_this = this->shared_from_this();
     auto strong_parent = this->get_parent();
     if (strong_parent == NULL) {
         return false;
@@ -229,7 +229,7 @@ bool Step::reparent(std::shared_ptr<Step> parent, size_t idx)
 {
     // See comments in orphan() about locking
     unique_lock< recursive_mutex > lock(this->global_mutex);
-    auto strong_this = this->weak_this.lock();
+    auto strong_this = this->shared_from_this();
     assert(strong_this != NULL);
     if (!this->parent.expired()) {
         return false;
