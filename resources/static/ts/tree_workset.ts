@@ -42,6 +42,16 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
     this.ops_promise = this.ops_promise.then(op).catch(catch_all);
   }
 
+  after_queue() : Promise< void > {
+    let self = this;
+    return new Promise(function (resolve, reject) : void {
+      self.enqueue_operation(function () : Promise< void > {
+        resolve();
+        return Promise.resolve();
+      })
+    });
+  }
+
   set_editor_manager(editor_manager : EditorManager) : void {
     this.editor_manager = editor_manager;
   }
@@ -245,15 +255,18 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
   }
 
   destroying_node(node : TreeNode) : Promise< void > {
+    let self = this;
     let step : StepManager = this.get_manager_object(node);
     let remote_id = step.remote_id;
     assert(this.remote_id_map.has(step.remote_id));
     this.remote_id_map.delete(step.remote_id);
     assert(!this.loading);
-    return this.do_api_request(`step/${remote_id}/destroy`).then(function (data : any) : void {
-      if (!data.success) {
-        throw "Failed to reparent new step";
-      }
+    return this.after_queue().then(function () : Promise< void > {
+      return self.do_api_request(`step/${remote_id}/destroy`, {}).then(function (data : any) : void {
+        if (!data.success) {
+          throw "Failed to destroy step";
+        }
+      });
     });
   }
 
@@ -267,11 +280,25 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
       this.enqueue_operation(function () : Promise< void > {
         return self.do_api_request(`step/${child_remote_id}/reparent`, {parent: parent_remote_id, index: idx}).then(function (data : any) : void {
           if (!data.success) {
-            throw "Failed to reparent new step";
+            throw "Failed to reparent step";
           }
         });
       });
     }
+  }
+
+  before_orphaning(parent : TreeNode, child : TreeNode, idx : number) : void {
+    assert(!this.loading);
+    let self = this;
+    let child_step : StepManager = this.get_manager_object(child);
+    let child_remote_id = child_step.remote_id;
+    this.enqueue_operation(function () : Promise< void > {
+      return self.do_api_request(`step/${child_remote_id}/orphan`, {}).then(function (data : any) : void {
+        if (!data.success) {
+          throw "Failed to orphan step";
+        }
+      });
+    });
   }
 
   do_api_request(url : string, data : object = null) : Promise<object> {

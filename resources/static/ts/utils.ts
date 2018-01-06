@@ -56,7 +56,10 @@ export function get_serial_string() : string {
 }
 
 export function assert(test : boolean, message? : string) {
-  console.assert(test, message);
+  // Put another layer of check so that we have something on which to set a breakpoint
+  if (!test) {
+    console.assert(test, message);
+  }
 }
 
 /* Implementation of the the function spectrumToRGB() in the official metamath;

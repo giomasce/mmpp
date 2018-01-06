@@ -103,7 +103,8 @@ export class TreeNode {
     let idx = parent.children.findIndex(function (value : TreeNode) : boolean {
       return self === value;
     });
-    assert(idx !== -1);
+    assert(0 <= idx);
+    assert(idx < parent.children.length);
 
     // Call before listeners
     for (let manager of this.tree.managers) {
@@ -185,6 +186,7 @@ export class Tree {
   }
 
   destroy_node(node : TreeNode) : Promise< void > {
+    let self = this;
     assert(this.node_map.has(node.id));
     assert(node.parent === null);
     assert(node.children.length === 0);
@@ -195,7 +197,7 @@ export class Tree {
       });
     }
     return ret.then(function () : void {
-      this.node_map.delete(node.id);
+      self.node_map.delete(node.id);
       node.null_tree();
     });
   }

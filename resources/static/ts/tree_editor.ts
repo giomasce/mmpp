@@ -1,7 +1,7 @@
 /// <reference path="jquery.d.ts"/>
 /// <reference path="mustache.d.ts"/>
 
-import { assert } from "./utils";
+import { assert, get_serial, catch_all } from "./utils";
 import { TreeManager, TreeNode } from "./tree";
 
 export interface NodePainter {
@@ -154,6 +154,33 @@ export class EditorManager extends TreeManager {
     }
   }
 
+  close_all_children(node : TreeNode) : void {
+    this.open_children(node);
+    for (let child of node.get_children()) {
+      this.close_children(child);
+    }
+  }
+
+  create_child(node : TreeNode) : void {
+    let tree = node.get_tree();
+    tree.create_node(get_serial(), false).then(function (node2 : TreeNode) : void {
+      node2.reparent(node, -1);
+    }).catch(catch_all);
+  }
+
+  kill_node(node : TreeNode) : void {
+    let tree = node.get_tree();
+    /* In order to avoid leftovers and not violate the protocol, I need to orphan
+    all the descendants (including the base node), and then destroy them. */
+    // We make a copy of the array of children, to avoid iterating on it while removing elements
+    let children_copy = node.get_children().slice();
+    for (let child of children_copy) {
+      this.kill_node(child);
+    }
+    node.orphan();
+    tree.destroy_node(node).catch(catch_all);
+  }
+
   make_subtree_visible(parent : TreeNode, child : TreeNode, idx : number) : void {
     let self = this;
     let parent_obj : EditorManagerObject = this.get_manager_object(parent);
@@ -184,12 +211,9 @@ export class EditorManager extends TreeManager {
     this.open_data2(child, false);
     this.close_data2(child, false);
     $(`#${child_full_id}_btn_toggle_data2`).click(this.toggle_data2.bind(this, child));
-    $(`#${child_full_id}_btn_close_all_children`).click(function() {
-      self.open_children(child);
-      for (let child2 of child.get_children()) {
-        self.close_children(child2);
-      }
-    });
+    $(`#${child_full_id}_btn_close_all_children`).click(this.close_all_children.bind(this, child));
+    $(`#${child_full_id}_btn_create`).click(this.create_child.bind(this, child));
+    $(`#${child_full_id}_btn_kill`).click(this.kill_node.bind(this, child));
     this.painter.paint_node(child);
 
     // Recur on children
@@ -221,8 +245,8 @@ const STEP_TMPL = `
       <button id="{{ eid }}_step_{{ id }}_btn_toggle_children" class="mini_button"></button>
       <button id="{{ eid }}_step_{{ id }}_btn_toggle_data2" class="mini_button"></button>
       <button id="{{ eid }}_step_{{ id }}_btn_close_all_children" class="mini_button"></button>
-      <button id="{{ eid }}_step_{{ id }}_btn_create" class="mini_button"><object style="display: block;" data="svg/c_icon.svg" type="image/svg+xml"></object></button>
-      <button id="{{ eid }}_step_{{ id }}_btn_kill" class="mini_button"><object style="display: block;" data="svg/k_icon.svg" type="image/svg+xml"></object></button>
+      <button id="{{ eid }}_step_{{ id }}_btn_create" class="mini_button mini_button_create"></button>
+      <button id="{{ eid }}_step_{{ id }}_btn_kill" class="mini_button mini_button_kill"></button>
     </div>
     <div id="{{ eid }}_step_{{ id }}_data" class="step_data">
       <div id="{{ eid }}_step_{{ id }}_data1" class="step_data1"></div>

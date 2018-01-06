@@ -7,6 +7,8 @@
 using namespace std;
 using namespace nlohmann;
 
+#define LOG_STEP_OPS
+
 /*Step::Step(BackreferenceToken<Step, Workset> &&token) : token(move(token))
 {
 }*/
@@ -144,6 +146,22 @@ std::shared_ptr<Step> Step::get_parent() const
     return this->parent.lock();
 }
 
+bool Step::destroy()
+{
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    // Take a strong reference to this, so that the object is not deallocated while this method is still running
+    auto strong_this = this->weak_this.lock();
+    auto strong_parent = this->get_parent();
+    if (strong_parent) {
+        return false;
+    }
+    if (!this->children.empty()) {
+        return false;
+    }
+    auto workset = this->get_workset().lock();
+    return workset->destroy_step(this->get_id());
+}
+
 bool Step::orphan()
 {
     // We assume that a global lock is held by the Workset, so here we can lock both
@@ -151,8 +169,7 @@ bool Step::orphan()
     // because answer_api1() has already released the Workset's lock
     unique_lock< recursive_mutex > lock(this->global_mutex);
     auto strong_this = this->weak_this.lock();
-    assert(strong_this != NULL);
-    shared_ptr< Step > strong_parent = this->get_parent();
+    auto strong_parent = this->get_parent();
     if (strong_parent == NULL) {
         return false;
     }
@@ -183,7 +200,10 @@ bool Step::orphan()
     }
 
     // Actual orphaning
-    this->parent = weak_ptr< Step >();
+#ifdef LOG_STEP_OPS
+    cerr << "Orphaning step " << this->get_id() << " from step " << strong_parent->get_id() << endl;
+#endif
+    this->parent = std::weak_ptr< Step >();
     pchildren.erase(it);
 
     // Call after listeners
@@ -246,6 +266,9 @@ bool Step::reparent(std::shared_ptr<Step> parent, size_t idx)
     // Actual reparenting
     this->parent = parent;
     pchildren.insert(pchildren.begin() + idx, strong_this);
+#ifdef LOG_STEP_OPS
+    cerr << "Reparenting step " << this->get_id() << " under step " << parent->get_id() << endl;
+#endif
 
     // Call after listeners
     parent->after_adopting(idx);
@@ -349,9 +372,9 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         throw WaitForPost([this] (const auto &post_data) {
             (void) post_data;
             unique_lock< recursive_mutex > lock(this->global_mutex);
-            // ...
+            bool res = this->destroy();
             json ret = json::object();
-            ret["success"] = true;
+            ret["success"] = res;
             return ret;
         });
     }
@@ -409,8 +432,18 @@ const std::unordered_map<SymTok, std::vector<SymTok> > &Step::get_subst_map()
     return get< 2 >(this->last_comp->get_result());
 }
 
-Step::Step(size_t id, std::weak_ptr< Workset > workset) : id(id), workset(workset)
+Step::Step(size_t id, std::shared_ptr<Workset> workset) : id(id), workset(workset)
 {
+#ifdef LOG_STEP_OPS
+    cerr << "Creating step with id " << id << endl;
+#endif
+}
+
+Step::~Step()
+{
+#ifdef LOG_STEP_OPS
+    cerr << "Destroying step with id " << id << endl;
+#endif
 }
 
 /*std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > Step::get_result()

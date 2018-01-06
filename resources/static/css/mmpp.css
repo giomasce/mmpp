@@ -93,6 +93,14 @@
   background-color: green;
 }
 
+.mini_button_create {
+  background-image: url("../svg/c_icon.svg");
+}
+
+.mini_button_kill {
+  background-image: url("../svg/k_icon.svg");
+}
+
 .outer_above {
   position: absolute;
   top: 0px;

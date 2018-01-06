@@ -23,6 +23,8 @@ public:
         auto pointer = std::make_shared< enable_make< Workset > >();
         //pointer->step_backrefs->set_main(pointer);
         pointer->weak_this = pointer;
+        // We cannot create the root step before assigning weak_this, so we do it now
+        pointer->root_step = pointer->create_step();
         return pointer;
     }
     nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end);
@@ -38,6 +40,7 @@ public:
     //std::shared_ptr< BackreferenceRegistry< Step, Workset > > get_step_backrefs() const;
     std::shared_ptr< Step > get_step(size_t id);
     std::shared_ptr< Step > at(size_t id);
+    bool destroy_step(size_t id);
 
 protected:
     Workset();
@@ -48,13 +51,13 @@ private:
     std::unique_ptr< ExtendedLibrary > library;
     std::unique_ptr< LibraryToolbox > toolbox;
     std::unique_ptr< CoroutineThreadManager > thread_manager;
-    std::mutex global_mutex;
+    std::recursive_mutex global_mutex;
     std::string name;
     //std::shared_ptr< BackreferenceRegistry< Step, Workset > > step_backrefs;
     IdDistributor id_dist;
     SafeWeakPtr< Workset > weak_this;
     std::unordered_map< size_t, std::shared_ptr< Step > > steps;
-    std::weak_ptr< Step > root_step;
+    SafeWeakPtr< Step > root_step;
 
     std::mutex queue_mutex;
     std::condition_variable queue_variable;

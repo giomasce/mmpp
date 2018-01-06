@@ -14,6 +14,8 @@
 
 using namespace std;
 
+//#define LOG_MICROHTTPD_REQUESTS
+
 static void microhttpd_panic(void *cls, const char *file, unsigned int line, const char *reason) {
     (void) cls;
     cout << "Microhttpd panic in " << file << ":" << line << " beacuse of \"" << reason << "\"" << endl;
@@ -164,7 +166,9 @@ int HTTPD_microhttpd::answer_wrapper(void *cls, MHD_Connection *connection, cons
         cb->set_url(url);
         cb->set_method(method);
         cb->set_version(version);
+#ifdef LOG_MICROHTTPD_REQUESTS
         acout() << "Request received: " << method << " " << url << " " << version << endl;
+#endif
         object->target.answer(*cb);
         if (!cb->get_send_response()) {
             return MHD_YES;
@@ -181,7 +185,9 @@ int HTTPD_microhttpd::answer_wrapper(void *cls, MHD_Connection *connection, cons
         }
     }
 
+#ifdef LOG_MICROHTTPD_REQUESTS
     acout() << "Responding " << cb->get_status_code() << " (" << method << " " << url << " " << version << ")" << endl;
+#endif
 
     struct MHD_Response *response;
     int ret;

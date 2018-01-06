@@ -12,12 +12,12 @@ using namespace nlohmann;
 
 Workset::Workset() : thread_manager(make_unique< CoroutineThreadManager >(4)) /*, step_backrefs(BackreferenceRegistry< Step, Workset >::create()) */
 {
-    this->root_step = this->create_step();
 }
 
 std::shared_ptr<Step> Workset::create_step()
 {
-    shared_ptr< Step > new_step = Step::create(this->id_dist.get_id(), this->weak_this);
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    shared_ptr< Step > new_step = Step::create(this->id_dist.get_id(), this->weak_this.lock());
     this->steps[new_step->get_id()] = new_step;
     return new_step;
 }
@@ -34,7 +34,7 @@ std::vector< std::string > map_to_vect(const std::unordered_map< TokType, std::s
 
 json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end)
 {
-    unique_lock< mutex > lock(this->global_mutex);
+    unique_lock< recursive_mutex > lock(this->global_mutex);
     assert_or_throw< SendError >(path_begin != path_end, 404);
     if (*path_begin == "load") {
         this->load_library(platform_get_resources_base() / "library.mm", platform_get_resources_base() / "library.mm.cache", "|-");
@@ -128,7 +128,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             assert_or_throw< SendError >(cb.get_method() == "POST", 405);
             throw WaitForPost([this] (const auto &post_data) {
                 (void) post_data;
-                unique_lock< mutex > lock(this->global_mutex);
+                unique_lock< recursive_mutex > lock(this->global_mutex);
                 /*size_t parent_id = safe_stoi(safe_at(post_data, "parent").value);
                 size_t idx = safe_stoi(safe_at(post_data, "index").value);
                 shared_ptr< Step > parent_step;
@@ -197,13 +197,25 @@ void Workset::add_to_queue(json data)
 
 std::shared_ptr<Step> Workset::get_step(size_t id)
 {
-    unique_lock< mutex > lock(this->global_mutex);
+    unique_lock< recursive_mutex > lock(this->global_mutex);
     return this->steps.at(id);
 }
 
 std::shared_ptr<Step> Workset::at(size_t id)
 {
+    unique_lock< recursive_mutex > lock(this->global_mutex);
     return this->get_step(id);
+}
+
+bool Workset::destroy_step(size_t id)
+{
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    if (this->root_step.lock()->get_id() == id) {
+        return false;
+    } else {
+        this->steps.erase(id);
+        return true;
+    }
 }
 
 /*std::shared_ptr<BackreferenceRegistry<Step, Workset> > Workset::get_step_backrefs() const

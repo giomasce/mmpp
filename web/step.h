@@ -84,7 +84,7 @@ public:
         pointer->weak_this = pointer;
         return pointer;
     }*/
-    static std::shared_ptr< Step > create(size_t id, std::weak_ptr< Workset > workset) {
+    static std::shared_ptr< Step > create(size_t id, std::shared_ptr< Workset > workset) {
         auto pointer = std::make_shared< enable_make< Step > >(id, workset);
         pointer->weak_this = pointer;
         return pointer;
@@ -95,6 +95,7 @@ public:
     std::weak_ptr<Workset> get_workset();
     void set_sentence(const Sentence &sentence);
     std::shared_ptr<Step> get_parent() const;
+    bool destroy();
     bool orphan();
     bool reparent(std::shared_ptr< Step > parent, size_t idx);
     void step_coroutine_finished(StepComputation *step_comp);
@@ -109,7 +110,8 @@ public:
 
 protected:
     //explicit Step(BackreferenceToken< Step, Workset > &&token);
-    explicit Step(size_t id, std::weak_ptr< Workset > workset);
+    explicit Step(size_t id, std::shared_ptr< Workset > workset);
+    ~Step();
 
 private:
     void clean_listeners();
@@ -128,7 +130,7 @@ private:
 
     //BackreferenceToken< Step, Workset > token;
     size_t id;
-    std::weak_ptr< Workset > workset;
+    SafeWeakPtr< Workset > workset;
     std::vector< SafeWeakPtr< Step > > children;
     std::weak_ptr< Step > parent;
     std::recursive_mutex global_mutex;
