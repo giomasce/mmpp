@@ -32,6 +32,12 @@ std::vector< std::string > map_to_vect(const std::unordered_map< TokType, std::s
     return ret;
 }
 
+void Workset::init() {
+    // We cannot create the root step before create() has returned (i.e., in the constructor)
+    this->root_step = this->create_step();
+    //pointer->step_backrefs->set_main(pointer);
+}
+
 json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end)
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);

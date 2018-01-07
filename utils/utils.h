@@ -198,10 +198,12 @@ template< typename T >
 struct enable_create : public std::enable_shared_from_this< T > {
     template< typename... Args >
     static std::shared_ptr< T > create(Args&&... args) {
-        auto pointer = std::make_shared< enable_make< T > >(std::forward< Args >(args)...);
+        std::shared_ptr< enable_make< T > > pointer = std::make_shared< enable_make< T > >(std::forward< Args >(args)...);
+        static_cast< std::shared_ptr< enable_create< T > > >(pointer)->init();
         return pointer;
     }
-
+protected:
+    virtual void init() {}
 };
 
 // Taken from https://stackoverflow.com/a/45046349/807307 and adapted
@@ -278,5 +280,10 @@ public:
         return strong;
     }
 };
+
+template< class It, class URBG >
+It random_choose(It first, It last, URBG &&g) {
+    return first + std::uniform_int_distribution< size_t >(0, (last - first) - 1)(g);
+}
 
 #endif // UTILS_H

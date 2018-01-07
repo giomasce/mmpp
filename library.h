@@ -30,6 +30,8 @@ static_assert(std::is_unsigned< LabTok >::value);
 typedef std::vector< SymTok > Sentence;
 typedef std::vector< LabTok > Procedure;
 
+void collect_variables(const Sentence &sent, const std::function< bool(SymTok) > &is_var, std::set< SymTok > &vars);
+
 #include "proof.h"
 #include "utils/stringcache.h"
 

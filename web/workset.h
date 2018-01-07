@@ -19,13 +19,6 @@ public:
     typedef size_t key_type;
     typedef std::shared_ptr< Step > mapped_type;
 
-    static std::shared_ptr< Workset > create() {
-        auto pointer = enable_create< Workset >::create();
-        //pointer->step_backrefs->set_main(pointer);
-        // We cannot create the root step before create() has returned (i.e., in the constructor)
-        pointer->root_step = pointer->create_step();
-        return pointer;
-    }
     nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end);
     void load_library(boost::filesystem::path filename, boost::filesystem::path cache_filename, std::string turnstile);
     const std::string &get_name();
@@ -43,6 +36,7 @@ public:
 
 protected:
     Workset();
+    void init();
 
 private:
     std::shared_ptr< Step > create_step();

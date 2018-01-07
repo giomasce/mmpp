@@ -371,11 +371,7 @@ void Reader::parse_d()
 }
 
 void Reader::collect_vars_from_sentence(std::set<SymTok> &vars, const std::vector<SymTok> &sent) const {
-    for (auto &tok : sent) {
-        if (this->check_var(tok)) {
-            vars.insert(tok);
-        }
-    }
+    return collect_variables(sent, [this](auto tok) { return this->check_var(tok); }, vars);
 }
 
 void Reader::collect_vars_from_proof(std::set<SymTok> &vars, const std::vector<LabTok> &proof) const

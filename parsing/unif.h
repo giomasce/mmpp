@@ -233,19 +233,27 @@ SubstMap2< SymType, LabType > compose2(const SubstMap2< SymType, LabType > &firs
 }
 
 template< typename SymType, typename LabType >
-SubstMap< SymType, LabType > update(const SubstMap< SymType, LabType > &first, const SubstMap< SymType, LabType > &second) {
+SubstMap< SymType, LabType > update(const SubstMap< SymType, LabType > &first, const SubstMap< SymType, LabType > &second, bool assert_disjoint = false) {
     SubstMap< SymType, LabType > ret = first;
     for (auto &second_pair : second) {
-        ret.insert(second_pair);
+        bool inserted;
+        std::tie(std::ignore, inserted) = ret.insert(second_pair);
+        if (assert_disjoint) {
+            assert(inserted);
+        }
     }
     return ret;
 }
 
 template< typename SymType, typename LabType >
-SubstMap2< SymType, LabType > update2(const SubstMap2< SymType, LabType > &first, const SubstMap2< SymType, LabType > &second) {
-    SubstMap< SymType, LabType > ret = first;
+SubstMap2< SymType, LabType > update2(const SubstMap2< SymType, LabType > &first, const SubstMap2< SymType, LabType > &second, bool assert_disjoint = false) {
+    SubstMap2< SymType, LabType > ret = first;
     for (auto &second_pair : second) {
-        ret.insert(second_pair);
+        bool inserted;
+        std::tie(std::ignore, inserted) = ret.insert(second_pair);
+        if (assert_disjoint) {
+            assert(inserted);
+        }
     }
 #ifdef UNIFICATOR_SELF_TEST
     assert(ret == subst_to_subst2(update(subst2_to_subst(first), subst2_to_subst(second))));
@@ -514,7 +522,7 @@ bool unify2_quick_process_tree(const ParsingTreeIterator< SymType, LabType > &pt
         return true;
     } else {
         LabType var;
-        ParsingTree2< SymTok, LabTok > pt_temp;
+        ParsingTree2< SymType, LabType > pt_temp;
         bool v1 = is_var(n1.label);
         bool v2 = is_var(n2.label);
         assert(!(v1 && pt1.has_children()));
@@ -655,7 +663,7 @@ public:
             return std::make_pair(false, this->subst);
         }
         SubstMap2< SymType, LabType > actual_subst;
-        for (const LabTok &lab : topo_sort) {
+        for (const LabType &lab : topo_sort) {
             actual_subst[lab] = substitute2(this->subst[lab], *this->is_var, actual_subst);
         }
 #ifdef UNIFICATOR_SELF_TEST

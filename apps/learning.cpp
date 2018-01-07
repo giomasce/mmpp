@@ -224,11 +224,11 @@ int gen_random_theorems_main(int argc, char *argv[]) {
             }
         }
     }
-    cout << "There are " << useful_asses.size() << " useful theorems" << endl;
-
     sort(useful_asses.begin(), useful_asses.end(), [&lib](const auto &x, const auto &y) {
-        return x->get_ess_hyps().size() < y->get_ess_hyps().size() || (x->get_ess_hyps().size() < y->get_ess_hyps().size() && lib.get_sentence(x->get_thesis()).size() > lib.get_sentence(y->get_thesis()).size());
+        return x->get_ess_hyps().size() < y->get_ess_hyps().size() || (x->get_ess_hyps().size() == y->get_ess_hyps().size() && lib.get_sentence(x->get_thesis()).size() > lib.get_sentence(y->get_thesis()).size());
     });
+    cout << "There are " << useful_asses.size() << " useful assertions" << endl;
+
     set< LabTok > target_vars;
     collect_variables2(target_pt, standard_is_var, target_vars);
     std::function< bool(LabTok) > is_var = [&target_vars,&standard_is_var](LabTok x) {

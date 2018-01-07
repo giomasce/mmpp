@@ -12,6 +12,7 @@
 
 #include "library.h"
 #include "parsing/lr.h"
+#include "parsing/unif.h"
 
 class LibraryToolbox;
 
@@ -107,6 +108,9 @@ class LibraryToolbox : public Library
 public:
     explicit LibraryToolbox(const ExtendedLibrary &lib, std::string turnstile, bool compute = false, std::shared_ptr< ToolboxCache > cache = NULL);
     ~LibraryToolbox();
+    const ExtendedLibrary &get_library() const {
+        return this->lib;
+    }
     void set_cache(std::shared_ptr< ToolboxCache > cache);
     std::vector< SymTok > substitute(const std::vector< SymTok > &orig, const std::unordered_map< SymTok, std::vector< SymTok > > &subst_map) const;
     std::unordered_map< SymTok, std::vector< SymTok > > compose_subst(const std::unordered_map< SymTok, std::vector< SymTok > > &first,
@@ -141,6 +145,13 @@ public:
     const std::unordered_map< LabTok, std::pair< SymTok, std::vector< SymTok > > > &get_ders_by_label() const;
     std::vector< SymTok > reconstruct_sentence(const ParsingTree< SymTok, LabTok > &pt);
     std::vector< SymTok > reconstruct_sentence(const ParsingTree< SymTok, LabTok > &pt) const;
+    void compute_vars();
+    const std::vector< std::set< LabTok > > &get_sentence_vars();
+    const std::vector< std::set< LabTok > > &get_sentence_vars() const;
+    const std::vector< std::set< LabTok > > &get_assertion_unconst_vars();
+    const std::vector< std::set< LabTok > > &get_assertion_unconst_vars() const;
+    const std::vector< std::set< LabTok > > &get_assertion_const_vars();
+    const std::vector< std::set< LabTok > > &get_assertion_const_vars() const;
 
     void compute_parser_initialization();
     const LRParser< SymTok, LabTok > &get_parser();
@@ -178,8 +189,12 @@ public:
     std::pair< std::vector< ParsingTree2< SymTok, LabTok > >, ParsingTree2< SymTok, LabTok > > refresh_assertion2(const Assertion &ass);
     ParsingTree< SymTok, LabTok > refresh_parsing_tree(const ParsingTree< SymTok, LabTok > &pt);
     ParsingTree2<SymTok, LabTok> refresh_parsing_tree2(const ParsingTree2< SymTok, LabTok > &pt);
+    SubstMap< SymTok, LabTok > build_refreshing_subst_map(const std::set< LabTok > &vars);
+    SimpleSubstMap2< SymTok, LabTok > build_refreshing_subst_map2(const std::set< LabTok > &vars);
+    SubstMap2< SymTok, LabTok > build_refreshing_full_subst_map2(const std::set< LabTok > &vars);
 
     const std::function<bool (LabTok)> &get_standard_is_var() const;
+    const std::function<bool (SymTok)> &get_standard_is_var_sym() const;
     SymTok get_turnstile() const;
     SymTok get_turnstile_alias() const;
 
@@ -241,6 +256,11 @@ private:
     std::vector< std::vector< std::pair< ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode< SymTok, LabTok > > > > parsed_iters;
     bool sentences_parsing_computed = false;
 
+    bool vars_computed = false;
+    std::vector< std::set< LabTok > > sentence_vars;
+    std::vector< std::set< LabTok > > assertion_unconst_vars;
+    std::vector< std::set< LabTok > > assertion_const_vars;
+
     // This is an instance of the Construct On First Use idiom, which prevents the static initialization fiasco;
     // see https://isocpp.org/wiki/faq/ctors#static-init-order-on-first-use-members
     static std::vector< RegisteredProverData > &registered_provers() {
@@ -262,6 +282,7 @@ private:
     std::map< SymTok, std::vector< std::pair< LabTok, SymTok > > > used_temp_vars;
     std::vector< std::map< SymTok, size_t > > temp_vars_stack;
     std::function< bool(LabTok) > standard_is_var;
+    std::function< bool(SymTok) > standard_is_var_sym;
 };
 
 #endif // LIBRARYTOOLBOX_H

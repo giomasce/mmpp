@@ -77,7 +77,7 @@ LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, boo
     cache(cache), temp_syms(lib.get_symbols_num()+1), temp_labs(lib.get_labels_num()+1)
 {
     assert(this->lib.is_immutable());
-    this->standard_is_var = [&](LabTok x)->bool {
+    this->standard_is_var = [this](LabTok x)->bool {
         /*const auto &types_set = this->get_types_set();
         if (types_set.find(x) == types_set.end()) {
             return false;
@@ -87,6 +87,12 @@ LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, boo
             return true;
         }
         return this->get_is_var_by_type()[x];
+    };
+    this->standard_is_var_sym = [this](SymTok x)->bool {
+        if (x >= this->lib.get_symbols_num()) {
+            return true;
+        }
+        return !this->lib.is_constant(x);
     };
     if (compute) {
         this->compute_everything();
@@ -231,6 +237,82 @@ std::vector<SymTok> LibraryToolbox::reconstruct_sentence(const ParsingTree<SymTo
 std::vector<SymTok> LibraryToolbox::reconstruct_sentence(const ParsingTree<SymTok, LabTok> &pt) const
 {
     return ::reconstruct_sentence(pt, this->get_derivations(), this->get_ders_by_label());
+}
+
+void LibraryToolbox::compute_vars()
+{
+    this->sentence_vars.emplace_back();
+    for (size_t i = 1; i < this->get_parsed_sents2().size(); i++) {
+        const auto &pt = this->get_parsed_sents2()[i];
+        set< LabTok > vars;
+        collect_variables2(pt, this->get_standard_is_var(), vars);
+        this->sentence_vars.push_back(vars);
+    }
+    for (const auto &ass : this->lib.get_assertions()) {
+        if (!ass.is_valid()) {
+            this->assertion_const_vars.emplace_back();
+            this->assertion_unconst_vars.emplace_back();
+            continue;
+        }
+        const auto &thesis_vars = this->sentence_vars[ass.get_thesis()];
+        set< LabTok > hyps_vars;
+        for (const auto hyp_tok : ass.get_ess_hyps()) {
+            const auto &hyp_vars = this->sentence_vars[hyp_tok];
+            hyps_vars.insert(hyp_vars.begin(), hyp_vars.end());
+        }
+        this->assertion_const_vars.push_back(thesis_vars);
+        auto &unconst_vars = this->assertion_unconst_vars.emplace_back();
+        set_difference(hyps_vars.begin(), hyps_vars.end(), thesis_vars.begin(), thesis_vars.end(), inserter(unconst_vars, unconst_vars.begin()));
+    }
+    this->vars_computed = true;
+}
+
+const std::vector< std::set< LabTok > > &LibraryToolbox::get_sentence_vars()
+{
+    if (!this->vars_computed) {
+        this->compute_vars();
+    }
+    return this->sentence_vars;
+}
+
+const std::vector< std::set< LabTok > > &LibraryToolbox::get_sentence_vars() const
+{
+    if (!this->vars_computed) {
+        throw MMPPException("computation required on a const object");
+    }
+    return this->sentence_vars;
+}
+
+const std::vector< std::set< LabTok > > &LibraryToolbox::get_assertion_unconst_vars()
+{
+    if (!this->vars_computed) {
+        this->compute_vars();
+    }
+    return this->assertion_unconst_vars;
+}
+
+const std::vector< std::set< LabTok > > &LibraryToolbox::get_assertion_unconst_vars() const
+{
+    if (!this->vars_computed) {
+        throw MMPPException("computation required on a const object");
+    }
+    return this->assertion_unconst_vars;
+}
+
+const std::vector< std::set< LabTok > > &LibraryToolbox::get_assertion_const_vars()
+{
+    if (!this->vars_computed) {
+        this->compute_vars();
+    }
+    return this->assertion_const_vars;
+}
+
+const std::vector< std::set< LabTok > > &LibraryToolbox::get_assertion_const_vars() const
+{
+    if (!this->vars_computed) {
+        throw MMPPException("computation required on a const object");
+    }
+    return this->assertion_const_vars;
 }
 
 Prover LibraryToolbox::build_prover(const std::vector<Sentence> &templ_hyps, const Sentence &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers) const
@@ -391,17 +473,7 @@ std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok>
     }
 
     // Build a substitution map
-    SubstMap< SymTok, LabTok > subst;
-    for (const auto var_lab : var_labs) {
-        SymTok type_sym = this->get_sentence(var_lab).at(0);
-        SymTok new_sym;
-        LabTok new_lab;
-        tie(new_lab, new_sym) = this->new_temp_var(type_sym);
-        ParsingTree< SymTok, LabTok > new_pt;
-        new_pt.label = new_lab;
-        new_pt.type = type_sym;
-        subst[var_lab] = new_pt;
-    }
+    SubstMap< SymTok, LabTok > subst = this->build_refreshing_subst_map(var_labs);
 
     // Substitute and return
     ParsingTree< SymTok, LabTok > thesis_new_pt = ::substitute(thesis_pt, is_var, subst);
@@ -426,13 +498,7 @@ std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTo
     }
 
     // Build a substitution map
-    SimpleSubstMap2< SymTok, LabTok > subst;
-    for (const auto var_lab : var_labs) {
-        SymTok type_sym = this->get_sentence(var_lab).at(0);
-        LabTok new_lab;
-        tie(new_lab, ignore) = this->new_temp_var(type_sym);
-        subst[var_lab] = new_lab;
-    }
+    SimpleSubstMap2< SymTok, LabTok > subst = this->build_refreshing_subst_map2(var_labs);
 
     // Substitute and return
     ParsingTree2< SymTok, LabTok > thesis_new_pt = ::substitute2_simple(thesis_pt, is_var, subst);
@@ -452,17 +518,7 @@ ParsingTree<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree(const ParsingTr
     collect_variables(pt, is_var, var_labs);
 
     // Build a substitution map
-    SubstMap< SymTok, LabTok > subst;
-    for (const auto var_lab : var_labs) {
-        SymTok type_sym = this->get_sentence(var_lab).at(0);
-        SymTok new_sym;
-        LabTok new_lab;
-        tie(new_lab, new_sym) = this->new_temp_var(type_sym);
-        ParsingTree< SymTok, LabTok > new_pt;
-        new_pt.label = new_lab;
-        new_pt.type = type_sym;
-        subst[var_lab] = new_pt;
-    }
+    SubstMap< SymTok, LabTok > subst = this->build_refreshing_subst_map(var_labs);
 
     // Substitute and return
     return ::substitute(pt, is_var, subst);
@@ -476,16 +532,43 @@ ParsingTree2<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree2(const Parsing
     collect_variables2(pt, is_var, var_labs);
 
     // Build a substitution map
-    SimpleSubstMap2< SymTok, LabTok > subst;
-    for (const auto var_lab : var_labs) {
-        SymTok type_sym = this->get_sentence(var_lab).at(0);
-        LabTok new_lab;
-        tie(new_lab, ignore) = this->new_temp_var(type_sym);
-        subst[var_lab] = new_lab;
-    }
+    SimpleSubstMap2< SymTok, LabTok > subst = this->build_refreshing_subst_map2(var_labs);
 
     // Substitute and return
     return ::substitute2_simple(pt, is_var, subst);
+}
+
+SubstMap<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map(const std::set<LabTok> &vars)
+{
+    SubstMap< SymTok, LabTok > subst;
+    for (const auto var : vars) {
+        SymTok type_sym = this->get_sentence(var).at(0);
+        SymTok new_sym;
+        LabTok new_lab;
+        tie(new_lab, new_sym) = this->new_temp_var(type_sym);
+        ParsingTree< SymTok, LabTok > new_pt;
+        new_pt.label = new_lab;
+        new_pt.type = type_sym;
+        subst[var] = new_pt;
+    }
+    return subst;
+}
+
+SimpleSubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map2(const std::set<LabTok> &vars)
+{
+    SimpleSubstMap2< SymTok, LabTok > subst;
+    for (const auto var : vars) {
+        SymTok type_sym = this->get_sentence(var).at(0);
+        LabTok new_lab;
+        tie(new_lab, ignore) = this->new_temp_var(type_sym);
+        subst[var] = new_lab;
+    }
+    return subst;
+}
+
+SubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_full_subst_map2(const std::set<LabTok> &vars)
+{
+    return subst_to_subst2(this->build_refreshing_subst_map(vars));
 }
 
 SymTok LibraryToolbox::get_symbol(string s) const
@@ -811,6 +894,11 @@ const std::function<bool (LabTok)> &LibraryToolbox::get_standard_is_var() const 
     return this->standard_is_var;
 }
 
+const std::function<bool (SymTok)> &LibraryToolbox::get_standard_is_var_sym() const
+{
+    return this->standard_is_var_sym;
+}
+
 SymTok LibraryToolbox::get_turnstile() const
 {
     return this->turnstile;
@@ -843,6 +931,7 @@ void LibraryToolbox::compute_everything()
     this->compute_parser_initialization();
     this->compute_sentences_parsing();
     this->compute_registered_provers();
+    this->compute_vars();
     //toc(t, 1);
 }
 
