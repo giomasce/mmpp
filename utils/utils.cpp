@@ -150,7 +150,12 @@ void TextProgressBar::report(double current, bool force) {
     }
     this->last_report = now;
     // Truncation happens by default
-    size_t cur_len = current / this->total * this->length;
+    size_t cur_len;
+    if (this->total == 0.0) {
+        cur_len = 0;
+    } else {
+        cur_len = current / this->total * this->length;
+    }
     cout << "\033[2K\r";
     cout << "|";
     size_t i = 0;
@@ -178,3 +183,12 @@ void TextProgressBar::finished()
 
 Reportable::~Reportable() {
 }
+
+// From https://stackoverflow.com/a/11826666/807307
+class NullBuffer : public std::streambuf
+{
+public:
+  int overflow(int c) { return c; }
+};
+NullBuffer cnull_buffer;
+std::ostream cnull(&cnull_buffer);

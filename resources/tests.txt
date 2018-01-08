@@ -1,0 +1,24 @@
+|- ph
+ |- ph
+
+|- ( ph -> ph )
+
+|- ps
+ |- ph
+ |- ( ph -> ps )
+
+|- ph
+ |- ( ps -> ph )
+ |- ps
+
+|- |^| { x e. B | ph } = |^| { x | ( x e. B /\ ph ) }
+
+|- Lim dom R1
+
+|- ( A. x ( x e. A -> ( ph -> ps ) ) -> ( A. x ( x e. A -> ph ) -> A. x ( x e. A -> ps ) ) )
+
+|- ( E. x e. On ( A \ ( F " x ) ) = (/) -> E. x e. On ( ( A \ ( F " x ) ) = (/) /\ A. y e. x -. ( A \ ( F " y ) ) = (/) ) )
+
+|- ( y e. On -> ( A. x e. On ( ( A \ ( F " x ) ) =/= (/) -> ( F ` x ) e. ( A \ ( F " x ) ) ) -> ( ( A \ ( F " y ) ) =/= (/) -> ( F ` y ) e. ( A \ ( F " y ) ) ) ) )
+
+|- F/ y ( ph /\ A. y e. x ( A \ ( F " y ) ) =/= (/) )

@@ -27,6 +27,8 @@ public:
 
 protected:
     UCTProver(LibraryToolbox &tb, const ParsingTree2< SymTok, LabTok > &thesis, const std::vector< ParsingTree2< SymTok, LabTok > > &hypotheses);
+    ~UCTProver();
+    void init();
 
 private:
     void compute_useful_assertions();
@@ -46,9 +48,8 @@ public:
     uint32_t get_visit_num();
 
 protected:
-    SentenceNode(std::weak_ptr< UCTProver > uct, const ParsingTree2< SymTok, LabTok > &sentence) : uct(uct), sentence(sentence) {
-        this->ass_it = this->uct.lock()->get_useful_asses().cbegin();
-    }
+    SentenceNode(std::weak_ptr< UCTProver > uct, const ParsingTree2< SymTok, LabTok > &sentence);
+    ~SentenceNode();
 
 private:
     std::vector< std::shared_ptr< StepNode > > children;
@@ -69,23 +70,24 @@ public:
     uint32_t get_visit_num();
 
 protected:
-    StepNode(std::weak_ptr< UCTProver > uct, LabTok label, const SubstMap2< SymTok, LabTok > &const_subst_map) : uct(uct), label(label), const_subst_map(const_subst_map) {}
-    void init();
+    StepNode(std::weak_ptr< UCTProver > uct, LabTok label, const SubstMap2< SymTok, LabTok > &const_subst_map);
+    ~StepNode();
 
 private:
-    void create_children();
+    bool create_children();
     bool visit_child(size_t i);
 
     std::vector< std::shared_ptr< SentenceNode > > children;
     std::vector< std::shared_ptr< SentenceNode > > active_children;
+    size_t worst_child = 0;
     std::weak_ptr< UCTProver > uct;
 
     LabTok label;
     SubstMap2< SymTok, LabTok > const_subst_map;
     SubstMap2< SymTok, LabTok > unconst_subst_map;
     bool proved = false;
-    float value = 0.0;
-    uint32_t visit_num = 0;
+    /*float value = 0.0;
+    uint32_t visit_num = 0;*/
 };
 
 #endif // UCT_H

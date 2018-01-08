@@ -108,7 +108,9 @@ HEADERS += \
     uct.h
 
 DISTFILES += \
-    README
+    README \
+    tests.txt \
+    resources/tests.txt
 
 !equals(USE_QT, "true") {
     CONFIG -= qt

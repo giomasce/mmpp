@@ -58,11 +58,15 @@ FileTokenizer::FileTokenizer(string filename, path base_path) :
 
 void FileTokenizer::set_file_size()
 {
+    //return;
     auto pos = this->fin.tellg();
+    if (pos < 0) {
+        return;
+    }
     this->fin.seekg(0, ios_base::end);
     this->filesize = this->fin.tellg();
     this->fin.seekg(pos, ios_base::beg);
-    if (this->reportable != NULL) {
+    if (this->reportable != NULL && this->filesize > 0) {
         this->reportable->set_total(this->filesize);
     }
 }
