@@ -7,6 +7,8 @@
 #include "ui_mainwindow.h"
 #include "qt/prooftreemodel.h"
 
+#include "platform.h"
+
 using namespace std;
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -28,7 +30,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_actionOpen_triggered()
 {
-    this->ctx = QSharedPointer<Context>(Context::create_from_filename("../set.mm/set.mm"));
+    this->ctx = QSharedPointer<Context>(Context::create_from_filename(platform_get_resources_base() / "set.mm"));
     this->load_proof("avril1");
     this->update();
 }
@@ -76,7 +78,7 @@ Context::~Context()
     delete this->parser;
 }
 
-Context *Context::create_from_filename(string filename)
+Context *Context::create_from_filename(const boost::filesystem::path &filename)
 {
     Context *ctx = new Context();
     FileTokenizer ft(filename);

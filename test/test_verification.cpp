@@ -14,7 +14,7 @@
 
 using namespace std;
 
-const boost::filesystem::path test_basename = "../metamath-test";
+const boost::filesystem::path test_basename = platform_get_resources_base() / "metamath-test";
 const string tests_filenames = R"tests(
 fail anatomy-bad1.mm "Simple incorrect 'anatomy' test "
 fail anatomy-bad2.mm "Simple incorrect 'anatomy' test "

@@ -249,6 +249,7 @@ public:
 
 private:
     std::chrono::steady_clock::time_point last_report;
+    size_t last_len;
     double total;
     size_t length;
 };

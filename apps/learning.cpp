@@ -44,7 +44,7 @@ int dissector_main(int argc, char *argv[]) {
     return 0;
 }
 static_block {
-    register_main_function("mmpp_dissector", dissector_main);
+    register_main_function("dissector", dissector_main);
 }
 
 struct ProofStat {
@@ -299,5 +299,5 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     return 0;
 }
 static_block {
-    register_main_function("mmpp_gen_random_theorems", gen_random_theorems_main);
+    register_main_function("gen_random_theorems", gen_random_theorems_main);
 }

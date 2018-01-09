@@ -60,5 +60,5 @@ int unification_loop_main(int argc, char *argv[]) {
     return 0;
 }
 static_block {
-    register_main_function("mmpp_unificator", unification_loop_main);
+    register_main_function("unificator", unification_loop_main);
 }

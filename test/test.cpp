@@ -378,7 +378,7 @@ int test_setmm(int argc, char *argv[]) {
     return 0;
 }
 static_block {
-    register_main_function("mmpp_test_setmm", test_setmm);
+    register_main_function("test_setmm", test_setmm);
 }
 
 int test_one_main(int argc, char *argv[]) {
@@ -390,7 +390,7 @@ int test_one_main(int argc, char *argv[]) {
     return test_verification_one(filename, true) ? 0 : 1;
 }
 static_block {
-    register_main_function("mmpp_verify_one", test_one_main);
+    register_main_function("verify_one", test_one_main);
 }
 
 int test_simple_one_main(int argc, char *argv[]) {
@@ -402,7 +402,7 @@ int test_simple_one_main(int argc, char *argv[]) {
     return test_verification_one(filename, false) ? 0 : 1;
 }
 static_block {
-    register_main_function("mmpp_simple_verify_one", test_simple_one_main);
+    register_main_function("simple_verify_one", test_simple_one_main);
 }
 
 int test_all_main(int argc, char *argv[]) {
@@ -414,5 +414,5 @@ int test_all_main(int argc, char *argv[]) {
     return 0;
 }
 static_block {
-    register_main_function("mmpp_verify_all", test_all_main);
+    register_main_function("verify_all", test_all_main);
 }

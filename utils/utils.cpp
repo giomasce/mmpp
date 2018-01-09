@@ -134,7 +134,7 @@ string HasherSink::get_digest() {
     return std::string(reinterpret_cast< const char* >(digest), sizeof(decltype(digest)));
 }
 
-TextProgressBar::TextProgressBar(size_t length, double total) : total(total), length(length) {
+TextProgressBar::TextProgressBar(size_t length, double total) : last_len(0), total(total), length(length) {
     cout << fixed << setprecision(0);
 }
 
@@ -144,11 +144,15 @@ void TextProgressBar::set_total(double total)
 }
 
 void TextProgressBar::report(double current, bool force) {
-    auto now = std::chrono::steady_clock::now();
+    /* In theory it is nice to redraw based on timing, but on older
+     * CPUs this spawns a lot of system calls and slows things a lot.
+     * So we switch to redrawing when the position of the bar
+     * changes. */
+    /*auto now = std::chrono::steady_clock::now();
     if (!force && current != this->total && now - this->last_report < 0.1s) {
         return;
     }
-    this->last_report = now;
+    this->last_report = now;*/
     // Truncation happens by default
     size_t cur_len;
     if (this->total == 0.0) {
@@ -156,6 +160,10 @@ void TextProgressBar::report(double current, bool force) {
     } else {
         cur_len = current / this->total * this->length;
     }
+    if (!force && cur_len != this->total && cur_len == this->last_len) {
+        return;
+    }
+    this->last_len = cur_len;
     cout << "\033[2K\r";
     cout << "|";
     size_t i = 0;

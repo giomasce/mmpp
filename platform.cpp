@@ -52,7 +52,8 @@ bool platform_open_browser(string browser_url) {
 
 // FIXME
 boost::filesystem::path platform_get_resources_base() {
-    return boost::filesystem::path("./resources");
+    //return boost::filesystem::path("./resources");
+    return boost::filesystem::path(__FILE__).parent_path() / "resources";
 }
 
 // Here we depend a lot on implementation details of C++ threads

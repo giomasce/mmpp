@@ -15,7 +15,7 @@ struct Context {
 
     ~Context();
 
-    static Context *create_from_filename(std::string filename);
+    static Context *create_from_filename(const boost::filesystem::path &filename);
 };
 
 namespace Ui {

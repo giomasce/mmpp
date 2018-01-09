@@ -43,7 +43,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
     unique_lock< recursive_mutex > lock(this->global_mutex);
     assert_or_throw< SendError >(path_begin != path_end, 404);
     if (*path_begin == "load") {
-        this->load_library(platform_get_resources_base() / "library.mm", platform_get_resources_base() / "library.mm.cache", "|-");
+        this->load_library(platform_get_resources_base() / "set.mm", platform_get_resources_base() / "set.mm.cache", "|-");
         json ret = { { "status", "ok" } };
         return ret;
     } else if (*path_begin == "get_context") {

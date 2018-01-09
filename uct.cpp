@@ -320,7 +320,7 @@ vector< pair< ParsingTree2< SymTok, LabTok >, vector< ParsingTree2< SymTok, LabT
     return problems;
 }
 
-int uct_test_main(int argc, char *argv[]) {
+int uct_main(int argc, char *argv[]) {
     auto &data = get_set_mm();
     //auto &lib = data.lib;
     auto &tb = data.tb;
@@ -346,5 +346,5 @@ int uct_test_main(int argc, char *argv[]) {
     return 0;
 }
 static_block {
-    register_main_function("uct_test", uct_test_main);
+    register_main_function("uct", uct_main);
 }

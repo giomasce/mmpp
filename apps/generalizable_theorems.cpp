@@ -220,5 +220,5 @@ int find_generalizable_theorems_main(int argc, char *argv[]) {
     return 0;
 }
 static_block {
-    register_main_function("mmpp_generalizable_theorems", find_generalizable_theorems_main);
+    register_main_function("generalizable_theorems", find_generalizable_theorems_main);
 }

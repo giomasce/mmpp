@@ -68,7 +68,7 @@ int webmmpp_main_common(int argc, char *argv[], bool open_server) {
         shared_ptr< Workset > workset;
         tie(ignore, workset) = session->create_workset();
         workset->set_name("Default workset");
-        workset->load_library(platform_get_resources_base() / "library.mm", platform_get_resources_base() / "library.mm.cache", "|-");
+        workset->load_library(platform_get_resources_base() / "set.mm", platform_get_resources_base() / "set.mm.cache", "|-");
     }
 
     httpd->start();

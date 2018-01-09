@@ -11,7 +11,7 @@
  * (somewhat) complex construction procedure they need. I wonder if there is some better way.
  */
 struct TestEnvironmentInner {
-    TestEnvironmentInner(const std::string &filename, const std::string &cache_filename);
+    TestEnvironmentInner(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename);
     ~TestEnvironmentInner();
 
     LibraryImpl *lib;
@@ -19,7 +19,7 @@ struct TestEnvironmentInner {
 };
 
 struct TestEnvironment {
-    TestEnvironment(const std::string &filename, const std::string &cache_filename);
+    TestEnvironment(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename);
 
     TestEnvironmentInner inner;
     LibraryImpl &lib;

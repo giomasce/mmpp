@@ -7,7 +7,7 @@
 
 using namespace std;
 
-TestEnvironmentInner::TestEnvironmentInner(const string &filename, const string &cache_filename)
+TestEnvironmentInner::TestEnvironmentInner(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename)
 {
     cout << "Reading database from file " << filename << " using cache in file " << cache_filename << endl;
     TextProgressBar tpb;
@@ -27,12 +27,12 @@ TestEnvironmentInner::~TestEnvironmentInner() {
     delete this->tb;
 }
 
-TestEnvironment::TestEnvironment(const string &filename, const string &cache_filename) :
+TestEnvironment::TestEnvironment(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename) :
     inner(filename, cache_filename), lib(*inner.lib), tb(*inner.tb)
 {
 }
 
 const TestEnvironment &get_set_mm() {
-    static TestEnvironment data("../set.mm/set.mm", "../set.mm/set.mm.cache");
+    static TestEnvironment data(platform_get_resources_base() / "set.mm", platform_get_resources_base() / "set.mm.cache");
     return data;
 }
