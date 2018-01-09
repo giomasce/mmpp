@@ -1,5 +1,4 @@
-#ifndef PLATFORM_H
-#define PLATFORM_H
+#pragma once
 
 #include <string>
 #include <thread>
@@ -15,5 +14,3 @@ size_t platform_get_peak_rss();
 size_t platform_get_current_rss();
 void set_thread_name(std::thread &t, const std::string &name);
 void set_current_thread_low_priority();
-
-#endif // PLATFORM_H

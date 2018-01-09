@@ -1,5 +1,4 @@
-#ifndef WFF_H
-#define WFF_H
+#pragma once
 
 #include <string>
 #include <memory>
@@ -386,5 +385,3 @@ public:
     static RegisteredProver imp_not_1_rp;
     static RegisteredProver imp_not_2_rp;
 };
-
-#endif // WFF_H

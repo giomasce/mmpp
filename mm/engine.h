@@ -1,5 +1,4 @@
-#ifndef ENGINE_H
-#define ENGINE_H
+#pragma once
 
 #include <vector>
 #include <set>
@@ -74,5 +73,3 @@ private:
     std::vector< std::tuple< size_t, size_t > > checkpoints;
     std::string debug_output;
 };
-
-#endif // ENGINE_H

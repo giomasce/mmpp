@@ -1,5 +1,4 @@
-#ifndef HTTPD_MICROHTTPD_H
-#define HTTPD_MICROHTTPD_H
+#pragma once
 
 #include "web/httpd.h"
 
@@ -82,5 +81,3 @@ private:
     std::string version;
     bool send_response;
 };
-
-#endif // HTTPD_MICROHTTPD_H

@@ -1,5 +1,4 @@
-#ifndef MMTYPES_H
-#define MMTYPES_H
+#pragma once
 
 // From engine.h
 class ProofException;
@@ -17,5 +16,3 @@ class Proof;
 class CompressedProof;
 class UncompressedProof;
 class ProofExecutor;
-
-#endif // MMTYPES_H

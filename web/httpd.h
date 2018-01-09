@@ -1,5 +1,4 @@
-#ifndef HTTPD_H
-#define HTTPD_H
+#pragma once
 
 #include <string>
 #include <vector>
@@ -143,5 +142,3 @@ public:
     virtual ~HTTPTarget() {}
     virtual void answer(HTTPCallback &cb) = 0;
 };
-
-#endif // HTTPD_H

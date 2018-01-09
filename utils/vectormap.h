@@ -1,5 +1,4 @@
-#ifndef VectorMap_H
-#define VectorMap_H
+#pragma once
 
 #include <vector>
 #include <algorithm>
@@ -176,5 +175,3 @@ public:
         typename decltype(VectorMap::container)::const_iterator it;
     };
 };
-
-#endif // VectorMap_H

@@ -1,6 +1,4 @@
-
-#ifndef LIBRARYTOOLBOX_H
-#define LIBRARYTOOLBOX_H
+#pragma once
 
 #include <vector>
 #include <unordered_map>
@@ -286,5 +284,3 @@ private:
     std::function< bool(LabTok) > standard_is_var;
     std::function< bool(SymTok) > standard_is_var_sym;
 };
-
-#endif // LIBRARYTOOLBOX_H

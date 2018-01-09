@@ -1,5 +1,4 @@
-#ifndef ALGOS_H
-#define ALGOS_H
+#pragma once
 
 // Implementation from https://en.wikipedia.org/wiki/Disjoint-set_data_structure
 template< typename LabType >
@@ -144,5 +143,3 @@ private:
     std::unordered_map< LabType, std::set< LabType > > deps;
     size_t edge_num;
 };
-
-#endif // ALGOS_H

@@ -1,6 +1,3 @@
-#ifndef TEST_PARSING_H
-#define TEST_PARSING_H
+#pragma once
 
 void test_parsers();
-
-#endif // TEST_PARSING_H

@@ -1,6 +1,3 @@
-#ifndef TEST_MINOR_H
-#define TEST_MINOR_H
+#pragma once
 
 void test_small_stuff();
-
-#endif // TEST_MINOR_H

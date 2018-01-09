@@ -1,5 +1,4 @@
-#ifndef LIBRARY_H
-#define LIBRARY_H
+#pragma once
 
 #include <unordered_map>
 #include <vector>
@@ -357,5 +356,3 @@ private:
 
     LabTok max_number;
 };
-
-#endif // LIBRARY_H

@@ -1,5 +1,4 @@
-#ifndef BACKREF_REGISTRY_H
-#define BACKREF_REGISTRY_H
+#pragma once
 
 #include <memory>
 #include <unordered_map>
@@ -115,5 +114,3 @@ private:
     std::weak_ptr< BackreferenceRegistry< T, U > > weak_this;
     std::weak_ptr< U > main;
 };*/
-
-#endif // BACKREF_REGISTRY_H

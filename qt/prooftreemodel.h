@@ -1,5 +1,4 @@
-#ifndef PROOFTREEMODEL_H
-#define PROOFTREEMODEL_H
+#pragma once
 
 #include <QAbstractItemModel>
 
@@ -37,5 +36,3 @@ private:
     const LibraryToolbox &tb;
     ProofTreeModelItem *ptmi;
 };
-
-#endif // PROOFTREEMODEL_H

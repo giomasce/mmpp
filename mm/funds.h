@@ -1,5 +1,4 @@
-#ifndef FUNDS_H
-#define FUNDS_H
+#pragma once
 
 #include <functional>
 #include <set>
@@ -105,5 +104,3 @@ static inline std::string trimmed(std::string s) {
     trim(s);
     return s;
 }
-
-#endif // FUNDS_H

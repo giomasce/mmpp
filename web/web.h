@@ -1,5 +1,4 @@
-#ifndef WEBENDPOINT_H
-#define WEBENDPOINT_H
+#pragma once
 
 #include <memory>
 #include <shared_mutex>
@@ -101,5 +100,3 @@ private:
     int port;
     std::shared_ptr< Session > guest_session;
 };
-
-#endif // WEBENDPOINT_H

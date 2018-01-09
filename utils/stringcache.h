@@ -1,5 +1,4 @@
-#ifndef STRINGCACHE_H
-#define STRINGCACHE_H
+#pragma once
 
 #include <unordered_map>
 #include <vector>
@@ -68,5 +67,3 @@ private:
     std::unordered_map< std::string, TokType > dir;
     std::unordered_map< TokType, std::string > inv;
 };
-
-#endif // STRINGCACHE_H

@@ -1,5 +1,4 @@
-#ifndef UNIF_H
-#define UNIF_H
+#pragma once
 
 #include <functional>
 #include <unordered_map>
@@ -745,5 +744,3 @@ bool unify2(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymTy
 #endif
     return ret;
 }
-
-#endif // UNIF_H

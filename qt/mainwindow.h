@@ -1,5 +1,4 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QMainWindow>
 
@@ -44,5 +43,3 @@ private:
 
     void load_proof(std::string label);
 };
-
-#endif // MAINWINDOW_H

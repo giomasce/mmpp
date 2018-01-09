@@ -1,5 +1,4 @@
-#ifndef STEP_H
-#define STEP_H
+#pragma once
 
 #include <vector>
 #include <memory>
@@ -134,5 +133,3 @@ private:
     std::vector< size_t > permutation;
     std::unordered_map< SymTok, std::vector< SymTok > > subst_map;*/
 };
-
-#endif // STEP_H

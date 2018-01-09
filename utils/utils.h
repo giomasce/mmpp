@@ -1,5 +1,4 @@
-#ifndef UTILS_H
-#define UTILS_H
+#pragma once
 
 #include <set>
 #include <string>
@@ -237,5 +236,3 @@ class basic_onullstream: public std::basic_ostream<cT, traits> {
 };
 typedef basic_onullstream<char> onullstream;
 typedef basic_onullstream<wchar_t> wonullstream;*/
-
-#endif // UTILS_H

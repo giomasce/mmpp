@@ -1,5 +1,4 @@
-#ifndef EARLEY_H
-#define EARLEY_H
+#pragma once
 
 #include <vector>
 #include <unordered_map>
@@ -139,5 +138,3 @@ public:
 private:
     const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations;
 };
-
-#endif // EARLEY_H

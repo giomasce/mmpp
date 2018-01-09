@@ -1,5 +1,4 @@
-#ifndef THREADMANAGER_H
-#define THREADMANAGER_H
+#pragma once
 
 #include <thread>
 #include <mutex>
@@ -87,5 +86,3 @@ private:
     std::list< CoroutineRuntimeData > coros;
     std::vector< std::thread > threads;
 };
-
-#endif // THREADMANAGER_H

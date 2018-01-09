@@ -1,5 +1,4 @@
-#ifndef UCT_H
-#define UCT_H
+#pragma once
 
 #include <vector>
 #include <memory>
@@ -89,5 +88,3 @@ private:
     /*float value = 0.0;
     uint32_t visit_num = 0;*/
 };
-
-#endif // UCT_H

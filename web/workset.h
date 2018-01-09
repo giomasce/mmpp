@@ -1,5 +1,4 @@
-#ifndef WORKSET_H
-#define WORKSET_H
+#pragma once
 
 #include <mutex>
 #include <memory>
@@ -55,5 +54,3 @@ private:
     std::condition_variable queue_variable;
     std::list< nlohmann::json > queue;
 };
-
-#endif // WORKSET_H

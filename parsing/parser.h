@@ -1,5 +1,4 @@
-#ifndef PARSER_H
-#define PARSER_H
+#pragma once
 
 #include <vector>
 #include <unordered_map>
@@ -345,5 +344,3 @@ std::unordered_map< LabType, std::pair< SymType, std::vector< SymType > > > comp
     }
     return ders;
 }
-
-#endif // PARSER_H

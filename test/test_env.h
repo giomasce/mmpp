@@ -1,5 +1,4 @@
-#ifndef TEST_ENV_H
-#define TEST_ENV_H
+#pragma once
 
 #include <string>
 
@@ -27,5 +26,3 @@ struct TestEnvironment {
 };
 
 const TestEnvironment &get_set_mm();
-
-#endif // TEST_ENV_H

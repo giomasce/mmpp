@@ -1,5 +1,4 @@
-#ifndef TOKENIZER_H
-#define TOKENIZER_H
+#pragma once
 
 #include <vector>
 #include <utility>
@@ -43,5 +42,3 @@ private:
     size_t pos = 0;
     Reportable *reportable;
 };
-
-#endif // TOKENIZER_H

@@ -1,5 +1,4 @@
-#ifndef LR_H
-#define LR_H
+#pragma once
 
 #include <vector>
 #include <unordered_map>
@@ -391,5 +390,3 @@ private:
     std::unordered_map< LabType, std::pair< SymType, std::vector< SymType > > > ders_by_lab;
 #endif
 };
-
-#endif // LR_H

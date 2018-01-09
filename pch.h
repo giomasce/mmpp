@@ -1,5 +1,4 @@
-#ifndef PCH_H
-#define PCH_H
+#pragma once
 
 #include <cassert>
 #include <cstring>
@@ -48,5 +47,3 @@
 
 #include "libs/json.h"
 #include "libs/serialize_tuple.h"
-
-#endif // PCH_H

@@ -1,5 +1,4 @@
-#ifndef READER_H
-#define READER_H
+#pragma once
 
 #include <vector>
 #include <string>
@@ -62,5 +61,3 @@ private:
     StackFrame final_frame;
     std::set< SymTok > consts;
 };
-
-#endif // READER_H

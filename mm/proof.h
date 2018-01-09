@@ -1,5 +1,4 @@
-#ifndef PROOF_H
-#define PROOF_H
+#pragma once
 
 #include <vector>
 #include <functional>
@@ -113,5 +112,3 @@ public:
 private:
     int current = 0;
 };
-
-#endif // PROOF_H
