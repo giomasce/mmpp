@@ -46,6 +46,22 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
             os << sp.tb.get_addendum().get_althtmldef(tok);
         } else if (sp.style == SentencePrinter::STYLE_LATEX) {
             os << sp.tb.get_addendum().get_latexdef(tok);
+        } else if (sp.style == SentencePrinter::STYLE_ANSI_COLORS_SET_MM) {
+            LabTok label = sp.tb.get_types_by_var().at(tok);
+            if (sp.tb.get_standard_is_var()(label)) {
+                string type_str = sp.tb.resolve_symbol(sp.tb.get_sentence(label).at(0));
+                if (type_str == "set") {
+                    os << "\033[91m";
+                } else if (type_str == "class") {
+                    os << "\033[35m";
+                } else if (type_str == "wff") {
+                    os << "\033[94m";
+                }
+            } else {
+                //os << "\033[37m";
+            }
+            os << sp.tb.resolve_symbol(tok);
+            os << "\033[39m";
         }
     }
     if (sp.style == SentencePrinter::STYLE_ALTHTML) {

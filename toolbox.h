@@ -34,6 +34,7 @@ struct SentencePrinter {
         STYLE_HTML,
         STYLE_ALTHTML,
         STYLE_LATEX,
+        STYLE_ANSI_COLORS_SET_MM,
     };
     const Sentence *sent;
     const ParsingTree<SymTok, LabTok> *pt;

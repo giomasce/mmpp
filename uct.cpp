@@ -109,7 +109,7 @@ bool SentenceNode::visit()
     auto &tb = strong_uct->get_toolbox();
     assert(!this->proved);
     this->visit_num++;
-    auto vc = VisitContext("visiting SentenceNode for " + tb.print_sentence(this->sentence).to_string());
+    auto vc = VisitContext("visiting SentenceNode for " + tb.print_sentence(this->sentence, SentencePrinter::STYLE_ANSI_COLORS_SET_MM).to_string());
 
     // First visit: do some trivial checks, but do not create new children
     if (this->visit_num == 1) {
