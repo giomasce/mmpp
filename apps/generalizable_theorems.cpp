@@ -7,7 +7,8 @@
 #include <string>
 
 #include "test/test_env.h"
-#include "toolbox.h"
+#include "mm/toolbox.h"
+#include "mm/proof.h"
 #include "parsing/unif.h"
 #include "utils/utils.h"
 

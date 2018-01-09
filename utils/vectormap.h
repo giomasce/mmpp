@@ -101,6 +101,7 @@ private:
 
 public:
     class Iterator {
+        friend class VectorMap< Key, Value >::ConstIterator;
     public:
         Iterator(typename decltype(VectorMap::container)::iterator it) : it(it) {
         }

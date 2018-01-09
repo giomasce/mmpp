@@ -6,7 +6,7 @@
 #include <iostream>
 #include <algorithm>
 
-#include "library.h"
+#include "mm/library.h"
 #include "parser.h"
 
 template< typename SymType, typename LabType >

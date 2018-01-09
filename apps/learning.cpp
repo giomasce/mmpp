@@ -4,7 +4,8 @@
 #include <functional>
 
 #include "test/test_env.h"
-#include "toolbox.h"
+#include "mm/toolbox.h"
+#include "mm/proof.h"
 #include "parsing/unif.h"
 #include "utils/utils.h"
 
@@ -201,7 +202,7 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     //auto target_pt = tb.get_parsed_sents2()[target_label];
 
     ostringstream oss;
-    for (size_t i = 1; i < argc; i++) {
+    for (ssize_t i = 1; i < argc; i++) {
         oss << argv[i] << " ";
     }
     Sentence target_sent = tb.read_sentence(oss.str());

@@ -13,6 +13,7 @@
 #include "library.h"
 #include "parsing/lr.h"
 #include "parsing/unif.h"
+#include "engine.h"
 
 class LibraryToolbox;
 

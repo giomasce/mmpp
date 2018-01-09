@@ -4,6 +4,7 @@
 #include "utils/utils.h"
 #include "test/test_env.h"
 #include "platform.h"
+#include "mm/proof.h"
 
 #include <memory>
 #include <iostream>

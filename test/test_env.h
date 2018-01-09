@@ -3,8 +3,8 @@
 
 #include <string>
 
-#include "library.h"
-#include "toolbox.h"
+#include "mm/library.h"
+#include "mm/toolbox.h"
 
 /* This funny construction with two classes is the only way I found to have lib and tb
  * as references in TestEnvironment, while being at the same time able to do the

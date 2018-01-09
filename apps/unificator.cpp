@@ -1,10 +1,10 @@
 
 #include <iostream>
 
-#include "reader.h"
-#include "library.h"
+#include "mm/reader.h"
+#include "mm/library.h"
 #include "utils/utils.h"
-#include "toolbox.h"
+#include "mm/toolbox.h"
 #include "platform.h"
 #include "test/test_env.h"
 

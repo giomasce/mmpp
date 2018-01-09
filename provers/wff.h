@@ -6,9 +6,9 @@
 #include <set>
 #include <vector>
 
-#include "library.h"
-#include "proof.h"
-#include "toolbox.h"
+#include "mm/library.h"
+#include "mm/proof.h"
+#include "mm/toolbox.h"
 
 class Wff;
 typedef std::shared_ptr< Wff > pwff;

@@ -4,8 +4,8 @@
 #include <fstream>
 #include <chrono>
 
-#include "wff.h"
-#include "reader.h"
+#include "provers/wff.h"
+#include "mm/reader.h"
 #include "old/unification.h"
 #include "utils/utils.h"
 #include "parsing/earley.h"

@@ -32,7 +32,7 @@ QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -
 #QMAKE_LINK = clang++-5.0
 #QMAKE_CFLAGS += -std=c11 -march=native -g
 #QMAKE_CXXFLAGS += -std=c++17 -march=native -g -ftemplate-backtrace-limit=0
-#QMAKE_LIBS += -ldl -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lpthread -lz3
+#QMAKE_LIBS += -ldl -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lpthread
 
 # Disable these to have faster code; enable them to spot bugs
 #QMAKE_CXXFLAGS += -DLR_PARSER_SELF_TEST
@@ -51,18 +51,18 @@ QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -
 
 SOURCES += \
     main.cpp \
-    library.cpp \
-    proof.cpp \
+    mm/library.cpp \
+    mm/proof.cpp \
     old/unification.cpp \
-    wff.cpp \
-    toolbox.cpp \
+    provers/wff.cpp \
+    mm/toolbox.cpp \
     test/test.cpp \
     utils/utils.cpp \
     web/web.cpp \
     platform.cpp \
     web/workset.cpp \
     web/jsonize.cpp \
-    reader.cpp \
+    mm/reader.cpp \
     apps/unificator.cpp \
     temp.cpp \
     test/test_env.cpp \
@@ -73,15 +73,18 @@ SOURCES += \
     web/step.cpp \
     utils/threadmanager.cpp \
     apps/learning.cpp \
-    uct.cpp
+    provers/uct.cpp \
+    mm/tokenizer.cpp \
+    mm/engine.cpp \
+    mm/funds.cpp
 
 HEADERS += \
     pch.h \
-    wff.h \
-    library.h \
-    proof.h \
+    provers/wff.h \
+    mm/library.h \
+    mm/proof.h \
     old/unification.h \
-    toolbox.h \
+    mm/toolbox.h \
     utils/stringcache.h \
     utils/utils.h \
     web/httpd.h \
@@ -90,7 +93,7 @@ HEADERS += \
     platform.h \
     web/workset.h \
     web/jsonize.h \
-    reader.h \
+    mm/reader.h \
     libs/serialize_tuple.h \
     test/test_env.h \
     test/test_parsing.h \
@@ -105,7 +108,11 @@ HEADERS += \
     utils/threadmanager.h \
     utils/backref_registry.h \
     parsing/algos.h \
-    uct.h
+    provers/uct.h \
+    mm/tokenizer.h \
+    mm/engine.h \
+    mm/funds.h \
+    mm/mmtypes.h
 
 DISTFILES += \
     README \
@@ -153,7 +160,7 @@ equals(USE_BEAST, "true") {
 equals(USE_Z3, "true") {
     DEFINES += USE_Z3
     SOURCES += \
-        z3/z3prover.cpp
+        provers/z3prover.cpp
     QMAKE_LIBS += -lz3
 }
 

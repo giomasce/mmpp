@@ -1,7 +1,7 @@
 #ifndef UNIFICATION_H
 #define UNIFICATION_H
 
-#include "library.h"
+#include "mm/library.h"
 
 #include <vector>
 #include <unordered_map>

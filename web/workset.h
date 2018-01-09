@@ -8,9 +8,9 @@
 class Workset;
 
 #include "web/web.h"
-#include "library.h"
+#include "mm/library.h"
 #include "web/step.h"
-#include "toolbox.h"
+#include "mm/toolbox.h"
 #include "utils/threadmanager.h"
 
 class Workset : public enable_create< Workset > {

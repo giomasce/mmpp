@@ -5,8 +5,8 @@
 
 #include "test/test_minor.h"
 
-#include "wff.h"
-#include "reader.h"
+#include "provers/wff.h"
+#include "mm/reader.h"
 #include "utils/utils.h"
 #include "platform.h"
 

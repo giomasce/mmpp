@@ -10,8 +10,8 @@
 #include "utils/utils.h"
 #include "parsing/parser.h"
 #include "parsing/unif.h"
-#include "library.h"
-#include "toolbox.h"
+#include "mm/library.h"
+#include "mm/toolbox.h"
 
 class SentenceNode;
 class StepNode;

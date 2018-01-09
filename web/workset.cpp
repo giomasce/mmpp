@@ -2,7 +2,9 @@
 
 #include "libs/json.h"
 
-#include "reader.h"
+#include "mm/reader.h"
+#include "mm/engine.h"
+#include "mm/proof.h"
 #include "platform.h"
 #include "jsonize.h"
 

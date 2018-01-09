@@ -10,7 +10,8 @@
 
 #include "platform.h"
 #include "utils/utils.h"
-#include "reader.h"
+#include "mm/reader.h"
+#include "mm/proof.h"
 
 using namespace std;
 
