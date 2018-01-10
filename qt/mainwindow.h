@@ -6,15 +6,16 @@
 #include "mm/toolbox.h"
 #include "mm/reader.h"
 #include "htmldelegate.h"
+#include "test/test_env.h"
 
 struct Context {
-    Reader *parser = NULL;
     const ExtendedLibrary *lib = NULL;
     LibraryToolbox *tb = NULL;
+    TestEnvironment *te = NULL;
 
     ~Context();
 
-    static Context *create_from_filename(const boost::filesystem::path &filename);
+    static Context *create_from_filename(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename);
 };
 
 namespace Ui {

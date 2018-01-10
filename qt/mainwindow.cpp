@@ -8,6 +8,7 @@
 #include "qt/prooftreemodel.h"
 
 #include "platform.h"
+#include "test/test_env.h"
 
 using namespace std;
 
@@ -30,7 +31,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_actionOpen_triggered()
 {
-    this->ctx = QSharedPointer<Context>(Context::create_from_filename(platform_get_resources_base() / "set.mm"));
+    this->ctx = QSharedPointer<Context>(Context::create_from_filename(platform_get_resources_base() / "set.mm", platform_get_resources_base() / "set.mm.cache"));
     this->load_proof("avril1");
     this->update();
 }
@@ -73,18 +74,14 @@ void MainWindow::paintEvent(QPaintEvent *event) {
 
 Context::~Context()
 {
-    delete this->tb;
-    delete this->lib;
-    delete this->parser;
+    delete this->te;
 }
 
-Context *Context::create_from_filename(const boost::filesystem::path &filename)
+Context *Context::create_from_filename(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename)
 {
     Context *ctx = new Context();
-    FileTokenizer ft(filename);
-    ctx->parser = new Reader(ft, false, true);
-    ctx->parser->run();
-    ctx->lib = &ctx->parser->get_library();
-    ctx->tb = new LibraryToolbox(*ctx->lib, "|-", true);
+    ctx->te = new TestEnvironment(filename, cache_filename);
+    ctx->lib = &ctx->te->lib;
+    ctx->tb = &ctx->te->tb;
     return ctx;
 }
