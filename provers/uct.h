@@ -16,9 +16,15 @@ class SentenceNode;
 class StepNode;
 class UCTProver;
 
+enum VisitResult {
+    PROVED,
+    CONTINUE,
+    DEAD,
+};
+
 class UCTProver : public enable_create< UCTProver > {
 public:
-    bool visit();
+    VisitResult visit();
     const std::vector< ParsingTree2< SymTok, LabTok > > &get_hypotheses() const;
     const std::vector< const Assertion* > &get_useful_asses() const;
     LibraryToolbox &get_toolbox() const;
@@ -42,21 +48,24 @@ private:
 
 class SentenceNode : public enable_create< SentenceNode > {
 public:
-    bool visit();
+    VisitResult visit();
     float get_value();
     uint32_t get_visit_num();
+    std::weak_ptr< StepNode > get_parent();
+    const ParsingTree2< SymTok, LabTok > &get_sentence();
 
 protected:
-    SentenceNode(std::weak_ptr< UCTProver > uct, const ParsingTree2< SymTok, LabTok > &sentence);
+    SentenceNode(std::weak_ptr< UCTProver > uct, std::weak_ptr< StepNode > parent, const ParsingTree2< SymTok, LabTok > &sentence);
     ~SentenceNode();
 
 private:
-    std::vector< std::shared_ptr< StepNode > > children;
     std::weak_ptr< UCTProver > uct;
+    std::vector< std::shared_ptr< StepNode > > children;
+    std::weak_ptr< StepNode > parent;
 
     ParsingTree2< SymTok, LabTok > sentence;
     uint32_t visit_num = 0;
-    bool proved = false;
+    bool exhausted = false;
     float value = 0.0;
     float total_children_value = 0.0;
     std::vector< const Assertion* >::const_iterator ass_it;
@@ -64,27 +73,30 @@ private:
 
 class StepNode : public enable_create< StepNode > {
 public:
-    bool visit();
+    VisitResult visit();
     float get_value();
     uint32_t get_visit_num();
+    std::weak_ptr< SentenceNode > get_parent();
 
 protected:
-    StepNode(std::weak_ptr< UCTProver > uct, LabTok label, const SubstMap2< SymTok, LabTok > &const_subst_map);
+    StepNode(std::weak_ptr< UCTProver > uct, std::weak_ptr< SentenceNode > parent, LabTok label, const SubstMap2< SymTok, LabTok > &const_subst_map);
     ~StepNode();
 
 private:
-    bool create_children();
-    bool visit_child(size_t i);
+    VisitResult create_child(const ParsingTree2< SymTok, LabTok > &sent);
+    VisitResult create_children();
+    VisitResult visit_child(size_t i);
 
+    std::weak_ptr< UCTProver > uct;
     std::vector< std::shared_ptr< SentenceNode > > children;
+    std::weak_ptr< SentenceNode > parent;
     std::vector< std::shared_ptr< SentenceNode > > active_children;
     size_t worst_child = 0;
-    std::weak_ptr< UCTProver > uct;
 
     LabTok label;
     SubstMap2< SymTok, LabTok > const_subst_map;
     SubstMap2< SymTok, LabTok > unconst_subst_map;
-    bool proved = false;
+    bool exhausted = false;
     /*float value = 0.0;
     uint32_t visit_num = 0;*/
 };
