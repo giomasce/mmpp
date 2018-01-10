@@ -12,6 +12,7 @@
 #include "parsing/lr.h"
 #include "parsing/unif.h"
 #include "engine.h"
+#include "mmtemplates.h"
 
 class LibraryToolbox;
 

@@ -76,7 +76,8 @@ SOURCES += \
     provers/uct.cpp \
     mm/tokenizer.cpp \
     mm/engine.cpp \
-    mm/funds.cpp
+    mm/funds.cpp \
+    mm/mmtemplates.cpp
 
 HEADERS += \
     pch.h \
@@ -112,7 +113,8 @@ HEADERS += \
     mm/tokenizer.h \
     mm/engine.h \
     mm/funds.h \
-    mm/mmtypes.h
+    mm/mmtypes.h \
+    mm/mmtemplates.h
 
 DISTFILES += \
     README \
