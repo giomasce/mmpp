@@ -667,13 +667,20 @@ std::vector<std::vector<std::pair<bool, std::string> > > Reader::parse_comment(c
             if (c == '*') {
                 state = 1;
             } else {
-                token.push_back('*');
+                /* If we have found a '/' which is not followed by '*', then first
+                 * we push the '/', then we jump to state 0 and reprocess the current
+                 * token. */
+                token.push_back('/');
                 state = 0;
                 goto state0;
             }
         } else if (state == 5) {
             if (c == '/') {
                 state = 0;
+            } else if (c == '*') {
+                state = 5;
+            } else {
+                state = 1;
             }
         } else if (state == 6) {
             if (c == ';') {
