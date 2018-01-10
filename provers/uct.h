@@ -29,6 +29,7 @@ public:
     const std::vector< const Assertion* > &get_useful_asses() const;
     LibraryToolbox &get_toolbox() const;
     std::ranlux48 &get_rand();
+    const std::set<std::pair<LabTok, LabTok> > &get_antidists() const;
 
 protected:
     UCTProver(LibraryToolbox &tb, const ParsingTree2< SymTok, LabTok > &thesis, const std::vector< ParsingTree2< SymTok, LabTok > > &hypotheses);
@@ -39,6 +40,7 @@ private:
     void compute_useful_assertions();
 
     std::shared_ptr< SentenceNode > root;
+    std::set< std::pair< LabTok, LabTok > > antidists;
     LibraryToolbox &tb;
     ParsingTree2< SymTok, LabTok > thesis;
     std::vector< ParsingTree2< SymTok, LabTok > > hypotheses;
@@ -59,6 +61,8 @@ protected:
     ~SentenceNode();
 
 private:
+    bool check_subst_map(const SubstMap2< SymTok, LabTok > &subst_map, const Assertion &ass);
+
     std::weak_ptr< UCTProver > uct;
     std::vector< std::shared_ptr< StepNode > > children;
     std::weak_ptr< StepNode > parent;
@@ -74,9 +78,9 @@ private:
 class StepNode : public enable_create< StepNode > {
 public:
     VisitResult visit();
-    float get_value();
-    uint32_t get_visit_num();
-    std::weak_ptr< SentenceNode > get_parent();
+    float get_value() const;
+    uint32_t get_visit_num() const;
+    std::weak_ptr< SentenceNode > get_parent() const;
 
 protected:
     StepNode(std::weak_ptr< UCTProver > uct, std::weak_ptr< SentenceNode > parent, LabTok label, const SubstMap2< SymTok, LabTok > &const_subst_map);

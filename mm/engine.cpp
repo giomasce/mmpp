@@ -123,12 +123,9 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
     }
 
     // Keep track of the distinct variables constraints in the substitution map
-    const auto child_dists = child_ass.get_dists();
+    const auto &child_dists = child_ass.get_dists();
     for (auto it1 = subst_map.begin(); it1 != subst_map.end(); it1++) {
-        for (auto it2 = it1; it2 != subst_map.end(); it2++) {
-            if (it1 == it2) {
-                continue;
-            }
+        for (auto it2 = subst_map.begin(); it2 != it1; it2++) {
             auto &var1 = it1->first;
             auto &var2 = it2->first;
             auto &subst1 = it1->second;
