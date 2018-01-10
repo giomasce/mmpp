@@ -22,8 +22,6 @@
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/concepts.hpp>
 
-#include <cryptopp/sha.h>
-
 #define EXCEPTIONS_SELF_DEBUG
 
 #if defined(__GNUG__) && defined(EXCEPTIONS_SELF_DEBUG)
@@ -86,18 +84,28 @@ static void function_name(); \
 static int var_name __attribute((unused)) = (function_name(), 0) ; \
 static void function_name()
 
-class HasherSink : public boost::iostreams::sink {
+class Hasher {
 public:
-    std::streamsize write(const char* s, std::streamsize n);
+    virtual void update(const char* s, std::streamsize n) = 0;
+    virtual std::string get_digest() = 0;
+};
+
+class HashSink {
+public:
+    typedef char char_type;
+    typedef boost::iostreams::sink_tag category;
+
+    HashSink();
+    std::streamsize write(const char *s, std::streamsize n);
     std::string get_digest();
 
 private:
-    CryptoPP::SHA256 hasher;
+    std::shared_ptr< Hasher > hasher;
 };
 
 template< typename T >
 std::string hash_object(const T &obj) {
-    HasherSink hasher;
+    HashSink hasher;
     boost::iostreams::stream fout(hasher);
     {
         boost::archive::text_oarchive archive(fout);
@@ -212,27 +220,3 @@ It random_choose(It first, It last, URBG &&g) {
 }
 
 extern std::ostream cnull;
-
-// From https://stackoverflow.com/a/760353/807307
-/*template <class cT, class traits = std::char_traits<cT> >
-class basic_nullbuf: public std::basic_streambuf<cT, traits> {
-    typename traits::int_type overflow(typename traits::int_type c)
-    {
-        return traits::not_eof(c); // indicate success
-    }
-};
-template <class cT, class traits = std::char_traits<cT> >
-class basic_onullstream: public std::basic_ostream<cT, traits> {
-    public:
-        basic_onullstream():
-        std::basic_ios<cT, traits>(&m_sbuf),
-        std::basic_ostream<cT, traits>(&m_sbuf)
-        {
-            init(&m_sbuf);
-        }
-
-    private:
-        basic_nullbuf<cT, traits> m_sbuf;
-};
-typedef basic_onullstream<char> onullstream;
-typedef basic_onullstream<wchar_t> wonullstream;*/

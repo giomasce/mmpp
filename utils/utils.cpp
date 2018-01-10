@@ -1,6 +1,8 @@
 
 #include "utils.h"
 
+#include <cryptopp/sha.h>
+
 using namespace std;
 
 #if defined(__GNUG__) && defined(EXCEPTIONS_SELF_DEBUG)
@@ -123,16 +125,21 @@ void register_main_function(const string &name, const function< int(int, char*[]
     get_main_functions().insert(make_pair(name, main_function));
 }
 
-streamsize HasherSink::write(const char *s, streamsize n) {
-    this->hasher.Update(reinterpret_cast< const ::byte* >(s), n);
-    return n;
-}
+class HasherSHA256 : public Hasher {
+public:
+    void update(const char *s, std::streamsize n) {
+        this->hasher.Update(reinterpret_cast< const ::byte* >(s), n);
+    }
 
-string HasherSink::get_digest() {
-    ::byte digest[decltype(hasher)::DIGESTSIZE];
-    this->hasher.Final(digest);
-    return std::string(reinterpret_cast< const char* >(digest), sizeof(decltype(digest)));
-}
+    std::string get_digest() {
+        ::byte digest[decltype(hasher)::DIGESTSIZE];
+        this->hasher.Final(digest);
+        return std::string(reinterpret_cast< const char* >(digest), sizeof(decltype(digest)));
+    }
+
+private:
+    CryptoPP::SHA256 hasher;
+};
 
 TextProgressBar::TextProgressBar(size_t length, double total) : last_len(0), total(total), length(length) {
     cout << fixed << setprecision(0);
@@ -200,3 +207,18 @@ public:
 };
 NullBuffer cnull_buffer;
 std::ostream cnull(&cnull_buffer);
+
+HashSink::HashSink() : hasher(make_shared< HasherSHA256 >())
+{
+}
+
+streamsize HashSink::write(const char *s, streamsize n)
+{
+    this->hasher->update(s, n);
+    return n;
+}
+
+string HashSink::get_digest()
+{
+    return this->hasher->get_digest();
+}
