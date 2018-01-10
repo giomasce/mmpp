@@ -118,6 +118,7 @@ public:
                                                                       const std::unordered_map< SymTok, std::vector< SymTok > > &second) const;
 
     Prover build_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
+    Prover build_type_prover(const ParsingTree2< SymTok, LabTok > &pt, const std::unordered_map< LabTok, Prover > &var_provers = {}) const;
 
     std::vector< SymTok > read_sentence(const std::string &in) const;
     SentencePrinter print_sentence(const std::vector< SymTok > &sent, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
@@ -150,8 +151,8 @@ public:
     void compute_ders_by_label();
     const std::unordered_map< LabTok, std::pair< SymTok, std::vector< SymTok > > > &get_ders_by_label();
     const std::unordered_map< LabTok, std::pair< SymTok, std::vector< SymTok > > > &get_ders_by_label() const;
-    std::vector< SymTok > reconstruct_sentence(const ParsingTree< SymTok, LabTok > &pt);
-    std::vector< SymTok > reconstruct_sentence(const ParsingTree< SymTok, LabTok > &pt) const;
+    std::vector< SymTok > reconstruct_sentence(const ParsingTree< SymTok, LabTok > &pt, SymTok first_sym = {});
+    std::vector< SymTok > reconstruct_sentence(const ParsingTree< SymTok, LabTok > &pt, SymTok first_sym = {}) const;
     void compute_vars();
     const std::vector< std::set< LabTok > > &get_sentence_vars();
     const std::vector< std::set< LabTok > > &get_sentence_vars() const;
@@ -205,6 +206,8 @@ public:
     SymTok get_turnstile() const;
     SymTok get_turnstile_alias() const;
 
+    void dump_proof_exception(const ProofException &e, std::ostream &out) const;
+
     // Library interface
     SymTok get_symbol(std::string s) const;
     LabTok get_label(std::string s) const;
@@ -228,6 +231,7 @@ private:
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true) const;
 
     bool type_proving_helper(const std::vector< SymTok > &type_sent, ProofEngine &engine, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
+    bool type_proving_helper(const ParsingTree2< SymTok, LabTok > &pt, ProofEngine &engine, const std::unordered_map< LabTok, Prover > &var_provers = {}) const;
 
     const ExtendedLibrary &lib;
     SymTok turnstile;

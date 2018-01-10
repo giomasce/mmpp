@@ -103,7 +103,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
 #ifdef PROOF_VERBOSE_DEBUG
         cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
 #endif
-        ProofError err = { stack_hyp_sent, hyp_sent, subst_map };
+        ProofError err = { label, stack_hyp_sent, hyp_sent, subst_map };
         auto stack_it = stack_hyp_sent.begin();
         for (auto it = hyp_sent.begin(); it != hyp_sent.end(); it++) {
             const SymTok &tok = *it;

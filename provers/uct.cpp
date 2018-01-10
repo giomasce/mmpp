@@ -73,6 +73,11 @@ const std::set<std::pair<LabTok, LabTok> > &UCTProver::get_antidists() const
     return this->antidists;
 }
 
+void UCTProver::replay_proof(ProofEngine &engine) const
+{
+    this->root->replay_proof(engine);
+}
+
 UCTProver::UCTProver(LibraryToolbox &tb, const ParsingTree2<SymTok, LabTok> &thesis, const std::vector<ParsingTree2<SymTok, LabTok> > &hypotheses) : tb(tb), thesis(thesis), hypotheses(hypotheses), rand(2204) {
     //cuct_log() << this << ": Constructing UCTProver" << endl;
 }
@@ -93,6 +98,9 @@ void UCTProver::compute_useful_assertions()
     for (const auto &ass : this->tb.get_library().get_assertions()) {
         if (ass.is_valid() && this->tb.get_sentence(ass.get_thesis()).at(0) == this->tb.get_turnstile()) {
             if (ass.is_theorem() && ass.has_proof() && ass.get_proof_executor(this->tb)->is_trivial()) {
+                continue;
+            }
+            if (ass.is_usage_disc()) {
                 continue;
             }
             /*if (ass.get_thesis() == target_label || !ass.get_thesis()) {
@@ -205,6 +213,19 @@ const ParsingTree2<SymTok, LabTok> &SentenceNode::get_sentence()
     return this->sentence;
 }
 
+void SentenceNode::replay_proof(ProofEngine &engine) const
+{
+    assert(this->exhausted);
+    assert(this->children.size() <= 1);
+    if (this->children.size() == 1) {
+        this->children[0]->replay_proof(engine);
+    } else {
+        const auto &tb = this->uct.lock()->get_toolbox();
+        auto sent = tb.reconstruct_sentence(pt2_to_pt(this->sentence), tb.get_turnstile());
+        engine.process_sentence(sent);
+    }
+}
+
 SentenceNode::SentenceNode(std::weak_ptr<UCTProver> uct, std::weak_ptr<StepNode> parent, const ParsingTree2<SymTok, LabTok> &sentence) : uct(uct), parent(parent), sentence(sentence) {
     //cuct_log() << this << ": Constructing SentenceNode" << endl;
     this->ass_it = this->uct.lock()->get_useful_asses().cbegin();
@@ -285,6 +306,27 @@ uint32_t StepNode::get_visit_num() const {
 std::weak_ptr<SentenceNode> StepNode::get_parent() const
 {
     return this->parent;
+}
+
+void StepNode::replay_proof(ProofEngine &engine) const
+{
+    assert(this->exhausted);
+    const auto &tb = this->uct.lock()->get_toolbox();
+
+    // Push the substitution map (floating hypotheses)
+    const Assertion &ass = tb.get_assertion(this->label);
+    auto full_subst_map = update2(this->const_subst_map, this->unconst_subst_map, true);
+    for (const auto hyp_lab : ass.get_float_hyps()) {
+        tb.build_type_prover(full_subst_map.at(hyp_lab))(engine);
+    }
+
+    // Push the essential hypotheses
+    for (const auto &child : this->children) {
+        child->replay_proof(engine);
+    }
+
+    // Invoke this step's theorem
+    engine.process_label(this->label);
 }
 
 StepNode::StepNode(std::weak_ptr<UCTProver> uct, std::weak_ptr<SentenceNode> parent, LabTok label, const SubstMap2<SymTok, LabTok> &const_subst_map) : uct(uct), parent(parent), label(label), const_subst_map(const_subst_map) {
@@ -435,11 +477,29 @@ int uct_main(int argc, char *argv[]) {
         cuct_log() << endl;
         if (res == PROVED) {
             cuct_log() << "We found a proof after " << i+1 << " iterations, exiting!" << endl;
+            cout << "Found proof:";
+            ProofEngine engine(tb, false);
+            try {
+                prover->replay_proof(engine);
+            } catch (ProofException &pe) {
+                cout << "Failed with exception:" << endl;
+                tb.dump_proof_exception(pe, cout);
+            }
+            const auto &labels = engine.get_proof_labels();
+            for (const auto label : labels) {
+                if (label != 0) {
+                    cout << " " << tb.resolve_label(label);
+                } else {
+                    cout << " *";
+                }
+            }
+            cout << endl;
             break;
         } else if (res == DEAD) {
             cuct_log() << "The node is dead, the search has failed..." << endl;
+            break;
         }
-        while (cin.get() != '\n') {}
+        //while (cin.get() != '\n') {}
     }
 
     return 0;

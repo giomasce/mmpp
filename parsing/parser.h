@@ -328,8 +328,13 @@ void reconstruct_sentence_internal(const ParsingTree< SymType, LabType > &parsin
 template< typename SymType, typename LabType >
 std::vector< SymType > reconstruct_sentence(const ParsingTree< SymType, LabType > &parsing_tree,
                                             const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations,
-                                            const std::unordered_map< LabType, std::pair< SymType, std::vector< SymType > > > &ders_by_lab) {
+                                            const std::unordered_map< LabType, std::pair< SymType, std::vector< SymType > > > &ders_by_lab,
+                                            SymType first_sym = {}) {
     std::vector< SymType > res;
+    SymType default_first_sym{};
+    if (first_sym != default_first_sym) {
+        res.push_back(first_sym);
+    }
     reconstruct_sentence_internal(parsing_tree, derivations, ders_by_lab, std::back_inserter(res));
     return res;
 }

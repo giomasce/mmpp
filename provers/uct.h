@@ -11,6 +11,7 @@
 #include "parsing/unif.h"
 #include "mm/library.h"
 #include "mm/toolbox.h"
+#include "mm/engine.h"
 
 class SentenceNode;
 class StepNode;
@@ -30,6 +31,7 @@ public:
     LibraryToolbox &get_toolbox() const;
     std::ranlux48 &get_rand();
     const std::set<std::pair<LabTok, LabTok> > &get_antidists() const;
+    void replay_proof(ProofEngine &engine) const;
 
 protected:
     UCTProver(LibraryToolbox &tb, const ParsingTree2< SymTok, LabTok > &thesis, const std::vector< ParsingTree2< SymTok, LabTok > > &hypotheses);
@@ -55,6 +57,7 @@ public:
     uint32_t get_visit_num();
     std::weak_ptr< StepNode > get_parent();
     const ParsingTree2< SymTok, LabTok > &get_sentence();
+    void replay_proof(ProofEngine &engine) const;
 
 protected:
     SentenceNode(std::weak_ptr< UCTProver > uct, std::weak_ptr< StepNode > parent, const ParsingTree2< SymTok, LabTok > &sentence);
@@ -81,6 +84,7 @@ public:
     float get_value() const;
     uint32_t get_visit_num() const;
     std::weak_ptr< SentenceNode > get_parent() const;
+    void replay_proof(ProofEngine &engine) const;
 
 protected:
     StepNode(std::weak_ptr< UCTProver > uct, std::weak_ptr< SentenceNode > parent, LabTok label, const SubstMap2< SymTok, LabTok > &const_subst_map);

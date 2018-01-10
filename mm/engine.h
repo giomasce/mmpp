@@ -11,6 +11,7 @@
 typedef VectorMap< SymTok, Sentence > SubstMapType;
 
 struct ProofError {
+    LabTok label;
     Sentence on_stack;
     Sentence to_subst;
     SubstMapType subst_map;

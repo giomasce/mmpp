@@ -207,6 +207,16 @@ bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, P
     }
 }
 
+bool LibraryToolbox::type_proving_helper(const ParsingTree2<SymTok, LabTok> &pt, ProofEngine &engine, const std::unordered_map<LabTok, Prover> &var_provers) const
+{
+    std::unordered_map<LabTok, const Prover*> var_provers_ptr;
+    for (const auto &x : var_provers) {
+        var_provers_ptr.insert(make_pair(x.first, &x.second));
+    }
+    type_proving_helper_unwind_tree(pt2_to_pt(pt), engine, *this, var_provers_ptr);
+    return true;
+}
+
 const std::unordered_map<SymTok, std::vector<std::pair<LabTok, std::vector<SymTok> > > > &LibraryToolbox::get_derivations()
 {
     if (!this->derivations_computed) {
@@ -245,14 +255,14 @@ const std::unordered_map<LabTok, std::pair<SymTok, std::vector<SymTok> > > &Libr
     return this->ders_by_label;
 }
 
-std::vector<SymTok> LibraryToolbox::reconstruct_sentence(const ParsingTree<SymTok, LabTok> &pt)
+std::vector<SymTok> LibraryToolbox::reconstruct_sentence(const ParsingTree<SymTok, LabTok> &pt, SymTok first_sym)
 {
-    return ::reconstruct_sentence(pt, this->get_derivations(), this->get_ders_by_label());
+    return ::reconstruct_sentence(pt, this->get_derivations(), this->get_ders_by_label(), first_sym);
 }
 
-std::vector<SymTok> LibraryToolbox::reconstruct_sentence(const ParsingTree<SymTok, LabTok> &pt) const
+std::vector<SymTok> LibraryToolbox::reconstruct_sentence(const ParsingTree<SymTok, LabTok> &pt, SymTok first_sym) const
 {
-    return ::reconstruct_sentence(pt, this->get_derivations(), this->get_ders_by_label());
+    return ::reconstruct_sentence(pt, this->get_derivations(), this->get_ders_by_label(), first_sym);
 }
 
 void LibraryToolbox::compute_vars()
@@ -386,14 +396,7 @@ bool LibraryToolbox::proving_helper(const RegisteredProverInstanceData &inst_dat
     try {
         engine.process_label(ass.get_thesis());
     } catch (const ProofException &e) {
-        cerr << "Applying " << inst_data.label_str << " the proof executor signalled an error..." << endl;
-        cerr << "The reason was " << e.get_reason() << endl;
-        cerr << "On stack there was: " << this->print_sentence(e.get_error().on_stack) << endl;
-        cerr << "Has to match with: " << this->print_sentence(e.get_error().to_subst) << endl;
-        cerr << "Substitution map:" << endl;
-        for (const auto &it : e.get_error().subst_map) {
-            cerr << this->resolve_symbol(it.first) << ": " << this->print_sentence(it.second) << endl;
-        }
+        this->dump_proof_exception(e, cerr);
         engine.rollback();
         return false;
     }
@@ -929,6 +932,18 @@ SymTok LibraryToolbox::get_turnstile_alias() const
     return this->turnstile_alias;
 }
 
+void LibraryToolbox::dump_proof_exception(const ProofException &e, ostream &out) const
+{
+    out << "Applying " << this->resolve_label(e.get_error().label) << " the proof executor signalled an error..." << endl;
+    out << "The reason was " << e.get_reason() << endl;
+    out << "On stack there was: " << this->print_sentence(e.get_error().on_stack) << endl;
+    out << "Has to match with: " << this->print_sentence(e.get_error().to_subst) << endl;
+    out << "Substitution map:" << endl;
+    for (const auto &it : e.get_error().subst_map) {
+        out << this->resolve_symbol(it.first) << ": " << this->print_sentence(it.second) << endl;
+    }
+}
+
 std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first, bool up_to_hyps_perms) const
 {
     auto ret2 = this->unify_assertion_uncached2(hypotheses, thesis, just_first, up_to_hyps_perms);
@@ -1378,6 +1393,13 @@ Prover LibraryToolbox::build_type_prover(const std::vector<SymTok> &type_sent, c
 {
     return [=](ProofEngine &engine){
         return this->type_proving_helper(type_sent, engine, var_provers);
+    };
+}
+
+Prover LibraryToolbox::build_type_prover(const ParsingTree2<SymTok, LabTok> &pt, const std::unordered_map<LabTok, Prover> &var_provers) const
+{
+    return [=](ProofEngine &engine){
+        return this->type_proving_helper(pt, engine, var_provers);
     };
 }
 
