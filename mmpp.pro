@@ -1,9 +1,9 @@
 
 # Enable or disable various components
-USE_QT = true
-USE_MICROHTTPD = true
-USE_BEAST = true
-USE_Z3 = true
+USE_QT = false
+USE_MICROHTTPD = false
+USE_BEAST = false
+USE_Z3 = false
 
 TEMPLATE = app
 CONFIG += link_pkgconfig
