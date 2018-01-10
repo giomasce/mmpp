@@ -219,4 +219,10 @@ It random_choose(It first, It last, URBG &&g) {
     return first + std::uniform_int_distribution< size_t >(0, (last - first) - 1)(g);
 }
 
+template< typename T >
+typename std::vector< T >::reference enlarge_and_set(std::vector< T > &v, typename std::vector< T >::size_type pos) {
+    v.resize(std::max(v.size(), pos+1));
+    return v[pos];
+}
+
 extern std::ostream cnull;

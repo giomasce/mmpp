@@ -47,9 +47,9 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
         } else if (sp.style == SentencePrinter::STYLE_LATEX) {
             os << sp.tb.get_addendum().get_latexdef(tok);
         } else if (sp.style == SentencePrinter::STYLE_ANSI_COLORS_SET_MM) {
-            LabTok label = sp.tb.get_types_by_var().at(tok);
+            LabTok label = sp.tb.get_var_sym_to_lab().at(tok);
             if (sp.tb.get_standard_is_var()(label)) {
-                string type_str = sp.tb.resolve_symbol(sp.tb.get_sentence(label).at(0));
+                string type_str = sp.tb.resolve_symbol(sp.tb.get_var_sym_to_type_sym().at(tok));
                 if (type_str == "set") {
                     os << "\033[91m";
                 } else if (type_str == "class") {
@@ -89,7 +89,7 @@ ostream &operator<<(ostream &os, const ProofPrinter &sp)
 
 LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, bool compute, shared_ptr<ToolboxCache> cache) :
     lib(lib), turnstile(lib.get_symbol(turnstile)), turnstile_alias(lib.get_parsing_addendum().get_syntax().at(this->turnstile)),
-    types(lib.get_final_stack_frame().types), types_set(lib.get_final_stack_frame().types_set),
+    type_labels(lib.get_final_stack_frame().types), type_labels_set(lib.get_final_stack_frame().types_set),
     cache(cache), temp_syms(lib.get_symbols_num()+1), temp_labs(lib.get_labels_num()+1)
 {
     assert(this->lib.is_immutable());
@@ -200,7 +200,7 @@ bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, P
     } else {
         std::unordered_map<LabTok, const Prover*> lab_var_provers;
         for (const auto &x : var_provers) {
-            lab_var_provers.insert(make_pair(this->get_types_by_var().at(x.first), &x.second));
+            lab_var_provers.insert(make_pair(this->get_var_sym_to_lab().at(x.first), &x.second));
         }
         type_proving_helper_unwind_tree(tree, engine, *this, lab_var_provers);
         return true;
@@ -416,10 +416,14 @@ void LibraryToolbox::create_temp_var(SymTok type_sym)
     this->temp_types[lab] = { type_sym, sym };
 
     // Add the variables to a few structures
-    this->types.push_back(lab);
-    this->types_set.insert(lab);
+    this->type_labels.push_back(lab);
+    this->type_labels_set.insert(lab);
     this->derivations.at(type_sym).push_back(pair< LabTok, vector< SymTok > >(lab, { sym }));
     this->ders_by_label[lab] = pair< SymTok, vector< SymTok > >(type_sym, { sym });
+    enlarge_and_set(this->var_lab_to_sym, lab) = sym;
+    enlarge_and_set(this->var_sym_to_lab, sym) = lab;
+    enlarge_and_set(this->var_lab_to_type_sym, lab) = type_sym;
+    enlarge_and_set(this->var_sym_to_type_sym, sym) = type_sym;
 
     // And insert it to the free list
     this->free_temp_vars[type_sym].push_back(make_pair(lab, sym));
@@ -939,7 +943,7 @@ void LibraryToolbox::compute_everything()
 {
     //cout << "Computing everything" << endl;
     //auto t = tic();
-    this->compute_types_by_var();
+    this->compute_type_correspondance();
     this->compute_is_var_by_type();
     this->compute_assertions_by_type();
     this->compute_derivations();
@@ -951,45 +955,98 @@ void LibraryToolbox::compute_everything()
     //toc(t, 1);
 }
 
-const std::vector<LabTok> &LibraryToolbox::get_types() const
+const std::vector<LabTok> &LibraryToolbox::get_type_labels() const
 {
-    return this->types;
+    return this->type_labels;
 }
 
-const std::set<LabTok> &LibraryToolbox::get_types_set() const
+const std::set<LabTok> &LibraryToolbox::get_type_labels_set() const
 {
-    return this->types_set;
+    return this->type_labels_set;
 }
 
-void LibraryToolbox::compute_types_by_var()
+void LibraryToolbox::compute_type_correspondance()
 {
-    for (auto &type : this->get_types()) {
-        const SymTok var = this->get_sentence(type).at(1);
-        this->types_by_var.resize(max(this->types_by_var.size(), (size_t) var+1));
-        this->types_by_var[var] = type;
+    for (auto &var_lab : this->get_type_labels()) {
+        const auto &sent = this->get_sentence(var_lab);
+        assert(sent.size() == 2);
+        const SymTok type_sym = sent[0];
+        const SymTok var_sym = sent[1];
+        enlarge_and_set(this->var_lab_to_sym, var_lab) = var_sym;
+        enlarge_and_set(this->var_sym_to_lab, var_sym) = var_lab;
+        enlarge_and_set(this->var_lab_to_type_sym, var_lab) = type_sym;
+        enlarge_and_set(this->var_sym_to_type_sym, var_sym) = type_sym;
     }
-    this->types_by_var_computed = true;
+    this->type_corrsepondance_computed = true;
 }
 
-const std::vector<LabTok> &LibraryToolbox::get_types_by_var()
+const std::vector<LabTok> &LibraryToolbox::get_var_sym_to_lab()
 {
-    if (!this->types_by_var_computed) {
-        this->compute_types_by_var();
+    if (!this->type_corrsepondance_computed) {
+        this->compute_type_correspondance();
     }
-    return this->types_by_var;
+    return this->var_sym_to_lab;
 }
 
-const std::vector<LabTok> &LibraryToolbox::get_types_by_var() const
+const std::vector<LabTok> &LibraryToolbox::get_var_sym_to_lab() const
 {
-    if (!this->types_by_var_computed) {
+    if (!this->type_corrsepondance_computed) {
         throw MMPPException("computation required on const object");
     }
-    return this->types_by_var;
+    return this->var_sym_to_lab;
+}
+
+const std::vector<SymTok> &LibraryToolbox::get_var_lab_to_sym()
+{
+    if (!this->type_corrsepondance_computed) {
+        this->compute_type_correspondance();
+    }
+    return this->var_lab_to_sym;
+}
+
+const std::vector<SymTok> &LibraryToolbox::get_var_lab_to_sym() const
+{
+    if (!this->type_corrsepondance_computed) {
+        throw MMPPException("computation required on const object");
+    }
+    return this->var_lab_to_sym;
+}
+
+const std::vector<SymTok> &LibraryToolbox::get_var_sym_to_type_sym()
+{
+    if (!this->type_corrsepondance_computed) {
+        this->compute_type_correspondance();
+    }
+    return this->var_sym_to_type_sym;
+}
+
+const std::vector<SymTok> &LibraryToolbox::get_var_sym_to_type_sym() const
+{
+    if (!this->type_corrsepondance_computed) {
+        throw MMPPException("computation required on const object");
+    }
+    return this->var_sym_to_type_sym;
+}
+
+const std::vector<SymTok> &LibraryToolbox::get_var_lab_to_type_sym()
+{
+    if (!this->type_corrsepondance_computed) {
+        this->compute_type_correspondance();
+    }
+    return this->var_lab_to_type_sym;
+}
+
+const std::vector<SymTok> &LibraryToolbox::get_var_lab_to_type_sym() const
+{
+    if (!this->type_corrsepondance_computed) {
+        throw MMPPException("computation required on const object");
+    }
+    return this->var_lab_to_type_sym;
 }
 
 void LibraryToolbox::compute_is_var_by_type()
 {
-    const auto &types_set = this->get_types_set();
+    const auto &types_set = this->get_type_labels_set();
     this->is_var_by_type.resize(this->lib.get_labels_num());
     for (LabTok label = 1; label < this->lib.get_labels_num(); label++) {
         this->is_var_by_type[label] = types_set.find(label) != types_set.end() && !this->is_constant(this->get_sentence(label).at(1));
@@ -1050,7 +1107,7 @@ void LibraryToolbox::compute_derivations()
     // and for each $a statement without essential hypotheses such that no variable
     // appears more than once and without distinct variables constraints and that does not
     // begin with the turnstile
-    for (auto &type_lab : this->get_types()) {
+    for (auto &type_lab : this->get_type_labels()) {
         auto &type_sent = this->get_sentence(type_lab);
         this->derivations[type_sent.at(0)].push_back(make_pair(type_lab, vector<SymTok>({type_sent.at(1)})));
     }
@@ -1094,7 +1151,7 @@ void LibraryToolbox::compute_derivations()
         for (size_t i = 1; i < sent.size(); i++) {
             const auto &tok = sent[i];
             // Variables are replaced with their types, which act as variables of the context-free grammar
-            sent2.push_back(this->is_constant(tok) ? tok : this->get_sentence(this->get_types_by_var().at(tok)).at(0));
+            sent2.push_back(this->is_constant(tok) ? tok : this->get_sentence(this->get_var_sym_to_lab().at(tok)).at(0));
         }
         this->derivations[sent.at(0)].push_back(make_pair(ass.get_thesis(), sent2));
     }

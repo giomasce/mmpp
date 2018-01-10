@@ -127,11 +127,17 @@ public:
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
 
     void compute_everything();
-    const std::vector< LabTok > &get_types() const;
-    const std::set< LabTok > &get_types_set() const;
-    void compute_types_by_var();
-    const std::vector< LabTok > &get_types_by_var();
-    const std::vector< LabTok > &get_types_by_var() const;
+    const std::vector< LabTok > &get_type_labels() const;
+    const std::set< LabTok > &get_type_labels_set() const;
+    void compute_type_correspondance();
+    const std::vector< LabTok > &get_var_sym_to_lab();
+    const std::vector< LabTok > &get_var_sym_to_lab() const;
+    const std::vector< SymTok > &get_var_lab_to_sym();
+    const std::vector< SymTok > &get_var_lab_to_sym() const;
+    const std::vector< SymTok > &get_var_sym_to_type_sym();
+    const std::vector< SymTok > &get_var_sym_to_type_sym() const;
+    const std::vector< SymTok > &get_var_lab_to_type_sym();
+    const std::vector< SymTok > &get_var_lab_to_type_sym() const;
     void compute_is_var_by_type();
     const std::vector< bool > &get_is_var_by_type();
     const std::vector< bool > &get_is_var_by_type() const;
@@ -177,9 +183,9 @@ public:
     void compute_registered_provers();
 
     Prover build_prover(const std::vector< Sentence > &templ_hyps,
-                         const Sentence &templ_thesis,
-                         const std::unordered_map< std::string, Prover > &types_provers,
-                         const std::vector< Prover > &hyps_provers) const;
+                        const Sentence &templ_thesis,
+                        const std::unordered_map< std::string, Prover > &types_provers,
+                        const std::vector< Prover > &hyps_provers) const;
 
     bool proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers, ProofEngine &engine) const;
 
@@ -227,11 +233,14 @@ private:
     SymTok turnstile;
     SymTok turnstile_alias;
 
-    std::vector< LabTok > types;
-    std::set< LabTok > types_set;
+    std::vector< LabTok > type_labels;
+    std::set< LabTok > type_labels_set;
 
-    std::vector< LabTok > types_by_var;
-    bool types_by_var_computed = false;
+    std::vector< LabTok > var_sym_to_lab;
+    std::vector< SymTok > var_lab_to_sym;
+    std::vector< SymTok > var_sym_to_type_sym;
+    std::vector< SymTok > var_lab_to_type_sym;
+    bool type_corrsepondance_computed = false;
 
     std::vector< bool > is_var_by_type;
     bool is_var_by_type_computed = false;
