@@ -2,9 +2,9 @@
 
 #include <QMainWindow>
 
-#include "library.h"
-#include "toolbox.h"
-#include "reader.h"
+#include "mm/library.h"
+#include "mm/toolbox.h"
+#include "mm/reader.h"
 #include "htmldelegate.h"
 
 struct Context {

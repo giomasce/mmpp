@@ -4,7 +4,7 @@
 #include <z3++.h>
 
 #include "wff.h"
-#include "reader.h"
+#include "mm/reader.h"
 #include "utils/utils.h"
 #include "platform.h"
 #include "test/test_env.h"

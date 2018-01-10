@@ -2,8 +2,8 @@
 
 #include <QAbstractItemModel>
 
-#include "proof.h"
-#include "toolbox.h"
+#include "mm/proof.h"
+#include "mm/toolbox.h"
 
 class ProofTreeModelItem {
     friend class ProofTreeModel;
