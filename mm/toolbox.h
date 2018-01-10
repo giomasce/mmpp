@@ -270,7 +270,7 @@ private:
     }
 
     std::vector< RegisteredProverInstanceData > instance_registered_provers;
-    void compute_registered_prover(size_t i);
+    void compute_registered_prover(size_t i, bool exception_on_failure = true);
 
     std::shared_ptr< ToolboxCache > cache;
 

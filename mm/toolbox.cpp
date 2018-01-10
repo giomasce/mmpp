@@ -1126,7 +1126,7 @@ Prover LibraryToolbox::build_registered_prover(const RegisteredProver &prover, c
 void LibraryToolbox::compute_registered_provers()
 {
     for (size_t index = 0; index < LibraryToolbox::registered_provers().size(); index++) {
-        this->compute_registered_prover(index);
+        this->compute_registered_prover(index, false);
     }
     //cerr << "Computed " << LibraryToolbox::registered_provers().size() << " registered provers" << endl;
 }
@@ -1284,7 +1284,7 @@ const std::vector<std::vector<std::pair<ParsingTreeMultiIterator< SymTok, LabTok
     return this->parsed_iters;
 }
 
-void LibraryToolbox::compute_registered_prover(size_t index)
+void LibraryToolbox::compute_registered_prover(size_t index, bool exception_on_failure)
 {
     this->instance_registered_provers.resize(LibraryToolbox::registered_provers().size());
     const RegisteredProverData &data = LibraryToolbox::registered_provers()[index];
@@ -1298,7 +1298,13 @@ void LibraryToolbox::compute_registered_prover(size_t index)
         std::vector<SymTok> templ_thesis_sent = this->read_sentence(data.templ_thesis);
 
         auto unification = this->unify_assertion(templ_hyps_sent, templ_thesis_sent, true);
-        assert_or_throw< MMPPException >(!unification.empty(), "Could not find the template assertion");
+        if (unification.empty()) {
+            if (exception_on_failure) {
+                throw MMPPException("Could not find the template assertion");
+            } else {
+                return;
+            }
+        }
         inst_data.label = get<0>(*unification.begin());
         inst_data.label_str = this->resolve_label(inst_data.label);
         const Assertion &ass = this->get_assertion(inst_data.label);
