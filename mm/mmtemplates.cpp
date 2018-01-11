@@ -2,7 +2,7 @@
 #include "mmtemplates.h"
 
 template class std::vector< SymTok >;
-template class std::vector< LabTok >;
+//template class std::vector< LabTok >;
 
 template class LRParser< SymTok, LabTok >;
 template class LRParsingHelper< SymTok, LabTok >;

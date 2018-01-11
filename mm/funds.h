@@ -8,9 +8,9 @@
 
 #include "utils/utils.h"
 
-typedef uint16_t SymTok;
+typedef uint32_t SymTok;
 typedef uint32_t LabTok;
-typedef uint16_t CodeTok;
+typedef uint32_t CodeTok;
 
 static_assert(std::is_integral< SymTok >::value);
 static_assert(std::is_unsigned< SymTok >::value);
