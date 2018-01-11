@@ -9,7 +9,7 @@
 #include <memory>
 #include <iostream>
 
-//#define LOG_UCT
+#define LOG_UCT
 
 using namespace std;
 
@@ -56,10 +56,6 @@ const std::vector<ParsingTree2<SymTok, LabTok> > &UCTProver::get_hypotheses() co
     return this->hypotheses;
 }
 
-const std::vector<const Assertion *> &UCTProver::get_useful_asses() const {
-    return this->useful_asses;
-}
-
 LibraryToolbox &UCTProver::get_toolbox() const {
     return this->tb;
 }
@@ -97,27 +93,61 @@ void UCTProver::init()
     this->root = SentenceNode::create(this->weak_from_this(), weak_ptr< StepNode >(), thesis);
 }
 
+bool UCTProver::is_assertion_useful(const Assertion &ass) const
+{
+    if (!ass.is_valid()) {
+        return false;
+    }
+    if (this->tb.get_sentence(ass.get_thesis()).at(0) != this->tb.get_turnstile()) {
+        return false;
+    }
+    if (ass.is_theorem() && ass.has_proof() && ass.get_proof_executor(this->tb)->is_trivial()) {
+        return false;
+    }
+    if (ass.is_usage_disc()) {
+        return false;
+    }
+    /*if (ass.get_thesis() == target_label || !ass.get_thesis()) {
+        return false;
+    }*/
+    return true;
+}
+
+const std::unordered_map<LabTok, std::vector<LabTok> > &UCTProver::get_root_useful_asses() const
+{
+    return this->root_useful_asses;
+}
+
+const std::unordered_map<LabTok, std::vector<LabTok> > &UCTProver::get_imp_con_useful_asses() const
+{
+    return this->imp_con_useful_asses;
+}
+
+static std::unordered_map< LabTok, std::vector< LabTok > > filter_assertions(const UCTProver &uct, const std::unordered_map< LabTok, std::vector< LabTok > > &asses) {
+    const LibraryToolbox &tb = uct.get_toolbox();
+    std::unordered_map< LabTok, std::vector< LabTok > > ret;
+    for (const auto &p : asses) {
+        LabTok label = p.first;
+        auto &new_list = ret[label];
+        const auto &orig_list = p.second;
+        for (const LabTok lab2 : orig_list) {
+            if (uct.is_assertion_useful(tb.get_assertion(lab2))) {
+                new_list.push_back(lab2);
+            }
+        }
+        sort(new_list.begin(), new_list.end(), [&tb](const auto &x, const auto &y) {
+            const auto &assx = tb.get_assertion(x);
+            const auto &assy = tb.get_assertion(y);
+            return assx.get_ess_hyps().size() < assy.get_ess_hyps().size() || (assx.get_ess_hyps().size() == assy.get_ess_hyps().size() && tb.get_sentence(x).size() > tb.get_sentence(y).size());
+        });
+    }
+    return ret;
+}
+
 void UCTProver::compute_useful_assertions()
 {
-    for (const auto &ass : this->tb.get_library().get_assertions()) {
-        if (ass.is_valid() && this->tb.get_sentence(ass.get_thesis()).at(0) == this->tb.get_turnstile()) {
-            if (ass.is_theorem() && ass.has_proof() && ass.get_proof_executor(this->tb)->is_trivial()) {
-                continue;
-            }
-            if (ass.is_usage_disc()) {
-                continue;
-            }
-            /*if (ass.get_thesis() == target_label || !ass.get_thesis()) {
-                continue;
-            }*/
-            this->useful_asses.push_back(&ass);
-        }
-    }
-    // We sort assertions in order to favour theorems with few hypotheses and more specific thesis
-    sort(this->useful_asses.begin(), this->useful_asses.end(), [this](const auto &x, const auto &y) {
-        return x->get_ess_hyps().size() < y->get_ess_hyps().size() || (x->get_ess_hyps().size() == y->get_ess_hyps().size() && this->tb.get_sentence(x->get_thesis()).size() > this->tb.get_sentence(y->get_thesis()).size());
-    });
-    //cout << "There are " << this->useful_asses.size() << " useful assertions" << endl;
+    this->root_useful_asses = filter_assertions(*this, tb.get_root_labels_to_theses());
+    this->imp_con_useful_asses = filter_assertions(*this, tb.get_imp_con_labels_to_theses());
 }
 
 VisitResult SentenceNode::visit()
@@ -158,8 +188,8 @@ VisitResult SentenceNode::visit()
     //visit_log() << "Later visit" << endl;
 #endif
     if (this->children.size() == 0 || this->children.size() < (this->visit_num / 3)) {
-        while (this->ass_it != strong_uct->get_useful_asses().cend()) {
-            const Assertion &ass = **this->ass_it;
+        while (this->ass_it != this->ass_range.end()) {
+            const Assertion &ass = tb.get_assertion(*this->ass_it);
             this->ass_it++;
             ParsingTree2< SymTok, LabTok > thesis = tb.get_parsed_sents2()[ass.get_thesis()];
             UnilateralUnificator< SymTok, LabTok > unif(tb.get_standard_is_var());
@@ -250,11 +280,52 @@ void SentenceNode::replay_proof(ProofEngine &engine) const
     }
 }
 
-SentenceNode::SentenceNode(std::weak_ptr<UCTProver> uct, std::weak_ptr<StepNode> parent, const ParsingTree2<SymTok, LabTok> &sentence) : uct(uct), parent(parent), sentence(sentence) {
+const vector< LabTok > empty_lab_vector;
+const LabTok zero_label = {};
+
+SentenceNode::SentenceNode(std::weak_ptr<UCTProver> uct, std::weak_ptr<StepNode> parent, const ParsingTree2<SymTok, LabTok> &sentence) : uct(uct), parent(parent), sentence(sentence), ass_range(boost::range::join(empty_lab_vector, empty_lab_vector)) {
 #ifdef LOG_UCT
     //visit_log() << this << ": Constructing SentenceNode" << endl;
 #endif
-    this->ass_it = this->uct.lock()->get_useful_asses().cbegin();
+    auto strong_uct = this->uct.lock();
+    auto &root_usefuls = strong_uct->get_root_useful_asses();
+    auto &con_usefuls = strong_uct->get_imp_con_useful_asses();
+    const auto &tb = strong_uct->get_toolbox();
+    LabTok root_label = sentence.get_root().get_node().label;
+    if (tb.get_standard_is_var()(root_label)) {
+        root_label = zero_label;
+    }
+    const vector< LabTok > *f1 = &empty_lab_vector;
+    const vector< LabTok > *f2 = &empty_lab_vector;
+    if (root_label != tb.get_imp_label()) {
+        auto it = root_usefuls.find(root_label);
+        if (it != root_usefuls.end()) {
+            f1 = &it->second;
+        }
+        if (root_label != zero_label) {
+            it = root_usefuls.find(zero_label);
+            if (it != root_usefuls.end()) {
+                f2 = &it->second;
+            }
+        }
+    } else {
+        LabTok con_label = sentence.get_root().get_first_child().get_next_siebling().get_node().label;
+        if (tb.get_standard_is_var()(con_label)) {
+            con_label = zero_label;
+        }
+        auto it = con_usefuls.find(con_label);
+        if (it != con_usefuls.end()) {
+            f1 = &it->second;
+        }
+        if (con_label != zero_label) {
+            it = con_usefuls.find(zero_label);
+            if (it != con_usefuls.end()) {
+                f2 = &it->second;
+            }
+        }
+    }
+    this->ass_range = boost::range::join(*f1, *f2);
+    this->ass_it = this->ass_range.begin();
 }
 
 SentenceNode::~SentenceNode()

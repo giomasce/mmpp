@@ -160,6 +160,13 @@ public:
     const std::vector< std::set< LabTok > > &get_assertion_unconst_vars() const;
     const std::vector< std::set< LabTok > > &get_assertion_const_vars();
     const std::vector< std::set< LabTok > > &get_assertion_const_vars() const;
+    void compute_labels_to_theses();
+    const std::unordered_map< LabTok, std::vector< LabTok > > &get_root_labels_to_theses();
+    const std::unordered_map< LabTok, std::vector< LabTok > > &get_root_labels_to_theses() const;
+    const std::unordered_map< LabTok, std::vector< LabTok > > &get_imp_ant_labels_to_theses();
+    const std::unordered_map< LabTok, std::vector< LabTok > > &get_imp_ant_labels_to_theses() const;
+    const std::unordered_map< LabTok, std::vector< LabTok > > &get_imp_con_labels_to_theses();
+    const std::unordered_map< LabTok, std::vector< LabTok > > &get_imp_con_labels_to_theses() const;
 
     void compute_parser_initialization();
     const LRParser< SymTok, LabTok > &get_parser();
@@ -205,6 +212,7 @@ public:
     const std::function<bool (SymTok)> &get_standard_is_var_sym() const;
     SymTok get_turnstile() const;
     SymTok get_turnstile_alias() const;
+    LabTok get_imp_label() const;
 
     void dump_proof_exception(const ProofException &e, std::ostream &out) const;
 
@@ -269,6 +277,11 @@ private:
     std::vector< ParsingTree2< SymTok, LabTok > > parsed_sents2;
     std::vector< std::vector< std::pair< ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode< SymTok, LabTok > > > > parsed_iters;
     bool sentences_parsing_computed = false;
+
+    std::unordered_map< LabTok, std::vector< LabTok > > root_labels_to_theses;
+    std::unordered_map< LabTok, std::vector< LabTok > > imp_ant_labels_to_theses;
+    std::unordered_map< LabTok, std::vector< LabTok > > imp_con_labels_to_theses;
+    bool labels_to_theses_computed = false;
 
     bool vars_computed = false;
     std::vector< std::set< LabTok > > sentence_vars;

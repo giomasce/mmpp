@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <random>
 
+#include <boost/range/join.hpp>
+
 #include "utils/utils.h"
 #include "parsing/parser.h"
 #include "parsing/unif.h"
@@ -27,11 +29,13 @@ class UCTProver : public enable_create< UCTProver > {
 public:
     VisitResult visit();
     const std::vector< ParsingTree2< SymTok, LabTok > > &get_hypotheses() const;
-    const std::vector< const Assertion* > &get_useful_asses() const;
     LibraryToolbox &get_toolbox() const;
     std::ranlux48 &get_rand();
     const std::set<std::pair<LabTok, LabTok> > &get_antidists() const;
     void replay_proof(ProofEngine &engine) const;
+    bool is_assertion_useful(const Assertion &ass) const;
+    const std::unordered_map< LabTok, std::vector< LabTok > > &get_root_useful_asses() const;
+    const std::unordered_map< LabTok, std::vector< LabTok > > &get_imp_con_useful_asses() const;
 
 protected:
     UCTProver(LibraryToolbox &tb, const ParsingTree2< SymTok, LabTok > &thesis, const std::vector< ParsingTree2< SymTok, LabTok > > &hypotheses);
@@ -46,7 +50,8 @@ private:
     LibraryToolbox &tb;
     ParsingTree2< SymTok, LabTok > thesis;
     std::vector< ParsingTree2< SymTok, LabTok > > hypotheses;
-    std::vector< const Assertion* > useful_asses;
+    std::unordered_map< LabTok, std::vector< LabTok > > root_useful_asses;
+    std::unordered_map< LabTok, std::vector< LabTok > > imp_con_useful_asses;
     std::ranlux48 rand;
 };
 
@@ -75,7 +80,8 @@ private:
     bool exhausted = false;
     float value = 0.0;
     float total_children_value = 0.0;
-    std::vector< const Assertion* >::const_iterator ass_it;
+    boost::range::joined_range< const std::vector< LabTok >, const std::vector< LabTok > > ass_range;
+    boost::range::joined_range< const std::vector< LabTok >, const std::vector< LabTok > >::iterator ass_it;
 };
 
 class StepNode : public enable_create< StepNode > {

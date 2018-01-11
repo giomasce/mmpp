@@ -341,6 +341,86 @@ const std::vector< std::set< LabTok > > &LibraryToolbox::get_assertion_const_var
     return this->assertion_const_vars;
 }
 
+void LibraryToolbox::compute_labels_to_theses()
+{
+    LabTok imp_label = this->get_imp_label();
+    bool imp_found = imp_label != 0;
+    for (const Assertion &ass : this->lib.get_assertions()) {
+        if (!ass.is_valid() || this->get_sentence(ass.get_thesis()).at(0) != this->get_turnstile()) {
+            continue;
+        }
+        const auto &pt = this->get_parsed_sents().at(ass.get_thesis());
+        LabTok root_label = pt.label;
+        if (this->get_standard_is_var()(root_label)) {
+            root_label = {};
+        }
+        // FIXME The following is set.mm specific
+        if (imp_found && root_label == imp_label) {
+            LabTok ant_label = pt.children.at(0).label;
+            LabTok con_label = pt.children.at(1).label;
+            if (this->get_standard_is_var()(ant_label)) {
+                ant_label = 0;
+            }
+            if (this->get_standard_is_var()(con_label)) {
+                con_label = 0;
+            }
+            this->imp_ant_labels_to_theses[ant_label].push_back(ass.get_thesis());
+            this->imp_con_labels_to_theses[con_label].push_back(ass.get_thesis());
+        } else {
+            this->root_labels_to_theses[root_label].push_back(ass.get_thesis());
+        }
+    }
+    this->labels_to_theses_computed = true;
+}
+
+const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_root_labels_to_theses()
+{
+    if (!this->labels_to_theses_computed) {
+        this->compute_vars();
+    }
+    return this->root_labels_to_theses;
+}
+
+const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_root_labels_to_theses() const
+{
+    if (!this->labels_to_theses_computed) {
+        throw MMPPException("computation required on a const object");
+    }
+    return this->root_labels_to_theses;
+}
+
+const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_imp_ant_labels_to_theses()
+{
+    if (!this->labels_to_theses_computed) {
+        this->compute_vars();
+    }
+    return this->imp_ant_labels_to_theses;
+}
+
+const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_imp_ant_labels_to_theses() const
+{
+    if (!this->labels_to_theses_computed) {
+        throw MMPPException("computation required on a const object");
+    }
+    return this->imp_ant_labels_to_theses;
+}
+
+const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_imp_con_labels_to_theses()
+{
+    if (!this->labels_to_theses_computed) {
+        this->compute_vars();
+    }
+    return this->imp_con_labels_to_theses;
+}
+
+const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_imp_con_labels_to_theses() const
+{
+    if (!this->labels_to_theses_computed) {
+        throw MMPPException("computation required on a const object");
+    }
+    return this->imp_con_labels_to_theses;
+}
+
 Prover LibraryToolbox::build_prover(const std::vector<Sentence> &templ_hyps, const Sentence &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers) const
 {
     auto res = this->unify_assertion(templ_hyps, templ_thesis, true);
@@ -932,6 +1012,11 @@ SymTok LibraryToolbox::get_turnstile_alias() const
     return this->turnstile_alias;
 }
 
+LabTok LibraryToolbox::get_imp_label() const
+{
+    return this->get_label("wi");
+}
+
 void LibraryToolbox::dump_proof_exception(const ProofException &e, ostream &out) const
 {
     out << "Applying " << this->resolve_label(e.get_error().label) << " the proof executor signalled an error..." << endl;
@@ -965,6 +1050,7 @@ void LibraryToolbox::compute_everything()
     this->compute_ders_by_label();
     this->compute_parser_initialization();
     this->compute_sentences_parsing();
+    this->compute_labels_to_theses();
     this->compute_registered_provers();
     this->compute_vars();
     //toc(t, 1);
