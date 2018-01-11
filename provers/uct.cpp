@@ -9,7 +9,7 @@
 #include <memory>
 #include <iostream>
 
-#define LOG_UCT
+//#define LOG_UCT
 
 using namespace std;
 
@@ -590,6 +590,14 @@ int uct_main(int argc, char *argv[]) {
 
     auto problems = parse_tests(tb);
     auto problem = problems.at(pb_idx);
+
+    cout << "Trying to prove thesis: " << tb.print_sentence(problem.first, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+    cout << "with hypotheses:" << endl;
+    for (const auto &hyp : problem.second) {
+        cout << " * " << tb.print_sentence(hyp, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+    }
+    cout << endl;
+
     auto prover = UCTProver::create(tb, problem.first, problem.second);
     for (int i = 0; ; i++) {
         VisitResult res = prover->visit();
@@ -597,10 +605,7 @@ int uct_main(int argc, char *argv[]) {
         visit_log() << endl;
 #endif
         if (res == PROVED) {
-#ifdef LOG_UCT
-            visit_log() << "We found a proof after " << i+1 << " iterations, exiting!" << endl;
-#endif
-            cout << "Found proof:";
+            cout << "Found proof after " << i+1 << " visits:";
             ProofEngine engine(tb, false);
             try {
                     prover->replay_proof(engine);
@@ -625,10 +630,10 @@ int uct_main(int argc, char *argv[]) {
             break;
         }
         //while (cin.get() != '\n') {}
-        /*if (i == 100) {
+        if (i == 50000) {
             break;
-        }*/
-        if (i % 100 == 0) {
+        }
+        if (i % 2500 == 0) {
             cout << i << " visits done" << endl;
         }
     }

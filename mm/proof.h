@@ -110,5 +110,5 @@ class CompressedDecoder {
 public:
     CodeTok push_char(char c);
 private:
-    int current = 0;
+    uint32_t current = 0;
 };

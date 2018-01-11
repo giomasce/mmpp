@@ -391,7 +391,7 @@ CodeTok CompressedDecoder::push_char(char c)
         assert_or_throw< MMPPParsingError >(this->current == 0, "Invalid character Z in compressed proof");
         return 0;
     } else if ('A' <= c && c <= 'T') {
-        int res = this->current * 20 + (c - 'A' + 1);
+        uint32_t res = this->current * 20 + (c - 'A' + 1);
         this->current = 0;
         assert(res != INVALID_CODE);
         return res;

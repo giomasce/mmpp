@@ -17,9 +17,10 @@ TestEnvironmentInner::TestEnvironmentInner(const boost::filesystem::path &filena
     tpb.finished();
     this->lib = new LibraryImpl(p.get_library());
     shared_ptr< ToolboxCache > cache = make_shared< FileToolboxCache >(cache_filename);
+    cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl;
     this->tb = new LibraryToolbox(*this->lib, "|-", true, cache);
-    cout << this->lib->get_symbols_num() << " symbols and " << this->lib->get_labels_num() << " labels" << endl;
-    cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_rss()) << endl << endl;
+    cout << "Memory usage after creating the toolbox: " << size_to_string(platform_get_current_rss()) << endl;
+    cout << "The library has " << this->lib->get_symbols_num() << " symbols and " << this->lib->get_labels_num() << " labels" << endl << endl;
 }
 
 TestEnvironmentInner::~TestEnvironmentInner() {

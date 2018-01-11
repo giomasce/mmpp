@@ -13,6 +13,7 @@ CONFIG += link_pkgconfig
 #PRECOMPILED_HEADER += pch.h
 
 PKGCONFIG += libcrypto++
+QMAKE_LIBS += -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread
 
 # Compile with gcc
 QMAKE_CC = gcc
@@ -20,19 +21,24 @@ QMAKE_CXX = g++
 QMAKE_LINK = g++
 QMAKE_CFLAGS += -std=c11 -g
 QMAKE_CXXFLAGS += -std=c++17 -g -ftemplate-backtrace-limit=0
-QMAKE_LIBS += -ldl -export-dynamic -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread
-
-# Compile to native instruction set
-#QMAKE_CFLAGS += -march=native
-#QMAKE_CXXFLAGS += -march=native
+QMAKE_LIBS += -ldl -export-dynamic -rdynamic
 
 # Compile with clang
 #QMAKE_CC = clang-5.0
 #QMAKE_CXX = clang++-5.0
 #QMAKE_LINK = clang++-5.0
-#QMAKE_CFLAGS += -std=c11 -march=native -g
-#QMAKE_CXXFLAGS += -std=c++17 -march=native -g -ftemplate-backtrace-limit=0
-#QMAKE_LIBS += -ldl -rdynamic -lboost_system -lboost_filesystem -lboost_serialization -lpthread
+#QMAKE_CFLAGS += -std=c11 -g
+#QMAKE_CXXFLAGS += -std=c++17 -g -ftemplate-backtrace-limit=0
+#QMAKE_LIBS += -ldl -rdynamic
+
+# Trick from https://stackoverflow.com/a/21335126/807307
+#QMAKE_CXXFLAGS_RELEASE -= -O1
+#QMAKE_CXXFLAGS_RELEASE -= -O2
+#QMAKE_CXXFLAGS_RELEASE *= -O3
+
+# Compile to native instruction set
+#QMAKE_CFLAGS += -march=native
+#QMAKE_CXXFLAGS += -march=native
 
 # Disable these to have faster code; enable them to spot bugs
 #QMAKE_CXXFLAGS += -DLR_PARSER_SELF_TEST
