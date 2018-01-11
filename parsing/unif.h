@@ -387,49 +387,125 @@ std::pair< bool, SubstMap< SymType, LabType > > unify(const ParsingTree< SymType
 }
 
 template< typename SymType, typename LabType >
+[[deprecated]]
+bool unify_quick_process_tree(ParsingTreeIterator< SymType, LabType > pt1, ParsingTreeIterator< SymType, LabType > pt2,
+                              const std::function< bool(LabType) > &is_var, SubstMap2< SymType, LabType > &subst) {
+    const auto end1 = pt1.end();
+    const auto end2 = pt2.end();
+    while (true) {
+        if (pt1 == end1) {
+            return pt2 == end2;
+        }
+        if (pt2 == end2) {
+            return false;
+        }
+        const auto &n1 = pt1.get_node();
+        const auto &n2 = pt2.get_node();
+        if (is_var(n1.label)) {
+            assert(n1.descendants_num == 0);
+            auto cur_subst = subst.find(n1.label);
+            auto match = pt2.get_view();
+            if (cur_subst == subst.end()) {
+                match.refresh();
+                subst[n1.label] = match;
+            } else {
+                if (cur_subst->second != match) {
+                    return false;
+                }
+            }
+            ++pt1;
+            ++pt2;
+        } else {
+            if (n1.label != n2.label) {
+                return false;
+            }
+            pt1.advance();
+            pt2.advance();
+        }
+    }
+}
+
+template< typename SymType, typename LabType >
 class UnilateralUnificator {
 public:
-    UnilateralUnificator(const std::function< bool(LabType) > &is_var) : is_var(is_var) {
+    UnilateralUnificator(const std::function< bool(LabType) > &is_var) : failed(false), is_var(&is_var) {
+#ifdef UNIFICATOR_SELF_TEST
         this->pt1.label = {};
         this->pt2.label = {};
         this->pt1.type = {};
         this->pt2.type = {};
+#endif
     }
 
-    void add_parsing_trees(const ParsingTree< SymType, LabType > &new_pt1, const ParsingTree< SymType, LabType > &new_pt2) {
-        this->pt1.children.push_back(new_pt1);
-        this->pt2.children.push_back(new_pt2);
+    void add_parsing_trees(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2) {
+        this->add_parsing_trees2(pt_to_pt2(pt1), pt_to_pt2(pt2));
+    }
+
+    bool has_failed() {
+        return this->failed;
     }
 
     bool is_unifiable() {
-        return true;
+        return !this->failed;
     }
 
     std::pair< bool, SubstMap< SymType, LabType > > unify() {
-        bool ret1;
-        SubstMap< SymType, LabType > ret2;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-        std::tie(ret1, ret2) = ::unify(this->pt1, this->pt2, this->is_var);
-#pragma GCC diagnostic pop
-        return std::make_pair(ret1, ret2);
-    }
-
-    void add_parsing_trees2(const ParsingTree2< SymType, LabType > &new_pt1, const ParsingTree2< SymType, LabType > &new_pt2) {
-        this->add_parsing_trees(pt2_to_pt(new_pt1), pt2_to_pt(new_pt2));
+        auto ret = this->unify2();
+        return std::make_pair(ret.first, subst2_to_subst(ret.second));
     }
 
     std::pair< bool, SubstMap2< SymType, LabType > > unify2() {
-        bool ret1;
-        SubstMap< SymType, LabType > ret2;
-        std::tie(ret1, ret2) = this->unify();
-        return std::make_pair(ret1, subst_to_subst2(ret2));
+#ifdef UNIFICATOR_SELF_TEST
+        bool res2;
+        SubstMap< SymType, LabType > subst2;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+        std::tie(res2, subst2) = ::unify(this->pt1, this->pt2, *this->is_var);
+#pragma GCC diagnostic pop
+        assert(res2 == !this->failed);
+        if (!this->failed) {
+            auto s1 = substitute(this->pt1, *this->is_var, subst2_to_subst(this->subst));
+            auto &s2 = this->pt2;
+            auto s3 = substitute(this->pt1, *this->is_var, subst2);
+            auto &s4 = this->pt2;
+            assert(s1 == s2);
+            assert(s3 == s4);
+        }
+#endif
+        return std::make_pair(!this->failed, this->subst);
+    }
+
+    void add_parsing_trees2(const ParsingTree2< SymType, LabType > &pt1, const ParsingTree2< SymType, LabType > &pt2) {
+#ifdef UNIFICATOR_SELF_TEST
+        this->pt1.children.push_back(pt2_to_pt(pt1));
+        this->pt2.children.push_back(pt2_to_pt(pt2));
+#endif
+        if (this->failed) {
+            return;
+        }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+        bool res = unify_quick_process_tree(pt1.get_root(), pt2.get_root(), *this->is_var, this->subst);
+#pragma GCC diagnostic pop
+        if (!res) {
+            this->fail();
+        }
     }
 
 private:
-    const std::function< bool(LabType) > &is_var;
+    void fail() {
+        this->failed = true;
+        this->subst.clear();
+    }
+
+    bool failed;
+    const std::function< bool(LabType) > *is_var;
+    SubstMap2< SymType, LabType > subst;
+
+#ifdef UNIFICATOR_SELF_TEST
     ParsingTree< SymType, LabType > pt1;
     ParsingTree< SymType, LabType > pt2;
+#endif
 };
 
 // Slow bilateral unification

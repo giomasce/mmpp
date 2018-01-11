@@ -9,7 +9,7 @@
 #include <memory>
 #include <iostream>
 
-#define LOG_UCT
+//#define LOG_UCT
 
 using namespace std;
 

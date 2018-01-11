@@ -14,6 +14,10 @@ struct ParsingTree {
         // The type does not participate in equality check, since it is assumed that it is a function of the label
         return this->label == other.label && this->children == other.children;
     }
+
+    bool operator!=(const ParsingTree< SymType, LabType > &other) const {
+        return !this->operator==(other);
+    }
 };
 
 template< typename SymType, typename LabType >
@@ -31,6 +35,10 @@ struct ParsingTreeNode {
 
     bool operator==(const ParsingTreeNode< SymType, LabType > &other) const {
         return this->label == other.label && this->descendants_num == other.descendants_num;
+    }
+
+    bool operator!=(const ParsingTreeNode< SymType, LabType > &other) const {
+        return !this->operator==(other);
     }
 };
 
@@ -76,6 +84,10 @@ struct ParsingTreeIterator {
     ParsingTreeIterator< SymType, LabType > &operator++() {
         this->item_num += 1 + this->get_node().descendants_num;
         return *this;
+    }
+
+    void advance(ssize_t count = 1) {
+        this->item_num += count;
     }
 
     /*ParsingTreeIterator< SymType, LabType > operator++(int) {
@@ -196,6 +208,10 @@ struct ParsingTree2 {
 
     bool operator==(const ParsingTree2< SymType, LabType > &other) const {
         return this->get_nodes_len() == other.get_nodes_len() && std::equal(this->get_nodes(), this->get_nodes() + this->get_nodes_len(), other.get_nodes());
+    }
+
+    bool operator!=(const ParsingTree2< SymType, LabType > &other) const {
+        return !this->operator==(other);
     }
 };
 
