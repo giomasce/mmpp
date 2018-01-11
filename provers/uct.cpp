@@ -13,42 +13,42 @@
 
 using namespace std;
 
-#ifdef LOG_UCT
-constexpr auto &cuct = cout;
-#else
-constexpr auto &cuct = cnull;
-#endif
-
 struct VisitContext {
     static uint32_t depth;
     string action;
     VisitContext(string action) : action(action) {
+#ifdef LOG_UCT
         this->log() << "Beginning " << this->action << endl;
+#endif
         this->depth++;
     }
     ~VisitContext() {
         this->depth--;
+#ifdef LOG_UCT
         //this->log() << "Finishing " << this->action << endl;
+#endif
     }
     static void insert_space() {
         for (uint32_t i = 0; i < VisitContext::depth; i++) {
-            cuct << "  ";
+            cout << "  ";
         }
     }
     static ostream &log() {
         VisitContext::insert_space();
-        return cuct;
+        return cout;
     }
 };
 uint32_t VisitContext::depth = 0;
 
-static ostream &cuct_log() {
+static inline ostream &visit_log() {
     return VisitContext::log();
 }
 
 VisitResult UCTProver::visit()
 {
+#ifdef LOG_UCT
     auto vc = VisitContext("global visit");
+#endif
     return this->root->visit();
 }
 
@@ -79,12 +79,16 @@ void UCTProver::replay_proof(ProofEngine &engine) const
 }
 
 UCTProver::UCTProver(LibraryToolbox &tb, const ParsingTree2<SymTok, LabTok> &thesis, const std::vector<ParsingTree2<SymTok, LabTok> > &hypotheses) : tb(tb), thesis(thesis), hypotheses(hypotheses), rand(2204) {
-    //cuct_log() << this << ": Constructing UCTProver" << endl;
+#ifdef LOG_UCT
+    //visit_log() << this << ": Constructing UCTProver" << endl;
+#endif
 }
 
 UCTProver::~UCTProver()
 {
-    //cuct_log() << this << ": Destructing UCTProver" << endl;
+#ifdef LOG_UCT
+    //visit_log() << this << ": Destructing UCTProver" << endl;
+#endif
 }
 
 void UCTProver::init()
@@ -123,26 +127,36 @@ VisitResult SentenceNode::visit()
     auto &tb = strong_uct->get_toolbox();
     assert(!this->exhausted);
     this->visit_num++;
+#ifdef LOG_UCT
     auto vc = VisitContext("visiting SentenceNode for " + tb.print_sentence(this->sentence, SentencePrinter::STYLE_ANSI_COLORS_SET_MM).to_string());
+#endif
 
     // First visit: do some trivial checks, but do not create new children
     if (this->visit_num == 1) {
-        cuct_log() << "First visit" << endl;
+#ifdef LOG_UCT
+        visit_log() << "First visit" << endl;
+#endif
         auto &hyps = strong_uct->get_hypotheses();
         auto it = find(hyps.begin(), hyps.end(), this->sentence);
         if (it != hyps.end()) {
-            cuct_log() << "Proved with an hypothesis!" << endl;
+#ifdef LOG_UCT
+            visit_log() << "Proved with an hypothesis!" << endl;
+#endif
             this->exhausted = true;
             return PROVED;
         } else {
-            //cuct_log() << "Not proved with an hypothesis" << endl;
+#ifdef LOG_UCT
+            //visit_log() << "Not proved with an hypothesis" << endl;
+#endif
             return CONTINUE;
         }
     }
 
     // We might try to create a new child, if there are too few
     bool created_child = false;
-    //cuct_log() << "Later visit" << endl;
+#ifdef LOG_UCT
+    //visit_log() << "Later visit" << endl;
+#endif
     if (this->children.size() == 0 || this->children.size() < (this->visit_num / 3)) {
         while (this->ass_it != strong_uct->get_useful_asses().cend()) {
             const Assertion &ass = **this->ass_it;
@@ -156,7 +170,9 @@ VisitResult SentenceNode::visit()
             if (!unifiable || !this->check_subst_map(subst_map, ass)) {
                 continue;
             } else {
-                cuct_log() << "Creating a new StepNode child" << endl;
+#ifdef LOG_UCT
+                visit_log() << "Creating a new StepNode child" << endl;
+#endif
                 this->children.push_back(StepNode::create(this->uct, this->weak_from_this(), ass.get_thesis(), subst_map));
                 created_child = true;
                 break;
@@ -167,11 +183,15 @@ VisitResult SentenceNode::visit()
     // And now let us visit a child; if we just created one, we visit that one
     std::vector< std::shared_ptr< StepNode > >::iterator child_it;
     if (created_child) {
-        //cuct_log() << "Visiting the child we just created" << endl;
+#ifdef LOG_UCT
+        //visit_log() << "Visiting the child we just created" << endl;
+#endif
         child_it = this->children.end() - 1;
     } else {
         // FIXME Implement a better policy
-        //cuct_log() << "Visiting a random child" << endl;
+#ifdef LOG_UCT
+        //visit_log() << "Visiting a random child" << endl;
+#endif
         child_it = random_choose(this->children.begin(), this->children.end(), rand);
     }
     auto child = *child_it;
@@ -181,12 +201,16 @@ VisitResult SentenceNode::visit()
 
     if (res == DEAD) {
         // If the node is dead, we remove it from the children
-        cuct_log() << "Child is dead, removing it" << endl;
+#ifdef LOG_UCT
+        visit_log() << "Child is dead, removing it" << endl;
+#endif
         this->value -= child->get_value();
         this->children.erase(child_it);
     } else if (res == PROVED) {
         // If the visit succeeded, bingo! This node is proved, and we can evict all children exept for the one we just visited
-        cuct_log() << "We found a proof!" << endl;
+#ifdef LOG_UCT
+        visit_log() << "We found a proof!" << endl;
+#endif
         this->exhausted = true;
         this->children = { child };
         return PROVED;
@@ -227,13 +251,17 @@ void SentenceNode::replay_proof(ProofEngine &engine) const
 }
 
 SentenceNode::SentenceNode(std::weak_ptr<UCTProver> uct, std::weak_ptr<StepNode> parent, const ParsingTree2<SymTok, LabTok> &sentence) : uct(uct), parent(parent), sentence(sentence) {
-    //cuct_log() << this << ": Constructing SentenceNode" << endl;
+#ifdef LOG_UCT
+    //visit_log() << this << ": Constructing SentenceNode" << endl;
+#endif
     this->ass_it = this->uct.lock()->get_useful_asses().cbegin();
 }
 
 SentenceNode::~SentenceNode()
 {
-    //cuct_log() << this << ": Destructing SentenceNode" << endl;
+#ifdef LOG_UCT
+    //visit_log() << this << ": Destructing SentenceNode" << endl;
+#endif
 }
 
 bool SentenceNode::check_subst_map(const SubstMap2<SymTok, LabTok> &subst_map, const Assertion &ass)
@@ -275,16 +303,24 @@ VisitResult StepNode::visit()
     auto &rand = strong_uct->get_rand();
     auto &tb = strong_uct->get_toolbox();
     assert(!this->exhausted);
+#ifdef LOG_UCT
     auto vc = VisitContext("visiting StepNode for label " + tb.resolve_label(this->label));
+#else
+    (void) tb;
+#endif
 
     // If we have no children this must be the first visit, because it is illegal to visit a node that has already been proved
     if (this->children.empty()) {
-        cuct_log() << "First visit, let us create children" << endl;
+#ifdef LOG_UCT
+        visit_log() << "First visit, let us create children" << endl;
+#endif
         return this->create_children();
     }
 
     // Then we visit a random child
-    //cuct_log() << "Later visit, let us visit a random child" << endl;
+#ifdef LOG_UCT
+    //visit_log() << "Later visit, let us visit a random child" << endl;
+#endif
     size_t i = random_choose(this->active_children.begin(), this->active_children.end(), rand) - this->active_children.begin();
     return this->visit_child(i);
 }
@@ -330,17 +366,23 @@ void StepNode::replay_proof(ProofEngine &engine) const
 }
 
 StepNode::StepNode(std::weak_ptr<UCTProver> uct, std::weak_ptr<SentenceNode> parent, LabTok label, const SubstMap2<SymTok, LabTok> &const_subst_map) : uct(uct), parent(parent), label(label), const_subst_map(const_subst_map) {
-    //cuct_log() << this << ": Constructing StepNode" << endl;
+#ifdef LOG_UCT
+    //visit_log() << this << ": Constructing StepNode" << endl;
+#endif
 }
 
 StepNode::~StepNode()
 {
-    //cuct_log() << this << ": Destructing StepNode" << endl;
+#ifdef LOG_UCT
+    //visit_log() << this << ": Destructing StepNode" << endl;
+#endif
 }
 
 VisitResult StepNode::create_child(const ParsingTree2<SymTok, LabTok> &sent)
 {
-    cuct_log() << "Spawning a child for " << this->uct.lock()->get_toolbox().print_sentence(sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+#ifdef LOG_UCT
+    visit_log() << "Spawning a child for " << this->uct.lock()->get_toolbox().print_sentence(sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+#endif
     // Check that we don't have the same sentence of an ancestor
     shared_ptr< SentenceNode > parent_sent = this->parent.lock();
     while (true) {
@@ -348,7 +390,9 @@ VisitResult StepNode::create_child(const ParsingTree2<SymTok, LabTok> &sent)
             break;
         }
         if (parent_sent->get_sentence() == sent) {
-            cuct_log() << "New child coincides with one ancestor, dying..." << endl;
+#ifdef LOG_UCT
+            visit_log() << "New child coincides with one ancestor, dying..." << endl;
+#endif
             return DEAD;
         }
         shared_ptr< StepNode > parent_step = parent_sent->get_parent().lock();
@@ -381,34 +425,38 @@ VisitResult StepNode::create_children()
         }
     }
     if (this->children.empty()) {
-        cuct_log() << "No children, so nothing to prove!" << endl;
+#ifdef LOG_UCT
+        visit_log() << "No children, so nothing to prove!" << endl;
+#endif
         this->exhausted = true;
         return PROVED;
     }
-    cuct_log() << "Visiting each child for the first time" << endl;
+#ifdef LOG_UCT
+    visit_log() << "Visiting each child for the first time" << endl;
+#endif
     this->active_children = this->children;
-    bool found_continue = false;
     for (size_t i = 0; i < this->children.size(); i++) {
         // Do the first visit backwards, so that if some child is immediately evicted because it is trivial there is no problem
         VisitResult res = this->visit_child(this->children.size() - i - 1);
-        if (res == DEAD) {
-            this->children.clear();
-            return DEAD;
-        } else if (res == CONTINUE) {
-            found_continue = true;
+        if (res == DEAD || res == PROVED) {
+            return res;
         }
     }
-    return found_continue ? CONTINUE : PROVED;
+    return CONTINUE;
 }
 
 VisitResult StepNode::visit_child(size_t i)
 {
     VisitResult res = this->active_children[i]->visit();
     if (res == PROVED) {
-        cuct_log() << "We found a proof for a child!" << endl;
+#ifdef LOG_UCT
+        visit_log() << "We found a proof for a child!" << endl;
+#endif
         this->active_children.erase(this->active_children.begin() + i);
         if (this->active_children.empty()) {
-            cuct_log() << "All children finally proved!" << endl;
+#ifdef LOG_UCT
+            visit_log() << "All children finally proved!" << endl;
+#endif
             this->exhausted = true;
             return PROVED;
         }
@@ -472,15 +520,19 @@ int uct_main(int argc, char *argv[]) {
     auto problems = parse_tests(tb);
     auto problem = problems.at(pb_idx);
     auto prover = UCTProver::create(tb, problem.first, problem.second);
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; ; i++) {
         VisitResult res = prover->visit();
-        cuct_log() << endl;
+#ifdef LOG_UCT
+        visit_log() << endl;
+#endif
         if (res == PROVED) {
-            cuct_log() << "We found a proof after " << i+1 << " iterations, exiting!" << endl;
+#ifdef LOG_UCT
+            visit_log() << "We found a proof after " << i+1 << " iterations, exiting!" << endl;
+#endif
             cout << "Found proof:";
             ProofEngine engine(tb, false);
             try {
-                prover->replay_proof(engine);
+                    prover->replay_proof(engine);
             } catch (ProofException &pe) {
                 cout << "Failed with exception:" << endl;
                 tb.dump_proof_exception(pe, cout);
@@ -496,10 +548,18 @@ int uct_main(int argc, char *argv[]) {
             cout << endl;
             break;
         } else if (res == DEAD) {
-            cuct_log() << "The node is dead, the search has failed..." << endl;
+#ifdef LOG_UCT
+            visit_log() << "The node is dead, the search has failed..." << endl;
+#endif
             break;
         }
         //while (cin.get() != '\n') {}
+        /*if (i == 100) {
+            break;
+        }*/
+        if (i % 100 == 0) {
+            cout << i << " visits done" << endl;
+        }
     }
 
     return 0;
