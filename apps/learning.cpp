@@ -11,19 +11,43 @@
 
 using namespace std;
 
-void print_trace(const ProofTree &pt, const Library &lib, const Assertion &ass) {
+void print_parsing_tree(const ParsingTree< SymTok, LabTok > &pt) {
+    bool first = true;
+    for (const auto &child : pt.children) {
+        if (!first) {
+            cout << " ";
+        }
+        print_parsing_tree(child);
+        first = false;
+    }
+    if (!first) {
+        cout << " ";
+    }
+    cout << pt.children.size() << " " << pt.label;
+}
+
+void print_trace(const ProofTree &pt, const LibraryToolbox &tb, const Assertion &ass) {
     size_t essentials_num = 0;
     for (const auto &child : pt.children) {
         if (child.essential) {
-            print_trace(child, lib, ass);
+            print_trace(child, tb, ass);
             essentials_num++;
         }
     }
     auto it = find(ass.get_ess_hyps().begin(), ass.get_ess_hyps().end(), pt.label);
+    auto parsing_tree = tb.parse_sentence(pt.sentence.begin()+1, pt.sentence.end(), tb.get_turnstile_alias());
     if (it == ass.get_ess_hyps().end()) {
-        cout << lib.resolve_label(pt.label) << " " << essentials_num << " ";
+        cout << "# " << essentials_num << " " << tb.resolve_label(pt.label) << " " << tb.print_sentence(pt.sentence, SentencePrinter::STYLE_PLAIN) << endl;
+        //cout << essentials_num << " " << pt.label << " " << tb.print_sentence(pt.sentence, SentencePrinter::STYLE_NUMBERS) << endl;
+        cout << essentials_num << " " << pt.label << " ";
+        print_parsing_tree(parsing_tree);
+        cout << endl;
     } else {
-        cout << "_hyp" << (it - ass.get_ess_hyps().begin()) << " 0 ";
+        cout << "# 0 _hyp" << (it - ass.get_ess_hyps().begin()) << " " << tb.print_sentence(pt.sentence, SentencePrinter::STYLE_PLAIN) << endl;
+        //cout << "0 0 " << tb.print_sentence(pt.sentence, SentencePrinter::STYLE_NUMBERS) << endl;
+        cout << "0 0 ";
+        print_parsing_tree(parsing_tree);
+        cout << endl;
     }
 }
 
@@ -34,13 +58,12 @@ int dissector_main(int argc, char *argv[]) {
     auto &data = get_set_mm();
     auto &tb = data.tb;
 
-    const Assertion &ass = tb.get_assertion(tb.get_label("fta"));
+    const Assertion &ass = tb.get_assertion(tb.get_label("ftalem7"));
     UncompressedProof unc_proof = ass.get_proof_executor(tb, false)->uncompress();
     auto pe = unc_proof.get_executor(tb, ass, true);
     pe->execute();
     const ProofTree &pt = pe->get_proof_tree();
     print_trace(pt, tb, ass);
-    cout << endl;
 
     return 0;
 }

@@ -31,6 +31,7 @@ Prover checked_prover(Prover prover, size_t hyp_num, Sentence thesis);
 struct SentencePrinter {
     enum Style {
         STYLE_PLAIN,
+        STYLE_NUMBERS,
         STYLE_HTML,
         STYLE_ALTHTML,
         STYLE_LATEX,

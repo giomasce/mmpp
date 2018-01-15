@@ -40,6 +40,8 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
         }
         if (sp.style == SentencePrinter::STYLE_PLAIN) {
             os << sp.tb.resolve_symbol(tok);
+        } else if (sp.style == SentencePrinter::STYLE_NUMBERS) {
+            os << tok;
         } else if (sp.style == SentencePrinter::STYLE_HTML) {
             os << sp.tb.get_addendum().get_htmldef(tok);
         } else if (sp.style == SentencePrinter::STYLE_ALTHTML) {
