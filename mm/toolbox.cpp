@@ -89,10 +89,12 @@ ostream &operator<<(ostream &os, const ProofPrinter &sp)
     return os;
 }
 
-LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, bool compute, shared_ptr<ToolboxCache> cache) :
-    lib(lib), turnstile(lib.get_symbol(turnstile)), turnstile_alias(lib.get_parsing_addendum().get_syntax().at(this->turnstile)),
+LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, shared_ptr<ToolboxCache> cache) :
+    cache(cache),
+    lib(lib),
+    turnstile(lib.get_symbol(turnstile)), turnstile_alias(lib.get_parsing_addendum().get_syntax().at(this->turnstile)),
     type_labels(lib.get_final_stack_frame().types), type_labels_set(lib.get_final_stack_frame().types_set),
-    cache(cache), temp_syms(lib.get_symbols_num()+1), temp_labs(lib.get_labels_num()+1)
+    temp_syms(lib.get_symbols_num()+1), temp_labs(lib.get_labels_num()+1)
 {
     assert(this->lib.is_immutable());
     this->standard_is_var = [this](LabTok x)->bool {
@@ -112,9 +114,7 @@ LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, boo
         }
         return !this->lib.is_constant(x);
     };
-    if (compute) {
-        this->compute_everything();
-    }
+    this->compute_everything();
 }
 
 LibraryToolbox::~LibraryToolbox()
@@ -122,36 +122,13 @@ LibraryToolbox::~LibraryToolbox()
     delete this->parser;
 }
 
+const ExtendedLibrary &LibraryToolbox::get_library() const {
+    return this->lib;
+}
+
 void LibraryToolbox::set_cache(std::shared_ptr<ToolboxCache> cache)
 {
     this->cache = cache;
-}
-
-std::vector<SymTok> LibraryToolbox::substitute(const std::vector<SymTok> &orig, const std::unordered_map<SymTok, std::vector<SymTok> > &subst_map) const
-{
-    vector< SymTok > ret;
-    for (auto it = orig.begin(); it != orig.end(); it++) {
-        const SymTok &tok = *it;
-        if (this->is_constant(tok)) {
-            ret.push_back(tok);
-        } else {
-            const vector< SymTok > &subst = subst_map.at(tok);
-            copy(subst.begin(), subst.end(), back_inserter(ret));
-        }
-    }
-    return ret;
-}
-
-// Computes second o first (map composition)
-std::unordered_map<SymTok, std::vector<SymTok> > LibraryToolbox::compose_subst(const std::unordered_map<SymTok, std::vector<SymTok> > &first, const std::unordered_map<SymTok, std::vector<SymTok> > &second) const
-{
-    throw "Buggy implementation, do not use";
-    std::unordered_map< SymTok, std::vector< SymTok > > ret;
-    for (auto &first_pair : first) {
-        auto res = ret.insert(make_pair(first_pair.first, this->substitute(first_pair.second, second)));
-        assert(res.second);
-    }
-    return ret;
 }
 
 static vector< size_t > invert_perm(const vector< size_t > &perm) {
@@ -219,50 +196,22 @@ bool LibraryToolbox::type_proving_helper(const ParsingTree2<SymTok, LabTok> &pt,
     return true;
 }
 
-const std::unordered_map<SymTok, std::vector<std::pair<LabTok, std::vector<SymTok> > > > &LibraryToolbox::get_derivations()
-{
-    if (!this->derivations_computed) {
-        this->compute_derivations();
-    }
-    return this->derivations;
-}
-
 const std::unordered_map<SymTok, std::vector<std::pair<LabTok, std::vector<SymTok> > > > &LibraryToolbox::get_derivations() const
 {
-    if (!this->derivations_computed) {
-        throw MMPPException("computation required on const object");
-    }
     return this->derivations;
 }
 
 void LibraryToolbox::compute_ders_by_label()
 {
     this->ders_by_label = compute_derivations_by_label(this->get_derivations());
-    this->ders_by_label_computed = true;
-}
-
-const std::unordered_map<LabTok, std::pair<SymTok, std::vector<SymTok> > > &LibraryToolbox::get_ders_by_label()
-{
-    if (!this->ders_by_label_computed) {
-        this->compute_ders_by_label();
-    }
-    return this->ders_by_label;
 }
 
 const std::unordered_map<LabTok, std::pair<SymTok, std::vector<SymTok> > > &LibraryToolbox::get_ders_by_label() const
 {
-    if (!this->ders_by_label_computed) {
-        throw MMPPException("computation required on const object");
-    }
     return this->ders_by_label;
 }
 
-std::vector<SymTok> LibraryToolbox::reconstruct_sentence(const ParsingTree<SymTok, LabTok> &pt, SymTok first_sym)
-{
-    return ::reconstruct_sentence(pt, this->get_derivations(), this->get_ders_by_label(), first_sym);
-}
-
-std::vector<SymTok> LibraryToolbox::reconstruct_sentence(const ParsingTree<SymTok, LabTok> &pt, SymTok first_sym) const
+Sentence LibraryToolbox::reconstruct_sentence(const ParsingTree<SymTok, LabTok> &pt, SymTok first_sym) const
 {
     return ::reconstruct_sentence(pt, this->get_derivations(), this->get_ders_by_label(), first_sym);
 }
@@ -292,54 +241,20 @@ void LibraryToolbox::compute_vars()
         auto &unconst_vars = this->assertion_unconst_vars.emplace_back();
         set_difference(hyps_vars.begin(), hyps_vars.end(), thesis_vars.begin(), thesis_vars.end(), inserter(unconst_vars, unconst_vars.begin()));
     }
-    this->vars_computed = true;
-}
-
-const std::vector< std::set< LabTok > > &LibraryToolbox::get_sentence_vars()
-{
-    if (!this->vars_computed) {
-        this->compute_vars();
-    }
-    return this->sentence_vars;
 }
 
 const std::vector< std::set< LabTok > > &LibraryToolbox::get_sentence_vars() const
 {
-    if (!this->vars_computed) {
-        throw MMPPException("computation required on a const object");
-    }
     return this->sentence_vars;
-}
-
-const std::vector< std::set< LabTok > > &LibraryToolbox::get_assertion_unconst_vars()
-{
-    if (!this->vars_computed) {
-        this->compute_vars();
-    }
-    return this->assertion_unconst_vars;
 }
 
 const std::vector< std::set< LabTok > > &LibraryToolbox::get_assertion_unconst_vars() const
 {
-    if (!this->vars_computed) {
-        throw MMPPException("computation required on a const object");
-    }
     return this->assertion_unconst_vars;
-}
-
-const std::vector< std::set< LabTok > > &LibraryToolbox::get_assertion_const_vars()
-{
-    if (!this->vars_computed) {
-        this->compute_vars();
-    }
-    return this->assertion_const_vars;
 }
 
 const std::vector< std::set< LabTok > > &LibraryToolbox::get_assertion_const_vars() const
 {
-    if (!this->vars_computed) {
-        throw MMPPException("computation required on a const object");
-    }
     return this->assertion_const_vars;
 }
 
@@ -372,54 +287,20 @@ void LibraryToolbox::compute_labels_to_theses()
             this->root_labels_to_theses[root_label].push_back(ass.get_thesis());
         }
     }
-    this->labels_to_theses_computed = true;
-}
-
-const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_root_labels_to_theses()
-{
-    if (!this->labels_to_theses_computed) {
-        this->compute_vars();
-    }
-    return this->root_labels_to_theses;
 }
 
 const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_root_labels_to_theses() const
 {
-    if (!this->labels_to_theses_computed) {
-        throw MMPPException("computation required on a const object");
-    }
     return this->root_labels_to_theses;
-}
-
-const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_imp_ant_labels_to_theses()
-{
-    if (!this->labels_to_theses_computed) {
-        this->compute_vars();
-    }
-    return this->imp_ant_labels_to_theses;
 }
 
 const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_imp_ant_labels_to_theses() const
 {
-    if (!this->labels_to_theses_computed) {
-        throw MMPPException("computation required on a const object");
-    }
     return this->imp_ant_labels_to_theses;
-}
-
-const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_imp_con_labels_to_theses()
-{
-    if (!this->labels_to_theses_computed) {
-        this->compute_vars();
-    }
-    return this->imp_con_labels_to_theses;
 }
 
 const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_imp_con_labels_to_theses() const
 {
-    if (!this->labels_to_theses_computed) {
-        throw MMPPException("computation required on a const object");
-    }
     return this->imp_con_labels_to_theses;
 }
 
@@ -456,7 +337,7 @@ bool LibraryToolbox::proving_helper(const RegisteredProverInstanceData &inst_dat
 
     // Compute floating hypotheses
     for (auto &hyp : ass.get_float_hyps()) {
-        bool res = this->type_proving_helper(this->substitute(this->get_sentence(hyp), inst_data.ass_map), engine, types_provers_sym);
+        bool res = this->type_proving_helper(substitute(this->get_sentence(hyp), inst_data.ass_map, this->get_standard_is_var_sym()), engine, types_provers_sym);
         if (!res) {
             cerr << "Applying " << inst_data.label_str << " a floating hypothesis failed..." << endl;
             engine.rollback();
@@ -1080,70 +961,25 @@ void LibraryToolbox::compute_type_correspondance()
         enlarge_and_set(this->var_lab_to_type_sym, var_lab) = type_sym;
         enlarge_and_set(this->var_sym_to_type_sym, var_sym) = type_sym;
     }
-    this->type_corrsepondance_computed = true;
-}
-
-const std::vector<LabTok> &LibraryToolbox::get_var_sym_to_lab()
-{
-    if (!this->type_corrsepondance_computed) {
-        this->compute_type_correspondance();
-    }
-    return this->var_sym_to_lab;
 }
 
 const std::vector<LabTok> &LibraryToolbox::get_var_sym_to_lab() const
 {
-    if (!this->type_corrsepondance_computed) {
-        throw MMPPException("computation required on const object");
-    }
     return this->var_sym_to_lab;
-}
-
-const std::vector<SymTok> &LibraryToolbox::get_var_lab_to_sym()
-{
-    if (!this->type_corrsepondance_computed) {
-        this->compute_type_correspondance();
-    }
-    return this->var_lab_to_sym;
 }
 
 const std::vector<SymTok> &LibraryToolbox::get_var_lab_to_sym() const
 {
-    if (!this->type_corrsepondance_computed) {
-        throw MMPPException("computation required on const object");
-    }
     return this->var_lab_to_sym;
-}
-
-const std::vector<SymTok> &LibraryToolbox::get_var_sym_to_type_sym()
-{
-    if (!this->type_corrsepondance_computed) {
-        this->compute_type_correspondance();
-    }
-    return this->var_sym_to_type_sym;
 }
 
 const std::vector<SymTok> &LibraryToolbox::get_var_sym_to_type_sym() const
 {
-    if (!this->type_corrsepondance_computed) {
-        throw MMPPException("computation required on const object");
-    }
     return this->var_sym_to_type_sym;
-}
-
-const std::vector<SymTok> &LibraryToolbox::get_var_lab_to_type_sym()
-{
-    if (!this->type_corrsepondance_computed) {
-        this->compute_type_correspondance();
-    }
-    return this->var_lab_to_type_sym;
 }
 
 const std::vector<SymTok> &LibraryToolbox::get_var_lab_to_type_sym() const
 {
-    if (!this->type_corrsepondance_computed) {
-        throw MMPPException("computation required on const object");
-    }
     return this->var_lab_to_type_sym;
 }
 
@@ -1154,22 +990,10 @@ void LibraryToolbox::compute_is_var_by_type()
     for (LabTok label = 1; label < this->lib.get_labels_num(); label++) {
         this->is_var_by_type[label] = types_set.find(label) != types_set.end() && !this->is_constant(this->get_sentence(label).at(1));
     }
-    this->is_var_by_type_computed = true;
-}
-
-const std::vector<bool> &LibraryToolbox::get_is_var_by_type()
-{
-    if (!this->is_var_by_type_computed) {
-        this->compute_is_var_by_type();
-    }
-    return this->is_var_by_type;
 }
 
 const std::vector<bool> &LibraryToolbox::get_is_var_by_type() const
 {
-    if (!this->is_var_by_type_computed) {
-        throw MMPPException("computation required on const object");
-    }
     return this->is_var_by_type;
 }
 
@@ -1185,22 +1009,10 @@ void LibraryToolbox::compute_assertions_by_type()
         const auto &label = ass.get_thesis();
         this->assertions_by_type[this->get_sentence(label).at(0)].push_back(label);
     }
-    this->assertions_by_type_computed = true;
-}
-
-const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryToolbox::get_assertions_by_type()
-{
-    if (!this->assertions_by_type_computed) {
-        this->compute_assertions_by_type();
-    }
-    return this->assertions_by_type;
 }
 
 const std::unordered_map<SymTok, std::vector<LabTok> > &LibraryToolbox::get_assertions_by_type() const
 {
-    if (!this->assertions_by_type_computed) {
-        throw MMPPException("computation required on const object");
-    }
     return this->assertions_by_type;
 }
 
@@ -1258,7 +1070,6 @@ void LibraryToolbox::compute_derivations()
         }
         this->derivations[sent.at(0)].push_back(make_pair(ass.get_thesis(), sent2));
     }
-    this->derivations_computed = true;
 }
 
 RegisteredProver LibraryToolbox::register_prover(const std::vector<string> &templ_hyps, const string &templ_thesis)
@@ -1319,22 +1130,10 @@ void LibraryToolbox::compute_parser_initialization()
     }
     // Drop the cache so that memory can be recovered
     this->cache = NULL;
-    this->parser_initialization_computed = true;
-}
-
-const LRParser<SymTok, LabTok> &LibraryToolbox::get_parser()
-{
-    if (!this->parser_initialization_computed) {
-        this->compute_parser_initialization();
-    }
-    return *this->parser;
 }
 
 const LRParser<SymTok, LabTok> &LibraryToolbox::get_parser() const
 {
-    if (!this->parser_initialization_computed) {
-        throw MMPPException("computation required on const object");
-    }
     return *this->parser;
 }
 
@@ -1349,21 +1148,6 @@ ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(const Sentence &sen
 }
 
 ParsingTree<SymTok, LabTok> LibraryToolbox::parse_sentence(const Sentence &sent) const
-{
-    return this->parse_sentence(sent.begin()+1, sent.end(), sent.at(0));
-}
-
-ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(typename Sentence::const_iterator sent_begin, typename Sentence::const_iterator sent_end, SymTok type)
-{
-    return this->get_parser().parse(sent_begin, sent_end, type);
-}
-
-ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(const Sentence &sent, SymTok type)
-{
-    return this->get_parser().parse(sent, type);
-}
-
-ParsingTree<SymTok, LabTok> LibraryToolbox::parse_sentence(const Sentence &sent)
 {
     return this->parse_sentence(sent.begin()+1, sent.end(), sent.at(0));
 }
@@ -1393,54 +1177,20 @@ void LibraryToolbox::compute_sentences_parsing()
             }
         }
     }
-    this->sentences_parsing_computed = true;
-}
-
-const std::vector<ParsingTree<SymTok, LabTok> > &LibraryToolbox::get_parsed_sents()
-{
-    if (!this->sentences_parsing_computed) {
-        this->compute_sentences_parsing();
-    }
-    return this->parsed_sents;
 }
 
 const std::vector<ParsingTree<SymTok, LabTok> > &LibraryToolbox::get_parsed_sents() const
 {
-    if (!this->sentences_parsing_computed) {
-        throw MMPPException("computation required on const object");
-    }
     return this->parsed_sents;
-}
-
-const std::vector<ParsingTree2<SymTok, LabTok> > &LibraryToolbox::get_parsed_sents2()
-{
-    if (!this->sentences_parsing_computed) {
-        this->compute_sentences_parsing();
-    }
-    return this->parsed_sents2;
 }
 
 const std::vector<ParsingTree2<SymTok, LabTok> > &LibraryToolbox::get_parsed_sents2() const
 {
-    if (!this->sentences_parsing_computed) {
-        throw MMPPException("computation required on const object");
-    }
     return this->parsed_sents2;
-}
-
-const std::vector<std::vector<std::pair<ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode<SymTok, LabTok> > > > &LibraryToolbox::get_parsed_iters()
-{
-    if (!this->sentences_parsing_computed) {
-        this->compute_sentences_parsing();
-    }
-    return this->parsed_iters;
 }
 
 const std::vector<std::vector<std::pair<ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode<SymTok, LabTok> > > > &LibraryToolbox::get_parsed_iters() const
 {
-    if (!this->sentences_parsing_computed) {
-        throw MMPPException("computation required on const object");
-    }
     return this->parsed_iters;
 }
 

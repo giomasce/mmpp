@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdint>
 #include <numeric>
+#include <unordered_map>
 
 #include "utils/utils.h"
 
@@ -29,6 +30,7 @@ class MMPPParsingError : public MMPPException {
 };
 
 void collect_variables(const Sentence &sent, const std::function< bool(SymTok) > &is_var, std::set< SymTok > &vars);
+Sentence substitute(const Sentence &orig, const std::unordered_map<SymTok, std::vector<SymTok> > &subst_map, const std::function<bool(SymTok)> &is_var);
 
 inline static bool is_ascii(char c) {
     return c > 32 && c < 127;

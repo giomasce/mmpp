@@ -178,7 +178,7 @@ void Workset::load_library(boost::filesystem::path filename, boost::filesystem::
     p.run();
     this->library = make_unique< LibraryImpl >(p.get_library());
     shared_ptr< ToolboxCache > cache = make_shared< FileToolboxCache >(cache_filename);
-    this->toolbox = make_unique< LibraryToolbox >(*this->library, turnstile, true, cache);
+    this->toolbox = make_unique< LibraryToolbox >(*this->library, turnstile, cache);
 }
 
 const string &Workset::get_name()
