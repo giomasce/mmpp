@@ -117,18 +117,8 @@ LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, sha
     this->compute_everything();
 }
 
-LibraryToolbox::~LibraryToolbox()
-{
-    delete this->parser;
-}
-
 const ExtendedLibrary &LibraryToolbox::get_library() const {
     return this->lib;
-}
-
-void LibraryToolbox::set_cache(std::shared_ptr<ToolboxCache> cache)
-{
-    this->cache = cache;
 }
 
 static vector< size_t > invert_perm(const vector< size_t > &perm) {
@@ -1104,13 +1094,11 @@ void LibraryToolbox::compute_registered_provers()
 
 void LibraryToolbox::compute_parser_initialization()
 {
-    delete this->parser;
-    this->parser = NULL;
     std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](ostream &os, SymTok sym)->ostream& { return os << this->resolve_symbol(sym); };
     std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](ostream &os, LabTok lab)->ostream& { return os << this->resolve_label(lab); };
     const auto &ders = this->get_derivations();
     string ders_digest = hash_object(ders);
-    this->parser = new LRParser< SymTok, LabTok >(ders, sym_printer, lab_printer);
+    this->parser = make_unique< LRParser< SymTok, LabTok > >(ders, sym_printer, lab_printer);
     bool loaded = false;
     if (this->cache != NULL) {
         if (this->cache->load()) {

@@ -109,8 +109,6 @@ class LibraryToolbox : public Library
 {
 public:
     explicit LibraryToolbox(const ExtendedLibrary &lib, std::string turnstile, std::shared_ptr< ToolboxCache > cache = NULL);
-    ~LibraryToolbox();
-    void set_cache(std::shared_ptr< ToolboxCache > cache);
 private:
     void compute_everything();
     std::shared_ptr< ToolboxCache > cache;
@@ -238,7 +236,7 @@ public:
     ParsingTree< SymTok, LabTok > parse_sentence(const Sentence &sent) const;
 private:
     void compute_parser_initialization();
-    LRParser< SymTok, LabTok > *parser = NULL;
+    std::unique_ptr< LRParser< SymTok, LabTok > > parser;
 
     // Preparsed sentences
 public:
