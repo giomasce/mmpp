@@ -10,22 +10,57 @@ using namespace std;
 
 template class VectorMap< SymTok, Sentence >;
 
-ProofEngineBase::ProofEngineBase(const Library &lib, bool gen_proof_tree) :
+template< typename SentType, typename SubstType, typename VarType >
+ProofEngineBase< SentType, SubstType, VarType >::ProofEngineBase(const Library &lib, bool gen_proof_tree) :
     lib(lib), gen_proof_tree(gen_proof_tree)
 {
 }
 
-void ProofEngineBase::set_gen_proof_tree(bool gen_proof_tree)
+template< typename SentType, typename SubstType, typename VarType >
+void ProofEngineBase< SentType, SubstType, VarType >::push_stack(const SentType &sent, const std::set< std::pair< VarType, VarType > > &dists)
+{
+    this->stack.push_back(sent);
+    this->dists_stack.push_back(dists);
+}
+
+template< typename SentType, typename SubstType, typename VarType >
+void ProofEngineBase< SentType, SubstType, VarType >::check_stack_underflow()
+{
+    if (!this->checkpoints.empty() && this->stack.size() < get<0>(this->checkpoints.back())) {
+        throw MMPPException("Checkpointed context exited without committing or rolling back");
+    }
+}
+
+template< typename SentType, typename SubstType, typename VarType >
+void ProofEngineBase< SentType, SubstType, VarType >::stack_resize(size_t size)
+{
+    this->stack.resize(size);
+    this->dists_stack.resize(size);
+    this->check_stack_underflow();
+}
+
+template< typename SentType, typename SubstType, typename VarType >
+void ProofEngineBase< SentType, SubstType, VarType >::pop_stack()
+{
+    this->stack.pop_back();
+    this->dists_stack.pop_back();
+    this->check_stack_underflow();
+}
+
+template< typename SentType, typename SubstType, typename VarType >
+void ProofEngineBase< SentType, SubstType, VarType >::set_gen_proof_tree(bool gen_proof_tree)
 {
     this->gen_proof_tree = gen_proof_tree;
 }
 
-const std::vector<std::vector<SymTok> > &ProofEngineBase::get_stack() const
+template< typename SentType, typename SubstType, typename VarType >
+const std::vector<SentType> &ProofEngineBase<SentType, SubstType, VarType>::get_stack() const
 {
     return this->stack;
 }
 
-const std::set<std::pair<SymTok, SymTok> > &ProofEngineBase::get_dists() const
+template< typename SentType, typename SubstType, typename VarType >
+const std::set<std::pair<VarType, VarType> > &ProofEngineBase<SentType, SubstType, VarType>::get_dists() const
 {
     return *(this->dists_stack.end()-1);
 }
@@ -61,7 +96,8 @@ static Sentence do_subst(const Sentence &sent, const Map &subst_map, const Libra
     return new_sent;
 }
 
-void ProofEngineBase::process_assertion(const Assertion &child_ass, LabTok label)
+template< typename SentType, typename SubstType, typename VarType >
+void ProofEngineBase< SentType, SubstType, VarType >::process_assertion(const Assertion &child_ass, LabTok label)
 {
     assert_or_throw< ProofException >(this->stack.size() >= child_ass.get_mand_hyps_num(), "Stack too small to pop hypotheses");
     const size_t stack_base = this->stack.size() - child_ass.get_mand_hyps_num();
@@ -177,7 +213,8 @@ void ProofEngineBase::process_assertion(const Assertion &child_ass, LabTok label
     this->proof.push_back(label);
 }
 
-void ProofEngineBase::process_sentence(const Sentence &sent, LabTok label)
+template< typename SentType, typename SubstType, typename VarType >
+void ProofEngineBase< SentType, SubstType, VarType >::process_sentence(const Sentence &sent, LabTok label)
 {
     this->push_stack(sent, {});
     if (this->gen_proof_tree) {
@@ -187,7 +224,8 @@ void ProofEngineBase::process_sentence(const Sentence &sent, LabTok label)
     this->proof.push_back(label);
 }
 
-void ProofEngineBase::process_label(const LabTok label)
+template< typename SentType, typename SubstType, typename VarType >
+void ProofEngineBase< SentType, SubstType, VarType >::process_label(const LabTok label)
 {
     const Assertion &child_ass = this->lib.get_assertion(label);
 #ifdef PROOF_VERBOSE_DEBUG
@@ -207,27 +245,32 @@ void ProofEngineBase::process_label(const LabTok label)
     }
 }
 
-const std::vector<LabTok> &ProofEngineBase::get_proof_labels() const
+template< typename SentType, typename SubstType, typename VarType >
+const std::vector<LabTok> &ProofEngineBase< SentType, SubstType, VarType >::get_proof_labels() const
 {
     return this->proof;
 }
 
-const ProofTree &ProofEngineBase::get_proof_tree() const
+template< typename SentType, typename SubstType, typename VarType >
+const ProofTree &ProofEngineBase< SentType, SubstType, VarType >::get_proof_tree() const
 {
     return this->proof_tree;
 }
 
-void ProofEngineBase::checkpoint()
+template< typename SentType, typename SubstType, typename VarType >
+void ProofEngineBase< SentType, SubstType, VarType >::checkpoint()
 {
     this->checkpoints.emplace_back(this->stack.size(), this->proof.size(), this->saved_steps.size());
 }
 
-void ProofEngineBase::commit()
+template< typename SentType, typename SubstType, typename VarType >
+void ProofEngineBase< SentType, SubstType, VarType >::commit()
 {
     this->checkpoints.pop_back();
 }
 
-void ProofEngineBase::rollback()
+template< typename SentType, typename SubstType, typename VarType >
+void ProofEngineBase< SentType, SubstType, VarType >::rollback()
 {
     this->stack.resize(get<0>(this->checkpoints.back()));
     this->dists_stack.resize(get<0>(this->checkpoints.back()));
@@ -236,36 +279,10 @@ void ProofEngineBase::rollback()
     this->checkpoints.pop_back();
 }
 
-void ProofEngineBase::set_debug_output(const string &debug_output)
+template< typename SentType, typename SubstType, typename VarType >
+void ProofEngineBase< SentType, SubstType, VarType >::set_debug_output(const string &debug_output)
 {
     this->debug_output = debug_output;
-}
-
-void ProofEngineBase::push_stack(const Sentence &sent, const std::set< std::pair< SymTok, SymTok > > &dists)
-{
-    this->stack.push_back(sent);
-    this->dists_stack.push_back(dists);
-}
-
-void ProofEngineBase::stack_resize(size_t size)
-{
-    this->stack.resize(size);
-    this->dists_stack.resize(size);
-    this->check_stack_underflow();
-}
-
-void ProofEngineBase::pop_stack()
-{
-    this->stack.pop_back();
-    this->dists_stack.pop_back();
-    this->check_stack_underflow();
-}
-
-void ProofEngineBase::check_stack_underflow()
-{
-    if (!this->checkpoints.empty() && this->stack.size() < get<0>(this->checkpoints.back())) {
-        throw MMPPException("Checkpointed context exited without committing or rolling back");
-    }
 }
 
 ProofException::ProofException(string reason, ProofError error) :
@@ -282,3 +299,5 @@ const ProofError &ProofException::get_error() const
 {
     return this->error;
 }
+
+template class ProofEngineBase< Sentence, SubstMapType, SymTok >;

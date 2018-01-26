@@ -4,7 +4,6 @@
 class ProofException;
 class ProofError;
 class ProofTree;
-class ExtendedProofEngine;
 
 // From library.h
 class Library;
