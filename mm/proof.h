@@ -49,7 +49,7 @@ protected:
 
     const Library &lib;
     const Assertion &ass;
-    CheckedProofEngine< Sentence, SubstMapType, SymTok > engine;
+    CheckedProofEngine< Sentence > engine;
 };
 
 class CompressedProofExecutor : public ProofExecutor {

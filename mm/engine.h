@@ -8,13 +8,13 @@
 #include "mmtypes.h"
 
 //typedef std::unordered_map< SymTok, std::vector< SymTok > > SubstMapType;
-typedef VectorMap< SymTok, Sentence > SubstMapType;
+typedef VectorMap< SymTok, Sentence > SentenceSubstMap;
 
 struct ProofError {
     LabTok label;
     Sentence on_stack;
     Sentence to_subst;
-    SubstMapType subst_map;
+    SentenceSubstMap subst_map;
 };
 
 class ProofException {
@@ -39,9 +39,23 @@ struct ProofTree {
     LabTok number;
 };
 
-template< typename SentType, typename SubstType, typename VarType >
+template< typename SentType >
+struct ProofSentenceTraits;
+
+template<>
+struct ProofSentenceTraits< Sentence > {
+    typedef Sentence SentType;
+    typedef SentenceSubstMap SubstMapType;
+    typedef SymTok VarType;
+};
+
+template< typename SentType_ >
 class ProofEngineBase {
 public:
+    typedef typename ProofSentenceTraits< SentType_ >::SentType SentType;
+    typedef typename ProofSentenceTraits< SentType_ >::SubstMapType SubstMapType;
+    typedef typename ProofSentenceTraits< SentType_ >::VarType VarType;
+
     ProofEngineBase(const Library &lib, bool gen_proof_tree=false);
     void set_gen_proof_tree(bool gen_proof_tree);
     const std::vector< SentType > &get_stack() const;
@@ -87,34 +101,34 @@ private:
     std::string debug_output;
 };
 
-template< typename SentType, typename SubstType, typename VarType >
-class ExtendedProofEngine : public ProofEngineBase< SentType, SubstType, VarType > {
+template< typename SentType_ >
+class ExtendedProofEngine : public ProofEngineBase< SentType_ > {
 public:
-    ExtendedProofEngine(const Library &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType, SubstType, VarType >(lib, gen_proof_tree) {}
+    ExtendedProofEngine(const Library &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType_ >(lib, gen_proof_tree) {}
 
     void process_label(const LabTok label) {
-        this->ProofEngineBase< SentType, SubstType, VarType >::process_label(label);
+        this->ProofEngineBase< SentType_ >::process_label(label);
     }
-    void process_sentence(const SentType &sent, LabTok label = 0) {
-        this->ProofEngineBase< SentType, SubstType, VarType >::process_sentence(sent, label);
+    void process_sentence(const typename ProofEngineBase< SentType_ >::SentType &sent, LabTok label = 0) {
+        this->ProofEngineBase< SentType_ >::process_sentence(sent, label);
     }
     void checkpoint() {
-        this->ProofEngineBase< SentType, SubstType, VarType >::checkpoint();
+        this->ProofEngineBase< SentType_ >::checkpoint();
     }
     void commit() {
-        this->ProofEngineBase< SentType, SubstType, VarType >::commit();
+        this->ProofEngineBase< SentType_ >::commit();
     }
     void rollback() {
-        this->ProofEngineBase< SentType, SubstType, VarType >::rollback();
+        this->ProofEngineBase< SentType_ >::rollback();
     }
 };
 
-template< typename SentType, typename SubstType, typename VarType >
-class CheckedProofEngine : public ProofEngineBase< SentType, SubstType, VarType > {
+template< typename SentType_ >
+class CheckedProofEngine : public ProofEngineBase< SentType_ > {
 public:
-    CheckedProofEngine(const Library &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType, SubstType, VarType >(lib, gen_proof_tree) {}
+    CheckedProofEngine(const Library &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType_ >(lib, gen_proof_tree) {}
 
     void process_label(const LabTok label) {
-        this->ProofEngineBase< SentType, SubstType, VarType >::process_label(label);
+        this->ProofEngineBase< SentType_ >::process_label(label);
     }
 };

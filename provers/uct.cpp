@@ -69,7 +69,7 @@ const std::set<std::pair<LabTok, LabTok> > &UCTProver::get_antidists() const
     return this->antidists;
 }
 
-void UCTProver::replay_proof(ExtendedProofEngine< Sentence, SubstMapType, SymTok > &engine) const
+void UCTProver::replay_proof(ExtendedProofEngine< Sentence > &engine) const
 {
     this->root->replay_proof(engine);
 }
@@ -267,7 +267,7 @@ const ParsingTree2<SymTok, LabTok> &SentenceNode::get_sentence()
     return this->sentence;
 }
 
-void SentenceNode::replay_proof(ExtendedProofEngine<Sentence, SubstMapType, SymTok> &engine) const
+void SentenceNode::replay_proof(ExtendedProofEngine<Sentence> &engine) const
 {
     assert(this->exhausted);
     assert(this->children.size() <= 1);
@@ -415,7 +415,7 @@ std::weak_ptr<SentenceNode> StepNode::get_parent() const
     return this->parent;
 }
 
-void StepNode::replay_proof(ExtendedProofEngine<Sentence, SubstMapType, SymTok> &engine) const
+void StepNode::replay_proof(ExtendedProofEngine<Sentence> &engine) const
 {
     assert(this->exhausted);
     const auto &tb = this->uct.lock()->get_toolbox();
@@ -606,7 +606,7 @@ int uct_main(int argc, char *argv[]) {
 #endif
         if (res == PROVED) {
             cout << "Found proof after " << i+1 << " visits:";
-            ExtendedProofEngine< Sentence, SubstMapType, SymTok > engine(tb, false);
+            ExtendedProofEngine< Sentence > engine(tb, false);
             try {
                     prover->replay_proof(engine);
             } catch (ProofException &pe) {

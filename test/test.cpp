@@ -169,13 +169,13 @@ void test_type_proving() {
     cout << "LaTeX sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_LATEX) << endl;
     cout << "ANSI colors sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
 
-    ExtendedProofEngine< Sentence, SubstMapType, SymTok > engine(lib);
+    ExtendedProofEngine< Sentence > engine(lib);
     tb.build_type_prover(sent)(engine);
     auto res = engine.get_proof_labels();
     cout << "Found type proof: " << tb.print_proof(res) << endl;
     Tic t = tic();
     for (int i = 0; i < reps; i++) {
-        ExtendedProofEngine< Sentence, SubstMapType, SymTok > engine(lib);
+        ExtendedProofEngine< Sentence > engine(lib);
         tb.build_type_prover(sent)(engine);
     }
     toc(t, reps);
@@ -234,7 +234,7 @@ void test_wffs_trivial() {
             //wff->prove_type(lib, engine);
             cout << "WFF: " << wff->to_string() << endl;
             {
-                ExtendedProofEngine< Sentence, SubstMapType, SymTok > engine(lib);
+                ExtendedProofEngine< Sentence > engine(lib);
                 wff->get_type_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "type proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
@@ -250,7 +250,7 @@ void test_wffs_trivial() {
         for (pwff &wff : wffs) {
             cout << "WFF: " << wff->to_string() << endl;
             {
-                ExtendedProofEngine< Sentence, SubstMapType, SymTok > engine(lib);
+                ExtendedProofEngine< Sentence > engine(lib);
                 wff->get_truth_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "Truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
@@ -258,7 +258,7 @@ void test_wffs_trivial() {
                 }
             }
             {
-                ExtendedProofEngine< Sentence, SubstMapType, SymTok > engine(lib);
+                ExtendedProofEngine< Sentence > engine(lib);
                 wff->get_falsity_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "Falsity proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
@@ -274,7 +274,7 @@ void test_wffs_trivial() {
         for (pwff &wff : wffs) {
             cout << "WFF: " << wff->to_string() << endl;
             {
-                ExtendedProofEngine< Sentence, SubstMapType, SymTok > engine(lib);
+                ExtendedProofEngine< Sentence > engine(lib);
                 wff->get_imp_not_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "imp_not proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
@@ -290,7 +290,7 @@ void test_wffs_trivial() {
         for (pwff &wff : wffs) {
             cout << "WFF: " << wff->to_string() << endl;
             {
-                ExtendedProofEngine< Sentence, SubstMapType, SymTok > engine(lib);
+                ExtendedProofEngine< Sentence > engine(lib);
                 wff->get_subst_prover("ph", true, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
@@ -298,7 +298,7 @@ void test_wffs_trivial() {
                 }
             }
             {
-                ExtendedProofEngine< Sentence, SubstMapType, SymTok > engine(lib);
+                ExtendedProofEngine< Sentence > engine(lib);
                 wff->get_subst_prover("ph", false, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst -. ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
@@ -306,7 +306,7 @@ void test_wffs_trivial() {
                 }
             }
             {
-                ExtendedProofEngine< Sentence, SubstMapType, SymTok > engine(lib);
+                ExtendedProofEngine< Sentence > engine(lib);
                 wff->get_subst_prover("ps", true, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
@@ -314,7 +314,7 @@ void test_wffs_trivial() {
                 }
             }
             {
-                ExtendedProofEngine< Sentence, SubstMapType, SymTok > engine(lib);
+                ExtendedProofEngine< Sentence > engine(lib);
                 wff->get_subst_prover("ps", false, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst -. ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
@@ -343,7 +343,7 @@ void test_wffs_advanced() {
         for (pwff &wff : wffs) {
             cout << "WFF: " << wff->to_string() << endl;
             {
-                ExtendedProofEngine< Sentence, SubstMapType, SymTok > engine(lib);
+                ExtendedProofEngine< Sentence > engine(lib);
                 wff->get_adv_truth_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     //cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
