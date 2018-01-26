@@ -102,27 +102,26 @@ void ProofEngineBase< SentType_ >::process_assertion(const Assertion &child_ass,
     assert_or_throw< ProofException >(this->stack.size() >= child_ass.get_mand_hyps_num(), "Stack too small to pop hypotheses");
     const size_t stack_base = this->stack.size() - child_ass.get_mand_hyps_num();
     //this->dists.clear();
-    set< pair< SymTok, SymTok > > dists;
+    set< pair< VarType, VarType > > dists;
 
     // Use the first num_floating hypotheses to build the substitution map
-    SentenceSubstMap subst_map;
+    SubstMapType subst_map;
     subst_map.reserve(child_ass.get_float_hyps().size());
     size_t i = 0;
     for (auto &hyp : child_ass.get_float_hyps()) {
-        const vector< SymTok > &hyp_sent = this->lib.get_sentence(hyp);
-        // Some extra checks
-        assert(hyp_sent.size() == 2);
-        assert(this->lib.is_constant(hyp_sent.at(0)));
-        assert(!this->lib.is_constant(hyp_sent.at(1)));
-        const vector< SymTok > &stack_hyp_sent = this->stack[stack_base + i];
+        const SentType &stack_hyp_sent = this->stack[stack_base + i];
         assert(this->dists_stack.at(stack_base + i).empty());
-        assert_or_throw< ProofException >(hyp_sent.at(0) == stack_hyp_sent.at(0), "Floating hypothesis does not match stack");
+        const SymTok subst_type = TraitsType::floating_to_type(this->lib, hyp);
+        const SymTok stack_subst_type = TraitsType::sentence_to_type(this->lib, stack_hyp_sent);
+        assert_or_throw< ProofException >(subst_type == stack_subst_type, "Floating hypothesis does not match stack");
 #ifdef PROOF_VERBOSE_DEBUG
         if (stack_hyp_sent.size() == 1) {
             cerr << "[" << this->debug_output << "] Matching an empty sentence" << endl;
         }
 #endif
-        auto res = subst_map.insert(make_pair(hyp_sent.at(1), move(stack_hyp_sent)));
+        const VarType subst_var = TraitsType::floating_to_var(this->lib, hyp);
+        const SentType &subst_sent = stack_hyp_sent;
+        auto res = subst_map.insert(make_pair(subst_var, subst_sent));
         assert(res.second);
 #ifdef PROOF_VERBOSE_DEBUG
         cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
@@ -132,29 +131,13 @@ void ProofEngineBase< SentType_ >::process_assertion(const Assertion &child_ass,
 
     // Then parse the other hypotheses and check them
     for (auto &hyp : child_ass.get_ess_hyps()) {
-        const vector< SymTok > &hyp_sent = this->lib.get_sentence(hyp);
-        assert(this->lib.is_constant(hyp_sent.at(0)));
-        const vector< SymTok > &stack_hyp_sent = this->stack.at(stack_base + i);
+        const SentType &hyp_sent = TraitsType::get_sentence(this->lib, hyp);
+        const SentType &stack_hyp_sent = this->stack.at(stack_base + i);
         copy(this->dists_stack.at(stack_base + i).begin(), this->dists_stack.at(stack_base + i).end(), inserter(dists, dists.begin()));
+        TraitsType::check_match(this->lib, stack_hyp_sent, hyp_sent, subst_map);
 #ifdef PROOF_VERBOSE_DEBUG
         cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
 #endif
-        ProofError err = { label, stack_hyp_sent, hyp_sent, subst_map };
-        auto stack_it = stack_hyp_sent.begin();
-        for (auto it = hyp_sent.begin(); it != hyp_sent.end(); it++) {
-            const SymTok &tok = *it;
-            if (this->lib.is_constant(tok)) {
-                assert_or_throw< ProofException >(tok == *stack_it, "Essential hypothesis does not match stack beacuse of wrong constant", err);
-                stack_it++;
-            } else {
-                const vector< SymTok > &subst = subst_map.at(tok);
-                assert(distance(stack_it, stack_hyp_sent.end()) >= 0);
-                assert_or_throw< ProofException >(subst.size() - 1 <= (size_t) distance(stack_it, stack_hyp_sent.end()), "Essential hypothesis does not match stack because stack is shorter", err);
-                assert_or_throw< ProofException >(equal(subst.begin() + 1, subst.end(), stack_it), "Essential hypothesis does not match stack because of wrong variable substitution", err);
-                stack_it += subst.size() - 1;
-            }
-        }
-        assert_or_throw< ProofException >(stack_it == stack_hyp_sent.end(), "Essential hypothesis does not match stack because stack is longer", err);
         i++;
     }
 
@@ -185,8 +168,8 @@ void ProofEngineBase< SentType_ >::process_assertion(const Assertion &child_ass,
 
     // Build the thesis
     LabTok thesis = child_ass.get_thesis();
-    const vector< SymTok > &thesis_sent = this->lib.get_sentence(thesis);
-    vector< SymTok > stack_thesis_sent = do_subst(thesis_sent, subst_map, lib);
+    const SentType &thesis_sent = TraitsType::get_sentence(this->lib, thesis);
+    vector< SymTok > stack_thesis_sent = TraitsType::substitute(this->lib, thesis_sent, subst_map);
 #ifdef PROOF_VERBOSE_DEBUG
     cerr << "    Thesis:         " << print_sentence(thesis_sent, this->lib) << endl << "      becomes:      " << print_sentence(stack_thesis_sent, this->lib) << endl;
 #endif
@@ -301,3 +284,48 @@ const ProofError &ProofException::get_error() const
 }
 
 template class ProofEngineBase< Sentence >;
+
+ProofSentenceTraits<Sentence>::VarType ProofSentenceTraits<Sentence>::floating_to_var(const Library &lib, LabTok label) {
+    return lib.get_sentence(label).at(1);
+}
+
+SymTok ProofSentenceTraits<Sentence>::floating_to_type(const Library &lib, LabTok label)
+{
+    return lib.get_sentence(label).at(0);
+}
+
+SymTok ProofSentenceTraits<Sentence>::sentence_to_type(const Library &lib, const ProofSentenceTraits<Sentence>::SentType &sent)
+{
+    (void) lib;
+    return sent.at(0);
+}
+
+const ProofSentenceTraits<Sentence>::SentType &ProofSentenceTraits<Sentence>::get_sentence(const Library &lib, LabTok label)
+{
+    return lib.get_sentence(label);
+}
+
+void ProofSentenceTraits<Sentence>::check_match(const Library &lib, const ProofSentenceTraits<Sentence>::SentType &stack, const ProofSentenceTraits<Sentence>::SentType &templ, const ProofSentenceTraits<Sentence>::SubstMapType &subst_map)
+{
+    ProofError err = { /* label */ {}, stack, templ, subst_map };
+    auto stack_it = stack.begin();
+    for (auto it = templ.begin(); it != templ.end(); it++) {
+        const SymTok &tok = *it;
+        if (lib.is_constant(tok)) {
+            assert_or_throw< ProofException >(tok == *stack_it, "Essential hypothesis does not match stack beacuse of wrong constant", err);
+            stack_it++;
+        } else {
+            const Sentence &subst = subst_map.at(tok);
+            assert(distance(stack_it, stack.end()) >= 0);
+            assert_or_throw< ProofException >(subst.size() - 1 <= (size_t) distance(stack_it, stack.end()), "Essential hypothesis does not match stack because stack is shorter", err);
+            assert_or_throw< ProofException >(equal(subst.begin() + 1, subst.end(), stack_it), "Essential hypothesis does not match stack because of wrong variable substitution", err);
+            stack_it += subst.size() - 1;
+        }
+    }
+    assert_or_throw< ProofException >(stack_it == stack.end(), "Essential hypothesis does not match stack because stack is longer", err);
+}
+
+ProofSentenceTraits<Sentence>::SentType ProofSentenceTraits<Sentence>::substitute(const Library &lib, const ProofSentenceTraits<Sentence>::SentType &templ, const ProofSentenceTraits<Sentence>::SubstMapType &subst_map)
+{
+    return do_subst(templ, subst_map, lib);
+}

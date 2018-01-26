@@ -47,14 +47,22 @@ struct ProofSentenceTraits< Sentence > {
     typedef Sentence SentType;
     typedef SentenceSubstMap SubstMapType;
     typedef SymTok VarType;
+
+    static VarType floating_to_var(const Library &lib, LabTok label);
+    static SymTok floating_to_type(const Library &lib, LabTok label);
+    static SymTok sentence_to_type(const Library &lib, const SentType &sent);
+    static const SentType &get_sentence(const Library &lib, LabTok label);
+    static void check_match(const Library &lib, const SentType &stack, const SentType &templ, const SubstMapType &subst_map);
+    static SentType substitute(const Library &lib, const SentType &templ, const SubstMapType &subst_map);
 };
 
 template< typename SentType_ >
 class ProofEngineBase {
 public:
-    typedef typename ProofSentenceTraits< SentType_ >::SentType SentType;
-    typedef typename ProofSentenceTraits< SentType_ >::SubstMapType SubstMapType;
-    typedef typename ProofSentenceTraits< SentType_ >::VarType VarType;
+    typedef ProofSentenceTraits< SentType_ > TraitsType;
+    typedef typename TraitsType::SentType SentType;
+    typedef typename TraitsType::SubstMapType SubstMapType;
+    typedef typename TraitsType::VarType VarType;
 
     ProofEngineBase(const Library &lib, bool gen_proof_tree=false);
     void set_gen_proof_tree(bool gen_proof_tree);
@@ -132,3 +140,5 @@ public:
         this->ProofEngineBase< SentType_ >::process_label(label);
     }
 };
+
+extern template class ProofEngineBase< Sentence >;

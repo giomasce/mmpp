@@ -71,6 +71,15 @@ public:
         }
     }
 
+    const Value &at(const Key &key) const {
+        auto it = this->find(key);
+        if (it == this->end()) {
+            throw std::out_of_range("does not exist");
+        } else {
+            return it->second;
+        }
+    }
+
     iterator begin() noexcept {
         return Iterator(this->container.begin());
     }
