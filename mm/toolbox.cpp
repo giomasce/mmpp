@@ -129,7 +129,7 @@ static vector< size_t > invert_perm(const vector< size_t > &perm) {
     return ret;
 }
 
-static void type_proving_helper_unwind_tree(const ParsingTree< SymTok, LabTok > &tree, ProofEngine &engine, const Library &lib, const std::unordered_map<LabTok, const Prover*> &var_provers) {
+static void type_proving_helper_unwind_tree(const ParsingTree< SymTok, LabTok > &tree, ExtendedProofEngine &engine, const Library &lib, const std::unordered_map<LabTok, const Prover*> &var_provers) {
     // We need to sort children according to their order as floating hypotheses of this assertion
     // If this is not an assertion, then there are no children
     const Assertion &ass = lib.get_assertion(tree.label);
@@ -160,7 +160,7 @@ static void type_proving_helper_unwind_tree(const ParsingTree< SymTok, LabTok > 
     }
 }
 
-bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, ProofEngine &engine, const std::unordered_map<SymTok, Prover> &var_provers) const
+bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, ExtendedProofEngine &engine, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
     SymTok type = type_sent[0];
     ParsingTree tree = this->parse_sentence(type_sent.begin()+1, type_sent.end(), type);
@@ -176,7 +176,7 @@ bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, P
     }
 }
 
-bool LibraryToolbox::type_proving_helper(const ParsingTree2<SymTok, LabTok> &pt, ProofEngine &engine, const std::unordered_map<LabTok, Prover> &var_provers) const
+bool LibraryToolbox::type_proving_helper(const ParsingTree2<SymTok, LabTok> &pt, ExtendedProofEngine &engine, const std::unordered_map<LabTok, Prover> &var_provers) const
 {
     std::unordered_map<LabTok, const Prover*> var_provers_ptr;
     for (const auto &x : var_provers) {
@@ -302,7 +302,7 @@ Prover LibraryToolbox::build_prover(const std::vector<Sentence> &templ_hyps, con
     }
     assert_or_throw< MMPPException >(!res.empty(), string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
     const auto &res1 = res[0];
-    return [=](ProofEngine &engine){
+    return [=](ExtendedProofEngine &engine){
         RegisteredProverInstanceData inst_data;
         inst_data.valid = true;
         inst_data.label = get<0>(res1);
@@ -313,7 +313,7 @@ Prover LibraryToolbox::build_prover(const std::vector<Sentence> &templ_hyps, con
     };
 }
 
-bool LibraryToolbox::proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ProofEngine &engine) const {
+bool LibraryToolbox::proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ExtendedProofEngine &engine) const {
     const Assertion &ass = this->get_assertion(inst_data.label);
     assert(ass.is_valid());
 
@@ -735,7 +735,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
                         type_sent.push_back(float_hyp_sent.at(0));
                         auto &type_main_sent = unification.at(float_hyp_sent.at(1));
                         copy(type_main_sent.begin(), type_main_sent.end(), back_inserter(type_sent));
-                        ProofEngine engine(*this);
+                        ExtendedProofEngine engine(*this);
                         if (!this->type_proving_helper(type_sent, engine)) {
                             wrong_unification = true;
                             break;
@@ -1079,7 +1079,7 @@ Prover LibraryToolbox::build_registered_prover(const RegisteredProver &prover, c
     }
     const RegisteredProverInstanceData &inst_data = this->instance_registered_provers[index];
 
-    return [=](ProofEngine &engine){
+    return [=](ExtendedProofEngine &engine){
         return this->proving_helper(inst_data, types_provers, hyps_provers, engine);
     };
 }
@@ -1217,14 +1217,14 @@ void LibraryToolbox::compute_registered_prover(size_t index, bool exception_on_f
 
 Prover LibraryToolbox::build_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
 {
-    return [=](ProofEngine &engine){
+    return [=](ExtendedProofEngine &engine){
         return this->type_proving_helper(type_sent, engine, var_provers);
     };
 }
 
 Prover LibraryToolbox::build_type_prover(const ParsingTree2<SymTok, LabTok> &pt, const std::unordered_map<LabTok, Prover> &var_provers) const
 {
-    return [=](ProofEngine &engine){
+    return [=](ExtendedProofEngine &engine){
         return this->type_proving_helper(pt, engine, var_provers);
     };
 }
@@ -1237,7 +1237,7 @@ string SentencePrinter::to_string() const
 }
 
 string test_prover(Prover prover, const LibraryToolbox &tb) {
-    ProofEngine engine(tb);
+    ExtendedProofEngine engine(tb);
     bool res = prover(engine);
     if (!res) {
         return "(prover failed)";
@@ -1301,7 +1301,7 @@ void FileToolboxCache::set_lr_parser_data(const LRParser< SymTok, LabTok >::Cach
 
 Prover checked_prover(Prover prover, size_t hyp_num, Sentence thesis)
 {
-    return [=](ProofEngine &engine)->bool {
+    return [=](ExtendedProofEngine &engine)->bool {
         size_t stack_len_before = engine.get_stack().size();
         bool res = prover(engine);
         size_t stack_len_after = engine.get_stack().size();

@@ -69,7 +69,7 @@ expr extract_thesis(expr proof) {
 }
 
 void prove_and_print(pwff wff, const LibraryToolbox &tb) {
-    ProofEngine engine(tb);
+    ExtendedProofEngine engine(tb);
     wff->get_adv_truth_prover(tb)(engine);
     if (engine.get_proof_labels().size() > 0) {
         //cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
@@ -607,7 +607,7 @@ int test_z3_main(int argc, char *argv[])
         case unknown: cout << "unknown\n"; break;
         }
 
-        ProofEngine engine(lib, true);
+        ExtendedProofEngine engine(lib, true);
         Prover main_prover = adapter.convert_proof(adapter.s.proof());
         bool res;
         if (adapter.hyps.size() == 1) {

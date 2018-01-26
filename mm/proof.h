@@ -37,14 +37,19 @@ public:
     virtual ~ProofExecutor();
 protected:
     ProofExecutor(const Library &lib, const Assertion &ass, bool gen_proof_tree);
-    void process_sentence(const std::vector< SymTok > &sent);
     void process_label(const LabTok label);
+    size_t save_step() {
+        return this->engine.save_step();
+    }
+    void process_saved_step(size_t step_num) {
+        this->engine.process_saved_step(step_num);
+    }
     size_t get_hyp_num(const LabTok label) const;
     void final_checks() const;
 
     const Library &lib;
     const Assertion &ass;
-    ProofEngine engine;
+    CheckedProofEngine engine;
 };
 
 class CompressedProofExecutor : public ProofExecutor {

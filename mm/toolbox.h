@@ -21,8 +21,8 @@ struct SentenceTree {
     std::vector< SentenceTree > children;
 };
 
-typedef std::function< bool(ProofEngine&) > Prover;
-const Prover null_prover = [](ProofEngine&){ return false; };
+typedef std::function< bool(ExtendedProofEngine&) > Prover;
+const Prover null_prover = [](ExtendedProofEngine&){ return false; };
 //Prover cascade_provers(const Prover &a, const Prover &b);
 
 std::string test_prover(Prover prover, const LibraryToolbox &tb);
@@ -141,8 +141,8 @@ public:
     Prover build_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
     Prover build_type_prover(const ParsingTree2< SymTok, LabTok > &pt, const std::unordered_map< LabTok, Prover > &var_provers = {}) const;
 private:
-    bool type_proving_helper(const std::vector< SymTok > &type_sent, ProofEngine &engine, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
-    bool type_proving_helper(const ParsingTree2< SymTok, LabTok > &pt, ProofEngine &engine, const std::unordered_map< LabTok, Prover > &var_provers = {}) const;
+    bool type_proving_helper(const std::vector< SymTok > &type_sent, ExtendedProofEngine &engine, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
+    bool type_proving_helper(const ParsingTree2< SymTok, LabTok > &pt, ExtendedProofEngine &engine, const std::unordered_map< LabTok, Prover > &var_provers = {}) const;
 
     // Assertion unification
 public:
@@ -258,7 +258,7 @@ public:
                         const Sentence &templ_thesis,
                         const std::unordered_map< std::string, Prover > &types_provers,
                         const std::vector< Prover > &hyps_provers) const;
-    bool proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers, ProofEngine &engine) const;
+    bool proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers, ExtendedProofEngine &engine) const;
 private:
     void compute_registered_prover(size_t i, bool exception_on_failure = true);
     // This is an instance of the Construct On First Use idiom, which prevents the static initialization fiasco;

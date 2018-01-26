@@ -115,14 +115,15 @@ int proofs_stats_main(int argc, char *argv[]) {
             continue;
         }
         auto uncomp_proof = ass.get_proof_executor(lib)->uncompress();
-        auto uncomp_exec = uncomp_proof.get_executor(lib, ass, true);
-        uncomp_exec->execute();
+        //auto exec = uncomp_proof.get_executor(lib, ass, true);
+        auto exec = ass.get_proof_executor(lib, true);
+        exec->execute();
 
         ProofStat stat;
         bzero(&stat, sizeof(stat));
         stat.proof_size = uncomp_proof.get_labels().size();
         stat.ess_hyp_num = ass.get_ess_hyps().size();
-        proof_stat_unwind_tree(uncomp_exec->get_proof_tree(), ass, stat);
+        proof_stat_unwind_tree(exec->get_proof_tree(), ass, stat);
         proofs_stats.push_back(make_pair(ass.get_thesis(), stat));
         tpb.report(ass.get_thesis());
     }

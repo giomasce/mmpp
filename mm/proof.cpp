@@ -90,10 +90,9 @@ const UncompressedProof CompressedProofExecutor::uncompress()
 void CompressedProofExecutor::execute()
 {
     //cerr << "Executing proof of " << this->lib.resolve_label(this->ass.get_thesis()) << endl;
-    vector< vector< SymTok > > saved;
     for (auto &code : this->proof.codes) {
         if (code == 0) {
-            saved.push_back(this->get_stack().back());
+            this->save_step();
         } else if (code <= this->ass.get_mand_hyps_num()) {
             LabTok label = this->ass.get_mand_hyp(code-1);
             this->process_label(label);
@@ -101,9 +100,11 @@ void CompressedProofExecutor::execute()
             LabTok label = this->proof.refs.at(code-this->ass.get_mand_hyps_num()-1);
             this->process_label(label);
         } else {
-            assert_or_throw< ProofException >(code <= this->ass.get_mand_hyps_num() + this->proof.refs.size() + saved.size(), "Code too big in compressed proof");
-            const vector< SymTok > &sent = saved.at(code-this->ass.get_mand_hyps_num()-this->proof.refs.size()-1);
-            this->process_sentence(sent);
+            try {
+                this->process_saved_step(code - this->ass.get_mand_hyps_num()-this->proof.refs.size()-1);
+            } catch (out_of_range) {
+                throw ProofException("Code too big in compressed proof");
+            }
         }
     }
     this->final_checks();
@@ -153,11 +154,6 @@ bool CompressedProofExecutor::is_trivial() const
 UncompressedProof::UncompressedProof(const std::vector<LabTok> &labels) :
     labels(labels)
 {
-}
-
-UncompressedProof ProofEngine::get_proof() const
-{
-    return { this->get_proof_labels() };
 }
 
 std::shared_ptr<ProofExecutor> UncompressedProof::get_executor(const Library &lib, const Assertion &ass, bool gen_proof_tree) const
@@ -309,11 +305,6 @@ bool UncompressedProofExecutor::is_trivial() const
 
 ProofExecutor::ProofExecutor(const Library &lib, const Assertion &ass, bool gen_proof_tree) :
     lib(lib), ass(ass), engine(lib, gen_proof_tree) {
-}
-
-void ProofExecutor::process_sentence(const vector<SymTok> &sent)
-{
-    this->engine.process_sentence(sent);
 }
 
 void ProofExecutor::process_label(const LabTok label)

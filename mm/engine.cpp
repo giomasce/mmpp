@@ -10,22 +10,22 @@ using namespace std;
 
 template class VectorMap< SymTok, Sentence >;
 
-ProofEngine::ProofEngine(const Library &lib, bool gen_proof_tree) :
+ProofEngineBase::ProofEngineBase(const Library &lib, bool gen_proof_tree) :
     lib(lib), gen_proof_tree(gen_proof_tree)
 {
 }
 
-void ProofEngine::set_gen_proof_tree(bool gen_proof_tree)
+void ProofEngineBase::set_gen_proof_tree(bool gen_proof_tree)
 {
     this->gen_proof_tree = gen_proof_tree;
 }
 
-const std::vector<std::vector<SymTok> > &ProofEngine::get_stack() const
+const std::vector<std::vector<SymTok> > &ProofEngineBase::get_stack() const
 {
     return this->stack;
 }
 
-const std::set<std::pair<SymTok, SymTok> > &ProofEngine::get_dists() const
+const std::set<std::pair<SymTok, SymTok> > &ProofEngineBase::get_dists() const
 {
     return *(this->dists_stack.end()-1);
 }
@@ -61,7 +61,7 @@ static Sentence do_subst(const Sentence &sent, const Map &subst_map, const Libra
     return new_sent;
 }
 
-void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
+void ProofEngineBase::process_assertion(const Assertion &child_ass, LabTok label)
 {
     assert_or_throw< ProofException >(this->stack.size() >= child_ass.get_mand_hyps_num(), "Stack too small to pop hypotheses");
     const size_t stack_base = this->stack.size() - child_ass.get_mand_hyps_num();
@@ -177,7 +177,7 @@ void ProofEngine::process_assertion(const Assertion &child_ass, LabTok label)
     this->proof.push_back(label);
 }
 
-void ProofEngine::process_sentence(const std::vector<SymTok> &sent, LabTok label)
+void ProofEngineBase::process_sentence(const Sentence &sent, LabTok label)
 {
     this->push_stack(sent, {});
     if (this->gen_proof_tree) {
@@ -187,7 +187,7 @@ void ProofEngine::process_sentence(const std::vector<SymTok> &sent, LabTok label
     this->proof.push_back(label);
 }
 
-void ProofEngine::process_label(const LabTok label)
+void ProofEngineBase::process_label(const LabTok label)
 {
     const Assertion &child_ass = this->lib.get_assertion(label);
 #ifdef PROOF_VERBOSE_DEBUG
@@ -207,60 +207,61 @@ void ProofEngine::process_label(const LabTok label)
     }
 }
 
-const std::vector<LabTok> &ProofEngine::get_proof_labels() const
+const std::vector<LabTok> &ProofEngineBase::get_proof_labels() const
 {
     return this->proof;
 }
 
-const ProofTree &ProofEngine::get_proof_tree() const
+const ProofTree &ProofEngineBase::get_proof_tree() const
 {
     return this->proof_tree;
 }
 
-void ProofEngine::checkpoint()
+void ProofEngineBase::checkpoint()
 {
-    this->checkpoints.emplace_back(this->stack.size(), this->proof.size());
+    this->checkpoints.emplace_back(this->stack.size(), this->proof.size(), this->saved_steps.size());
 }
 
-void ProofEngine::commit()
+void ProofEngineBase::commit()
 {
     this->checkpoints.pop_back();
 }
 
-void ProofEngine::rollback()
+void ProofEngineBase::rollback()
 {
     this->stack.resize(get<0>(this->checkpoints.back()));
     this->dists_stack.resize(get<0>(this->checkpoints.back()));
     this->proof.resize(get<1>(this->checkpoints.back()));
+    this->saved_steps.resize(get<2>(this->checkpoints.back()));
     this->checkpoints.pop_back();
 }
 
-void ProofEngine::set_debug_output(const string &debug_output)
+void ProofEngineBase::set_debug_output(const string &debug_output)
 {
     this->debug_output = debug_output;
 }
 
-void ProofEngine::push_stack(const std::vector<SymTok> &sent, const std::set< std::pair< SymTok, SymTok > > &dists)
+void ProofEngineBase::push_stack(const Sentence &sent, const std::set< std::pair< SymTok, SymTok > > &dists)
 {
     this->stack.push_back(sent);
     this->dists_stack.push_back(dists);
 }
 
-void ProofEngine::stack_resize(size_t size)
+void ProofEngineBase::stack_resize(size_t size)
 {
     this->stack.resize(size);
     this->dists_stack.resize(size);
     this->check_stack_underflow();
 }
 
-void ProofEngine::pop_stack()
+void ProofEngineBase::pop_stack()
 {
     this->stack.pop_back();
     this->dists_stack.pop_back();
     this->check_stack_underflow();
 }
 
-void ProofEngine::check_stack_underflow()
+void ProofEngineBase::check_stack_underflow()
 {
     if (!this->checkpoints.empty() && this->stack.size() < get<0>(this->checkpoints.back())) {
         throw MMPPException("Checkpointed context exited without committing or rolling back");
