@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <cassert>
 
+#include <boost/functional/hash.hpp>
+
 template< typename SymType, typename LabType >
 struct ParsingTree {
     LabType label;
@@ -41,6 +43,20 @@ struct ParsingTreeNode {
         return !this->operator==(other);
     }
 };
+
+namespace boost {
+template< typename SymType, typename LabType >
+struct hash< ParsingTreeNode< SymType, LabType > > {
+    typedef ParsingTreeNode< SymType, LabType > argument_type;
+    typedef std::size_t result_type;
+    result_type operator()(const argument_type &x) const noexcept {
+        result_type res = 0;
+        boost::hash_combine(res, x.label);
+        boost::hash_combine(res, x.descendants_num);
+        return res;
+    }
+};
+}
 
 template< typename SymType, typename LabType >
 struct ParsingTreeIterator {
@@ -214,6 +230,23 @@ struct ParsingTree2 {
         return !this->operator==(other);
     }
 };
+
+namespace boost {
+template< typename SymType, typename LabType >
+struct hash< ParsingTree2< SymType, LabType > > {
+    typedef ParsingTree2< SymType, LabType > argument_type;
+    typedef std::size_t result_type;
+    result_type operator()(const argument_type &x) const noexcept {
+        result_type res = 0;
+        if (x.nodes == NULL) {
+            boost::hash_combine(res, boost::hash_range(x.nodes_storage.begin(), x.nodes_storage.end()));
+        } else {
+            boost::hash_combine(res, boost::hash_range(x.nodes, x.nodes + x.nodes_len));
+        }
+        return res;
+    }
+};
+}
 
 template< typename SymType, typename LabType >
 class ParsingTree2Generator {

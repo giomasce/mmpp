@@ -3,6 +3,8 @@
 #include <random>
 #include <functional>
 
+#include <boost/functional/hash.hpp>
+
 #include "test/test_env.h"
 #include "mm/toolbox.h"
 #include "mm/proof.h"
@@ -82,6 +84,34 @@ ostream &operator<<(ostream &os, const ProofStat &stat) {
     return os << stat.proof_size << " " << stat.ess_proof_size << " " << stat.ess_hyp_num << " " << stat.ess_hyp_steps;
 }
 
+struct StepContext {
+    ParsingTree2< SymTok, LabTok > thesis;
+    vector< ParsingTree2< SymTok, LabTok > > hypotheses;
+    set< pair< LabTok, LabTok > > dists;
+};
+
+namespace boost {
+template <>
+struct hash< StepContext > {
+    typedef StepContext argument_type;
+    typedef std::size_t result_type;
+    result_type operator()(const argument_type &x) const noexcept {
+        result_type res = 0;
+        boost::hash_combine(res, x.thesis);
+        boost::hash_combine(res, x.hypotheses);
+        boost::hash_combine(res, x.dists);
+        return res;
+    }
+};
+}
+
+struct StepProof {
+    LabTok label;
+    vector< StepContext > children;
+};
+
+unordered_map< StepContext, StepProof, boost::hash< StepContext > > mega_map;
+
 void proof_stat_unwind_tree(const ProofTree &pt, const Assertion &ass, ProofStat &stat) {
     if (pt.essential) {
         stat.ess_proof_size++;
@@ -114,14 +144,13 @@ int proofs_stats_main(int argc, char *argv[]) {
         if (!ass.has_proof()) {
             continue;
         }
-        auto uncomp_proof = ass.get_proof_executor(lib)->uncompress();
-        //auto exec = uncomp_proof.get_executor(lib, ass, true);
-        auto exec = ass.get_proof_executor(lib, true);
+        auto proof = ass.get_proof_executor(lib)->compress();
+        auto exec = proof.get_executor(lib, ass, true);
         exec->execute();
 
         ProofStat stat;
         bzero(&stat, sizeof(stat));
-        stat.proof_size = uncomp_proof.get_labels().size();
+        //stat.proof_size = proof.get_labels().size();
         stat.ess_hyp_num = ass.get_ess_hyps().size();
         proof_stat_unwind_tree(exec->get_proof_tree(), ass, stat);
         proofs_stats.push_back(make_pair(ass.get_thesis(), stat));
