@@ -72,7 +72,7 @@ json jsonize(const Assertion &assertion)
     return ret;
 }
 
-json jsonize(const ProofTree &proof_tree) {
+json jsonize(const ProofTree<Sentence> &proof_tree) {
     json ret;
     ret["label"] = proof_tree.label;
     ret["sentence"] = proof_tree.sentence;

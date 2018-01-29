@@ -229,6 +229,13 @@ struct ParsingTree2 {
     bool operator!=(const ParsingTree2< SymType, LabType > &other) const {
         return !this->operator==(other);
     }
+
+    ParsingTree2< SymType, LabType > &operator=(const ParsingTree2< SymType, LabType > &x) {
+        this->nodes_storage = x.nodes_storage;
+        this->nodes = x.nodes;
+        this->nodes_len = x.nodes_len;
+        return *this;
+    }
 };
 
 namespace boost {

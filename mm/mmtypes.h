@@ -1,8 +1,11 @@
 #pragma once
 
 // From engine.h
+template< typename SentType_ >
 class ProofException;
+template< typename SentType_ >
 class ProofError;
+template< typename SentType_ >
 class ProofTree;
 
 // From library.h

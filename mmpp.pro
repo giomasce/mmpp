@@ -83,7 +83,9 @@ SOURCES += \
     mm/tokenizer.cpp \
     mm/engine.cpp \
     mm/funds.cpp \
-    mm/mmtemplates.cpp
+    mm/mmtemplates.cpp \
+    mm/ptengine.cpp \
+    mm/sentengine.cpp
 
 HEADERS += \
     pch.h \
@@ -120,7 +122,9 @@ HEADERS += \
     mm/engine.h \
     mm/funds.h \
     mm/mmtypes.h \
-    mm/mmtemplates.h
+    mm/mmtemplates.h \
+    mm/ptengine.h \
+    mm/sentengine.h
 
 DISTFILES += \
     README \

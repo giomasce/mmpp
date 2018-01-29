@@ -348,7 +348,7 @@ bool LibraryToolbox::proving_helper(const RegisteredProverInstanceData &inst_dat
     // Finally add this assertion's label
     try {
         engine.process_label(ass.get_thesis());
-    } catch (const ProofException &e) {
+    } catch (const ProofException< Sentence > &e) {
         this->dump_proof_exception(e, cerr);
         engine.rollback();
         return false;
@@ -890,7 +890,7 @@ LabTok LibraryToolbox::get_imp_label() const
     return this->get_label("wi");
 }
 
-void LibraryToolbox::dump_proof_exception(const ProofException &e, ostream &out) const
+void LibraryToolbox::dump_proof_exception(const ProofException<Sentence> &e, ostream &out) const
 {
     out << "Applying " << this->resolve_label(e.get_error().label) << " the proof executor signalled an error..." << endl;
     out << "The reason was " << e.get_reason() << endl;

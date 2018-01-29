@@ -9,7 +9,7 @@
 #include "utils/vectormap.h"
 #include "funds.h"
 #include "utils/utils.h"
-#include "engine.h"
+#include "sentengine.h"
 #include "mmtypes.h"
 
 class ProofExecutor {
@@ -22,7 +22,7 @@ public:
     };
 
     const std::vector< std::vector< SymTok > > &get_stack() const;
-    const ProofTree &get_proof_tree() const;
+    const ProofTree< Sentence > &get_proof_tree() const;
     const std::vector< LabTok > &get_proof_labels() const;
     void set_debug_output(std::string debug_output);
     virtual void execute() = 0;

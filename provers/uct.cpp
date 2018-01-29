@@ -609,7 +609,7 @@ int uct_main(int argc, char *argv[]) {
             ExtendedProofEngine< Sentence > engine(tb, false);
             try {
                     prover->replay_proof(engine);
-            } catch (ProofException &pe) {
+            } catch (ProofException< Sentence > &pe) {
                 cout << "Failed with exception:" << endl;
                 tb.dump_proof_exception(pe, cout);
             }

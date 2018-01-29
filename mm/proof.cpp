@@ -50,14 +50,14 @@ const UncompressedProof CompressedProofExecutor::uncompress()
          * big uncompressed proofs. This is analogous to a "ZIP bomb" and might lead to
          * security problems. Therefore we fail when decompressed data are too long.
          */
-        assert_or_throw< ProofException >(labels.size() < max_decompression_size, "Decompressed proof is too large");
+        assert_or_throw< ProofException< Sentence > >(labels.size() < max_decompression_size, "Decompressed proof is too large");
         const CodeTok &code = this->proof.codes.at(i);
         if (code == 0) {
             saved.emplace_back(labels.begin() + opening_stack.back(), labels.end());
         } else if (code <= this->ass.get_mand_hyps_num()) {
             LabTok label = this->ass.get_mand_hyp(code-1);
             size_t opening = labels.size();
-            assert_or_throw< ProofException >(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
+            assert_or_throw< ProofException< Sentence > >(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
             for (size_t j = 0; j < this->get_hyp_num(label); j++) {
                 opening = opening_stack.back();
                 opening_stack.pop_back();
@@ -67,7 +67,7 @@ const UncompressedProof CompressedProofExecutor::uncompress()
         } else if (code <= this->ass.get_mand_hyps_num() + this->proof.refs.size()) {
             LabTok label = this->proof.refs.at(code-this->ass.get_mand_hyps_num()-1);
             size_t opening = labels.size();
-            assert_or_throw< ProofException >(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
+            assert_or_throw< ProofException< Sentence > >(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
             for (size_t j = 0; j < this->get_hyp_num(label); j++) {
                 opening = opening_stack.back();
                 opening_stack.pop_back();
@@ -75,14 +75,14 @@ const UncompressedProof CompressedProofExecutor::uncompress()
             opening_stack.push_back(opening);
             labels.push_back(label);
         } else {
-            assert_or_throw< ProofException >(code <= this->ass.get_mand_hyps_num() + this->proof.refs.size() + saved.size(), "Code too big in compressed proof");
+            assert_or_throw< ProofException< Sentence > >(code <= this->ass.get_mand_hyps_num() + this->proof.refs.size() + saved.size(), "Code too big in compressed proof");
             const vector< LabTok > &sent = saved.at(code-this->ass.get_mand_hyps_num()-this->proof.refs.size()-1);
             size_t opening = labels.size();
             opening_stack.push_back(opening);
             copy(sent.begin(), sent.end(), back_inserter(labels));
         }
     }
-    assert_or_throw< ProofException >(opening_stack.size() == 1, "Proof uncompression did not end with a single element on the stack");
+    assert_or_throw< ProofException< Sentence > >(opening_stack.size() == 1, "Proof uncompression did not end with a single element on the stack");
     assert(opening_stack.at(0) == 0);
     return UncompressedProof(labels);
 }
@@ -103,7 +103,7 @@ void CompressedProofExecutor::execute()
             try {
                 this->process_saved_step(code - this->ass.get_mand_hyps_num()-this->proof.refs.size()-1);
             } catch (out_of_range) {
-                throw ProofException("Code too big in compressed proof");
+                throw ProofException< Sentence >("Code too big in compressed proof");
             }
         }
     }
@@ -166,7 +166,7 @@ const std::vector<LabTok> &UncompressedProof::get_labels() const
     return this->labels;
 }
 
-static void compress_unwind_proof_tree_phase1(const ProofTree &tree,
+static void compress_unwind_proof_tree_phase1(const ProofTree< Sentence > &tree,
                                               unordered_map< LabTok, CodeTok > &label_map,
                                               vector< LabTok > &refs,
                                               set< vector< SymTok > > &sents,
@@ -178,7 +178,7 @@ static void compress_unwind_proof_tree_phase1(const ProofTree &tree,
         return;
     }
     // Recur
-    for (const ProofTree &child : tree.children) {
+    for (const auto &child : tree.children) {
         compress_unwind_proof_tree_phase1(child, label_map, refs, sents, dupl_sents, code_idx);
     }
     // If the label is new, record it
@@ -192,7 +192,7 @@ static void compress_unwind_proof_tree_phase1(const ProofTree &tree,
 }
 
 // In order to avoid inconsistencies with label numbering, it is important that phase 2 performs the same prunings as phase 1
-static void compress_unwind_proof_tree_phase2(const ProofTree &tree,
+static void compress_unwind_proof_tree_phase2(const ProofTree< Sentence > &tree,
                                               const unordered_map< LabTok, CodeTok > &label_map,
                                               const vector< LabTok > &refs,
                                               set< vector< SymTok > > &sents,
@@ -205,7 +205,7 @@ static void compress_unwind_proof_tree_phase2(const ProofTree &tree,
         return;
     }
     // Recur
-    for (const ProofTree &child : tree.children) {
+    for (const auto &child : tree.children) {
         compress_unwind_proof_tree_phase2(child, label_map, refs, sents, dupl_sents, dupl_sents_map, codes, code_idx);
     }
     // Push this label
@@ -246,7 +246,7 @@ const CompressedProof UncompressedProofExecutor::compress(CompressionStrategy st
     } else if (strategy == CS_BACKREFS_ON_IDENTICAL_SENTENCE || strategy == CS_ANY) {
         this->engine.set_gen_proof_tree(true);
         this->execute();
-        const ProofTree &tree = this->engine.get_proof_tree();
+        const auto &tree = this->engine.get_proof_tree();
         set< vector< SymTok > > sents;
         set< vector< SymTok > > dupl_sents;
         map< vector< SymTok >, CodeTok > dupl_sents_map;
@@ -312,7 +312,7 @@ void ProofExecutor::process_label(const LabTok label)
     const Assertion &child_ass = this->lib.get_assertion(label);
     if (!child_ass.is_valid()) {
         // In line of principle searching in a set would be faster, but since usually hypotheses are not many the vector is probably better
-        assert_or_throw< ProofException >(find(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end(), label) != this->ass.get_float_hyps().end() ||
+        assert_or_throw< ProofException< Sentence > >(find(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end(), label) != this->ass.get_float_hyps().end() ||
                 find(this->ass.get_ess_hyps().begin(), this->ass.get_ess_hyps().end(), label) != this->ass.get_ess_hyps().end() ||
                 find(this->ass.get_opt_hyps().begin(), this->ass.get_opt_hyps().end(), label) != this->ass.get_opt_hyps().end(),
                         "Requested label cannot be used by this theorem");
@@ -331,9 +331,9 @@ size_t ProofExecutor::get_hyp_num(const LabTok label) const {
 
 void ProofExecutor::final_checks() const
 {
-    assert_or_throw< ProofException >(this->get_stack().size() == 1, "Proof execution did not end with a single element on the stack");
-    assert_or_throw< ProofException >(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()), "Proof does not prove the thesis");
-    assert_or_throw< ProofException >(includes(this->ass.get_dists().begin(), this->ass.get_dists().end(),
+    assert_or_throw< ProofException< Sentence > >(this->get_stack().size() == 1, "Proof execution did not end with a single element on the stack");
+    assert_or_throw< ProofException< Sentence > >(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()), "Proof does not prove the thesis");
+    assert_or_throw< ProofException< Sentence > >(includes(this->ass.get_dists().begin(), this->ass.get_dists().end(),
                              this->engine.get_dists().begin(), this->engine.get_dists().end()),
                              "Distinct variables constraints are too wide");
 }
@@ -343,7 +343,7 @@ const std::vector<std::vector<SymTok> > &ProofExecutor::get_stack() const
     return this->engine.get_stack();
 }
 
-const ProofTree &ProofExecutor::get_proof_tree() const
+const ProofTree<Sentence> &ProofExecutor::get_proof_tree() const
 {
     return this->engine.get_proof_tree();
 }

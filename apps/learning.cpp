@@ -28,7 +28,7 @@ void print_parsing_tree(const ParsingTree< SymTok, LabTok > &pt) {
     cout << pt.children.size() << " " << pt.label;
 }
 
-void print_trace(const ProofTree &pt, const LibraryToolbox &tb, const Assertion &ass) {
+void print_trace(const ProofTree< Sentence > &pt, const LibraryToolbox &tb, const Assertion &ass) {
     size_t essentials_num = 0;
     for (const auto &child : pt.children) {
         if (child.essential) {
@@ -64,7 +64,7 @@ int dissector_main(int argc, char *argv[]) {
     UncompressedProof unc_proof = ass.get_proof_executor(tb, false)->uncompress();
     auto pe = unc_proof.get_executor(tb, ass, true);
     pe->execute();
-    const ProofTree &pt = pe->get_proof_tree();
+    const ProofTree< Sentence > &pt = pe->get_proof_tree();
     print_trace(pt, tb, ass);
 
     return 0;
@@ -112,7 +112,7 @@ struct StepProof {
 
 unordered_map< StepContext, StepProof, boost::hash< StepContext > > mega_map;
 
-void proof_stat_unwind_tree(const ProofTree &pt, const Assertion &ass, ProofStat &stat) {
+void proof_stat_unwind_tree(const ProofTree< Sentence > &pt, const Assertion &ass, ProofStat &stat) {
     if (pt.essential) {
         stat.ess_proof_size++;
         if (find(ass.get_ess_hyps().begin(), ass.get_ess_hyps().end(), pt.label) != ass.get_ess_hyps().end()) {

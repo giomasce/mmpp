@@ -6,6 +6,16 @@
 
 #include "parsing/parser.h"
 #include "parsing/algos.h"
+#include "utils/vectormap.h"
+
+/*template< typename SymType, typename LabType >
+using SubstMap = VectorMap< LabType, ParsingTree< SymType, LabType > >;
+
+template< typename SymType, typename LabType >
+using SubstMap2 = VectorMap< LabType, ParsingTree2< SymType, LabType > >;
+
+template< typename SymType, typename LabType >
+using SimpleSubstMap2 = VectorMap< LabType, LabType >;*/
 
 template< typename SymType, typename LabType >
 using SubstMap = std::map< LabType, ParsingTree< SymType, LabType > >;

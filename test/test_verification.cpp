@@ -117,7 +117,7 @@ bool test_verification_one(string filename, bool advanced_tests) {
         cout << "An exception with message '" << e.get_reason() << "' was thrown!" << endl;
         e.print_stacktrace(cout);
         success = false;
-    } catch (const ProofException &e) {
+    } catch (const ProofException< Sentence > &e) {
         cout << "An exception with message '" << e.get_reason() << "' was thrown!" << endl;
         success = false;
     }

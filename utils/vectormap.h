@@ -80,6 +80,23 @@ public:
         }
     }
 
+    Value &operator[](const Key &key) {
+        auto it = this->find(key);
+        if (it == this->end()) {
+            return this->container.emplace_back().second;
+        } else {
+            return it->second;
+        }
+    }
+
+    void clear() {
+        this->container.clear();
+    }
+
+    bool empty() const {
+        return this->container.empty();
+    }
+
     iterator begin() noexcept {
         return Iterator(this->container.begin());
     }
@@ -111,6 +128,9 @@ public:
     class Iterator {
         friend class VectorMap< Key, Value >::ConstIterator;
     public:
+        Iterator() : it() {
+        }
+
         Iterator(typename decltype(VectorMap::container)::iterator it) : it(it) {
         }
 
@@ -120,6 +140,11 @@ public:
 
         bool operator!=(const Iterator &x) const {
             return this->it != x.it;
+        }
+
+        Iterator &operator=(const Iterator &x) {
+            this->it = x.it;
+            return *this;
         }
 
         Iterator &operator++() {
@@ -147,6 +172,9 @@ public:
 
     class ConstIterator {
     public:
+        ConstIterator() : it() {
+        }
+
         ConstIterator(typename decltype(VectorMap::container)::const_iterator it) : it(it) {
         }
 
@@ -170,6 +198,11 @@ public:
             auto x = *this;
             this->it++;
             return x;
+        }
+
+        ConstIterator &operator=(const ConstIterator &x) {
+            this->it = x.it;
+            return *this;
         }
 
         const typename VectorMap::value_type &operator*() const {

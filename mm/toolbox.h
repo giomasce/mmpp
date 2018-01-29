@@ -11,7 +11,7 @@
 #include "library.h"
 #include "parsing/lr.h"
 #include "parsing/unif.h"
-#include "engine.h"
+#include "sentengine.h"
 #include "mmtemplates.h"
 
 class LibraryToolbox;
@@ -296,7 +296,7 @@ public:
 
     // Misc
 public:
-    void dump_proof_exception(const ProofException &e, std::ostream &out) const;
+    void dump_proof_exception(const ProofException< Sentence > &e, std::ostream &out) const;
 
     // Library interface
 public:
