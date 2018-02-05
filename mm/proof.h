@@ -38,12 +38,8 @@ public:
 protected:
     ProofExecutor(const Library &lib, const Assertion &ass, bool gen_proof_tree);
     void process_label(const LabTok label);
-    size_t save_step() {
-        return this->engine.save_step();
-    }
-    void process_saved_step(size_t step_num) {
-        this->engine.process_saved_step(step_num);
-    }
+    size_t save_step();
+    void process_saved_step(size_t step_num);
     size_t get_hyp_num(const LabTok label) const;
     void final_checks() const;
 
@@ -91,6 +87,8 @@ class CompressedProof : public Proof {
 public:
     CompressedProof(const std::vector< LabTok > &refs, const std::vector< CodeTok > &codes);
     std::shared_ptr< ProofExecutor > get_executor(const Library &lib, const Assertion &ass, bool gen_proof_tree=false) const;
+    const std::vector< LabTok > &get_refs() const;
+    const std::vector< CodeTok > &get_codes() const;
 private:
     const std::vector< LabTok > refs;
     const std::vector< CodeTok > codes;

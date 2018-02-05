@@ -28,6 +28,16 @@ std::shared_ptr<ProofExecutor> CompressedProof::get_executor(const Library &lib,
     return shared_ptr< ProofExecutor >(new CompressedProofExecutor(lib, ass, *this, gen_proof_tree));
 }
 
+const std::vector<LabTok> &CompressedProof::get_refs() const
+{
+    return this->refs;
+}
+
+const std::vector<CodeTok> &CompressedProof::get_codes() const
+{
+    return this->codes;
+}
+
 const CompressedProof CompressedProofExecutor::compress(CompressionStrategy strategy)
 {
     if (strategy == CS_ANY) {
@@ -318,6 +328,14 @@ void ProofExecutor::process_label(const LabTok label)
                         "Requested label cannot be used by this theorem");
     }
     this->engine.process_label(label);
+}
+
+size_t ProofExecutor::save_step() {
+    return this->engine.save_step();
+}
+
+void ProofExecutor::process_saved_step(size_t step_num) {
+    this->engine.process_saved_step(step_num);
 }
 
 size_t ProofExecutor::get_hyp_num(const LabTok label) const {
