@@ -18,3 +18,4 @@ class Proof;
 class CompressedProof;
 class UncompressedProof;
 class ProofExecutor;
+class ProofOperator;

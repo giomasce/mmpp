@@ -61,7 +61,7 @@ int dissector_main(int argc, char *argv[]) {
     auto &tb = data.tb;
 
     const Assertion &ass = tb.get_assertion(tb.get_label("ftalem7"));
-    UncompressedProof unc_proof = ass.get_proof_executor(tb, false)->uncompress();
+    UncompressedProof unc_proof = ass.get_proof_operator(tb)->uncompress();
     auto pe = unc_proof.get_executor(tb, ass, true);
     pe->execute();
     const ProofTree< Sentence > &pt = pe->get_proof_tree();
@@ -144,7 +144,7 @@ int proofs_stats_main(int argc, char *argv[]) {
         if (!ass.has_proof()) {
             continue;
         }
-        auto proof = ass.get_proof_executor(lib)->compress();
+        auto proof = ass.get_proof_operator(lib)->compress();
         auto exec = proof.get_executor(lib, ass, true);
         exec->execute();
 
@@ -269,7 +269,7 @@ int gen_random_theorems_main(int argc, char *argv[]) {
             /*if (ass.get_thesis() >= target_label) {
                 break;
             }*/
-            if (ass.is_theorem() && ass.has_proof() && ass.get_proof_executor(lib)->is_trivial()) {
+            if (ass.is_theorem() && ass.has_proof() && ass.get_proof_operator(lib)->is_trivial()) {
                 //cout << "Proof for " << lib.resolve_label(ass.get_thesis()) << " is trivial" << endl;
             } else {
                 if (ass.get_thesis() != target_label && ass.get_thesis()) {

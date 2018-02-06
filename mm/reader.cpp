@@ -410,8 +410,9 @@ void Reader::parse_p()
             proof = shared_ptr< Proof > (new CompressedProof(proof_refs, proof_codes));
         }
         ass.set_proof(proof);
+        auto po = ass.get_proof_operator(this->lib);
         auto pe = ass.get_proof_executor(this->lib);
-        assert_or_throw< MMPPParsingError >(pe->check_syntax(), "Syntax check failed for proof of $p statement");
+        assert_or_throw< MMPPParsingError >(po->check_syntax(), "Syntax check failed for proof of $p statement");
         if (this->execute_proofs) {
             pe = ass.get_proof_executor(this->lib);
             pe->set_debug_output("executing " + lib.resolve_label(this->label));

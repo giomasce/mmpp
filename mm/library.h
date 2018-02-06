@@ -235,6 +235,7 @@ public:
         return this->thesis;
     }
     std::shared_ptr< ProofExecutor > get_proof_executor(const Library &lib, bool gen_proof_tree=false) const;
+    std::shared_ptr< ProofOperator > get_proof_operator(const Library &lib) const;
     void set_proof(std::shared_ptr<Proof> proof);
 
 private:

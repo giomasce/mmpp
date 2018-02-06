@@ -78,7 +78,7 @@ bool test_verification_one(string filename, bool advanced_tests) {
             cout << "Compressing all proofs and executing again..." << endl;
             for (auto &ass : lib.get_assertions()) {
                 if (ass.is_valid() && ass.is_theorem()) {
-                    CompressedProof compressed = ass.get_proof_executor(lib)->compress();
+                    CompressedProof compressed = ass.get_proof_operator(lib)->compress();
                     compressed.get_executor(lib, ass)->execute();
                 }
             }
@@ -86,7 +86,7 @@ bool test_verification_one(string filename, bool advanced_tests) {
             cout << "Decompressing all proofs and executing again..." << endl;
             for (auto &ass : lib.get_assertions()) {
                 if (ass.is_valid() && ass.is_theorem()) {
-                    UncompressedProof uncompressed = ass.get_proof_executor(lib)->uncompress();
+                    UncompressedProof uncompressed = ass.get_proof_operator(lib)->uncompress();
                     uncompressed.get_executor(lib, ass)->execute();
                 }
             }
@@ -94,8 +94,8 @@ bool test_verification_one(string filename, bool advanced_tests) {
             cout << "Compressing and decompressing all proofs and executing again..." << endl;
             for (auto &ass : lib.get_assertions()) {
                 if (ass.is_valid() && ass.is_theorem()) {
-                    CompressedProof compressed = ass.get_proof_executor(lib)->compress();
-                    UncompressedProof uncompressed = compressed.get_executor(lib, ass)->uncompress();
+                    CompressedProof compressed = ass.get_proof_operator(lib)->compress();
+                    UncompressedProof uncompressed = compressed.get_operator(lib, ass)->uncompress();
                     uncompressed.get_executor(lib, ass)->execute();
                 }
             }
@@ -103,8 +103,8 @@ bool test_verification_one(string filename, bool advanced_tests) {
             cout << "Decompressing and compressing all proofs and executing again..." << endl;
             for (auto &ass : lib.get_assertions()) {
                 if (ass.is_valid() && ass.is_theorem()) {
-                    UncompressedProof uncompressed = ass.get_proof_executor(lib)->uncompress();
-                    CompressedProof compressed = uncompressed.get_executor(lib, ass)->compress();
+                    UncompressedProof uncompressed = ass.get_proof_operator(lib)->uncompress();
+                    CompressedProof compressed = uncompressed.get_operator(lib, ass)->compress();
                     compressed.get_executor(lib, ass)->execute();
                 }
             }

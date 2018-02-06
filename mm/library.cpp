@@ -282,6 +282,11 @@ std::shared_ptr<ProofExecutor> Assertion::get_proof_executor(const Library &lib,
     return this->proof->get_executor(lib, *this, gen_proof_tree);
 }
 
+std::shared_ptr<ProofOperator> Assertion::get_proof_operator(const Library &lib) const
+{
+    return this->proof->get_operator(lib, *this);
+}
+
 void Assertion::set_proof(shared_ptr< Proof > proof)
 {
     assert(this->theorem);

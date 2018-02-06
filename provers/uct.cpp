@@ -101,7 +101,7 @@ bool UCTProver::is_assertion_useful(const Assertion &ass) const
     if (this->tb.get_sentence(ass.get_thesis()).at(0) != this->tb.get_turnstile()) {
         return false;
     }
-    if (ass.is_theorem() && ass.has_proof() && ass.get_proof_executor(this->tb)->is_trivial()) {
+    if (ass.is_theorem() && ass.has_proof() && ass.get_proof_operator(this->tb)->is_trivial()) {
         return false;
     }
     if (ass.is_usage_disc()) {

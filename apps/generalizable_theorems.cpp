@@ -130,8 +130,8 @@ void find_generalizable_theorems() {
         }
         tb.new_temp_var_frame();
 
-        auto pe = ass.get_proof_executor(tb);
-        auto proof = pe->uncompress();
+        auto po = ass.get_proof_operator(tb);
+        auto proof = po->uncompress();
         auto labs = proof.get_labels();
         //cout << "Proof vector: {";
         Reactor reactor(tb, ass.get_ess_hyps().size());

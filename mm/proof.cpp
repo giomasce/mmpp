@@ -25,7 +25,12 @@ CompressedProof::CompressedProof(const std::vector<LabTok> &refs, const std::vec
 
 std::shared_ptr<ProofExecutor> CompressedProof::get_executor(const Library &lib, const Assertion &ass, bool gen_proof_tree) const
 {
-    return shared_ptr< ProofExecutor >(new CompressedProofExecutor(lib, ass, *this, gen_proof_tree));
+    return make_shared< CompressedProofExecutor >(lib, ass, *this, gen_proof_tree);
+}
+
+std::shared_ptr<ProofOperator> CompressedProof::get_operator(const Library &lib, const Assertion &ass) const
+{
+    return make_shared< CompressedProofOperator >(lib, ass, *this);
 }
 
 const std::vector<LabTok> &CompressedProof::get_refs() const
@@ -38,30 +43,30 @@ const std::vector<CodeTok> &CompressedProof::get_codes() const
     return this->codes;
 }
 
-const CompressedProof CompressedProofExecutor::compress(CompressionStrategy strategy)
+const CompressedProof CompressedProofOperator::compress(CompressionStrategy strategy)
 {
     if (strategy == CS_ANY) {
         return this->proof;
     } else {
         // If we want to recompress with a specified strategy, then we uncompress and compress again
         // TODO Implement a direct algorithm
-        return this->uncompress().get_executor(this->lib, this->ass)->compress(strategy);
+        return this->uncompress().get_operator(this->lib, this->ass)->compress(strategy);
     }
 }
 
-const UncompressedProof CompressedProofExecutor::uncompress()
+const UncompressedProof CompressedProofOperator::uncompress()
 {
     vector< size_t > opening_stack;
     vector< LabTok > labels;
     vector< vector< LabTok > > saved;
-    for (size_t i = 0; i < this->proof.codes.size(); i++) {
+    for (size_t i = 0; i < this->proof.get_codes().size(); i++) {
         /* The decompressiong algorithm is potentially exponential in the input data,
          * which means that even with very short compressed proof you can obtain very
          * big uncompressed proofs. This is analogous to a "ZIP bomb" and might lead to
          * security problems. Therefore we fail when decompressed data are too long.
          */
         assert_or_throw< ProofException< Sentence > >(labels.size() < max_decompression_size, "Decompressed proof is too large");
-        const CodeTok &code = this->proof.codes.at(i);
+        const CodeTok &code = this->proof.get_codes().at(i);
         if (code == 0) {
             saved.emplace_back(labels.begin() + opening_stack.back(), labels.end());
         } else if (code <= this->ass.get_mand_hyps_num()) {
@@ -74,8 +79,8 @@ const UncompressedProof CompressedProofExecutor::uncompress()
             }
             opening_stack.push_back(opening);
             labels.push_back(label);
-        } else if (code <= this->ass.get_mand_hyps_num() + this->proof.refs.size()) {
-            LabTok label = this->proof.refs.at(code-this->ass.get_mand_hyps_num()-1);
+        } else if (code <= this->ass.get_mand_hyps_num() + this->proof.get_refs().size()) {
+            LabTok label = this->proof.get_refs().at(code-this->ass.get_mand_hyps_num()-1);
             size_t opening = labels.size();
             assert_or_throw< ProofException< Sentence > >(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
             for (size_t j = 0; j < this->get_hyp_num(label); j++) {
@@ -85,8 +90,8 @@ const UncompressedProof CompressedProofExecutor::uncompress()
             opening_stack.push_back(opening);
             labels.push_back(label);
         } else {
-            assert_or_throw< ProofException< Sentence > >(code <= this->ass.get_mand_hyps_num() + this->proof.refs.size() + saved.size(), "Code too big in compressed proof");
-            const vector< LabTok > &sent = saved.at(code-this->ass.get_mand_hyps_num()-this->proof.refs.size()-1);
+            assert_or_throw< ProofException< Sentence > >(code <= this->ass.get_mand_hyps_num() + this->proof.get_refs().size() + saved.size(), "Code too big in compressed proof");
+            const vector< LabTok > &sent = saved.at(code-this->ass.get_mand_hyps_num()-this->proof.get_refs().size()-1);
             size_t opening = labels.size();
             opening_stack.push_back(opening);
             copy(sent.begin(), sent.end(), back_inserter(labels));
@@ -100,18 +105,18 @@ const UncompressedProof CompressedProofExecutor::uncompress()
 void CompressedProofExecutor::execute()
 {
     //cerr << "Executing proof of " << this->lib.resolve_label(this->ass.get_thesis()) << endl;
-    for (auto &code : this->proof.codes) {
+    for (auto &code : this->proof.get_codes()) {
         if (code == 0) {
             this->save_step();
         } else if (code <= this->ass.get_mand_hyps_num()) {
             LabTok label = this->ass.get_mand_hyp(code-1);
             this->process_label(label);
-        } else if (code <= this->ass.get_mand_hyps_num() + this->proof.refs.size()) {
-            LabTok label = this->proof.refs.at(code-this->ass.get_mand_hyps_num()-1);
+        } else if (code <= this->ass.get_mand_hyps_num() + this->proof.get_refs().size()) {
+            LabTok label = this->proof.get_refs().at(code-this->ass.get_mand_hyps_num()-1);
             this->process_label(label);
         } else {
             try {
-                this->process_saved_step(code - this->ass.get_mand_hyps_num()-this->proof.refs.size()-1);
+                this->process_saved_step(code - this->ass.get_mand_hyps_num()-this->proof.get_refs().size()-1);
             } catch (out_of_range) {
                 throw ProofException< Sentence >("Code too big in compressed proof");
             }
@@ -120,9 +125,9 @@ void CompressedProofExecutor::execute()
     this->final_checks();
 }
 
-bool CompressedProofExecutor::check_syntax()
+bool CompressedProofOperator::check_syntax()
 {
-    for (auto &ref : this->proof.refs) {
+    for (auto &ref : this->proof.get_refs()) {
         if (!this->lib.get_assertion(ref).is_valid() && this->ass.get_opt_hyps().find(ref) == this->ass.get_opt_hyps().end()) {
             //cerr << "Syntax error for assertion " << this->lib.resolve_label(this->ass.get_thesis()) << " in reference " << this->lib.resolve_label(ref) << endl;
             //abort();
@@ -130,12 +135,12 @@ bool CompressedProofExecutor::check_syntax()
         }
     }
     unsigned int zero_count = 0;
-    for (auto &code : this->proof.codes) {
+    for (auto &code : this->proof.get_codes()) {
         assert(code != INVALID_CODE);
         if (code == 0) {
             zero_count++;
         } else {
-            if (code > this->ass.get_mand_hyps_num() + this->proof.refs.size() + zero_count) {
+            if (code > this->ass.get_mand_hyps_num() + this->proof.get_refs().size() + zero_count) {
                 return false;
             }
         }
@@ -143,10 +148,10 @@ bool CompressedProofExecutor::check_syntax()
     return true;
 }
 
-bool CompressedProofExecutor::is_trivial() const
+bool CompressedProofOperator::is_trivial() const
 {
     bool first_ess_found = false;
-    for (const auto &code : this->proof.codes) {
+    for (const auto &code : this->proof.get_codes()) {
         if (code == 0) {
             return false;
         }
@@ -168,7 +173,12 @@ UncompressedProof::UncompressedProof(const std::vector<LabTok> &labels) :
 
 std::shared_ptr<ProofExecutor> UncompressedProof::get_executor(const Library &lib, const Assertion &ass, bool gen_proof_tree) const
 {
-    return shared_ptr< ProofExecutor >(new UncompressedProofExecutor(lib, ass, *this, gen_proof_tree));
+    return make_shared< UncompressedProofExecutor >(lib, ass, *this, gen_proof_tree);
+}
+
+std::shared_ptr<ProofOperator> UncompressedProof::get_operator(const Library &lib, const Assertion &ass) const
+{
+    return make_shared< UncompressedProofOperator >(lib, ass, *this);
 }
 
 const std::vector<LabTok> &UncompressedProof::get_labels() const
@@ -230,7 +240,7 @@ static void compress_unwind_proof_tree_phase2(const ProofTree< Sentence > &tree,
     sents.insert(tree.sentence);
 }
 
-const CompressedProof UncompressedProofExecutor::compress(CompressionStrategy strategy)
+const CompressedProof UncompressedProofOperator::compress(CompressionStrategy strategy)
 {
     CodeTok code_idx = 1;
     unordered_map< LabTok, CodeTok > label_map;
@@ -245,7 +255,7 @@ const CompressedProof UncompressedProofExecutor::compress(CompressionStrategy st
         assert(res.second);
     }
     if (strategy == CS_NO_BACKREFS) {
-        for (auto &label : this->proof.labels) {
+        for (auto &label : this->proof.get_labels()) {
             if (label_map.find(label) == label_map.end()) {
                 auto res = label_map.insert(make_pair(label, code_idx++));
                 assert(res.second);
@@ -254,7 +264,6 @@ const CompressedProof UncompressedProofExecutor::compress(CompressionStrategy st
             codes.push_back(label_map.at(label));
         }
     } else if (strategy == CS_BACKREFS_ON_IDENTICAL_SENTENCE || strategy == CS_ANY) {
-        this->engine.set_gen_proof_tree(true);
         this->execute();
         const auto &tree = this->engine.get_proof_tree();
         set< vector< SymTok > > sents;
@@ -271,7 +280,7 @@ const CompressedProof UncompressedProofExecutor::compress(CompressionStrategy st
     return CompressedProof(refs, codes);
 }
 
-const UncompressedProof UncompressedProofExecutor::uncompress()
+const UncompressedProof UncompressedProofOperator::uncompress()
 {
     return this->proof;
 }
@@ -279,17 +288,17 @@ const UncompressedProof UncompressedProofExecutor::uncompress()
 void UncompressedProofExecutor::execute()
 {
     //cerr << "Executing proof of " << this->lib.resolve_label(this->ass.get_thesis()) << endl;
-    for (auto &label : this->proof.labels) {
+    for (auto &label : this->proof.get_labels()) {
         this->process_label(label);
     }
     this->final_checks();
 }
 
-bool UncompressedProofExecutor::check_syntax()
+bool UncompressedProofOperator::check_syntax()
 {
     set< LabTok > mand_hyps_set(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end());
     mand_hyps_set.insert(this->ass.get_ess_hyps().begin(), this->ass.get_ess_hyps().end());
-    for (auto &label : this->proof.labels) {
+    for (auto &label : this->proof.get_labels()) {
         if (!this->lib.get_assertion(label).is_valid() && mand_hyps_set.find(label) == mand_hyps_set.end()) {
             return false;
         }
@@ -297,10 +306,10 @@ bool UncompressedProofExecutor::check_syntax()
     return true;
 }
 
-bool UncompressedProofExecutor::is_trivial() const
+bool UncompressedProofOperator::is_trivial() const
 {
     bool first_ess_found = false;
-    for (const auto &label : this->proof.labels) {
+    for (const auto &label : this->proof.get_labels()) {
         auto it = find(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end(), label);
         if (it != this->ass.get_float_hyps().end()) {
             continue;
@@ -338,7 +347,7 @@ void ProofExecutor::process_saved_step(size_t step_num) {
     this->engine.process_saved_step(step_num);
 }
 
-size_t ProofExecutor::get_hyp_num(const LabTok label) const {
+size_t ProofOperator::get_hyp_num(const LabTok label) const {
     const Assertion &child_ass = this->lib.get_assertion(label);
     if (child_ass.is_valid()) {
         return child_ass.get_mand_hyps_num();
@@ -428,4 +437,16 @@ string CompressedEncoder::push_code(CodeTok x)
         x = div;
     }
     return string(buf.rbegin(), buf.rend());
+}
+
+ProofOperator::~ProofOperator()
+{
+}
+
+CompressedProofOperator::CompressedProofOperator(const Library &lib, const Assertion &ass, const CompressedProof &proof) : ProofExecutor(lib, ass, true), ProofOperator(), CompressedProofExecutor(lib, ass, proof, true)
+{
+}
+
+UncompressedProofOperator::UncompressedProofOperator(const Library &lib, const Assertion &ass, const UncompressedProof &proof) : ProofExecutor(lib, ass, true), ProofOperator(), UncompressedProofExecutor(lib, ass, proof, true)
+{
 }
