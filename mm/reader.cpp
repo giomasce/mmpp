@@ -411,10 +411,9 @@ void Reader::parse_p()
         }
         ass.set_proof(proof);
         auto po = ass.get_proof_operator(this->lib);
-        auto pe = ass.get_proof_executor(this->lib);
         assert_or_throw< MMPPParsingError >(po->check_syntax(), "Syntax check failed for proof of $p statement");
         if (this->execute_proofs) {
-            pe = ass.get_proof_executor(this->lib);
+            auto pe = ass.get_proof_executor< Sentence >(this->lib);
             pe->set_debug_output("executing " + lib.resolve_label(this->label));
             pe->execute();
         }

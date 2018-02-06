@@ -79,7 +79,7 @@ bool test_verification_one(string filename, bool advanced_tests) {
             for (auto &ass : lib.get_assertions()) {
                 if (ass.is_valid() && ass.is_theorem()) {
                     CompressedProof compressed = ass.get_proof_operator(lib)->compress();
-                    compressed.get_executor(lib, ass)->execute();
+                    compressed.get_executor< Sentence >(lib, ass)->execute();
                 }
             }
 
@@ -87,7 +87,7 @@ bool test_verification_one(string filename, bool advanced_tests) {
             for (auto &ass : lib.get_assertions()) {
                 if (ass.is_valid() && ass.is_theorem()) {
                     UncompressedProof uncompressed = ass.get_proof_operator(lib)->uncompress();
-                    uncompressed.get_executor(lib, ass)->execute();
+                    uncompressed.get_executor< Sentence >(lib, ass)->execute();
                 }
             }
 
@@ -96,7 +96,7 @@ bool test_verification_one(string filename, bool advanced_tests) {
                 if (ass.is_valid() && ass.is_theorem()) {
                     CompressedProof compressed = ass.get_proof_operator(lib)->compress();
                     UncompressedProof uncompressed = compressed.get_operator(lib, ass)->uncompress();
-                    uncompressed.get_executor(lib, ass)->execute();
+                    uncompressed.get_executor< Sentence >(lib, ass)->execute();
                 }
             }
 
@@ -105,7 +105,7 @@ bool test_verification_one(string filename, bool advanced_tests) {
                 if (ass.is_valid() && ass.is_theorem()) {
                     UncompressedProof uncompressed = ass.get_proof_operator(lib)->uncompress();
                     CompressedProof compressed = uncompressed.get_operator(lib, ass)->compress();
-                    compressed.get_executor(lib, ass)->execute();
+                    compressed.get_executor< Sentence >(lib, ass)->execute();
                 }
             }
         } else {

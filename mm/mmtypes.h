@@ -17,5 +17,6 @@ class Assertion;
 class Proof;
 class CompressedProof;
 class UncompressedProof;
+template< typename SentType_ >
 class ProofExecutor;
 class ProofOperator;

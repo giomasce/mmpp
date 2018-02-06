@@ -23,11 +23,6 @@ CompressedProof::CompressedProof(const std::vector<LabTok> &refs, const std::vec
 {
 }
 
-std::shared_ptr<ProofExecutor> CompressedProof::get_executor(const Library &lib, const Assertion &ass, bool gen_proof_tree) const
-{
-    return make_shared< CompressedProofExecutor >(lib, ass, *this, gen_proof_tree);
-}
-
 std::shared_ptr<ProofOperator> CompressedProof::get_operator(const Library &lib, const Assertion &ass) const
 {
     return make_shared< CompressedProofOperator >(lib, ass, *this);
@@ -102,29 +97,6 @@ const UncompressedProof CompressedProofOperator::uncompress()
     return UncompressedProof(labels);
 }
 
-void CompressedProofExecutor::execute()
-{
-    //cerr << "Executing proof of " << this->lib.resolve_label(this->ass.get_thesis()) << endl;
-    for (auto &code : this->proof.get_codes()) {
-        if (code == 0) {
-            this->save_step();
-        } else if (code <= this->ass.get_mand_hyps_num()) {
-            LabTok label = this->ass.get_mand_hyp(code-1);
-            this->process_label(label);
-        } else if (code <= this->ass.get_mand_hyps_num() + this->proof.get_refs().size()) {
-            LabTok label = this->proof.get_refs().at(code-this->ass.get_mand_hyps_num()-1);
-            this->process_label(label);
-        } else {
-            try {
-                this->process_saved_step(code - this->ass.get_mand_hyps_num()-this->proof.get_refs().size()-1);
-            } catch (out_of_range) {
-                throw ProofException< Sentence >("Code too big in compressed proof");
-            }
-        }
-    }
-    this->final_checks();
-}
-
 bool CompressedProofOperator::check_syntax()
 {
     for (auto &ref : this->proof.get_refs()) {
@@ -169,11 +141,6 @@ bool CompressedProofOperator::is_trivial() const
 UncompressedProof::UncompressedProof(const std::vector<LabTok> &labels) :
     labels(labels)
 {
-}
-
-std::shared_ptr<ProofExecutor> UncompressedProof::get_executor(const Library &lib, const Assertion &ass, bool gen_proof_tree) const
-{
-    return make_shared< UncompressedProofExecutor >(lib, ass, *this, gen_proof_tree);
 }
 
 std::shared_ptr<ProofOperator> UncompressedProof::get_operator(const Library &lib, const Assertion &ass) const
@@ -285,15 +252,6 @@ const UncompressedProof UncompressedProofOperator::uncompress()
     return this->proof;
 }
 
-void UncompressedProofExecutor::execute()
-{
-    //cerr << "Executing proof of " << this->lib.resolve_label(this->ass.get_thesis()) << endl;
-    for (auto &label : this->proof.get_labels()) {
-        this->process_label(label);
-    }
-    this->final_checks();
-}
-
 bool UncompressedProofOperator::check_syntax()
 {
     set< LabTok > mand_hyps_set(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end());
@@ -322,31 +280,6 @@ bool UncompressedProofOperator::is_trivial() const
     return true;
 }
 
-ProofExecutor::ProofExecutor(const Library &lib, const Assertion &ass, bool gen_proof_tree) :
-    lib(lib), ass(ass), engine(lib, gen_proof_tree) {
-}
-
-void ProofExecutor::process_label(const LabTok label)
-{
-    const Assertion &child_ass = this->lib.get_assertion(label);
-    if (!child_ass.is_valid()) {
-        // In line of principle searching in a set would be faster, but since usually hypotheses are not many the vector is probably better
-        assert_or_throw< ProofException< Sentence > >(find(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end(), label) != this->ass.get_float_hyps().end() ||
-                find(this->ass.get_ess_hyps().begin(), this->ass.get_ess_hyps().end(), label) != this->ass.get_ess_hyps().end() ||
-                find(this->ass.get_opt_hyps().begin(), this->ass.get_opt_hyps().end(), label) != this->ass.get_opt_hyps().end(),
-                        "Requested label cannot be used by this theorem");
-    }
-    this->engine.process_label(label);
-}
-
-size_t ProofExecutor::save_step() {
-    return this->engine.save_step();
-}
-
-void ProofExecutor::process_saved_step(size_t step_num) {
-    this->engine.process_saved_step(step_num);
-}
-
 size_t ProofOperator::get_hyp_num(const LabTok label) const {
     const Assertion &child_ass = this->lib.get_assertion(label);
     if (child_ass.is_valid()) {
@@ -354,49 +287,6 @@ size_t ProofOperator::get_hyp_num(const LabTok label) const {
     } else {
         return 0;
     }
-}
-
-void ProofExecutor::final_checks() const
-{
-    assert_or_throw< ProofException< Sentence > >(this->get_stack().size() == 1, "Proof execution did not end with a single element on the stack");
-    assert_or_throw< ProofException< Sentence > >(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()), "Proof does not prove the thesis");
-    assert_or_throw< ProofException< Sentence > >(includes(this->ass.get_dists().begin(), this->ass.get_dists().end(),
-                             this->engine.get_dists().begin(), this->engine.get_dists().end()),
-                             "Distinct variables constraints are too wide");
-}
-
-const std::vector<std::vector<SymTok> > &ProofExecutor::get_stack() const
-{
-    return this->engine.get_stack();
-}
-
-const ProofTree<Sentence> &ProofExecutor::get_proof_tree() const
-{
-    return this->engine.get_proof_tree();
-}
-
-const std::vector<LabTok> &ProofExecutor::get_proof_labels() const
-{
-    return this->engine.get_proof_labels();
-}
-
-void ProofExecutor::set_debug_output(string debug_output)
-{
-    this->engine.set_debug_output(debug_output);
-}
-
-ProofExecutor::~ProofExecutor()
-{
-}
-
-CompressedProofExecutor::CompressedProofExecutor(const Library &lib, const Assertion &ass, const CompressedProof &proof, bool gen_proof_tree) :
-    ProofExecutor(lib, ass, gen_proof_tree), proof(proof)
-{
-}
-
-UncompressedProofExecutor::UncompressedProofExecutor(const Library &lib, const Assertion &ass, const UncompressedProof &proof, bool gen_proof_tree) :
-    ProofExecutor(lib, ass, gen_proof_tree), proof(proof)
-{
 }
 
 CodeTok CompressedDecoder::push_char(char c)

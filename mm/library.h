@@ -234,9 +234,17 @@ public:
     LabTok get_thesis() const {
         return this->thesis;
     }
-    std::shared_ptr< ProofExecutor > get_proof_executor(const Library &lib, bool gen_proof_tree=false) const;
+    template< typename SentType_ >
+    std::shared_ptr< ProofExecutor< SentType_ > > get_proof_executor(const Library &lib, bool gen_proof_tree=false) const;
     std::shared_ptr< ProofOperator > get_proof_operator(const Library &lib) const;
-    void set_proof(std::shared_ptr<Proof> proof);
+    void set_proof(std::shared_ptr<const Proof> proof)
+    {
+        assert(this->theorem);
+        this->proof = proof;
+    }
+    std::shared_ptr< const Proof > get_proof() const {
+        return this->proof;
+    }
 
 private:
     bool valid;
@@ -248,16 +256,11 @@ private:
     std::set< LabTok > opt_hyps;
     LabTok thesis;
     LabTok number;
-    std::shared_ptr< Proof > proof;
+    std::shared_ptr< const Proof > proof;
     std::string comment;
     bool modif_disc;
     bool usage_disc;
     bool _has_proof;
-
-    std::shared_ptr< Proof > get_proof() const
-    {
-        return this->proof;
-    }
 };
 
 enum SentenceType {

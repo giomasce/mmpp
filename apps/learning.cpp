@@ -62,7 +62,7 @@ int dissector_main(int argc, char *argv[]) {
 
     const Assertion &ass = tb.get_assertion(tb.get_label("ftalem7"));
     UncompressedProof unc_proof = ass.get_proof_operator(tb)->uncompress();
-    auto pe = unc_proof.get_executor(tb, ass, true);
+    auto pe = unc_proof.get_executor< Sentence >(tb, ass, true);
     pe->execute();
     const ProofTree< Sentence > &pt = pe->get_proof_tree();
     print_trace(pt, tb, ass);
@@ -145,7 +145,7 @@ int proofs_stats_main(int argc, char *argv[]) {
             continue;
         }
         auto proof = ass.get_proof_operator(lib)->compress();
-        auto exec = proof.get_executor(lib, ass, true);
+        auto exec = proof.get_executor< Sentence >(lib, ass, true);
         exec->execute();
 
         ProofStat stat;
