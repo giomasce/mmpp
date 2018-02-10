@@ -109,6 +109,9 @@ void Step::report_result(std::shared_ptr<StepStrategy> strategy, std::shared_ptr
         this->maybe_notify_update();
     } else {
         this->active_strategies.erase(it);
+        if (this->active_strategies.empty()) {
+            this->maybe_notify_update();
+        }
     }
 }
 

@@ -100,5 +100,7 @@ void UnificationStrategy::operator()(Yield &yield) {
     if (!res.empty()) {
         result->success = true;
         result->data = res[0];
+    } else {
+        result->success = false;
     }
 }
