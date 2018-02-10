@@ -29,7 +29,7 @@ void Step::before_being_adopted(size_t child_idx) {
 
 void Step::after_adopting(size_t child_idx) {
     (void) child_idx;
-    this->restart_coroutine();
+    this->restart_search();
 }
 
 void Step::after_being_adopted(size_t child_idx) {
@@ -46,7 +46,7 @@ void Step::before_being_orphaned(size_t child_idx) {
 
 void Step::after_orphaning(size_t child_idx) {
     (void) child_idx;
-    this->restart_coroutine();
+    this->restart_search();
 }
 
 void Step::after_being_orphaned(size_t child_idx) {
@@ -56,25 +56,49 @@ void Step::after_being_orphaned(size_t child_idx) {
 void Step::after_new_sentence(const Sentence &old_sent) {
     (void) old_sent;
     unique_lock< recursive_mutex > lock(this->global_mutex);
-    this->restart_coroutine();
+    this->restart_search();
     auto strong_parent = this->parent.lock();
     if (strong_parent) {
-        strong_parent->restart_coroutine();
+        strong_parent->restart_search();
     }
 }
 
-void Step::restart_coroutine()
+void Step::restart_search()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
+    this->active_strategies.clear();
+    this->winning_strategy = NULL;
+
     vector< Sentence > hyps;
     for (const auto &child : this->get_children()) {
         hyps.push_back(child.lock()->get_sentence());
     }
+
     auto workset = this->get_workset().lock();
     if (workset != NULL) {
-        this->last_comp = make_shared< StepComputation >(this->shared_from_this(), this->get_sentence(), hyps, workset->get_toolbox());
-        this->last_coro = make_shared< Coroutine >(this->last_comp);
-        workset->add_coroutine(this->last_coro);
+        auto strategies = create_strategies(this->weak_from_this(), this->get_sentence(), hyps, workset->get_toolbox());
+        for (const auto &strat : strategies) {
+            auto coro = make_shared< Coroutine >(strat);
+            workset->add_coroutine(coro);
+            this->active_strategies.push_back(make_pair(strat, coro));
+        }
+    }
+    this->maybe_notify_update();
+}
+
+void Step::report_result(std::shared_ptr<StepStrategy> strategy, std::shared_ptr<StepStrategyResult> result)
+{
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    auto it = find_if(this->active_strategies.begin(), this->active_strategies.end(), [&strategy](const auto &x) { return x.first == strategy; });
+    if (it == this->active_strategies.end()) {
+        return;
+    }
+    if (result->get_success()) {
+        this->active_strategies.clear();
+        this->winning_strategy = result;
+        this->maybe_notify_update();
+    } else {
+        this->active_strategies.erase(it);
     }
 }
 
@@ -289,27 +313,6 @@ bool Step::reparent(std::shared_ptr<Step> parent, size_t idx)
     return true;
 }
 
-void Step::step_coroutine_finished(StepComputation *step_comp)
-{
-    // Acquire locks
-    unique_lock< recursive_mutex > lock(this->global_mutex);
-    if (this->last_comp.get() != step_comp) {
-        return;
-    }
-    auto strong_workset = this->get_workset().lock();
-    if (strong_workset == NULL) {
-        return;
-    }
-
-    //tie(this->label, this->permutation, this->subst_map) = this->last_comp->get_result();
-
-    // Push an event to queue
-    json ret = json::object();
-    ret["event"] = "step_updated";
-    ret["step_id"] = this->get_id();
-    strong_workset->add_to_queue(ret);
-}
-
 nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end)
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
@@ -387,49 +390,30 @@ void Step::add_listener(const std::shared_ptr<StepOperationsListener> &listener)
     this->listeners.push_back(listener);
 }
 
-bool Step::get_success()
+void Step::maybe_notify_update()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
-    if (this->last_comp) {
-        return this->last_comp->get_success();
-    } else {
-        return false;
-    }
-}
-
-LabTok Step::get_label()
-{
-    unique_lock< recursive_mutex > lock(this->global_mutex);
-    return get< 0 >(this->last_comp->get_result());
-}
-
-LabTok Step::get_number()
-{
-    unique_lock< recursive_mutex > lock(this->global_mutex);
-    LabTok label = this->get_label();
+    // Push an event to queue if the workset exists
     auto strong_workset = this->get_workset().lock();
-    if (strong_workset) {
-        auto ass = strong_workset->get_toolbox().get_assertion(label);
-        if (ass.is_valid()) {
-            return ass.get_number();
-        } else {
-            return {};
-        }
-    } else {
-        return {};
+    if (!strong_workset) {
+        return;
     }
+    json ret = json::object();
+    ret["event"] = "step_updated";
+    ret["step_id"] = this->get_id();
+    strong_workset->add_to_queue(ret);
 }
 
-const std::vector<size_t> &Step::get_permutation()
+bool Step::is_searching()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
-    return get< 1 >(this->last_comp->get_result());
+    return !this->active_strategies.empty();
 }
 
-const std::unordered_map<SymTok, std::vector<SymTok> > &Step::get_subst_map()
+std::shared_ptr<const StepStrategyResult> Step::get_result()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
-    return get< 2 >(this->last_comp->get_result());
+    return this->winning_strategy;
 }
 
 Step::Step(size_t id, std::shared_ptr<Workset> workset) : id(id), workset(workset)
@@ -439,67 +423,14 @@ Step::Step(size_t id, std::shared_ptr<Workset> workset) : id(id), workset(workse
 #endif
 }
 
+void Step::init()
+{
+    this->restart_search();
+}
+
 Step::~Step()
 {
 #ifdef LOG_STEP_OPS
     cerr << "Destroying step with id " << id << endl;
 #endif
-}
-
-/*std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > Step::get_result()
-{
-    unique_lock< recursive_mutex > lock(this->global_mutex);
-    if (this->last_comp) {
-        return this->last_comp->get_result();
-    } else {
-        return {};
-    }
-}*/
-
-StepComputation::StepComputation(std::weak_ptr< Step > parent, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox)
-    : parent(parent), thesis(thesis), hypotheses(hypotheses), toolbox(toolbox), finished(false), success(false)
-{
-}
-
-void StepComputation::operator()(Yield &yield)
-{
-    Finally f1([this]() {
-        this->finished = true;
-        auto strong_parent = this->parent.lock();
-        if (strong_parent != NULL) {
-            strong_parent->step_coroutine_finished(this);
-        }
-    });
-
-    bool can_go = true;
-    if (this->thesis.size() == 0) {
-        can_go = false;
-    }
-    for (const auto &hyp : this->hypotheses) {
-        if (hyp.size() == 0) {
-            can_go = false;
-        }
-    }
-    if (!can_go) {
-        this->success = false;
-        return;
-    }
-
-    yield();
-
-    auto res = this->toolbox.unify_assertion(this->hypotheses, this->thesis);
-    if (!res.empty()) {
-        this->success = true;
-        this->result = res[0];
-    }
-}
-
-bool StepComputation::get_success() const
-{
-    return this->success;
-}
-
-const std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > &StepComputation::get_result() const
-{
-    return this->result;
 }

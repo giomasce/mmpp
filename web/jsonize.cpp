@@ -95,14 +95,14 @@ json jsonize(Step &step)
         ret["children"].push_back(child.lock()->get_id());
     }
     ret["sentence"] = step.get_sentence();
-    bool success = step.get_success();
-    ret["success"] = success;
-    if (success) {
-        //ret["result"] = step.get_result();
-        ret["label"] = step.get_label();
-        ret["number"] = step.get_number();
-        ret["permutation"] = step.get_permutation();
-        ret["subst_map"] = step.get_subst_map();
+    bool searching = step.is_searching();
+    ret["searching"] = searching;
+    if (!searching) {
+        auto result = step.get_result();
+        ret["found_proof"] = static_cast< bool >(result);
+        if (result) {
+            ret["proof_data"] = result->get_web_json();
+        }
     }
     return ret;
 }

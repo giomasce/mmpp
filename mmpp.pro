@@ -85,7 +85,8 @@ SOURCES += \
     mm/funds.cpp \
     mm/mmtemplates.cpp \
     mm/ptengine.cpp \
-    mm/sentengine.cpp
+    mm/sentengine.cpp \
+    web/strategy.cpp
 
 HEADERS += \
     pch.h \
@@ -124,7 +125,8 @@ HEADERS += \
     mm/mmtypes.h \
     mm/mmtemplates.h \
     mm/ptengine.h \
-    mm/sentengine.h
+    mm/sentengine.h \
+    web/strategy.h
 
 DISTFILES += \
     README \
