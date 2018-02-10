@@ -13,6 +13,8 @@
 #define BOOST_COROUTINES_NO_DEPRECATION_WARNING
 #include <boost/coroutine/all.hpp>
 
+#include "utils.h"
+
 class Yield {
 public:
     Yield(boost::coroutines::asymmetric_coroutine< void >::push_type &base_yield);
@@ -34,6 +36,10 @@ public:
     //Coroutine(Coroutine &&other);
     //void operator=(Coroutine &&other);
     bool execute();
+    template< typename T >
+    void set_body(std::shared_ptr< T > body) {
+        this->coro_impl = make_coroutine(body);
+    }
 
 private:
     /*template< typename T >
@@ -56,6 +62,20 @@ private:
 
     boost::coroutines::asymmetric_coroutine< void >::pull_type coro_impl;
 };
+
+template< typename T >
+std::shared_ptr< Coroutine > make_auto_coroutine(std::shared_ptr< T > body) {
+    auto coro = std::make_shared< Coroutine >();
+    auto new_body = [coro,body](Yield &yield) mutable {
+        Finally f([&coro]() {
+           coro = NULL;
+        });
+        (*body)(yield);
+    };
+    auto shared_new_body = std::make_shared< decltype(new_body) >(new_body);
+    coro->set_body(shared_new_body);
+    return coro;
+}
 
 class CoroutineThreadManager {
 public:

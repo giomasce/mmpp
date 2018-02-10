@@ -3,6 +3,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "web/jsonize.h"
+#include "strategy.h"
 
 using namespace std;
 using namespace nlohmann;
@@ -59,7 +60,16 @@ void Step::after_new_sentence(const Sentence &old_sent) {
     this->restart_search();
     auto strong_parent = this->parent.lock();
     if (strong_parent) {
-        strong_parent->restart_search();
+        auto workset = this->get_workset().lock();
+        if (workset) {
+            // Restart search from a coroutine to avoid deadlocks
+            auto body = [strong_parent](Yield &yield) {
+                (void) yield;
+                strong_parent->restart_search();
+            };
+            auto shared_body = make_shared< decltype(body) >(body);
+            workset->add_coroutine(make_auto_coroutine(shared_body));
+        }
     }
 }
 
@@ -325,8 +335,8 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         path_begin++;
         assert_or_throw< SendError >(path_begin == path_end, 404);
         assert_or_throw< SendError >(cb.get_method() == "POST", 405);
-        throw WaitForPost([this] (const auto &post_data) {
-            unique_lock< recursive_mutex > lock(this->global_mutex);
+        throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
+            unique_lock< recursive_mutex > lock(self->global_mutex);
             string sent_str = safe_at(post_data, "sentence").value;
             vector< string> toks;
             boost::split(toks, sent_str, boost::is_any_of(" "));
@@ -334,7 +344,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             for (const auto &x : toks) {
                 sent.push_back(safe_stoi(x));
             }
-            this->set_sentence(sent);
+            self->set_sentence(sent);
             json ret = json::object();
             ret["success"] = true;
             return ret;
@@ -343,15 +353,15 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         path_begin++;
         assert_or_throw< SendError >(path_begin == path_end, 404);
         assert_or_throw< SendError >(cb.get_method() == "POST", 405);
-        throw WaitForPost([this] (const auto &post_data) {
-            unique_lock< recursive_mutex > lock(this->global_mutex);
+        throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
+            unique_lock< recursive_mutex > lock(self->global_mutex);
             size_t parent_id = safe_stoi(safe_at(post_data, "parent").value);
             size_t idx = safe_stoi(safe_at(post_data, "index").value);
             shared_ptr< Step > parent_step;
-            auto strong_workset = this->get_workset().lock();
+            auto strong_workset = self->get_workset().lock();
             assert_or_throw< SendError >(strong_workset.operator bool(), 404);
             parent_step = safe_at(*strong_workset, parent_id);
-            bool res = this->reparent(parent_step, idx);
+            bool res = self->reparent(parent_step, idx);
             json ret = json::object();
             ret["success"] = res;
             return ret;
@@ -360,10 +370,10 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         path_begin++;
         assert_or_throw< SendError >(path_begin == path_end, 404);
         assert_or_throw< SendError >(cb.get_method() == "POST", 405);
-        throw WaitForPost([this] (const auto &post_data) {
+        throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
             (void) post_data;
-            unique_lock< recursive_mutex > lock(this->global_mutex);
-            bool res = this->orphan();
+            unique_lock< recursive_mutex > lock(self->global_mutex);
+            bool res = self->orphan();
             json ret = json::object();
             ret["success"] = res;
             return ret;
@@ -372,10 +382,10 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         path_begin++;
         assert_or_throw< SendError >(path_begin == path_end, 404);
         assert_or_throw< SendError >(cb.get_method() == "POST", 405);
-        throw WaitForPost([this] (const auto &post_data) {
+        throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
             (void) post_data;
-            unique_lock< recursive_mutex > lock(this->global_mutex);
-            bool res = this->destroy();
+            unique_lock< recursive_mutex > lock(self->global_mutex);
+            bool res = self->destroy();
             json ret = json::object();
             ret["success"] = res;
             return ret;

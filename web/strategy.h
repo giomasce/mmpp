@@ -21,14 +21,14 @@ public:
     virtual void report_result(std::shared_ptr< StepStrategy > strategy, std::shared_ptr< StepStrategyResult > result) = 0;
 };
 
-class StepStrategy : public std::enable_shared_from_this< StepStrategy > {
+class StepStrategy {
 public:
     ~StepStrategy();
     virtual void operator()(Yield &yield) = 0;
 
 protected:
     StepStrategy(std::weak_ptr< StrategyManager > manager, const Sentence &thesis, const std::vector< Sentence > &hypotheses, const LibraryToolbox &toolbox);
-    void maybe_report_result(std::shared_ptr< StepStrategyResult > result);
+    void maybe_report_result(std::shared_ptr<StepStrategy> strategy, std::shared_ptr< StepStrategyResult > result);
 
     std::weak_ptr< StrategyManager > manager;
     Sentence thesis;
@@ -54,7 +54,7 @@ template< typename... Args >
 std::vector< std::shared_ptr< StepStrategy > > create_strategies(Args&&... args)
 {
     return {
-        FailingStrategy::create(std::forward< Args >(args)...),
+        //FailingStrategy::create(std::forward< Args >(args)...),
         UnificationStrategy::create(std::forward< Args >(args)...),
     };
 }

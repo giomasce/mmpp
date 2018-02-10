@@ -10,14 +10,34 @@ const API_VERSION : number = 1;
 
 export class StepManager {
   remote_id : number;
-  success : boolean;
   sentence : number[];
-  label : number;
-  number : number;
-  suggestion_ready : boolean = false;
+  searching : boolean;
+  found_proof : boolean;
+  proof_data : any;
+  suggestion_ready : boolean;
+
+  constructor() {
+    this.sentence = [];
+    this.suggestion_ready = false;
+  }
 
   do_api_request(workset_manager : WorksetManager, url : string, data : object = null) : Promise<object> {
     return workset_manager.do_api_request(`step/${this.remote_id}/` + url, data);
+  }
+
+  reload(workset_manager : WorksetManager) : Promise< any > {
+    let self = this;
+    return this.do_api_request(workset_manager, `get`).then(function (data : any) : any {
+      self.sentence = data.sentence;
+      self.searching = data.searching;
+      if (!self.searching) {
+        self.found_proof = data.found_proof;
+        if (self.found_proof) {
+          self.proof_data = data.proof_data;
+        }
+      }
+      return data;
+    });
   }
 }
 
@@ -83,13 +103,7 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
       assert(!self.remote_id_map.has(remote_id));
       self.remote_id_map.set(remote_id, node.get_id());
       step.sentence = [];
-      return step.do_api_request(self, `get`).then(function (data : any) : Promise<void> {
-        step.sentence = data.sentence;
-        step.success = data.success;
-        if (step.success) {
-          step.label = data.label;
-          step.number = data.number;
-        }
+      return step.reload(self).then(function (data : any) : Promise<void> {
         let promise : Promise<void> = Promise.resolve();
         for (let [child_idx, child_id] of data.children.entries()) {
           promise = promise.then(function () : Promise<void> {
@@ -119,13 +133,7 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
   update_node(node : TreeNode) : void {
     let self = this;
     let step : StepManager = this.get_manager_object(node);
-    step.do_api_request(this, `get`).then(function (data : any) : void {
-      step.success = data.success;
-      step.suggestion_ready = false;
-      if (step.success) {
-        step.label = data.label;
-        step.number = data.number;
-      }
+    step.reload(this).then(function (data : any) : void {
       self.redraw_node(node);
     });
   }
@@ -134,15 +142,32 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
     let step : StepManager = this.get_manager_object(node);
     let workset = this.get_workset();
     let full_id = this.editor_manager.compute_full_id(node);
+    if (step.searching) {
+      $(`#${full_id}_label`).html(Mustache.render(LABEL_SEARCHING_TEMPL, {}));
+    } else if (!step.found_proof) {
+      $(`#${full_id}_label`).html(Mustache.render(LABEL_FAILED_TEMPL, {}));
+    } else {
+      if (step.proof_data.type == "unification") {
+        this.redraw_node_unification(node);
+      } else {
+        throw new Error("Unknown proof_data type");
+      }
+    }
+    $(`#${full_id}_suggestion`).html(Mustache.render(SUGGESTION_LOADING_TEMPL, {}));
+    step.suggestion_ready = false;
+  }
+
+  redraw_node_unification(node : TreeNode) : void {
+    let step : StepManager = this.get_manager_object(node);
+    let workset = this.get_workset();
+    let full_id = this.editor_manager.compute_full_id(node);
+    let proof_data = step.proof_data;
     let label_params = {
-      label: step.success ? workset.labels[step.label] : "",
-      number: step.success && step.number > 0 ? step.number.toString() : "",
-      number_color: step.success ? spectrum_to_rgb(step.number, workset.max_number) : "",
+      label: workset.labels[proof_data.label],
+      number: proof_data.number > 0 ? proof_data.number.toString() : "",
+      number_color: proof_data.number > 0 ? spectrum_to_rgb(proof_data.number, workset.max_number) : "",
     };
-    let loading_sugg_params = {
-    };
-    $(`#${full_id}_label`).html(Mustache.render(LABEL_TEMPL, label_params));
-    $(`#${full_id}_suggestion`).html(Mustache.render(LOADING_SUGG_TEMPL, loading_sugg_params));
+    $(`#${full_id}_label`).html(Mustache.render(LABEL_UNIFICATION_TEMPL, label_params));
   }
 
   show_suggestion(node : TreeNode) : void {
@@ -155,6 +180,7 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
     let self = this;
     let step : StepManager = this.get_manager_object(node);
     this.show_suggestion(node);
+
     if (step.suggestion_ready) {
       return;
     }
@@ -162,7 +188,29 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
     let workset = this.get_workset();
     let default_renderer = workset.get_default_renderer();
     let full_id = this.editor_manager.compute_full_id(node);
-    workset.do_api_request(`get_assertion/${step.label}`).then(function(data) : Promise<void> {
+    if (step.searching) {
+      $(`#${full_id}_suggestion`).html(Mustache.render(SUGGESTION_SEARCHING_TEMPL, {}));
+      step.suggestion_ready = true;
+    } else if (!step.found_proof) {
+      $(`#${full_id}_suggestion`).html(Mustache.render(SUGGESTION_FAILED_TEMPL, {}));
+      step.suggestion_ready = true;
+    } else {
+      if (step.proof_data.type == "unification") {
+        this.get_suggestion_unification(node);
+      } else {
+        throw new Error("Unknown proof_data type");
+      }
+    }
+  }
+
+  get_suggestion_unification(node : TreeNode) {
+    let self = this;
+    let step : StepManager = this.get_manager_object(node);
+    let workset = this.get_workset();
+    let default_renderer = workset.get_default_renderer();
+    let full_id = this.editor_manager.compute_full_id(node);
+    let proof_data = step.proof_data;
+    workset.do_api_request(`get_assertion/${proof_data.label}`).then(function(data) : Promise<void> {
       let assertion = data["assertion"];
 
       // Request all the interesting things for the proof
@@ -175,11 +223,12 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
 
       // Fire all the requests and then feed the results to the template
       return Promise.all(requests).then(function(responses : Array<any>) : void {
-        $(`#${full_id}_suggestion`).html(Mustache.render(SUGGESTION_TEMPL, {
+        $(`#${full_id}_suggestion`).html(Mustache.render(SUGGESTION_UNIFICATION_TEMPL, {
           thesis: default_renderer.render_from_codes(responses[requests_map["thesis"]]["sentence"]),
           ess_hyps_sent: requests_map["ess_hyps_sent"].map(function(el) { return default_renderer.render_from_codes(responses[el]["sentence"]); }),
           float_hyps_sent: requests_map["float_hyps_sent"].map(function(el) { return default_renderer.render_from_codes(responses[el]["sentence"]); }),
           dists: assertion["dists"].map(function(el) { return default_renderer.render_from_codes([el[0]]) + ", " + default_renderer.render_from_codes([el[1]]); }),
+          subst_map: proof_data.subst_map.map(function(el) { return [default_renderer.render_from_codes([el[0]]), default_renderer.render_from_codes(el[1])]; }).sort(),
         }));
         step.suggestion_ready = true;
       });
@@ -240,14 +289,7 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
         step.remote_id = data.id;
         assert(!self.remote_id_map.has(step.remote_id));
         self.remote_id_map.set(step.remote_id, node.get_id());
-        return step.do_api_request(self, `get`).then(function (data : any) : void {
-          step.sentence = data.sentence;
-          step.success = data.success;
-          if (step.success) {
-            step.label = data.label;
-            step.number = data.number;
-          }
-        });
+        return step.reload(self).then(function (data : any) : void {});
       });
     } else {
       return Promise.resolve();
@@ -325,16 +367,16 @@ const DATA1_TEMPL = `
   <span id="{{ cell_id }}_sentence" class="sentence">{{{ sentence }}}</span>
 `;
 
-const LABEL_TEMPL = `{{ label }} <span class="r" style="color: {{ number_color }}">{{ number }}</span>`;
+const LABEL_SEARCHING_TEMPL = `<span style="color: blue;">searching</span>`;
+const LABEL_FAILED_TEMPL = `<span style="color: red;">failed</span>`;
+const LABEL_UNIFICATION_TEMPL = `{{ label }} <span class="r" style="color: {{ number_color }}">{{ number }}</span>`;
 
-const LOADING_SUGG_TEMPL = `<span class="loading">Loading...</span>`;
+const SUGGESTION_SEARCHING_TEMPL = `Searching for a proof`;
+const SUGGESTION_FAILED_TEMPL = `Could not find a proof`;
+const SUGGESTION_LOADING_TEMPL = `<span class="loading">Loading...</span>`;
 
-const DATA2_TEMPL = `
-  <div><input type="text" id="{{ cell_id }}_text_input" class="text_input" value="{{ text_sentence }}"></input></div>
-  <div>Distinct variables: {{{ dists }}}</div>
-`;
-
-const SUGGESTION_TEMPL = `
+const SUGGESTION_UNIFICATION_TEMPL = `
+  Step was proved with theorem:<br>
   &#8658; {{{ thesis }}}<br>
   {{ #ess_hyps_sent }}
   {{{ . }}}<br>
@@ -343,4 +385,14 @@ const SUGGESTION_TEMPL = `
   {{ #dists }}
   {{{ . }}};
   {{ /dists }}
+  <br>
+  Substitution map:<br>
+  {{ #subst_map }}
+  {{{ 0 }}}: {{{ 1 }}}<br>
+  {{ /subst_map }}
+`;
+
+const DATA2_TEMPL = `
+  <div><input type="text" id="{{ cell_id }}_text_input" class="text_input" value="{{ text_sentence }}"></input></div>
+  <div>Distinct variables: {{{ dists }}}</div>
 `;

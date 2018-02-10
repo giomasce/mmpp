@@ -11,10 +11,10 @@ StepStrategy::StepStrategy(std::weak_ptr<StrategyManager> manager, const Sentenc
     : manager(manager), thesis(thesis), hypotheses(hypotheses), toolbox(toolbox) {
 }
 
-void StepStrategy::maybe_report_result(std::shared_ptr<StepStrategyResult> result) {
+void StepStrategy::maybe_report_result(std::shared_ptr< StepStrategy > strategy, std::shared_ptr<StepStrategyResult> result) {
     auto strong_manager = this->manager.lock();
     if (strong_manager) {
-        strong_manager->report_result(this->shared_from_this(), result);
+        strong_manager->report_result(strategy, result);
     }
 }
 
@@ -38,7 +38,7 @@ protected:
 void FailingStrategy::operator()(Yield &yield) {
     (void) yield;
 
-    this->maybe_report_result(FailingStrategyResult::create());
+    this->maybe_report_result(this->shared_from_this(), FailingStrategyResult::create());
 }
 
 struct UnificationStrategyResult : public StepStrategyResult, public enable_create< UnificationStrategyResult > {
@@ -51,6 +51,7 @@ struct UnificationStrategyResult : public StepStrategyResult, public enable_crea
     nlohmann::json get_web_json() const {
         json ret;
         LabTok label = get<0>(this->data);
+        ret["type"] = "unification";
         ret["label"] = label;
         ret["permutation"] = get<1>(this->data);
         ret["subst_map"] = get<2>(this->data);
@@ -76,7 +77,7 @@ void UnificationStrategy::operator()(Yield &yield) {
     auto result = UnificationStrategyResult::create(this->toolbox);
 
     Finally f1([this,result]() {
-        this->maybe_report_result(result);
+        this->maybe_report_result(this->shared_from_this(), result);
     });
 
     bool can_go = true;
