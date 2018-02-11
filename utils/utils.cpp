@@ -125,7 +125,7 @@ void register_main_function(const string &name, const function< int(int, char*[]
     get_main_functions().insert(make_pair(name, main_function));
 }
 
-class HasherSHA256 : public Hasher {
+class HasherSHA256 final : public Hasher {
 public:
     void update(const char *s, std::streamsize n) {
         this->hasher.Update(reinterpret_cast< const ::byte* >(s), n);

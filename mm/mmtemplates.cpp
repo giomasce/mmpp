@@ -10,6 +10,6 @@ template class LRParsingHelper< SymTok, LabTok >;
 template class UnilateralUnificator< SymTok, LabTok >;
 template class BilateralUnificator< SymTok, LabTok >;
 
-template class ParsingTree< SymTok, LabTok >;
-template class ParsingTree2< SymTok, LabTok >;
-template class ParsingTreeNode< SymTok, LabTok >;
+template struct ParsingTree< SymTok, LabTok >;
+template struct ParsingTree2< SymTok, LabTok >;
+template struct ParsingTreeNode< SymTok, LabTok >;

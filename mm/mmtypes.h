@@ -4,9 +4,9 @@
 template< typename SentType_ >
 class ProofException;
 template< typename SentType_ >
-class ProofError;
+struct ProofError;
 template< typename SentType_ >
-class ProofTree;
+struct ProofTree;
 
 // From library.h
 class Library;

@@ -16,10 +16,10 @@ Workset::Workset() : thread_manager(make_unique< CoroutineThreadManager >(4)) /*
 {
 }
 
-std::shared_ptr<Step> Workset::create_step()
+std::shared_ptr<Step> Workset::create_step(bool do_no_search)
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
-    shared_ptr< Step > new_step = Step::create(this->id_dist.get_id(), this->shared_from_this());
+    shared_ptr< Step > new_step = Step::create(this->id_dist.get_id(), this->shared_from_this(), do_no_search);
     this->steps[new_step->get_id()] = new_step;
     return new_step;
 }
@@ -36,7 +36,7 @@ std::vector< std::string > map_to_vect(const std::unordered_map< TokType, std::s
 
 void Workset::init() {
     // We cannot create the root step before create() has returned (i.e., in the constructor)
-    this->root_step = this->create_step();
+    this->root_step = this->create_step(true);
     //pointer->step_backrefs->set_main(pointer);
 }
 
@@ -53,7 +53,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         assert_or_throw< SendError >(path_begin == path_end, 404);
         json ret;
         ret["name"] = this->get_name();
-        ret["root_step_id"] = this->root_step.lock()->get_id();
+        ret["root_step_id"] = this->root_step->get_id();
         if (this->library == NULL) {
             ret["status"] = "unloaded";
             return ret;
@@ -145,7 +145,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
                 } catch (out_of_range) {
                     throw SendError(404);
                 }*/
-                auto new_step = this->create_step();
+                auto new_step = this->create_step(false);
                 //bool res = new_step->reparent(parent_step, idx);
                 json ret = json::object();
                 ret["id"] = new_step->get_id();
@@ -163,7 +163,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             return step->answer_api1(cb, path_begin, path_end);
         }
         try {
-            return jsonize(*this->root_step.lock());
+            return jsonize(*this->root_step);
         } catch (out_of_range) {
             throw SendError(404);
         }
@@ -189,6 +189,14 @@ const string &Workset::get_name()
 void Workset::set_name(const string &name)
 {
     this->name = name;
+}
+
+const LibraryToolbox &Workset::get_toolbox() const {
+    return *this->toolbox;
+}
+
+std::shared_ptr<Step> Workset::get_root_step() const {
+    return this->root_step;
 }
 
 void Workset::add_coroutine(std::weak_ptr<Coroutine> coro)
@@ -218,7 +226,7 @@ std::shared_ptr<Step> Workset::at(size_t id)
 bool Workset::destroy_step(size_t id)
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
-    if (this->root_step.lock()->get_id() == id) {
+    if (this->root_step->get_id() == id) {
         return false;
     } else {
         this->steps.erase(id);

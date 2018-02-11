@@ -13,6 +13,6 @@ extern template class LRParsingHelper< SymTok, LabTok >;
 extern template class UnilateralUnificator< SymTok, LabTok >;
 extern template class BilateralUnificator< SymTok, LabTok >;
 
-extern template class ParsingTree< SymTok, LabTok >;
-extern template class ParsingTree2< SymTok, LabTok >;
-extern template class ParsingTreeNode< SymTok, LabTok >;
+extern template struct ParsingTree< SymTok, LabTok >;
+extern template struct ParsingTree2< SymTok, LabTok >;
+extern template struct ParsingTreeNode< SymTok, LabTok >;

@@ -3,9 +3,9 @@
 
 template class VectorMap< SymTok, ParsingTree2< SymTok, LabTok > >;
 
-template class ProofError< ParsingTree2< SymTok, LabTok > >;
+template struct ProofError< ParsingTree2< SymTok, LabTok > >;
 template class ProofException< ParsingTree2< SymTok, LabTok > >;
-template class ProofTree< ParsingTree2< SymTok, LabTok > >;
+template struct ProofTree< ParsingTree2< SymTok, LabTok > >;
 template class ProofEngineBase< ParsingTree2< SymTok, LabTok > >;
 template class CheckedProofEngine< ParsingTree2< SymTok, LabTok > >;
 template class ExtendedProofEngine< ParsingTree2< SymTok, LabTok > >;

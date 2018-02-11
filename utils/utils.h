@@ -22,6 +22,15 @@
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/concepts.hpp>
 
+/* A template struct without specializations: useful for checking variable types
+ * (for example when there is automatic type deduction).
+ * For example, if you declare
+ *   TD< decltype(x) > x1;
+ * the error message will probably mention the type of x.
+ */
+template< typename T >
+struct TD;
+
 #define EXCEPTIONS_SELF_DEBUG
 
 #if defined(__GNUG__) && defined(EXCEPTIONS_SELF_DEBUG)
@@ -106,7 +115,8 @@ private:
 template< typename T >
 std::string hash_object(const T &obj) {
     HashSink hasher;
-    boost::iostreams::stream fout(hasher);
+    // g++ can automatically deduce the template parameter here, but clang++ cannot
+    boost::iostreams::stream< HashSink > fout(hasher);
     {
         boost::archive::text_oarchive archive(fout);
         archive << obj;
@@ -117,7 +127,7 @@ std::string hash_object(const T &obj) {
 
 // Funny trick from https://stackoverflow.com/a/41485014/807307
 template<typename S>
-struct enable_make : public S
+struct enable_make final : public S
 {
     template<typename... T>
     enable_make(T&&... t)

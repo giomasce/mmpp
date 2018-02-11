@@ -76,6 +76,14 @@ void Step::after_new_sentence(const Sentence &old_sent) {
 void Step::restart_search()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
+    auto workset = this->get_workset().lock();
+    if (!workset) {
+        return;
+    }
+    if (this->do_not_search) {
+        return;
+    }
+
     this->active_strategies.clear();
     this->winning_strategy = NULL;
 
@@ -84,14 +92,11 @@ void Step::restart_search()
         hyps.push_back(child.lock()->get_sentence());
     }
 
-    auto workset = this->get_workset().lock();
-    if (workset != NULL) {
-        auto strategies = create_strategies(this->weak_from_this(), this->get_sentence(), hyps, workset->get_toolbox());
-        for (const auto &strat : strategies) {
-            auto coro = make_shared< Coroutine >(strat);
-            workset->add_coroutine(coro);
-            this->active_strategies.push_back(make_pair(strat, coro));
-        }
+    auto strategies = create_strategies(this->weak_from_this(), this->get_sentence(), hyps, workset->get_toolbox());
+    for (const auto &strat : strategies) {
+        auto coro = make_shared< Coroutine >(strat);
+        workset->add_coroutine(coro);
+        this->active_strategies.push_back(make_pair(strat, coro));
     }
     this->maybe_notify_update();
 }
@@ -461,7 +466,7 @@ bool Step::prove(ExtendedProofEngine<Sentence> &engine)
     }
 }
 
-Step::Step(size_t id, std::shared_ptr<Workset> workset) : id(id), workset(workset)
+Step::Step(size_t id, std::shared_ptr<Workset> workset, bool do_not_search) : id(id), workset(workset), do_not_search(do_not_search)
 {
 #ifdef LOG_STEP_OPS
     cerr << "Creating step with id " << id << endl;

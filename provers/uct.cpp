@@ -40,9 +40,9 @@ struct VisitContext {
 };
 uint32_t VisitContext::depth = 0;
 
-static inline ostream &visit_log() {
+/*static inline ostream &visit_log() {
     return VisitContext::log();
-}
+}*/
 
 VisitResult UCTProver::visit()
 {

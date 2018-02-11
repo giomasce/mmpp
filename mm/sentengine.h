@@ -21,7 +21,7 @@ struct ProofSentenceTraits< Sentence > {
         Sentence::const_iterator end() const;
 
     private:
-        const Library &lib;
+        //const Library &lib;
         const Sentence &sentence;
     };
 
@@ -37,9 +37,9 @@ struct ProofSentenceTraits< Sentence > {
 
 extern template class VectorMap< SymTok, Sentence >;
 
-extern template class ProofError< Sentence >;
+extern template struct ProofError< Sentence >;
 extern template class ProofException< Sentence >;
-extern template class ProofTree< Sentence >;
+extern template struct ProofTree< Sentence >;
 extern template class ProofEngineBase< Sentence >;
 extern template class CheckedProofEngine< Sentence >;
 extern template class ExtendedProofEngine< Sentence >;

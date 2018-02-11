@@ -22,9 +22,8 @@ public:
     void load_library(boost::filesystem::path filename, boost::filesystem::path cache_filename, std::string turnstile);
     const std::string &get_name();
     void set_name(const std::string &name);
-    const LibraryToolbox &get_toolbox() const {
-        return *this->toolbox;
-    }
+    const LibraryToolbox &get_toolbox() const;
+    std::shared_ptr< Step > get_root_step() const;
 
     void add_coroutine(std::weak_ptr<Coroutine> coro);
     void add_to_queue(nlohmann::json data);
@@ -38,7 +37,7 @@ protected:
     void init();
 
 private:
-    std::shared_ptr< Step > create_step();
+    std::shared_ptr< Step > create_step(bool do_no_search);
 
     std::unique_ptr< ExtendedLibrary > library;
     std::unique_ptr< LibraryToolbox > toolbox;
@@ -48,7 +47,7 @@ private:
     //std::shared_ptr< BackreferenceRegistry< Step, Workset > > step_backrefs;
     IdDistributor id_dist;
     std::unordered_map< size_t, std::shared_ptr< Step > > steps;
-    SafeWeakPtr< Step > root_step;
+    std::shared_ptr< Step > root_step;
 
     std::mutex queue_mutex;
     std::condition_variable queue_variable;

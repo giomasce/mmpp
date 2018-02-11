@@ -94,7 +94,9 @@ bool ProofSentenceTraits<Sentence>::is_variable(const LibType &lib, ProofSentenc
     return !lib.is_constant(var);
 }
 
-ProofSentenceTraits<Sentence>::SentGenerator::SentGenerator(const Library &lib, const Sentence &sent) : lib(lib), sentence(sent) {}
+ProofSentenceTraits<Sentence>::SentGenerator::SentGenerator(const Library &lib, const Sentence &sent) : sentence(sent) {
+    (void) lib;
+}
 
 Sentence::const_iterator ProofSentenceTraits<Sentence>::SentGenerator::begin() const
 {
@@ -108,9 +110,9 @@ Sentence::const_iterator ProofSentenceTraits<Sentence>::SentGenerator::end() con
 
 template class VectorMap< SymTok, Sentence >;
 
-template class ProofError< Sentence >;
+template struct ProofError< Sentence >;
 template class ProofException< Sentence >;
-template class ProofTree< Sentence >;
+template struct ProofTree< Sentence >;
 template class ProofEngineBase< Sentence >;
 template class CheckedProofEngine< Sentence >;
 template class ExtendedProofEngine< Sentence >;

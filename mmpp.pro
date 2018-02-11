@@ -24,9 +24,9 @@ QMAKE_CXXFLAGS += -std=c++17 -g -ftemplate-backtrace-limit=0
 QMAKE_LIBS += -ldl -export-dynamic -rdynamic
 
 # Compile with clang
-#QMAKE_CC = clang
-#QMAKE_CXX = clang++
-#QMAKE_LINK = clang++
+#QMAKE_CC = clang-7
+#QMAKE_CXX = clang++-7
+#QMAKE_LINK = clang++-7
 #QMAKE_CFLAGS += -std=c11 -g
 #QMAKE_CXXFLAGS += -std=c++17 -g -ftemplate-backtrace-limit=0
 #QMAKE_LIBS += -ldl -rdynamic

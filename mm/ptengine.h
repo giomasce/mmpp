@@ -47,9 +47,9 @@ struct ProofSentenceTraits< ParsingTree2< SymTok, LabTok > > {
 
 extern template class VectorMap< SymTok, ParsingTree2< SymTok, LabTok > >;
 
-extern template class ProofError< ParsingTree2< SymTok, LabTok > >;
+extern template struct ProofError< ParsingTree2< SymTok, LabTok > >;
 extern template class ProofException< ParsingTree2< SymTok, LabTok > >;
-extern template class ProofTree< ParsingTree2< SymTok, LabTok > >;
+extern template struct ProofTree< ParsingTree2< SymTok, LabTok > >;
 extern template class ProofEngineBase< ParsingTree2< SymTok, LabTok > >;
 extern template class CheckedProofEngine< ParsingTree2< SymTok, LabTok > >;
 extern template class ExtendedProofEngine< ParsingTree2< SymTok, LabTok > >;

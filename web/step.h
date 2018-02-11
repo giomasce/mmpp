@@ -82,7 +82,7 @@ public:
 
 protected:
     //explicit Step(BackreferenceToken< Step, Workset > &&token);
-    Step(size_t id, std::shared_ptr< Workset > workset);
+    Step(size_t id, std::shared_ptr< Workset > workset, bool do_not_search);
     void init();
 
 private:
@@ -103,6 +103,7 @@ private:
     //BackreferenceToken< Step, Workset > token;
     size_t id;
     SafeWeakPtr< Workset > workset;
+    bool do_not_search;
     std::vector< SafeWeakPtr< Step > > children;
     std::weak_ptr< Step > parent;
     std::recursive_mutex global_mutex;
