@@ -45,8 +45,8 @@ bool platform_should_stop() {
 }
 
 bool platform_open_browser(string browser_url) {
-    system(("xdg-open " + browser_url).c_str());
-    //system(("chromium " + browser_url).c_str());
+    //system(("xdg-open " + browser_url).c_str());
+    system(("chromium " + browser_url).c_str());
     return true;
 }
 
