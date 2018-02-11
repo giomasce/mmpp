@@ -276,7 +276,7 @@ void SentenceNode::replay_proof(ExtendedProofEngine<Sentence> &engine) const
     } else {
         const auto &tb = this->uct.lock()->get_toolbox();
         auto sent = tb.reconstruct_sentence(pt2_to_pt(this->sentence), tb.get_turnstile());
-        engine.process_sentence(sent);
+        engine.process_new_hypothesis(sent);
     }
 }
 

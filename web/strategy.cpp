@@ -30,8 +30,11 @@ protected:
         return {};
     }
 
-    Prover get_prover() const {
-        return null_prover;
+    virtual bool prove(ExtendedProofEngine< Sentence > &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
+        (void) engine;
+        (void) children;
+
+        return false;
     }
 };
 
@@ -64,8 +67,15 @@ struct UnificationStrategyResult : public StepStrategyResult, public enable_crea
         return ret;
     }
 
-    Prover get_prover() const {
-        return null_prover;
+    virtual bool prove(ExtendedProofEngine< Sentence > &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
+        RegisteredProverInstanceData inst_data(this->data);
+        vector< Prover > hyps_provers;
+        for (const auto &child : children) {
+            hyps_provers.push_back([child](ExtendedProofEngine< Sentence > &engine2) {
+                return child->prove(engine2);
+            });
+        }
+        return this->toolbox.proving_helper(inst_data, std::unordered_map< SymTok, Prover >{}, hyps_provers, engine);
     }
 
     bool success;

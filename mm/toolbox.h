@@ -55,6 +55,14 @@ struct ProofPrinter {
 std::ostream &operator<<(std::ostream &os, const SentencePrinter &sp);
 std::ostream &operator<<(std::ostream &os, const ProofPrinter &sp);
 
+static std::vector< size_t > invert_perm(const std::vector< size_t > &perm) {
+    std::vector< size_t > ret(perm.size());
+    for (size_t i = 0; i < perm.size(); i++) {
+        ret[perm[i]] = i;
+    }
+    return ret;
+}
+
 struct RegisteredProver {
     size_t index;
 
@@ -76,6 +84,13 @@ struct RegisteredProverInstanceData {
 
     // Just for debug
     std::string label_str;
+
+    RegisteredProverInstanceData() = default;
+    RegisteredProverInstanceData(const RegisteredProverInstanceData &x) = default;
+
+    explicit RegisteredProverInstanceData(const std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > &data, std::string label_str = "")
+        : valid(true), label(std::get<0>(data)), perm_inv(invert_perm(std::get<1>(data))), ass_map(std::get<2>(data)), label_str(label_str) {
+    }
 };
 
 class ToolboxCache {
@@ -146,15 +161,15 @@ private:
 
     // Assertion unification
 public:
-    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
+    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > > unify_assertion(const std::vector< Sentence > &hypotheses, const Sentence &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
 private:
-    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_uncached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
-    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_uncached2(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
-    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true);
-    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first=true) const;
-    std::unordered_map< std::tuple< std::vector< std::vector< SymTok > >, std::vector< SymTok > >,
-                        std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > >,
-                        boost::hash< std::tuple< std::vector< std::vector< SymTok > >, std::vector< SymTok > > > > unification_cache;
+    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > > unify_assertion_uncached(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
+    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > > unify_assertion_uncached2(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
+    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > > unify_assertion_cached(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first=true);
+    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > > unify_assertion_cached(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first=true) const;
+    std::unordered_map< std::tuple< std::vector< Sentence >, Sentence >,
+                        std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > >,
+                        boost::hash< std::tuple< std::vector< Sentence >, Sentence > > > unification_cache;
 
     // Reading and printing
 public:
@@ -259,6 +274,7 @@ public:
                         const std::unordered_map< std::string, Prover > &types_provers,
                         const std::vector< Prover > &hyps_provers) const;
     bool proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers, ExtendedProofEngine< Sentence > &engine) const;
+    bool proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map< SymTok, Prover > &types_provers, const std::vector< Prover > &hyps_provers, ExtendedProofEngine< Sentence > &engine) const;
 private:
     void compute_registered_prover(size_t i, bool exception_on_failure = true);
     // This is an instance of the Construct On First Use idiom, which prevents the static initialization fiasco;

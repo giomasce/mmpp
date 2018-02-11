@@ -429,6 +429,7 @@ const SUGGESTION_TEMPL = `
 const WORK_AREA_TEMPL = `
   <div id="workset_list"></div>
   <div id="workset"></div>
+  <textarea id="workset_proof"></textarea>
 `;
 
 const WORKSET_LIST_TEMPL = `

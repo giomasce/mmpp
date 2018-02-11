@@ -58,7 +58,7 @@ public:
     }
 };
 
-class Step : public enable_create< Step >, public StrategyManager
+class Step : public enable_create< Step >, public StrategyManager, public StepStrategyCallback
 {
 public:
     ~Step();
@@ -78,6 +78,7 @@ public:
     bool is_searching();
     bool found_proof();
     std::shared_ptr< const StepStrategyResult > get_result();
+    bool prove(ExtendedProofEngine< Sentence > &engine);
 
 protected:
     //explicit Step(BackreferenceToken< Step, Workset > &&token);

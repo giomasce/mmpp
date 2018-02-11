@@ -362,7 +362,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             size_t idx = safe_stoi(safe_at(post_data, "index").value);
             shared_ptr< Step > parent_step;
             auto strong_workset = self->get_workset().lock();
-            assert_or_throw< SendError >(strong_workset.operator bool(), 404);
+            assert_or_throw< SendError >(static_cast< bool >(strong_workset), 404);
             parent_step = safe_at(*strong_workset, parent_id);
             bool res = self->reparent(parent_step, idx);
             json ret = json::object();
@@ -391,6 +391,23 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             bool res = self->destroy();
             json ret = json::object();
             ret["success"] = res;
+            return ret;
+        });
+    } else if (*path_begin == "prove") {
+        path_begin++;
+        assert_or_throw< SendError >(path_begin == path_end, 404);
+        assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+        throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
+            (void) post_data;
+            unique_lock< recursive_mutex > lock(self->global_mutex);
+            auto strong_workset = self->get_workset().lock();
+            assert_or_throw< SendError >(static_cast< bool >(strong_workset), 404);
+            const auto &toolbox = strong_workset->get_toolbox();
+            ExtendedProofEngine< Sentence > engine(toolbox, true);
+            bool res = self->prove(engine);
+            json ret = json::object();
+            ret["success"] = res;
+            ret["uncompressed_proof"] = toolbox.print_proof(engine.get_proof_labels()).to_string();
             return ret;
         });
     }
@@ -427,6 +444,21 @@ std::shared_ptr<const StepStrategyResult> Step::get_result()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
     return this->winning_strategy;
+}
+
+bool Step::prove(ExtendedProofEngine<Sentence> &engine)
+{
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    if (this->winning_strategy) {
+        vector< shared_ptr< StepStrategyCallback > > children_steps;
+        for (const auto &x : this->children) {
+            children_steps.push_back(x.lock());
+        }
+        return this->winning_strategy->prove(engine, children_steps);
+    } else {
+        engine.process_new_hypothesis(this->sentence);
+        return true;
+    }
 }
 
 Step::Step(size_t id, std::shared_ptr<Workset> workset) : id(id), workset(workset)

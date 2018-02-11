@@ -207,6 +207,14 @@ public:
     SafeWeakPtr(const std::shared_ptr< U > &r) noexcept : std::weak_ptr< T >(r) {
     }
 
+    template< class U >
+    SafeWeakPtr(const std::weak_ptr< U > &r) noexcept : std::weak_ptr< T >(r) {
+    }
+
+    template< class U >
+    SafeWeakPtr(const SafeWeakPtr< U > &r) noexcept : std::weak_ptr< T >(r) {
+    }
+
     std::shared_ptr< T > lock() const noexcept {
         auto strong = this->std::weak_ptr<T>::lock();
         assert(strong);

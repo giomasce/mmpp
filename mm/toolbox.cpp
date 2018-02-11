@@ -121,14 +121,6 @@ const ExtendedLibrary &LibraryToolbox::get_library() const {
     return this->lib;
 }
 
-static vector< size_t > invert_perm(const vector< size_t > &perm) {
-    vector< size_t > ret(perm.size());
-    for (size_t i = 0; i < perm.size(); i++) {
-        ret[perm[i]] = i;
-    }
-    return ret;
-}
-
 static void type_proving_helper_unwind_tree(const ParsingTree< SymTok, LabTok > &tree, ExtendedProofEngine< Sentence > &engine, const Library &lib, const std::unordered_map<LabTok, const Prover*> &var_provers) {
     // We need to sort children according to their order as floating hypotheses of this assertion
     // If this is not an assertion, then there are no children
@@ -303,31 +295,30 @@ Prover LibraryToolbox::build_prover(const std::vector<Sentence> &templ_hyps, con
     assert_or_throw< MMPPException >(!res.empty(), string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
     const auto &res1 = res[0];
     return [=](ExtendedProofEngine< Sentence > &engine){
-        RegisteredProverInstanceData inst_data;
-        inst_data.valid = true;
-        inst_data.label = get<0>(res1);
-        const vector< size_t > &perm = get<1>(res1);
-        inst_data.perm_inv = invert_perm(perm);
-        inst_data.ass_map = get<2>(res1);
+        RegisteredProverInstanceData inst_data(res1);
         return this->proving_helper(inst_data, types_provers, hyps_provers, engine);
     };
 }
 
 bool LibraryToolbox::proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ExtendedProofEngine< Sentence > &engine) const {
-    const Assertion &ass = this->get_assertion(inst_data.label);
-    assert(ass.is_valid());
-
     std::unordered_map<SymTok, Prover> types_provers_sym;
     for (auto &type_pair : types_provers) {
         auto res = types_provers_sym.insert(make_pair(this->get_symbol(type_pair.first), type_pair.second));
         assert(res.second);
     }
+    return this->proving_helper(inst_data, types_provers_sym, hyps_provers, engine);
+}
+
+bool LibraryToolbox::proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map<SymTok, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ExtendedProofEngine<Sentence> &engine) const
+{
+    const Assertion &ass = this->get_assertion(inst_data.label);
+    assert(ass.is_valid());
 
     engine.checkpoint();
 
     // Compute floating hypotheses
     for (auto &hyp : ass.get_float_hyps()) {
-        bool res = this->type_proving_helper(substitute(this->get_sentence(hyp), inst_data.ass_map, this->get_standard_is_var_sym()), engine, types_provers_sym);
+        bool res = this->type_proving_helper(substitute(this->get_sentence(hyp), inst_data.ass_map, this->get_standard_is_var_sym()), engine, types_provers);
         if (!res) {
             cerr << "Applying " << inst_data.label_str << " a floating hypothesis failed..." << endl;
             engine.rollback();
@@ -683,7 +674,7 @@ ProofPrinter LibraryToolbox::print_proof(const std::vector<LabTok> &proof, bool 
     return ProofPrinter({ proof, *this, only_assertions });
 }
 
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion_uncached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first, bool up_to_hyps_perms) const
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion_uncached(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms) const
 {
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
 
@@ -759,7 +750,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
     return ret;
 }
 
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion_uncached2(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first, bool up_to_hyps_perms) const
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion_uncached2(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms) const
 {
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
 
@@ -840,7 +831,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
     return ret;
 }
 
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first)
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion_cached(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first)
 {
     // Cache is used only when requesting just the first result
     if (!just_first) {
@@ -853,7 +844,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, s
     return this->unification_cache.at(idx);
 }
 
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion_cached(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first) const
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion_cached(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first) const
 {
     // Cache is used only when requesting just the first result
     if (!just_first) {
@@ -902,7 +893,7 @@ void LibraryToolbox::dump_proof_exception(const ProofException<Sentence> &e, ost
     }
 }
 
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, std::vector<SymTok> > > > LibraryToolbox::unify_assertion(const std::vector<std::vector<SymTok> > &hypotheses, const std::vector<SymTok> &thesis, bool just_first, bool up_to_hyps_perms) const
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms) const
 {
     auto ret2 = this->unify_assertion_uncached2(hypotheses, thesis, just_first, up_to_hyps_perms);
 #ifdef TOOLBOX_SELF_TEST
@@ -1203,15 +1194,7 @@ void LibraryToolbox::compute_registered_prover(size_t index, bool exception_on_f
                 return;
             }
         }
-        inst_data.label = get<0>(*unification.begin());
-        inst_data.label_str = this->resolve_label(inst_data.label);
-        const Assertion &ass = this->get_assertion(inst_data.label);
-        assert(ass.is_valid());
-        const vector< size_t > &perm = get<1>(*unification.begin());
-        inst_data.perm_inv = invert_perm(perm);
-        inst_data.ass_map = get<2>(*unification.begin());
-        //const unordered_map< SymTok, vector< SymTok > > full_map = this->compose_subst(ass_map, subst_map);
-        inst_data.valid = true;
+        inst_data = RegisteredProverInstanceData(unification[0], this->resolve_label(get<0>(unification[0])));
     }
 }
 
@@ -1310,4 +1293,11 @@ Prover checked_prover(Prover prover, size_t hyp_num, Sentence thesis)
         assert(engine.get_stack().back() == thesis);
         return res;
     };
+}
+
+string ProofPrinter::to_string() const
+{
+    ostringstream buf;
+    buf << *this;
+    return buf.str();
 }

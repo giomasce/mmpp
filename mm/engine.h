@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <set>
+#include <unordered_set>
 
 #include "library.h"
 #include "utils/utils.h"
@@ -302,8 +303,12 @@ public:
     void process_label(const LabTok label) {
         this->ProofEngineBase< SentType_ >::process_label(label);
     }
-    void process_sentence(const typename ProofEngineBase< SentType_ >::SentType &sent, LabTok label = 0) {
+    /*void process_sentence(const typename ProofEngineBase< SentType_ >::SentType &sent, LabTok label = 0) {
         this->ProofEngineBase< SentType_ >::process_sentence(sent, label);
+    }*/
+    void process_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent) {
+        this->new_hypotheses.push_back(sent);
+        this->ProofEngineBase< SentType_ >::process_sentence(sent);
     }
     void checkpoint() {
         this->ProofEngineBase< SentType_ >::checkpoint();
@@ -314,6 +319,11 @@ public:
     void rollback() {
         this->ProofEngineBase< SentType_ >::rollback();
     }
+    const std::vector< typename ProofEngineBase< SentType_ >::SentType > &get_new_hypotheses() const {
+        return this->new_hypotheses;
+    }
+
+    std::vector< typename ProofEngineBase< SentType_ >::SentType > new_hypotheses;
 };
 
 template< typename SentType_ >

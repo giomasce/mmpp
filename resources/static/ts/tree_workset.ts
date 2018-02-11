@@ -39,6 +39,16 @@ export class StepManager {
       return data;
     });
   }
+
+  get_proof(workset_manager : WorksetManager) : Promise< string > {
+    return this.do_api_request(workset_manager, `prove`, {}).then(function (data : any) : string {
+      if (!data.success) {
+        return "Could not generate proof";
+      } else {
+        return data.uncompressed_proof;
+      }
+    });
+  }
 }
 
 export class WorksetManager extends TreeManager implements NodePainter, WorksetEventListener {
@@ -268,6 +278,15 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
       }
       $(`#${full_id}_sentence`).html(sentence);
     });
+    $(`#${full_id}_btn_get_proof`).click(this.get_proof.bind(this, node));
+  }
+
+  get_proof(node : TreeNode) {
+    let self = this;
+    let step : StepManager = this.get_manager_object(node);
+    step.get_proof(this).then(function (proof : string) : void {
+      $(`#workset_proof`).text(proof);
+    }).catch(catch_all);
   }
 
   set_sentence(node : TreeNode, sentence : number[]) : void {
@@ -358,6 +377,7 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
 }*/
 
 const DATA1_TEMPL = `
+  <button id="{{ cell_id }}_btn_get_proof" class="mini_button mini_button_get_proof"></button>
   <span style="position: relative;">
     <span id="{{ cell_id }}_label" class="label"></span>
     <div class="outer_above">

@@ -6,12 +6,18 @@
 #include "utils/utils.h"
 #include "utils/threadmanager.h"
 #include "mm/toolbox.h"
+#include "mm/engine.h"
+
+class StepStrategyCallback {
+public:
+    virtual bool prove(ExtendedProofEngine< Sentence > &engine) = 0;
+};
 
 class StepStrategyResult {
 public:
     virtual bool get_success() const = 0;
     virtual nlohmann::json get_web_json() const = 0;
-    virtual Prover get_prover() const = 0;
+    virtual bool prove(ExtendedProofEngine< Sentence > &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const = 0;
 };
 
 class StepStrategy;
