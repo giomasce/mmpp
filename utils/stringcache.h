@@ -13,7 +13,7 @@ public:
     TokType get(std::string s) const {
         auto it = this->dir.find(s);
         if (it == this->dir.end()) {
-            return 0;
+            return {};
         } else {
             return it->second;
         }
@@ -32,7 +32,7 @@ public:
             this->next_id++;
             return it->second;
         } else {
-            return 0;
+            return {};
         }
     }
 
@@ -48,7 +48,7 @@ public:
 
     TokType get_or_create(std::string s) {
         TokType tok = this->get(s);
-        if (tok == 0) {
+        if (tok == TokType{}) {
             tok = this->create(s);
         }
         return tok;

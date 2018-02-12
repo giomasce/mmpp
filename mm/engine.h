@@ -1,8 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <set>
-#include <unordered_set>
+#include <map>
 
 #include "library.h"
 #include "utils/utils.h"
@@ -73,6 +72,7 @@ public:
     typedef typename TraitsType::SubstMapType SubstMapType;
     typedef typename TraitsType::VarType VarType;
     typedef typename TraitsType::LibType LibType;
+    typedef typename TraitsType::AdvLibType AdvLibType;
 
     ProofEngineBase(const LibType &lib, bool gen_proof_tree=false) :
         lib(lib), gen_proof_tree(gen_proof_tree)
@@ -298,7 +298,7 @@ private:
 template< typename SentType_ >
 class ExtendedProofEngine : public ProofEngineBase< SentType_ > {
 public:
-    ExtendedProofEngine(const typename ProofEngineBase< SentType_ >::LibType &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType_ >(lib, gen_proof_tree) {}
+    ExtendedProofEngine(const typename ProofEngineBase< SentType_ >::AdvLibType &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType_ >(lib, gen_proof_tree), lib(lib) {}
 
     void process_label(const LabTok label) {
         this->ProofEngineBase< SentType_ >::process_label(label);
@@ -307,8 +307,15 @@ public:
         this->ProofEngineBase< SentType_ >::process_sentence(sent, label);
     }*/
     void process_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent) {
-        this->new_hypotheses.push_back(sent);
-        this->ProofEngineBase< SentType_ >::process_sentence(sent);
+        auto it = this->new_hypotheses.find(sent);
+        LabTok label = it->second;
+        if (it == this->new_hypotheses.end()) {
+            size_t num = this->new_hypotheses.size();
+            std::string name = "hypothesis." + num;
+            label = this->lib.new_temp_label(name);
+            this->new_hypotheses[sent] = label;
+        }
+        this->ProofEngineBase< SentType_ >::process_sentence(sent, label);
     }
     void checkpoint() {
         this->ProofEngineBase< SentType_ >::checkpoint();
@@ -319,11 +326,12 @@ public:
     void rollback() {
         this->ProofEngineBase< SentType_ >::rollback();
     }
-    const std::vector< typename ProofEngineBase< SentType_ >::SentType > &get_new_hypotheses() const {
+    const std::map< typename ProofEngineBase< SentType_ >::SentType, LabTok > &get_new_hypotheses() const {
         return this->new_hypotheses;
     }
 
-    std::vector< typename ProofEngineBase< SentType_ >::SentType > new_hypotheses;
+    const typename ProofEngineBase< SentType_ >::AdvLibType &lib;
+    std::map< typename ProofEngineBase< SentType_ >::SentType, LabTok > new_hypotheses;
 };
 
 template< typename SentType_ >

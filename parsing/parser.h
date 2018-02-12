@@ -42,6 +42,10 @@ struct ParsingTreeNode {
     bool operator!=(const ParsingTreeNode< SymType, LabType > &other) const {
         return !this->operator==(other);
     }
+
+    bool operator<(const ParsingTreeNode< SymType, LabType > &other) const {
+        return this->label < other.label || (this->label == other.label && this->descendants_num < other.descendants_num);
+    }
 };
 
 namespace boost {
@@ -228,6 +232,11 @@ struct ParsingTree2 {
 
     bool operator!=(const ParsingTree2< SymType, LabType > &other) const {
         return !this->operator==(other);
+    }
+
+    bool operator<(const ParsingTree2< SymType, LabType > &other) const {
+        return std::lexicographical_compare(this->get_nodes(), this->get_nodes() + this->get_nodes_len(),
+                                            other.get_nodes(), other.get_nodes() + other.get_nodes_len());
     }
 
     ParsingTree2< SymType, LabType > &operator=(const ParsingTree2< SymType, LabType > &x) {

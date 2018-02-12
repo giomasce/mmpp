@@ -13,6 +13,7 @@ struct ProofSentenceTraits< ParsingTree2< SymTok, LabTok > > {
     typedef SubstMap2< SymTok, LabTok > SubstMapType;
     typedef LabTok VarType;
     typedef LibraryToolbox LibType;
+    typedef LibraryToolbox AdvLibType;
 
     class PTIterator {
     public:

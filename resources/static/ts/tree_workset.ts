@@ -45,7 +45,7 @@ export class StepManager {
       if (!data.success) {
         return "Could not generate proof";
       } else {
-        return data.uncompressed_proof;
+        return data.proof;
       }
     });
   }

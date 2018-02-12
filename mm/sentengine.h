@@ -5,6 +5,7 @@
 #include "engine.h"
 #include "funds.h"
 #include "utils/vectormap.h"
+#include "toolbox.h"
 
 template<>
 struct ProofSentenceTraits< Sentence > {
@@ -13,6 +14,7 @@ struct ProofSentenceTraits< Sentence > {
     //typedef std::unordered_map< SymTok, Sentence > SubstMapType;
     typedef SymTok VarType;
     typedef Library LibType;
+    typedef LibraryToolbox AdvLibType;
 
     class SentGenerator {
     public:

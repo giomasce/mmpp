@@ -8,6 +8,8 @@
 
 #include <boost/filesystem.hpp>
 
+class LibraryToolbox;
+
 #include "library.h"
 #include "parsing/lr.h"
 #include "parsing/unif.h"
@@ -46,7 +48,9 @@ struct SentencePrinter {
     std::string to_string() const;
 };
 struct ProofPrinter {
-    const std::vector< LabTok > &proof;
+    const std::vector< LabTok > *labels;
+    const CompressedProof *comp_proof;
+    const UncompressedProof *uncomp_proof;
     const LibraryToolbox &tb;
     bool only_assertions;
 
@@ -178,6 +182,8 @@ public:
     SentencePrinter print_sentence(const ParsingTree< SymTok, LabTok > &pt, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
     SentencePrinter print_sentence(const ParsingTree2< SymTok, LabTok > &pt, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
     ProofPrinter print_proof(const std::vector< LabTok > &proof, bool only_assertions = false) const;
+    ProofPrinter print_proof(const CompressedProof &proof, bool only_assertions = false) const;
+    ProofPrinter print_proof(const UncompressedProof &proof, bool only_assertions = false) const;
     Sentence reconstruct_sentence(const ParsingTree< SymTok, LabTok > &pt, SymTok first_sym = {}) const;
 
     // Type correspondance
@@ -285,9 +291,10 @@ private:
     }
     std::vector< RegisteredProverInstanceData > instance_registered_provers;
 
-    // Dynamic generation of temporary variables
+    // Dynamic generation of temporary variables and labels
 public:
     std::pair< LabTok, SymTok > new_temp_var(SymTok type_sym);
+    LabTok new_temp_label(std::string name);
     void new_temp_var_frame();
     void release_temp_var_frame();
 private:

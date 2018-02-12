@@ -7,6 +7,7 @@
 #include "parsing/unif.h"
 #include "parsing/earley.h"
 #include "reader.h"
+#include "mm/proof.h"
 
 using namespace std;
 
@@ -74,17 +75,33 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
 
 ostream &operator<<(ostream &os, const ProofPrinter &sp)
 {
-    bool first = true;
-    for (auto &label : sp.proof) {
-        if (sp.only_assertions && !(sp.tb.get_assertion(label).is_valid() && sp.tb.get_sentence(label).at(0) == sp.tb.get_turnstile())) {
-            continue;
+    auto labels = sp.labels;
+    if (sp.uncomp_proof) {
+        labels = &sp.uncomp_proof->get_labels();
+    }
+    if (labels) {
+        bool first = true;
+        for (const auto &label : *labels) {
+            if (sp.only_assertions && !(sp.tb.get_assertion(label).is_valid() && sp.tb.get_sentence(label).at(0) == sp.tb.get_turnstile())) {
+                continue;
+            }
+            if (first) {
+                first = false;
+            } else {
+                os << string(" ");
+            }
+            os << sp.tb.resolve_label(label);
         }
-        if (first) {
-            first = false;
-        } else {
-            os << string(" ");
+    } else {
+        os << "(";
+        for (const auto &ref : sp.comp_proof->get_refs()) {
+            os << " " << sp.tb.resolve_label(ref);
         }
-        os << sp.tb.resolve_label(label);
+        os << " ) ";
+        CompressedEncoder enc;
+        for (const auto &code : sp.comp_proof->get_codes()) {
+            os << enc.push_code(code);
+        }
     }
     return os;
 }
@@ -355,9 +372,9 @@ void LibraryToolbox::create_temp_var(SymTok type_sym)
     assert(this->is_constant(type_sym));
     size_t idx = ++this->temp_idx[type_sym];
     string sym_name = this->resolve_symbol(type_sym) + to_string(idx);
-    assert(this->get_symbol(sym_name) == 0);
+    assert(this->get_symbol(sym_name) == LabTok{});
     string lab_name = "temp" + sym_name;
-    assert(this->get_label(lab_name) == 0);
+    assert(this->get_label(lab_name) == LabTok{});
     SymTok sym = this->temp_syms.create(sym_name);
     LabTok lab = this->temp_labs.create(lab_name);
     this->temp_types[lab] = { type_sym, sym };
@@ -385,6 +402,17 @@ std::pair<LabTok, SymTok> LibraryToolbox::new_temp_var(SymTok type_sym)
     this->used_temp_vars[type_sym].push_back(ret);
     this->free_temp_vars[type_sym].pop_back();
     return ret;
+}
+
+LabTok LibraryToolbox::new_temp_label(string name)
+{
+    LabTok tok = this->temp_labs.get(name);
+    if (tok == LabTok{}) {
+        assert(this->get_label(name) == LabTok{});
+        tok = this->temp_labs.create(name);
+    }
+    assert(tok != LabTok{});
+    return tok;
 }
 
 void LibraryToolbox::new_temp_var_frame()
@@ -671,7 +699,17 @@ SentencePrinter LibraryToolbox::print_sentence(const ParsingTree2<SymTok, LabTok
 
 ProofPrinter LibraryToolbox::print_proof(const std::vector<LabTok> &proof, bool only_assertions) const
 {
-    return ProofPrinter({ proof, *this, only_assertions });
+    return ProofPrinter({ &proof, {}, {}, *this, only_assertions });
+}
+
+ProofPrinter LibraryToolbox::print_proof(const CompressedProof &proof, bool only_assertions) const
+{
+    return ProofPrinter({ {}, &proof, {}, *this, only_assertions });
+}
+
+ProofPrinter LibraryToolbox::print_proof(const UncompressedProof &proof, bool only_assertions) const
+{
+    return ProofPrinter({ {}, {}, &proof, *this, only_assertions });
 }
 
 std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion_uncached(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms) const

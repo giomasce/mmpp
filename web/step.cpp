@@ -4,6 +4,7 @@
 
 #include "web/jsonize.h"
 #include "strategy.h"
+#include "mm/proof.h"
 
 using namespace std;
 using namespace nlohmann;
@@ -412,7 +413,17 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             bool res = self->prove(engine);
             json ret = json::object();
             ret["success"] = res;
-            ret["uncompressed_proof"] = toolbox.print_proof(engine.get_proof_labels()).to_string();
+            ostringstream buf;
+            size_t i = 1;
+            for (const auto &hyp : engine.get_new_hypotheses()) {
+                buf << "hypothesis." << i << " $e " << toolbox.print_sentence(hyp.first) << " $." << endl;
+                i++;
+            }
+            buf << "thesis $p " << toolbox.print_sentence(engine.get_stack().back()) << " $=" << endl;
+            UncompressedProof uncomp_proof(engine.get_proof_labels());
+            buf << toolbox.print_proof(uncomp_proof) << endl;
+            buf << "$." << endl;
+            ret["proof"] = buf.str();
             return ret;
         });
     }
