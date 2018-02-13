@@ -73,7 +73,7 @@ void prove_and_print(pwff wff, const LibraryToolbox &tb) {
     wff->get_adv_truth_prover(tb)(engine);
     if (engine.get_proof_labels().size() > 0) {
         //cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-        cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+        cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
         cout << "proof length: " << engine.get_proof_labels().size() << endl;
     }
 }
@@ -618,7 +618,7 @@ int test_z3_main(int argc, char *argv[])
         if (res) {
             cout << endl << "FINAL PROOF FOUND!" << endl;
             //cout << "proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-            cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+            cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
             cout << "proof length: " << engine.get_proof_labels().size() << endl;
         } else {
             cout << "proof generation failed..." << endl;
