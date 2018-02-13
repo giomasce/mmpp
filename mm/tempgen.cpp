@@ -23,8 +23,8 @@ void TempGenerator::create_temp_var(SymTok type_sym)
     this->temp_types[lab] = { type_sym, sym };
 
     // Add the variables to a few structures
-    /*this->derivations.at(type_sym).push_back(pair< LabTok, vector< SymTok > >(lab, { sym }));
-    this->ders_by_label[lab] = pair< SymTok, vector< SymTok > >(type_sym, { sym });*/
+    //this->derivations.at(type_sym).push_back(pair< LabTok, vector< SymTok > >(lab, { sym }));
+    this->ders_by_label[lab] = pair< SymTok, vector< SymTok > >(type_sym, { sym });
     enlarge_and_set(this->var_lab_to_sym, lab - this->labs_base) = sym;
     enlarge_and_set(this->var_sym_to_lab, sym - this->syms_base) = lab;
     enlarge_and_set(this->var_lab_to_type_sym, lab - this->labs_base) = type_sym;
@@ -122,20 +122,25 @@ const Sentence &TempGenerator::get_sentence(LabTok label) const
 
 LabTok TempGenerator::get_var_sym_to_lab(SymTok sym) const
 {
-    return this->var_sym_to_lab.at(sym);
+    return this->var_sym_to_lab.at(sym - this->syms_base);
 }
 
 SymTok TempGenerator::get_var_lab_to_sym(LabTok lab) const
 {
-    return this->var_lab_to_sym.at(lab);
+    return this->var_lab_to_sym.at(lab - this->labs_base);
 }
 
 SymTok TempGenerator::get_var_sym_to_type_sym(SymTok sym) const
 {
-    return this->var_sym_to_type_sym.at(sym);
+    return this->var_sym_to_type_sym.at(sym - this->syms_base);
 }
 
 SymTok TempGenerator::get_var_lab_to_type_sym(LabTok lab) const
 {
-    return this->var_lab_to_type_sym.at(lab);
+    return this->var_lab_to_type_sym.at(lab - this->labs_base);
+}
+
+const std::pair<SymTok, Sentence> &TempGenerator::get_derivation_rule(LabTok lab) const
+{
+    return this->ders_by_label.at(lab);
 }

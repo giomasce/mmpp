@@ -40,9 +40,11 @@ struct VisitContext {
 };
 uint32_t VisitContext::depth = 0;
 
-/*static inline ostream &visit_log() {
+#ifdef LOG_UCT
+static inline ostream &visit_log() {
     return VisitContext::log();
-}*/
+}
+#endif
 
 VisitResult UCTProver::visit()
 {
@@ -630,11 +632,11 @@ int uct_main(int argc, char *argv[]) {
             break;
         }
         //while (cin.get() != '\n') {}
-        if (i == 50000) {
-            break;
-        }
         if (i % 2500 == 0) {
             cout << i << " visits done" << endl;
+        }
+        if (i == 50000) {
+            break;
         }
     }
 

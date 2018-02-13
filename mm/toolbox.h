@@ -186,6 +186,8 @@ public:
     ProofPrinter print_proof(const CompressedProof &proof, bool only_assertions = false) const;
     ProofPrinter print_proof(const UncompressedProof &proof, bool only_assertions = false) const;
     Sentence reconstruct_sentence(const ParsingTree< SymTok, LabTok > &pt, SymTok first_sym = {}) const;
+private:
+    void reconstruct_sentence_internal(const ParsingTree< SymTok, LabTok > &pt, std::back_insert_iterator< std::vector< SymTok > > it) const;
 
     // Type correspondance
 public:
@@ -223,7 +225,7 @@ private:
 
     // Derivations sorted according to their label
 public:
-    const std::unordered_map< LabTok, std::pair< SymTok, std::vector< SymTok > > > &get_ders_by_label() const;
+    const std::pair< SymTok, Sentence > &get_derivation_rule(LabTok lab) const;
 private:
     void compute_ders_by_label();
     std::unordered_map< LabTok, std::pair< SymTok, std::vector< SymTok > > > ders_by_label;

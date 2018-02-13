@@ -28,6 +28,7 @@ public:
     SymTok get_var_lab_to_sym(LabTok lab) const;
     SymTok get_var_sym_to_type_sym(SymTok sym) const;
     SymTok get_var_lab_to_type_sym(LabTok lab) const;
+    const std::pair<SymTok, Sentence> &get_derivation_rule(LabTok lab) const;
 
 private:
     void create_temp_var(SymTok type_sym);
@@ -47,4 +48,5 @@ private:
     std::vector< SymTok > var_lab_to_sym;
     std::vector< SymTok > var_sym_to_type_sym;
     std::vector< SymTok > var_lab_to_type_sym;
+    std::unordered_map< LabTok, std::pair< SymTok, std::vector< SymTok > > > ders_by_label;
 };

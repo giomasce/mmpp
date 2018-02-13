@@ -50,8 +50,7 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
         } else if (sp.style == SentencePrinter::STYLE_LATEX) {
             os << sp.tb.get_addendum().get_latexdef(tok);
         } else if (sp.style == SentencePrinter::STYLE_ANSI_COLORS_SET_MM) {
-            LabTok label = sp.tb.get_var_sym_to_lab(tok);
-            if (sp.tb.get_standard_is_var()(label)) {
+            if (sp.tb.get_standard_is_var_sym()(tok)) {
                 string type_str = sp.tb.resolve_symbol(sp.tb.get_var_sym_to_type_sym(tok));
                 if (type_str == "set") {
                     os << "\033[91m";
@@ -109,7 +108,8 @@ ostream &operator<<(ostream &os, const ProofPrinter &sp)
 LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, shared_ptr<ToolboxCache> cache) :
     cache(cache),
     lib(lib),
-    turnstile(lib.get_symbol(turnstile)), turnstile_alias(lib.get_parsing_addendum().get_syntax().at(this->turnstile))//,
+    turnstile(lib.get_symbol(turnstile)), turnstile_alias(lib.get_parsing_addendum().get_syntax().at(this->turnstile)),
+    temp_generator(make_unique< TempGenerator >(lib))
     //type_labels(lib.get_final_stack_frame().types), type_labels_set(lib.get_final_stack_frame().types_set)
 {
     assert(this->lib.is_immutable());
@@ -119,13 +119,13 @@ LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, sha
             return false;
         }
         return !this->is_constant(this->get_sentence(x).at(1));*/
-        if (x >= this->lib.get_labels_num()) {
+        if (x > this->lib.get_labels_num()) {
             return true;
         }
-        return this->get_is_var_by_type()[x];
+        return this->get_is_var_by_type().at(x);
     };
     this->standard_is_var_sym = [this](SymTok x)->bool {
-        if (x >= this->lib.get_symbols_num()) {
+        if (x > this->lib.get_symbols_num()) {
             return true;
         }
         return !this->lib.is_constant(x);
@@ -204,14 +204,33 @@ void LibraryToolbox::compute_ders_by_label()
     this->ders_by_label = compute_derivations_by_label(this->get_derivations());
 }
 
-const std::unordered_map<LabTok, std::pair<SymTok, std::vector<SymTok> > > &LibraryToolbox::get_ders_by_label() const
-{
-    return this->ders_by_label;
-}
-
+/* We reimplement, instead of use, the function ::recostuct_sentence(),
+ * in order to support variables introduced by temp_generator.
+ */
 Sentence LibraryToolbox::reconstruct_sentence(const ParsingTree<SymTok, LabTok> &pt, SymTok first_sym) const
 {
-    return ::reconstruct_sentence(pt, this->get_derivations(), this->get_ders_by_label(), first_sym);
+    std::vector< SymTok > res;
+    if (first_sym != SymTok{}) {
+        res.push_back(first_sym);
+    }
+    this->reconstruct_sentence_internal(pt, back_inserter(res));
+    return res;
+}
+
+void LibraryToolbox::reconstruct_sentence_internal(const ParsingTree<SymTok, LabTok> &pt, std::back_insert_iterator<std::vector<SymTok> > it) const
+{
+    const auto &rule = this->get_derivation_rule(pt.label);
+    auto pt_it = pt.children.begin();
+    for (const auto &sym : rule.second) {
+        if (this->derivations.find(sym) == this->derivations.end()) {
+            it = sym;
+        } else {
+            assert(pt_it != pt.children.end());
+            this->reconstruct_sentence_internal(*pt_it, it);
+            pt_it++;
+        }
+    }
+    assert(pt_it == pt.children.end());
 }
 
 void LibraryToolbox::compute_vars()
@@ -1015,6 +1034,15 @@ void LibraryToolbox::compute_derivations()
             sent2.push_back(this->is_constant(tok) ? tok : this->get_sentence(this->get_var_sym_to_lab(tok)).at(0));
         }
         this->derivations[sent.at(0)].push_back(make_pair(ass.get_thesis(), sent2));
+    }
+}
+
+const std::pair<SymTok, Sentence> &LibraryToolbox::get_derivation_rule(LabTok lab) const
+{
+    if (lab <= this->lib.get_labels_num()) {
+        return this->ders_by_label.at(lab);
+    } else {
+        return this->temp_generator->get_derivation_rule(lab);
     }
 }
 
