@@ -29,11 +29,11 @@ void test_old_unification() {
     vector< SymTok > sent = tb.read_sentence("wff ( ph -> ( ps -> ch ) )");
     vector< SymTok > templ = tb.read_sentence("wff ( th -> et )");
     auto res = unify_old(sent, templ, lib, false);
-    cout << "Matching:         " << tb.print_sentence(sent) << endl << "against template: " << tb.print_sentence(templ) << endl;
+    cout << "Matching:         " << tb.print_sentence(sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl << "against template: " << tb.print_sentence(templ, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
     for (auto &match : res) {
         cout << "  *";
         for (auto &var: match) {
-            cout << " " << tb.print_sentence(Sentence({var.first})) << " => " << tb.print_sentence(var.second) << "  ";
+            cout << " " << tb.print_sentence(Sentence({var.first}), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << " => " << tb.print_sentence(var.second, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << "  ";
         }
         cout << endl;
     }
@@ -92,10 +92,10 @@ void test_statement_unification() {
         cout << " * " << lib.resolve_label(label) << ":";
         for (auto &hyp : ass.get_ess_hyps()) {
             auto &hyp_sent = lib.get_sentence(hyp);
-            cout << " & " << tb.print_sentence(hyp_sent);
+            cout << " & " << tb.print_sentence(hyp_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM);
         }
         auto &thesis_sent = lib.get_sentence(ass.get_thesis());
-        cout << " => " << tb.print_sentence(thesis_sent) << endl;
+        cout << " => " << tb.print_sentence(thesis_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
     }
     cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
 }
@@ -117,7 +117,7 @@ void test_tree_unification() {
     tie(res, subst) = unif.unify();
 
     for (auto &i : subst) {
-        cout << lib.resolve_symbol(lib.get_sentence(i.first).at(1)) << ": " << tb.print_sentence(tb.reconstruct_sentence(i.second)) << endl;
+        cout << lib.resolve_symbol(lib.get_sentence(i.first).at(1)) << ": " << tb.print_sentence(tb.reconstruct_sentence(i.second), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
     }
 }
 
@@ -141,10 +141,10 @@ void test_unification() {
             cout << " * " << lib.resolve_label(label) << ":";
             for (auto &hyp : ass.get_ess_hyps()) {
                 auto &hyp_sent = lib.get_sentence(hyp);
-                cout << " & " << tb.print_sentence(hyp_sent);
+                cout << " & " << tb.print_sentence(hyp_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM);
             }
             auto &thesis_sent = lib.get_sentence(ass.get_thesis());
-            cout << " => " << tb.print_sentence(thesis_sent) << endl;
+            cout << " => " << tb.print_sentence(thesis_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
         }
 
         // Do actual time measurement
@@ -202,7 +202,6 @@ void test_wffs_trivial() {
                             And::create(True::create(), False::create()),
                             And::create(False::create(), True::create()),
                             And::create(False::create(), False::create()),
-
                             And3::create(True::create(), True::create(), True::create()),
                             And3::create(True::create(), False::create(), True::create()),
                             And3::create(False::create(), True::create(), True::create()),
@@ -239,7 +238,7 @@ void test_wffs_trivial() {
                 wff->get_type_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "type proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
                 }
             }
             cout << endl;
@@ -255,7 +254,7 @@ void test_wffs_trivial() {
                 wff->get_truth_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "Truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
                 }
             }
             {
@@ -263,7 +262,7 @@ void test_wffs_trivial() {
                 wff->get_falsity_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "Falsity proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
                 }
             }
             cout << endl;
@@ -279,7 +278,7 @@ void test_wffs_trivial() {
                 wff->get_imp_not_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "imp_not proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
                 }
             }
             cout << endl;
@@ -295,7 +294,7 @@ void test_wffs_trivial() {
                 wff->get_subst_prover("ph", true, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
                 }
             }
             {
@@ -303,7 +302,7 @@ void test_wffs_trivial() {
                 wff->get_subst_prover("ph", false, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst -. ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
                 }
             }
             {
@@ -311,7 +310,7 @@ void test_wffs_trivial() {
                 wff->get_subst_prover("ps", true, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
                 }
             }
             {
@@ -319,7 +318,7 @@ void test_wffs_trivial() {
                 wff->get_subst_prover("ps", false, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst -. ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
                 }
             }
             cout << endl;
@@ -348,7 +347,7 @@ void test_wffs_advanced() {
                 wff->get_adv_truth_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     //cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
                     cout << "proof length: " << engine.get_proof_labels().size() << endl;
                     //UncompressedProof proof = { engine.get_proof_labels() };
                 }

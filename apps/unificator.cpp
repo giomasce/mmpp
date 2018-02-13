@@ -44,10 +44,10 @@ void unification_loop() {
             cout << " * " << lib.resolve_label(label) << ":";
             for (auto &hyp : ass.get_ess_hyps()) {
                 auto &hyp_sent = lib.get_sentence(hyp);
-                cout << " & " << tb.print_sentence(hyp_sent);
+                cout << " & " << tb.print_sentence(hyp_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM);
             }
             auto &thesis_sent = lib.get_sentence(ass.get_thesis());
-            cout << " => " << tb.print_sentence(thesis_sent) << endl;
+            cout << " => " << tb.print_sentence(thesis_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
         }
     }
 }
