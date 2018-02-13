@@ -14,10 +14,10 @@ using namespace std;
 
 void test_small_stuff() {
     cout << "Testing random small stuff..." << endl;
-    auto ph = pwff(Var::create("ph"));
-    auto ps = pwff(Var::create("ps"));
-    auto w = pwff(Nand::create(ph, ps));
-    auto w2 = pwff(Xor::create(w, pwff(And::create(pwff(True::create()), ph))));
+    auto ph = Var::create("ph");
+    auto ps = Var::create("ps");
+    auto w = Nand::create(ph, ps);
+    auto w2 = Xor::create(w, And::create(True::create(), ph));
 
     cout << w2->to_string() << endl;
     cout << w2->imp_not_form()->to_string() << endl;
