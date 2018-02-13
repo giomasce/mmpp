@@ -63,7 +63,7 @@ public:
     }
 
 private:
-    TokType next_id = 1;
+    TokType next_id;
     std::unordered_map< std::string, TokType > dir;
     std::unordered_map< TokType, std::string > inv;
 };

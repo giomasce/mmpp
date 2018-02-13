@@ -15,6 +15,7 @@ class LibraryToolbox;
 #include "parsing/unif.h"
 #include "sentengine.h"
 #include "mmtemplates.h"
+#include "tempgen.h"
 
 class LibraryToolbox;
 
@@ -148,12 +149,12 @@ private:
     SymTok turnstile_alias;
 
     // Types
-public:
+/*public:
     const std::vector< LabTok > &get_type_labels() const;
     const std::set< LabTok > &get_type_labels_set() const;
 private:
     std::vector< LabTok > type_labels;
-    std::set< LabTok > type_labels_set;
+    std::set< LabTok > type_labels_set;*/
 
     // Type proving
 public:
@@ -188,10 +189,10 @@ public:
 
     // Type correspondance
 public:
-    const std::vector< LabTok > &get_var_sym_to_lab() const;
-    const std::vector< SymTok > &get_var_lab_to_sym() const;
-    const std::vector< SymTok > &get_var_sym_to_type_sym() const;
-    const std::vector< SymTok > &get_var_lab_to_type_sym() const;
+    LabTok get_var_sym_to_lab(SymTok sym) const;
+    SymTok get_var_lab_to_sym(LabTok lab) const;
+    SymTok get_var_sym_to_type_sym(SymTok sym) const;
+    SymTok get_var_lab_to_type_sym(LabTok lab) const;
 private:
     void compute_type_correspondance();
     std::vector< LabTok > var_sym_to_lab;
@@ -293,19 +294,12 @@ private:
 
     // Dynamic generation of temporary variables and labels
 public:
-    std::pair< LabTok, SymTok > new_temp_var(SymTok type_sym);
-    LabTok new_temp_label(std::string name);
-    void new_temp_var_frame();
-    void release_temp_var_frame();
+    std::pair< LabTok, SymTok > new_temp_var(SymTok type_sym) const;
+    LabTok new_temp_label(std::string name) const;
+    void new_temp_var_frame() const;
+    void release_temp_var_frame() const;
 private:
-    void create_temp_var(SymTok type_sym);
-    std::map< SymTok, size_t > temp_idx;
-    std::unordered_map< LabTok, Sentence > temp_types;
-    StringCache< SymTok > temp_syms;
-    StringCache< LabTok > temp_labs;
-    std::map< SymTok, std::vector< std::pair< LabTok, SymTok > > > free_temp_vars;
-    std::map< SymTok, std::vector< std::pair< LabTok, SymTok > > > used_temp_vars;
-    std::vector< std::map< SymTok, size_t > > temp_vars_stack;
+    std::unique_ptr< TempGenerator > temp_generator;
 
     // Replace variables with fresh new ones
 public:

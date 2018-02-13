@@ -346,8 +346,8 @@ bool SentenceNode::check_subst_map(const SubstMap2<SymTok, LabTok> &subst_map, c
         for (auto it2 = subst_map.begin(); it2 != it1; it2++) {
             const auto &var1 = it1->first;
             const auto &var2 = it2->first;
-            const auto lab_var1 = tb.get_var_lab_to_sym().at(var1);
-            const auto lab_var2 = tb.get_var_lab_to_sym().at(var2);
+            const auto lab_var1 = tb.get_var_lab_to_sym(var1);
+            const auto lab_var2 = tb.get_var_lab_to_sym(var2);
             const auto &subst1 = it1->second;
             const auto &subst2 = it2->second;
             if (ass_dists.find(minmax(lab_var1, lab_var2)) != ass_dists.end()) {

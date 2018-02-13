@@ -61,6 +61,7 @@ const ProofSentenceTraits<Sentence>::SentType &ProofSentenceTraits<Sentence>::ge
 
 void ProofSentenceTraits<Sentence>::check_match(const LibType &lib, const ProofSentenceTraits<Sentence>::SentType &stack, const ProofSentenceTraits<Sentence>::SentType &templ, const ProofSentenceTraits<Sentence>::SubstMapType &subst_map)
 {
+    // FIXME label
     ProofError< Sentence > err = { /* label */ {}, stack, templ, subst_map };
     auto stack_it = stack.begin();
     for (auto it = templ.begin(); it != templ.end(); it++) {

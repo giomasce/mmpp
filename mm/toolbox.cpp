@@ -50,9 +50,9 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
         } else if (sp.style == SentencePrinter::STYLE_LATEX) {
             os << sp.tb.get_addendum().get_latexdef(tok);
         } else if (sp.style == SentencePrinter::STYLE_ANSI_COLORS_SET_MM) {
-            LabTok label = sp.tb.get_var_sym_to_lab().at(tok);
+            LabTok label = sp.tb.get_var_sym_to_lab(tok);
             if (sp.tb.get_standard_is_var()(label)) {
-                string type_str = sp.tb.resolve_symbol(sp.tb.get_var_sym_to_type_sym().at(tok));
+                string type_str = sp.tb.resolve_symbol(sp.tb.get_var_sym_to_type_sym(tok));
                 if (type_str == "set") {
                     os << "\033[91m";
                 } else if (type_str == "class") {
@@ -109,9 +109,8 @@ ostream &operator<<(ostream &os, const ProofPrinter &sp)
 LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, shared_ptr<ToolboxCache> cache) :
     cache(cache),
     lib(lib),
-    turnstile(lib.get_symbol(turnstile)), turnstile_alias(lib.get_parsing_addendum().get_syntax().at(this->turnstile)),
-    type_labels(lib.get_final_stack_frame().types), type_labels_set(lib.get_final_stack_frame().types_set),
-    temp_syms(lib.get_symbols_num()+1), temp_labs(lib.get_labels_num()+1)
+    turnstile(lib.get_symbol(turnstile)), turnstile_alias(lib.get_parsing_addendum().get_syntax().at(this->turnstile))//,
+    //type_labels(lib.get_final_stack_frame().types), type_labels_set(lib.get_final_stack_frame().types_set)
 {
     assert(this->lib.is_immutable());
     this->standard_is_var = [this](LabTok x)->bool {
@@ -178,7 +177,7 @@ bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, E
     } else {
         std::unordered_map<LabTok, const Prover*> lab_var_provers;
         for (const auto &x : var_provers) {
-            lab_var_provers.insert(make_pair(this->get_var_sym_to_lab().at(x.first), &x.second));
+            lab_var_provers.insert(make_pair(this->get_var_sym_to_lab(x.first), &x.second));
         }
         type_proving_helper_unwind_tree(tree, engine, *this, lab_var_provers);
         return true;
@@ -366,94 +365,6 @@ bool LibraryToolbox::proving_helper(const RegisteredProverInstanceData &inst_dat
     return true;
 }
 
-void LibraryToolbox::create_temp_var(SymTok type_sym)
-{
-    // Create names and variables
-    assert(this->is_constant(type_sym));
-    size_t idx = ++this->temp_idx[type_sym];
-    string sym_name = this->resolve_symbol(type_sym) + to_string(idx);
-    assert(this->get_symbol(sym_name) == LabTok{});
-    string lab_name = "temp" + sym_name;
-    assert(this->get_label(lab_name) == LabTok{});
-    SymTok sym = this->temp_syms.create(sym_name);
-    LabTok lab = this->temp_labs.create(lab_name);
-    this->temp_types[lab] = { type_sym, sym };
-
-    // Add the variables to a few structures
-    this->type_labels.push_back(lab);
-    this->type_labels_set.insert(lab);
-    this->derivations.at(type_sym).push_back(pair< LabTok, vector< SymTok > >(lab, { sym }));
-    this->ders_by_label[lab] = pair< SymTok, vector< SymTok > >(type_sym, { sym });
-    enlarge_and_set(this->var_lab_to_sym, lab) = sym;
-    enlarge_and_set(this->var_sym_to_lab, sym) = lab;
-    enlarge_and_set(this->var_lab_to_type_sym, lab) = type_sym;
-    enlarge_and_set(this->var_sym_to_type_sym, sym) = type_sym;
-
-    // And insert it to the free list
-    this->free_temp_vars[type_sym].push_back(make_pair(lab, sym));
-}
-
-std::pair<LabTok, SymTok> LibraryToolbox::new_temp_var(SymTok type_sym)
-{
-    if (this->free_temp_vars[type_sym].empty()) {
-        this->create_temp_var(type_sym);
-    }
-    auto ret = this->free_temp_vars[type_sym].back();
-    this->used_temp_vars[type_sym].push_back(ret);
-    this->free_temp_vars[type_sym].pop_back();
-    return ret;
-}
-
-LabTok LibraryToolbox::new_temp_label(string name)
-{
-    LabTok tok = this->temp_labs.get(name);
-    if (tok == LabTok{}) {
-        assert(this->get_label(name) == LabTok{});
-        tok = this->temp_labs.create(name);
-    }
-    assert(tok != LabTok{});
-    return tok;
-}
-
-void LibraryToolbox::new_temp_var_frame()
-{
-    std::map< SymTok, size_t > x;
-    for (const auto &v : this->used_temp_vars) {
-        x[v.first] = v.second.size();
-    }
-    this->temp_vars_stack.push_back(x);
-}
-
-void LibraryToolbox::release_temp_var_frame()
-{
-    const auto &stack_pos = this->temp_vars_stack.back();
-    for (auto &v : this->used_temp_vars) {
-        SymTok type_sym = v.first;
-        auto &used_vars = v.second;
-        auto &free_vars = this->free_temp_vars.at(type_sym);
-        auto it = stack_pos.find(type_sym);
-        size_t pos = 0;
-        if (it != stack_pos.end()) {
-            pos = it->second;
-        }
-        for (auto it = used_vars.begin()+pos; it != used_vars.end(); it++) {
-            free_vars.push_back(*it);
-        }
-        used_vars.resize(pos);
-    }
-    this->temp_vars_stack.pop_back();
-}
-
-/*void LibraryToolbox::release_all_temp_vars()
-{
-    for (auto &v : this->used_temp_vars) {
-        for (const auto &p : v.second) {
-            this->free_temp_vars[v.first].push_back(p);
-        }
-    }
-    this->used_temp_vars.clear();
-}*/
-
 // FIXME Deduplicate with refresh_parsing_tree()
 std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok> > LibraryToolbox::refresh_assertion(const Assertion &ass)
 {
@@ -572,7 +483,7 @@ SymTok LibraryToolbox::get_symbol(string s) const
     if (res != 0) {
         return res;
     }
-    return this->temp_syms.get(s);
+    return this->temp_generator->get_symbol(s);
 }
 
 LabTok LibraryToolbox::get_label(string s) const
@@ -581,7 +492,7 @@ LabTok LibraryToolbox::get_label(string s) const
     if (res != 0) {
         return res;
     }
-    return this->temp_labs.get(s);
+    return this->temp_generator->get_label(s);
 }
 
 string LibraryToolbox::resolve_symbol(SymTok tok) const
@@ -590,7 +501,7 @@ string LibraryToolbox::resolve_symbol(SymTok tok) const
     if (res != "") {
         return res;
     }
-    return this->temp_syms.resolve(tok);
+    return this->temp_generator->resolve_symbol(tok);
 }
 
 string LibraryToolbox::resolve_label(LabTok tok) const
@@ -599,22 +510,22 @@ string LibraryToolbox::resolve_label(LabTok tok) const
     if (res != "") {
         return res;
     }
-    return this->temp_labs.resolve(tok);
+    return this->temp_generator->resolve_label(tok);
 }
 
 size_t LibraryToolbox::get_symbols_num() const
 {
-    return this->lib.get_symbols_num() + this->temp_syms.size();
+    return this->lib.get_symbols_num() + this->temp_generator->get_symbols_num();
 }
 
 size_t LibraryToolbox::get_labels_num() const
 {
-    return this->lib.get_labels_num() + this->temp_labs.size();
+    return this->lib.get_labels_num() + this->temp_generator->get_labels_num();
 }
 
 bool LibraryToolbox::is_constant(SymTok c) const
 {
-    // Things in temp_* can only ve variable
+    // Things in temp_generator can only be variable
     return this->lib.is_constant(c);
 }
 
@@ -624,7 +535,7 @@ const Sentence &LibraryToolbox::get_sentence(LabTok label) const
     if (sent != NULL) {
         return *sent;
     }
-    return this->temp_types.at(label);
+    return this->temp_generator->get_sentence(label);
 }
 
 SentenceType LibraryToolbox::get_sentence_type(LabTok label) const
@@ -958,7 +869,7 @@ void LibraryToolbox::compute_everything()
     //toc(t, 1);
 }
 
-const std::vector<LabTok> &LibraryToolbox::get_type_labels() const
+/*const std::vector<LabTok> &LibraryToolbox::get_type_labels() const
 {
     return this->type_labels;
 }
@@ -966,11 +877,11 @@ const std::vector<LabTok> &LibraryToolbox::get_type_labels() const
 const std::set<LabTok> &LibraryToolbox::get_type_labels_set() const
 {
     return this->type_labels_set;
-}
+}*/
 
 void LibraryToolbox::compute_type_correspondance()
 {
-    for (auto &var_lab : this->get_type_labels()) {
+    for (auto &var_lab : this->get_final_stack_frame().types) {
         const auto &sent = this->get_sentence(var_lab);
         assert(sent.size() == 2);
         const SymTok type_sym = sent[0];
@@ -982,29 +893,45 @@ void LibraryToolbox::compute_type_correspondance()
     }
 }
 
-const std::vector<LabTok> &LibraryToolbox::get_var_sym_to_lab() const
+LabTok LibraryToolbox::get_var_sym_to_lab(SymTok sym) const
 {
-    return this->var_sym_to_lab;
+    if (sym <= this->lib.get_symbols_num()) {
+        return this->var_sym_to_lab.at(sym);
+    } else {
+        return this->temp_generator->get_var_sym_to_lab(sym);
+    }
 }
 
-const std::vector<SymTok> &LibraryToolbox::get_var_lab_to_sym() const
+SymTok LibraryToolbox::get_var_lab_to_sym(LabTok lab) const
 {
-    return this->var_lab_to_sym;
+    if (lab <= this->lib.get_labels_num()) {
+        return this->var_lab_to_sym.at(lab);
+    } else {
+        return this->temp_generator->get_var_lab_to_sym(lab);
+    }
 }
 
-const std::vector<SymTok> &LibraryToolbox::get_var_sym_to_type_sym() const
+SymTok LibraryToolbox::get_var_sym_to_type_sym(SymTok sym) const
 {
-    return this->var_sym_to_type_sym;
+    if (sym <= this->lib.get_symbols_num()) {
+        return this->var_sym_to_type_sym.at(sym);
+    } else {
+        return this->temp_generator->get_var_sym_to_type_sym(sym);
+    }
 }
 
-const std::vector<SymTok> &LibraryToolbox::get_var_lab_to_type_sym() const
+SymTok LibraryToolbox::get_var_lab_to_type_sym(LabTok lab) const
 {
-    return this->var_lab_to_type_sym;
+    if (lab <= this->lib.get_labels_num()) {
+        return this->var_lab_to_type_sym.at(lab);
+    } else {
+        return this->temp_generator->get_var_lab_to_type_sym(lab);
+    }
 }
 
 void LibraryToolbox::compute_is_var_by_type()
 {
-    const auto &types_set = this->get_type_labels_set();
+    const auto &types_set = this->get_final_stack_frame().types_set;
     this->is_var_by_type.resize(this->lib.get_labels_num());
     for (LabTok label = 1; label < this->lib.get_labels_num(); label++) {
         this->is_var_by_type[label] = types_set.find(label) != types_set.end() && !this->is_constant(this->get_sentence(label).at(1));
@@ -1041,7 +968,7 @@ void LibraryToolbox::compute_derivations()
     // and for each $a statement without essential hypotheses such that no variable
     // appears more than once and without distinct variables constraints and that does not
     // begin with the turnstile
-    for (auto &type_lab : this->get_type_labels()) {
+    for (auto &type_lab : this->get_final_stack_frame().types) {
         auto &type_sent = this->get_sentence(type_lab);
         this->derivations[type_sent.at(0)].push_back(make_pair(type_lab, vector<SymTok>({type_sent.at(1)})));
     }
@@ -1085,7 +1012,7 @@ void LibraryToolbox::compute_derivations()
         for (size_t i = 1; i < sent.size(); i++) {
             const auto &tok = sent[i];
             // Variables are replaced with their types, which act as variables of the context-free grammar
-            sent2.push_back(this->is_constant(tok) ? tok : this->get_sentence(this->get_var_sym_to_lab().at(tok)).at(0));
+            sent2.push_back(this->is_constant(tok) ? tok : this->get_sentence(this->get_var_sym_to_lab(tok)).at(0));
         }
         this->derivations[sent.at(0)].push_back(make_pair(ass.get_thesis(), sent2));
     }
@@ -1234,6 +1161,26 @@ void LibraryToolbox::compute_registered_prover(size_t index, bool exception_on_f
         }
         inst_data = RegisteredProverInstanceData(unification[0], this->resolve_label(get<0>(unification[0])));
     }
+}
+
+std::pair<LabTok, SymTok> LibraryToolbox::new_temp_var(SymTok type_sym) const
+{
+    return this->temp_generator->new_temp_var(type_sym);
+}
+
+LabTok LibraryToolbox::new_temp_label(string name) const
+{
+    return this->temp_generator->new_temp_label(name);
+}
+
+void LibraryToolbox::new_temp_var_frame() const
+{
+    return this->temp_generator->new_temp_var_frame();
+}
+
+void LibraryToolbox::release_temp_var_frame() const
+{
+    return this->temp_generator->release_temp_var_frame();
 }
 
 Prover LibraryToolbox::build_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const

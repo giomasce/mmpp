@@ -160,69 +160,6 @@ bool LibraryImpl::is_constant(SymTok c) const
     }
 }
 
-/*std::vector<LabTok> LibraryImpl::prove_type2(const std::vector<SymTok> &type_sent) const
-{
-    // Iterate over all propositions (maybe just axioms would be enough) with zero essential hypotheses, try to match and recur on all matches;
-    // hopefully nearly all branches die early and there is just one real long-standing branch;
-    // when the length is 2 try to match with floating hypotheses.
-    // The current implementation is probably less efficient and more copy-ish than it could be.
-    assert(type_sent.size() >= 2);
-    if (type_sent.size() == 2) {
-        for (auto &test_type : this->types) {
-            if (this->get_sentence(test_type) == type_sent) {
-                return { test_type };
-            }
-        }
-    }
-    auto &type_const = type_sent.at(0);
-    // If a there are no assertions for a certain type (which is possible, see for example "set" in set.mm), then processing stops here
-    if (this->assertions_by_type.find(type_const) == this->assertions_by_type.end()) {
-        return {};
-    }
-    for (auto &templ : this->assertions_by_type.at(type_const)) {
-        const Assertion &templ_ass = this->get_assertion(templ);
-        if (templ_ass.get_ess_hyps().size() != 0) {
-            continue;
-        }
-        const auto &templ_sent = this->get_sentence(templ);
-        auto unifications = unify(type_sent, templ_sent, *this);
-        for (auto &unification : unifications) {
-            bool failed = false;
-            unordered_map< SymTok, vector< LabTok > > matches;
-            for (auto &unif_pair : unification) {
-                const SymTok &var = unif_pair.first;
-                const vector< SymTok > &subst = unif_pair.second;
-                SymTok type = this->get_sentence(this->types_by_var[var]).at(0);
-                vector< SymTok > new_type_sent = { type };
-                // TODO This is not very efficient
-                copy(subst.begin(), subst.end(), back_inserter(new_type_sent));
-                auto res = matches.insert(make_pair(var, this->prove_type2(new_type_sent)));
-                assert(res.second);
-                if (res.first->second.empty()) {
-                    failed = true;
-                    break;
-                }
-            }
-            if (!failed) {
-                // We have to sort hypotheses by order af appearance; here we assume that numeric orderd of labels coincides with the order of appearance
-                vector< pair< LabTok, SymTok > > hyp_labels;
-                for (auto &match_pair : matches) {
-                    hyp_labels.push_back(make_pair(this->types_by_var[match_pair.first], match_pair.first));
-                }
-                sort(hyp_labels.begin(), hyp_labels.end());
-                vector< LabTok > ret;
-                for (auto &hyp_pair : hyp_labels) {
-                    auto &hyp_var = hyp_pair.second;
-                    copy(matches.at(hyp_var).begin(), matches.at(hyp_var).end(), back_inserter(ret));
-                }
-                ret.push_back(templ);
-                return ret;
-            }
-        }
-    }
-    return {};
-}*/
-
 void LibraryImpl::set_final_stack_frame(const StackFrame &final_stack_frame)
 {
     this->final_stack_frame = final_stack_frame;

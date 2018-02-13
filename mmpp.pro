@@ -86,7 +86,8 @@ SOURCES += \
     mm/mmtemplates.cpp \
     mm/ptengine.cpp \
     mm/sentengine.cpp \
-    web/strategy.cpp
+    web/strategy.cpp \
+    mm/tempgen.cpp
 
 HEADERS += \
     pch.h \
@@ -126,7 +127,8 @@ HEADERS += \
     mm/mmtemplates.h \
     mm/ptengine.h \
     mm/sentengine.h \
-    web/strategy.h
+    web/strategy.h \
+    mm/tempgen.h
 
 DISTFILES += \
     README \
