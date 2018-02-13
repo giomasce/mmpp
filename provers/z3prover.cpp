@@ -20,44 +20,44 @@ pwff parse_expr(expr e) {
     switch (kind) {
     case Z3_OP_TRUE:
         assert(e.num_args() == 0);
-        return make_shared< True >();
+        return True::create();
     case Z3_OP_FALSE:
         assert(e.num_args() == 0);
-        return make_shared< False >();
+        return False::create();
     case Z3_OP_EQ:
         // Interpreted as biimplication; why does Z3 generates equalities between formulae?
         assert(e.num_args() == 2);
-        return make_shared< Biimp >(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
+        return Biimp::create(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
     case Z3_OP_AND:
         assert(e.num_args() >= 2);
-        ret = make_shared< And >(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
+        ret = And::create(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
         for (unsigned i = 2; i < e.num_args(); i++) {
-            ret = make_shared< And >(ret, parse_expr(e.arg(i)));
+            ret = And::create(ret, parse_expr(e.arg(i)));
         }
         return ret;
     case Z3_OP_OR:
         assert(e.num_args() >= 2);
-        ret = make_shared< Or >(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
+        ret = Or::create(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
         for (unsigned i = 2; i < e.num_args(); i++) {
-            ret = make_shared< Or >(ret, parse_expr(e.arg(i)));
+            ret = Or::create(ret, parse_expr(e.arg(i)));
         }
         return ret;
     case Z3_OP_IFF:
         assert(e.num_args() == 2);
-        return make_shared< Biimp >(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
+        return Biimp::create(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
     case Z3_OP_XOR:
         assert(e.num_args() == 2);
-        return make_shared< Xor >(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
+        return Xor::create(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
     case Z3_OP_NOT:
         assert(e.num_args() == 1);
-        return make_shared< Not >(parse_expr(e.arg(0)));
+        return Not::create(parse_expr(e.arg(0)));
     case Z3_OP_IMPLIES:
         assert(e.num_args() == 2);
-        return make_shared< Imp >(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
+        return Imp::create(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
 
     case Z3_OP_UNINTERPRETED:
         assert(e.num_args() == 0);
-        return make_shared< Var >(decl.name().str());
+        return Var::create(decl.name().str());
 
     default:
         throw "Cannot handle this formula";
@@ -88,12 +88,12 @@ RegisteredProver orfa2_rp = LibraryToolbox::register_prover({"|- ( ph -> F. )"},
 // where all instances of F. have been removed (unless they're all F.'s).
 tuple< Prover, pwff, pwff > simplify_or(const vector< pwff > &clauses, const LibraryToolbox &tb) {
     if (clauses.size() == 0) {
-        return make_tuple(tb.build_registered_prover(ff_rp, {}, {}), make_shared< False >(), make_shared< False >());
+        return make_tuple(tb.build_registered_prover(ff_rp, {}, {}), False::create(), False::create());
     } else {
         Prover ret = tb.build_registered_prover(id_rp, {{"ph", clauses[0]->get_type_prover(tb)}}, {});
         pwff first = clauses[0];
         pwff second = clauses[0];
-        pwff falsum = make_shared< False >();
+        pwff falsum = False::create();
         for (size_t i = 1; i < clauses.size(); i++) {
             pwff new_clause = clauses[i];
             if (*second == *falsum) {
@@ -104,10 +104,10 @@ tuple< Prover, pwff, pwff > simplify_or(const vector< pwff > &clauses, const Lib
                     ret = tb.build_registered_prover(orfa_rp, {{"ph", first->get_type_prover(tb)}, {"ps", second->get_type_prover(tb)}}, {ret});
                 } else {
                     ret = tb.build_registered_prover(orim1i_rp, {{"ph", first->get_type_prover(tb)}, {"ps", second->get_type_prover(tb)}, {"ch", new_clause->get_type_prover(tb)}}, {ret});
-                    second = make_shared< Or >(second, new_clause);
+                    second = Or::create(second, new_clause);
                 }
             }
-            first = make_shared< Or >(first, new_clause);
+            first = Or::create(first, new_clause);
         }
         return make_tuple(ret, first, second);
     }
@@ -119,15 +119,15 @@ tuple< Prover, pwff, pwff > join_or_imp(const vector< pwff > &orig_clauses, cons
     assert(orig_clauses.size() == new_clauses.size());
     assert(orig_clauses.size() == provers.size());
     if (orig_clauses.size() == 0) {
-        return make_tuple(tb.build_registered_prover(ff_rp, {}, {}), make_shared< False >(), make_shared< False >());
+        return make_tuple(tb.build_registered_prover(ff_rp, {}, {}), False::create(), False::create());
     } else {
         Prover ret = provers[0];
         pwff orig_cl = orig_clauses[0];
         pwff new_cl = new_clauses[0];
         for (size_t i = 1; i < orig_clauses.size(); i++) {
             ret = tb.build_registered_prover(orim12d_rp, {{"ph", abs->get_type_prover(tb)}, {"ps", orig_cl->get_type_prover(tb)}, {"ch", new_cl->get_type_prover(tb)}, {"th", orig_clauses[i]->get_type_prover(tb)}, {"ta", new_clauses[i]->get_type_prover(tb)}}, {ret, provers[i]});
-            orig_cl = make_shared< Or >(orig_cl, orig_clauses[i]);
-            new_cl = make_shared< Or >(new_cl, new_clauses[i]);
+            orig_cl = Or::create(orig_cl, orig_clauses[i]);
+            new_cl = Or::create(new_cl, new_clauses[i]);
         }
         return make_tuple(ret, orig_cl, new_cl);
     }
@@ -181,19 +181,19 @@ struct Z3Adapter {
                 this->target = w;
                 this->abs = w;
             } else {
-                this->and_hyps = make_shared< And >(this->and_hyps, w);
-                this->target = make_shared< And >(this->target, w);
-                this->abs = make_shared< And >(this->abs, w);
+                this->and_hyps = And::create(this->and_hyps, w);
+                this->target = And::create(this->target, w);
+                this->abs = And::create(this->abs, w);
             }
         } else {
-            this->hyps.push_back(make_shared< Not >(w));
+            this->hyps.push_back(Not::create(w));
             this->thesis = w;
             if (this->target == NULL) {
                 this->target = w;
-                this->abs = make_shared< Not >(w);
+                this->abs = Not::create(w);
             } else {
-                this->target = make_shared< Imp >(this->target, w);
-                this->abs = make_shared< And >(this->abs, make_shared< Not >(w));
+                this->target = Imp::create(this->target, w);
+                this->abs = And::create(this->abs, Not::create(w));
             }
         }
     }
@@ -325,8 +325,8 @@ struct Z3Adapter {
                             RegisteredProver rp;
                             std::function< pwff(pwff, pwff) > combiner = [](pwff, pwff)->pwff { throw "Should not arrive here"; };
                             switch (th_left.decl().decl_kind()) {
-                            case Z3_OP_AND: rp = anbi12d_rp; combiner = [](pwff a, pwff b) { return make_shared< And >(a, b); }; break;
-                            case Z3_OP_OR: rp = orbi12d_rp; combiner = [](pwff a, pwff b) { return make_shared< Or >(a, b); }; break;
+                            case Z3_OP_AND: rp = anbi12d_rp; combiner = [](pwff a, pwff b) { return And::create(a, b); }; break;
+                            case Z3_OP_OR: rp = orbi12d_rp; combiner = [](pwff a, pwff b) { return Or::create(a, b); }; break;
                             case Z3_OP_IFF: rp = bibi12d_rp; break;
                             case Z3_OP_IMPLIES: rp = imbi12d_rp; break;
                             default: throw "Should not arrive here"; break;
@@ -417,11 +417,11 @@ struct Z3Adapter {
                         orig_clauses.push_back(clause);
 
                         // Search an eliminator for the positive form
-                        auto elim_it = find_if(elims.begin(), elims.end(), [=](const pwff &w){ return *w == *make_shared< Not >(clause); });
+                        auto elim_it = find_if(elims.begin(), elims.end(), [=](const pwff &w){ return *w == *Not::create(clause); });
                         if (elim_it != elims.end()) {
                             size_t pos = elim_it - elims.begin();
                             provers.push_back(this->tb.build_registered_prover(urt_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", clause->get_type_prover(this->tb)}}, {elim_provers[pos]}));
-                            new_clauses.push_back(make_shared< False >());
+                            new_clauses.push_back(False::create());
                             //cerr << "TEST 1: " << test_prover(provers.back(), this->tb) << endl;
                             continue;
                         }
@@ -433,7 +433,7 @@ struct Z3Adapter {
                             if (elim_it != elims.end()) {
                                 size_t pos = elim_it - elims.begin();
                                 provers.push_back(this->tb.build_registered_prover(urf_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", clause_not->get_a()->get_type_prover(this->tb)}}, {elim_provers[pos]}));
-                                new_clauses.push_back(make_shared< False >());
+                                new_clauses.push_back(False::create());
                                 //cerr << "TEST 1: " << test_prover(provers.back(), this->tb) << endl;
                                 continue;
                             }
@@ -523,8 +523,8 @@ struct Z3Adapter {
                     /*cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;
                     cout << "TH: " << e.arg(1) << endl;
                     cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;*/
-                    cout << "LEMMA ORACLE for '" << make_shared< Imp >(this->get_current_abs_hyps(), parse_expr(extract_thesis(e)))->to_string() << "'!" << endl;
-                    return make_shared< Imp >(this->get_current_abs_hyps(), parse_expr(extract_thesis(e)))->get_adv_truth_prover(this->tb);
+                    cout << "LEMMA ORACLE for '" << Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e)))->to_string() << "'!" << endl;
+                    return Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e)))->get_adv_truth_prover(this->tb);
                     break; }
                 /*case Z3_OP_PR_HYPOTHESIS:
                     cout << "hypothesis";
@@ -535,9 +535,9 @@ struct Z3Adapter {
                     cout << endl << "WFF: " << parse_expr(e.arg(0))->to_string();
                     break;*/
                 default:
-                    //prove_and_print(make_shared< Imp >(w, parse_expr(extract_thesis(e))), tb);
-                    cout << "GENERIC ORACLE for '" << make_shared< Imp >(this->get_current_abs_hyps(), parse_expr(extract_thesis(e)))->to_string() << "'!" << endl;
-                    return make_shared< Imp >(this->get_current_abs_hyps(), parse_expr(extract_thesis(e)))->get_adv_truth_prover(this->tb);
+                    //prove_and_print(Imp::create(w, parse_expr(extract_thesis(e))), tb);
+                    cout << "GENERIC ORACLE for '" << Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e)))->to_string() << "'!" << endl;
+                    return Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e)))->get_adv_truth_prover(this->tb);
                     break;
                 }
             } else {

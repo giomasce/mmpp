@@ -75,8 +75,8 @@ Prover Wff::adv_truth_internal(set< string >::iterator cur_var, set< string >::i
         string var = *cur_var++;
         pwff pos_wff = this->subst(var, true);
         pwff neg_wff = this->subst(var, false);
-        pwff pos_antecent = pwff(new Var(var));
-        pwff neg_antecent = pwff(new Not(pwff(new Var(var))));
+        pwff pos_antecent = pwff(Var::create(var));
+        pwff neg_antecent = pwff(Not::create(pwff(Var::create(var))));
         Prover rec_pos_prover = pos_wff->adv_truth_internal(cur_var, end_var, tb);
         Prover rec_neg_prover = neg_wff->adv_truth_internal(cur_var, end_var, tb);
         Prover pos_prover = this->get_subst_prover(var, true, tb);
@@ -114,14 +114,14 @@ string True::to_string() const {
 }
 
 pwff True::imp_not_form() const {
-    return pwff(new True());
+    return pwff(True::create());
 }
 
 pwff True::subst(string var, bool positive) const
 {
     (void) var;
     (void) positive;
-    return pwff(new True());
+    return pwff(True::create());
 }
 
 std::vector<SymTok> True::to_sentence(const Library &lib) const
@@ -160,9 +160,9 @@ Prover True::get_imp_not_prover(const LibraryToolbox &tb) const
 RegisteredProver True::subst_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( T. <-> T. ) )");
 Prover True::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const
 {
-    pwff subst = pwff(new Var(var));
+    pwff subst = pwff(Var::create(var));
     if (!positive) {
-        subst = pwff(new Not(subst));
+        subst = pwff(Not::create(subst));
     }
     return tb.build_registered_prover(True::subst_rp, {{"ph", subst->get_type_prover(tb)}}, {});
 }
@@ -185,14 +185,14 @@ string False::to_string() const {
 }
 
 pwff False::imp_not_form() const {
-    return pwff(new False());
+    return pwff(False::create());
 }
 
 pwff False::subst(string var, bool positive) const
 {
     (void) var;
     (void) positive;
-    return pwff(new False());
+    return pwff(False::create());
 }
 
 std::vector<SymTok> False::to_sentence(const Library &lib) const
@@ -231,9 +231,9 @@ Prover False::get_imp_not_prover(const LibraryToolbox &tb) const
 RegisteredProver False::subst_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( F. <-> F. ) )");
 Prover False::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const
 {
-    pwff subst = pwff(new Var(var));
+    pwff subst = pwff(Var::create(var));
     if (!positive) {
-        subst = pwff(new Not(subst));
+        subst = pwff(Not::create(subst));
     }
     return tb.build_registered_prover(False::subst_rp, {{"ph", subst->get_type_prover(tb)}}, {});
 }
@@ -257,19 +257,19 @@ string Var::to_string() const {
 }
 
 pwff Var::imp_not_form() const {
-    return pwff(new Var(this->name));
+    return pwff(Var::create(this->name));
 }
 
 pwff Var::subst(string var, bool positive) const
 {
     if (this->name == var) {
         if (positive) {
-            return pwff(new True());
+            return pwff(True::create());
         } else {
-            return pwff(new False());
+            return pwff(False::create());
         }
     } else {
-        return pwff(new Var(this->name));
+        return pwff(Var::create(this->name));
     }
 }
 
@@ -322,9 +322,9 @@ Prover Var::get_subst_prover(string var, bool positive, const LibraryToolbox &tb
             return third;
         }
     } else {
-        pwff ant = pwff(new Var(var));
+        pwff ant = pwff(Var::create(var));
         if (!positive) {
-            ant = pwff(new Not(ant));
+            ant = pwff(Not::create(ant));
         }
         return tb.build_registered_prover(Var::subst_indep_rp, {{"ps", ant->get_type_prover(tb)}, {"ph", this->get_type_prover(tb)}}, {});
     }
@@ -349,12 +349,12 @@ string Not::to_string() const {
 }
 
 pwff Not::imp_not_form() const {
-    return pwff(new Not(this->a->imp_not_form()));
+    return pwff(Not::create(this->a->imp_not_form()));
 }
 
 pwff Not::subst(string var, bool positive) const
 {
-    return pwff(new Not(this->a->subst(var, positive)));
+    return pwff(Not::create(this->a->subst(var, positive)));
 }
 
 std::vector<SymTok> Not::to_sentence(const Library &lib) const
@@ -409,9 +409,9 @@ Prover Not::get_subst_prover(string var, bool positive, const LibraryToolbox &tb
 {
     pwff ant;
     if (positive) {
-        ant = pwff(new Var(var));
+        ant = pwff(Var::create(var));
     } else {
-        ant = pwff(new Not(pwff(new Var(var))));
+        ant = pwff(Not::create(pwff(Var::create(var))));
     }
     return tb.build_registered_prover(Not::subst_rp,
     {{"ph", ant->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}}, {this->a->get_subst_prover(var, positive, tb)});
@@ -436,12 +436,12 @@ string Imp::to_string() const {
 }
 
 pwff Imp::imp_not_form() const {
-    return pwff(new Imp(this->a->imp_not_form(), this->b->imp_not_form()));
+    return pwff(Imp::create(this->a->imp_not_form(), this->b->imp_not_form()));
 }
 
 pwff Imp::subst(string var, bool positive) const
 {
-    return pwff(new Imp(this->a->subst(var, positive), this->b->subst(var, positive)));
+    return pwff(Imp::create(this->a->subst(var, positive), this->b->subst(var, positive)));
 }
 
 std::vector<SymTok> Imp::to_sentence(const Library &lib) const
@@ -519,9 +519,9 @@ Prover Imp::get_subst_prover(string var, bool positive, const LibraryToolbox &tb
 {
     pwff ant;
     if (positive) {
-        ant = pwff(new Var(var));
+        ant = pwff(Var::create(var));
     } else {
-        ant = pwff(new Not(pwff(new Var(var))));
+        ant = pwff(Not::create(pwff(Var::create(var))));
     }
     return tb.build_registered_prover(Imp::subst_rp,
         {{"ph", ant->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}, {"th", this->b->get_type_prover(tb)}, {"ta", this->b->subst(var, positive)->get_type_prover(tb)}},
@@ -549,14 +549,14 @@ string Biimp::to_string() const {
 pwff Biimp::imp_not_form() const {
     auto ain = this->a->imp_not_form();
     auto bin = this->b->imp_not_form();
-    return pwff(new Not(pwff(new Imp(pwff(new Imp(ain, bin)), pwff(new Not(pwff(new Imp(bin, ain))))))));
+    return pwff(Not::create(pwff(Imp::create(pwff(Imp::create(ain, bin)), pwff(Not::create(pwff(Imp::create(bin, ain))))))));
 }
 
 pwff Biimp::half_imp_not_form() const
 {
     auto ain = this->a;
     auto bin = this->b;
-    return pwff(new Not(pwff(new Imp(pwff(new Imp(ain, bin)), pwff(new Not(pwff(new Imp(bin, ain))))))));
+    return pwff(Not::create(pwff(Imp::create(pwff(Imp::create(ain, bin)), pwff(Not::create(pwff(Imp::create(bin, ain))))))));
 }
 
 std::vector<SymTok> Biimp::to_sentence(const Library &lib) const
@@ -614,12 +614,12 @@ string Xor::to_string() const {
 }
 
 pwff Xor::imp_not_form() const {
-    return pwff(new Not(pwff(new Biimp(this->a->imp_not_form(), this->b->imp_not_form()))))->imp_not_form();
+    return pwff(Not::create(pwff(Biimp::create(this->a->imp_not_form(), this->b->imp_not_form()))))->imp_not_form();
 }
 
 pwff Xor::half_imp_not_form() const
 {
-    return pwff(new Not(pwff(new Biimp(this->a, this->b))));
+    return pwff(Not::create(pwff(Biimp::create(this->a, this->b))));
 }
 
 void Xor::get_variables(std::set<string> &vars) const
@@ -677,12 +677,12 @@ string Nand::to_string() const {
 }
 
 pwff Nand::imp_not_form() const {
-    return pwff(new Not(pwff(new And(this->a->imp_not_form(), this->b->imp_not_form()))))->imp_not_form();
+    return pwff(Not::create(pwff(And::create(this->a->imp_not_form(), this->b->imp_not_form()))))->imp_not_form();
 }
 
 pwff Nand::half_imp_not_form() const
 {
-    return pwff(new Not(pwff(new And(this->a, this->b))));
+    return pwff(Not::create(pwff(And::create(this->a, this->b))));
 }
 
 void Nand::get_variables(std::set<string> &vars) const
@@ -740,12 +740,12 @@ string Or::to_string() const {
 }
 
 pwff Or::imp_not_form() const {
-    return pwff(new Imp(pwff(new Not(this->a->imp_not_form())), this->b->imp_not_form()));
+    return pwff(Imp::create(pwff(Not::create(this->a->imp_not_form())), this->b->imp_not_form()));
 }
 
 pwff Or::half_imp_not_form() const
 {
-    return pwff(new Imp(pwff(new Not(this->a)), this->b));
+    return pwff(Imp::create(pwff(Not::create(this->a)), this->b));
 }
 
 void Or::get_variables(std::set<string> &vars) const
@@ -803,7 +803,7 @@ string And::to_string() const {
 }
 
 pwff And::half_imp_not_form() const {
-    return pwff(new Not(pwff(new Imp(this->a, pwff(new Not(this->b))))));
+    return pwff(Not::create(pwff(Imp::create(this->a, pwff(Not::create(this->b))))));
 }
 
 void And::get_variables(std::set<string> &vars) const
@@ -814,7 +814,7 @@ void And::get_variables(std::set<string> &vars) const
 
 pwff And::imp_not_form() const
 {
-    return pwff(new Not(pwff(new Imp(this->a->imp_not_form(), pwff(new Not(this->b->imp_not_form()))))));
+    return pwff(Not::create(pwff(Imp::create(this->a->imp_not_form(), pwff(Not::create(this->b->imp_not_form()))))));
 }
 
 std::vector<SymTok> And::to_sentence(const Library &lib) const
@@ -921,12 +921,12 @@ std::vector<SymTok> And3::to_sentence(const Library &lib) const
 
 pwff And3::imp_not_form() const
 {
-    return pwff(new And(pwff(new And(this->a, this->b)), this->c))->imp_not_form();
+    return pwff(And::create(pwff(And::create(this->a, this->b)), this->c))->imp_not_form();
 }
 
 pwff And3::half_imp_not_form() const
 {
-    return pwff(new And(pwff(new And(this->a, this->b)), this->c));
+    return pwff(And::create(pwff(And::create(this->a, this->b)), this->c));
 }
 
 void And3::get_variables(std::set<string> &vars) const
@@ -991,12 +991,12 @@ std::vector<SymTok> Or3::to_sentence(const Library &lib) const
 
 pwff Or3::imp_not_form() const
 {
-    return pwff(new Or(pwff(new Or(this->a, this->b)), this->c))->imp_not_form();
+    return pwff(Or::create(pwff(Or::create(this->a, this->b)), this->c))->imp_not_form();
 }
 
 pwff Or3::half_imp_not_form() const
 {
-    return pwff(new Or(pwff(new Or(this->a, this->b)), this->c));
+    return pwff(Or::create(pwff(Or::create(this->a, this->b)), this->c));
 }
 
 void Or3::get_variables(std::set<string> &vars) const
