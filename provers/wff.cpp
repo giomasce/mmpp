@@ -1,5 +1,6 @@
 
 #include "wff.h"
+#include "mm/ptengine.h"
 
 using namespace std;
 
@@ -22,6 +23,15 @@ Sentence Wff::to_wff_sentence(const Library &lib) const
     ret.insert(ret.begin(), lib.get_symbol("wff"));
     return ret;
 }
+
+/*ParsingTree2<SymTok, LabTok> Wff::to_parsing_tree(const LibraryToolbox &tb) const
+{
+    auto type_prover = this->get_type_prover(tb);
+    ExtendedProofEngine< ParsingTree2< SymTok, LabTok > > engine(tb, false);
+    bool res = type_prover(engine);
+    assert(res);
+    return engine.get_stack().back();
+}*/
 
 Prover Wff::get_truth_prover(const LibraryToolbox &tb) const
 {
@@ -248,16 +258,16 @@ bool False::operator==(const Wff &x) const
     }
 }
 
-Var::Var(string name) :
-    name(name) {
+Var::Var(NameType name) :
+    name(name), string_repr(name) {
 }
 
 string Var::to_string() const {
-    return this->name;
+    return this->string_repr;
 }
 
 pwff Var::imp_not_form() const {
-    return Var::create(this->name);
+    return this->shared_from_this();
 }
 
 pwff Var::subst(pvar var, bool positive) const

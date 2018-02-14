@@ -30,7 +30,7 @@ protected:
         return {};
     }
 
-    virtual bool prove(ExtendedProofEngine< Sentence > &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
+    virtual bool prove(ConcreteCheckpointedProofEngine< Sentence > &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
         (void) engine;
         (void) children;
 
@@ -67,11 +67,11 @@ struct UnificationStrategyResult : public StepStrategyResult, public enable_crea
         return ret;
     }
 
-    virtual bool prove(ExtendedProofEngine< Sentence > &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
+    virtual bool prove(ConcreteCheckpointedProofEngine< Sentence > &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
         RegisteredProverInstanceData inst_data(this->data);
         vector< Prover > hyps_provers;
         for (const auto &child : children) {
-            hyps_provers.push_back([child](ExtendedProofEngine< Sentence > &engine2) {
+            hyps_provers.push_back([child](ConcreteCheckpointedProofEngine< Sentence > &engine2) {
                 return child->prove(engine2);
             });
         }

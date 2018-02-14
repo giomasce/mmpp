@@ -295,8 +295,30 @@ private:
     std::string debug_output;
 };
 
+class AbstractProofEngine {
+public:
+    virtual void process_label(const LabTok label) = 0;
+};
+
 template< typename SentType_ >
-class ExtendedProofEngine : public ProofEngineBase< SentType_ > {
+class ConcreteProofEngine : virtual public AbstractProofEngine {
+public:
+    virtual void process_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent) = 0;
+};
+
+class AbstractCheckpointedProofEngine : virtual public AbstractProofEngine {
+public:
+    virtual void checkpoint() = 0;
+    virtual void commit() = 0;
+    virtual void rollback() = 0;
+};
+
+template< typename SentType_ >
+class ConcreteCheckpointedProofEngine : virtual public AbstractCheckpointedProofEngine, virtual public ConcreteProofEngine< SentType_ > {
+};
+
+template< typename SentType_ >
+class ExtendedProofEngine : public ProofEngineBase< SentType_ >, public ConcreteCheckpointedProofEngine< SentType_ > {
 public:
     ExtendedProofEngine(const typename ProofEngineBase< SentType_ >::AdvLibType &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType_ >(lib, gen_proof_tree), lib(lib) {}
 
@@ -335,7 +357,7 @@ public:
 };
 
 template< typename SentType_ >
-class CheckedProofEngine : public ProofEngineBase< SentType_ > {
+class CheckedProofEngine : public ProofEngineBase< SentType_ >, public AbstractProofEngine {
 public:
     CheckedProofEngine(const typename ProofEngineBase< SentType_ >::LibType &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType_ >(lib, gen_proof_tree) {}
 

@@ -462,7 +462,7 @@ std::shared_ptr<const StepStrategyResult> Step::get_result()
     return this->winning_strategy;
 }
 
-bool Step::prove(ExtendedProofEngine<Sentence> &engine)
+bool Step::prove(ConcreteCheckpointedProofEngine<Sentence> &engine)
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
     if (this->winning_strategy) {

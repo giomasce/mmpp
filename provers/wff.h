@@ -8,6 +8,7 @@
 #include "mm/library.h"
 #include "mm/proof.h"
 #include "mm/toolbox.h"
+#include "parsing/parser.h"
 
 class Wff;
 typedef std::shared_ptr< const Wff > pwff;
@@ -28,6 +29,7 @@ public:
     virtual std::vector< SymTok > to_sentence(const Library &lib) const = 0;
     Sentence to_asserted_sentence(const Library &lib) const;
     Sentence to_wff_sentence(const Library &lib) const;
+    //ParsingTree2<SymTok, LabTok> to_parsing_tree(const LibraryToolbox &tb) const;
     virtual void get_variables(pvar_set &vars) const = 0;
     virtual Prover get_truth_prover(const LibraryToolbox &tb) const;
     virtual bool is_true() const;
@@ -115,6 +117,8 @@ private:
 
 class Var : public Wff, public enable_create< Var > {
 public:
+  typedef std::string NameType;
+
   std::string to_string() const;
   pwff imp_not_form() const;
   pwff subst(pvar var, bool positive) const;
@@ -125,15 +129,16 @@ public:
   Prover get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
   bool operator<(const Var &x) const;
-  std::string get_name() const {
+  NameType get_name() const {
       return this->name;
   }
 
 protected:
-  Var(std::string name);
+  Var(NameType name);
 
 private:
-  std::string name;
+  NameType name;
+  std::string string_repr;
 
   static RegisteredProver imp_not_rp;
   static RegisteredProver subst_pos_1_rp;
