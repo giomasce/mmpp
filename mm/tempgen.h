@@ -3,6 +3,9 @@
 #include <map>
 #include <vector>
 #include <unordered_map>
+#include <mutex>
+
+#include <boost/interprocess/sync/null_mutex.hpp>
 
 #include "library.h"
 
@@ -15,23 +18,26 @@ public:
     void release_temp_var_frame();
 
     // Library-like interface
-    SymTok get_symbol(std::string s) const;
-    LabTok get_label(std::string s) const;
-    std::string resolve_symbol(SymTok tok) const;
-    std::string resolve_label(LabTok tok) const;
-    std::size_t get_symbols_num() const;
-    std::size_t get_labels_num() const;
-    const Sentence &get_sentence(LabTok label) const;
+    SymTok get_symbol(std::string s);
+    LabTok get_label(std::string s);
+    std::string resolve_symbol(SymTok tok);
+    std::string resolve_label(LabTok tok);
+    std::size_t get_symbols_num();
+    std::size_t get_labels_num();
+    const Sentence &get_sentence(LabTok label);
 
     // LibraryToolbox-like interface
-    LabTok get_var_sym_to_lab(SymTok sym) const;
-    SymTok get_var_lab_to_sym(LabTok lab) const;
-    SymTok get_var_sym_to_type_sym(SymTok sym) const;
-    SymTok get_var_lab_to_type_sym(LabTok lab) const;
-    const std::pair<SymTok, Sentence> &get_derivation_rule(LabTok lab) const;
+    LabTok get_var_sym_to_lab(SymTok sym);
+    SymTok get_var_lab_to_sym(LabTok lab);
+    SymTok get_var_sym_to_type_sym(SymTok sym);
+    SymTok get_var_lab_to_type_sym(LabTok lab);
+    const std::pair<SymTok, Sentence> &get_derivation_rule(LabTok lab);
 
 private:
     void create_temp_var(SymTok type_sym);
+
+    std::mutex global_mutex;
+    //boost::interprocess::null_mutex global_mutex;
 
     const Library &lib;
     std::map< SymTok, size_t > temp_idx;

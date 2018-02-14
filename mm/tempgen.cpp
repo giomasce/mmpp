@@ -1,5 +1,7 @@
 #include "tempgen.h"
 
+#include <mutex>
+
 using namespace std;
 
 TempGenerator::TempGenerator(const Library &lib) : lib(lib),
@@ -36,6 +38,8 @@ void TempGenerator::create_temp_var(SymTok type_sym)
 
 std::pair<LabTok, SymTok> TempGenerator::new_temp_var(SymTok type_sym)
 {
+    unique_lock lock(this->global_mutex);
+
     if (this->free_temp_vars[type_sym].empty()) {
         this->create_temp_var(type_sym);
     }
@@ -47,6 +51,8 @@ std::pair<LabTok, SymTok> TempGenerator::new_temp_var(SymTok type_sym)
 
 LabTok TempGenerator::new_temp_label(string name)
 {
+    unique_lock lock(this->global_mutex);
+
     LabTok tok = this->temp_labs.get(name);
     if (tok == LabTok{}) {
         assert(this->lib.get_label(name) == LabTok{});
@@ -58,6 +64,8 @@ LabTok TempGenerator::new_temp_label(string name)
 
 void TempGenerator::new_temp_var_frame()
 {
+    unique_lock lock(this->global_mutex);
+
     std::map< SymTok, size_t > x;
     for (const auto &v : this->used_temp_vars) {
         x[v.first] = v.second.size();
@@ -67,6 +75,8 @@ void TempGenerator::new_temp_var_frame()
 
 void TempGenerator::release_temp_var_frame()
 {
+    unique_lock lock(this->global_mutex);
+
     const auto &stack_pos = this->temp_vars_stack.back();
     for (auto &v : this->used_temp_vars) {
         SymTok type_sym = v.first;
@@ -85,62 +95,86 @@ void TempGenerator::release_temp_var_frame()
     this->temp_vars_stack.pop_back();
 }
 
-SymTok TempGenerator::get_symbol(string s) const
+SymTok TempGenerator::get_symbol(string s)
 {
+    unique_lock lock(this->global_mutex);
+
     return this->temp_syms.get(s);
 }
 
-LabTok TempGenerator::get_label(string s) const
+LabTok TempGenerator::get_label(string s)
 {
+    unique_lock lock(this->global_mutex);
+
     return this->temp_labs.get(s);
 }
 
-string TempGenerator::resolve_symbol(SymTok tok) const
+string TempGenerator::resolve_symbol(SymTok tok)
 {
+    unique_lock lock(this->global_mutex);
+
     return this->temp_syms.resolve(tok);
 }
 
-string TempGenerator::resolve_label(LabTok tok) const
+string TempGenerator::resolve_label(LabTok tok)
 {
+    unique_lock lock(this->global_mutex);
+
     return this->temp_labs.resolve(tok);
 }
 
-size_t TempGenerator::get_symbols_num() const
+size_t TempGenerator::get_symbols_num()
 {
+    unique_lock lock(this->global_mutex);
+
     return this->temp_syms.size();
 }
 
-size_t TempGenerator::get_labels_num() const
+size_t TempGenerator::get_labels_num()
 {
+    unique_lock lock(this->global_mutex);
+
     return this->temp_labs.size();
 }
 
-const Sentence &TempGenerator::get_sentence(LabTok label) const
+const Sentence &TempGenerator::get_sentence(LabTok label)
 {
+    unique_lock lock(this->global_mutex);
+
     return this->temp_types.at(label);
 }
 
-LabTok TempGenerator::get_var_sym_to_lab(SymTok sym) const
+LabTok TempGenerator::get_var_sym_to_lab(SymTok sym)
 {
+    unique_lock lock(this->global_mutex);
+
     return this->var_sym_to_lab.at(sym - this->syms_base);
 }
 
-SymTok TempGenerator::get_var_lab_to_sym(LabTok lab) const
+SymTok TempGenerator::get_var_lab_to_sym(LabTok lab)
 {
+    unique_lock lock(this->global_mutex);
+
     return this->var_lab_to_sym.at(lab - this->labs_base);
 }
 
-SymTok TempGenerator::get_var_sym_to_type_sym(SymTok sym) const
+SymTok TempGenerator::get_var_sym_to_type_sym(SymTok sym)
 {
+    unique_lock lock(this->global_mutex);
+
     return this->var_sym_to_type_sym.at(sym - this->syms_base);
 }
 
-SymTok TempGenerator::get_var_lab_to_type_sym(LabTok lab) const
+SymTok TempGenerator::get_var_lab_to_type_sym(LabTok lab)
 {
+    unique_lock lock(this->global_mutex);
+
     return this->var_lab_to_type_sym.at(lab - this->labs_base);
 }
 
-const std::pair<SymTok, Sentence> &TempGenerator::get_derivation_rule(LabTok lab) const
+const std::pair<SymTok, Sentence> &TempGenerator::get_derivation_rule(LabTok lab)
 {
+    unique_lock lock(this->global_mutex);
+
     return this->ders_by_label.at(lab);
 }
