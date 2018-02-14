@@ -57,7 +57,7 @@ Prover Wff::get_imp_not_prover(const LibraryToolbox &tb) const
     return null_prover;
 }
 
-Prover Wff::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const
+Prover Wff::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
 {
     (void) var;
     (void) positive;
@@ -68,15 +68,15 @@ Prover Wff::get_subst_prover(string var, bool positive, const LibraryToolbox &tb
 RegisteredProver Wff::adv_truth_1_rp = LibraryToolbox::register_prover({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )");
 RegisteredProver Wff::adv_truth_2_rp = LibraryToolbox::register_prover({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )");
 RegisteredProver Wff::adv_truth_3_rp = LibraryToolbox::register_prover({"|- ( ph -> ps )", "|- ( -. ph -> ps )"}, "|- ps");
-Prover Wff::adv_truth_internal(set< string >::iterator cur_var, set< string >::iterator end_var, const LibraryToolbox &tb) const {
+Prover Wff::adv_truth_internal(pvar_set::iterator cur_var, pvar_set::iterator end_var, const LibraryToolbox &tb) const {
     if (cur_var == end_var) {
         return this->get_truth_prover(tb);
     } else {
-        string var = *cur_var++;
+        const auto &var = *cur_var++;
         pwff pos_wff = this->subst(var, true);
         pwff neg_wff = this->subst(var, false);
-        pwff pos_antecent = Var::create(var);
-        pwff neg_antecent = Not::create(Var::create(var));
+        pwff pos_antecent = var;
+        pwff neg_antecent = Not::create(var);
         Prover rec_pos_prover = pos_wff->adv_truth_internal(cur_var, end_var, tb);
         Prover rec_neg_prover = neg_wff->adv_truth_internal(cur_var, end_var, tb);
         Prover pos_prover = this->get_subst_prover(var, true, tb);
@@ -98,7 +98,7 @@ RegisteredProver Wff::adv_truth_4_rp = LibraryToolbox::register_prover({"|- ps",
 Prover Wff::get_adv_truth_prover(const LibraryToolbox &tb) const
 {
     pwff not_imp = this->imp_not_form();
-    set< string > vars;
+    pvar_set vars;
     this->get_variables(vars);
     Prover real = not_imp->adv_truth_internal(vars.begin(), vars.end(), tb);
     Prover equiv = this->get_imp_not_prover(tb);
@@ -117,11 +117,11 @@ pwff True::imp_not_form() const {
     return True::create();
 }
 
-pwff True::subst(string var, bool positive) const
+pwff True::subst(pvar var, bool positive) const
 {
     (void) var;
     (void) positive;
-    return True::create();
+    return this->shared_from_this();
 }
 
 std::vector<SymTok> True::to_sentence(const Library &lib) const
@@ -129,7 +129,7 @@ std::vector<SymTok> True::to_sentence(const Library &lib) const
     return { lib.get_symbol("T.") };
 }
 
-void True::get_variables(std::set<string> &vars) const
+void True::get_variables(pvar_set &vars) const
 {
     (void) vars;
 }
@@ -158,9 +158,9 @@ Prover True::get_imp_not_prover(const LibraryToolbox &tb) const
 }
 
 RegisteredProver True::subst_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( T. <-> T. ) )");
-Prover True::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const
+Prover True::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
 {
-    pwff subst = Var::create(var);
+    pwff subst = var;
     if (!positive) {
         subst = Not::create(subst);
     }
@@ -188,11 +188,11 @@ pwff False::imp_not_form() const {
     return False::create();
 }
 
-pwff False::subst(string var, bool positive) const
+pwff False::subst(pvar var, bool positive) const
 {
     (void) var;
     (void) positive;
-    return False::create();
+    return this->shared_from_this();
 }
 
 std::vector<SymTok> False::to_sentence(const Library &lib) const
@@ -200,7 +200,7 @@ std::vector<SymTok> False::to_sentence(const Library &lib) const
     return { lib.get_symbol("F.") };
 }
 
-void False::get_variables(std::set<string> &vars) const
+void False::get_variables(pvar_set &vars) const
 {
     (void) vars;
 }
@@ -229,9 +229,9 @@ Prover False::get_imp_not_prover(const LibraryToolbox &tb) const
 }
 
 RegisteredProver False::subst_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( F. <-> F. ) )");
-Prover False::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const
+Prover False::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
 {
-    pwff subst = Var::create(var);
+    pwff subst = var;
     if (!positive) {
         subst = Not::create(subst);
     }
@@ -260,16 +260,16 @@ pwff Var::imp_not_form() const {
     return Var::create(this->name);
 }
 
-pwff Var::subst(string var, bool positive) const
+pwff Var::subst(pvar var, bool positive) const
 {
-    if (this->name == var) {
+    if (*this == *var) {
         if (positive) {
             return True::create();
         } else {
             return False::create();
         }
     } else {
-        return Var::create(this->name);
+        return this->shared_from_this();
     }
 }
 
@@ -278,9 +278,9 @@ std::vector<SymTok> Var::to_sentence(const Library &lib) const
     return { lib.get_symbol(this->name) };
 }
 
-void Var::get_variables(std::set<string> &vars) const
+void Var::get_variables(pvar_set &vars) const
 {
-    vars.insert(this->name);
+    vars.insert(this->shared_from_this());
 }
 
 Prover Var::get_type_prover(const LibraryToolbox &tb) const
@@ -305,9 +305,9 @@ RegisteredProver Var::subst_neg_3_rp = LibraryToolbox::register_prover({"|- ( -.
 RegisteredProver Var::subst_neg_falsity_rp = LibraryToolbox::register_prover({}, "|- -. F.");
 
 RegisteredProver Var::subst_indep_rp = LibraryToolbox::register_prover({}, "|- ( ps -> ( ph <-> ph ) )");
-Prover Var::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const
+Prover Var::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
 {
-    if (var == this->name) {
+    if (*this == *var) {
         if (positive) {
             Prover first = tb.build_registered_prover(Var::subst_pos_1_rp, {{"ph", this->get_type_prover(tb)}}, {});
             Prover truth = tb.build_registered_prover(Var::subst_pos_truth_rp, {}, {});
@@ -322,7 +322,7 @@ Prover Var::get_subst_prover(string var, bool positive, const LibraryToolbox &tb
             return third;
         }
     } else {
-        pwff ant = Var::create(var);
+        pwff ant = var;
         if (!positive) {
             ant = Not::create(ant);
         }
@@ -340,6 +340,11 @@ bool Var::operator==(const Wff &x) const
     }
 }
 
+bool Var::operator<(const Var &x) const
+{
+    return this->get_name() < x.get_name();
+}
+
 Not::Not(pwff a) :
     a(a) {
 }
@@ -352,7 +357,7 @@ pwff Not::imp_not_form() const {
     return Not::create(this->a->imp_not_form());
 }
 
-pwff Not::subst(string var, bool positive) const
+pwff Not::subst(pvar var, bool positive) const
 {
     return Not::create(this->a->subst(var, positive));
 }
@@ -366,7 +371,7 @@ std::vector<SymTok> Not::to_sentence(const Library &lib) const
     return ret;
 }
 
-void Not::get_variables(std::set<string> &vars) const
+void Not::get_variables(pvar_set &vars) const
 {
     this->a->get_variables(vars);
 }
@@ -405,16 +410,15 @@ Prover Not::get_imp_not_prover(const LibraryToolbox &tb) const
 }
 
 RegisteredProver Not::subst_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ( -. ps <-> -. ch ) )");
-Prover Not::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const
+Prover Not::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
 {
     pwff ant;
     if (positive) {
-        ant = Var::create(var);
+        ant = var;
     } else {
-        ant = Not::create(Var::create(var));
+        ant = Not::create(var);
     }
-    return tb.build_registered_prover(Not::subst_rp,
-    {{"ph", ant->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}}, {this->a->get_subst_prover(var, positive, tb)});
+    return tb.build_registered_prover(Not::subst_rp, {{"ph", ant->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}}, {this->a->get_subst_prover(var, positive, tb)});
 }
 
 bool Not::operator==(const Wff &x) const
@@ -439,7 +443,7 @@ pwff Imp::imp_not_form() const {
     return Imp::create(this->a->imp_not_form(), this->b->imp_not_form());
 }
 
-pwff Imp::subst(string var, bool positive) const
+pwff Imp::subst(pvar var, bool positive) const
 {
     return Imp::create(this->a->subst(var, positive), this->b->subst(var, positive));
 }
@@ -457,7 +461,7 @@ std::vector<SymTok> Imp::to_sentence(const Library &lib) const
     return ret;
 }
 
-void Imp::get_variables(std::set<string> &vars) const
+void Imp::get_variables(pvar_set &vars) const
 {
     this->a->get_variables(vars);
     this->b->get_variables(vars);
@@ -515,13 +519,13 @@ Prover Imp::get_imp_not_prover(const LibraryToolbox &tb) const
 }
 
 RegisteredProver Imp::subst_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps <-> ch ) )", "|- ( ph -> ( th <-> ta ) )"}, "|- ( ph -> ( ( ps -> th ) <-> ( ch -> ta ) ) )");
-Prover Imp::get_subst_prover(string var, bool positive, const LibraryToolbox &tb) const
+Prover Imp::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
 {
     pwff ant;
     if (positive) {
-        ant = Var::create(var);
+        ant = var;
     } else {
-        ant = Not::create(Var::create(var));
+        ant = Not::create(var);
     }
     return tb.build_registered_prover(Imp::subst_rp,
         {{"ph", ant->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}, {"th", this->b->get_type_prover(tb)}, {"ta", this->b->subst(var, positive)->get_type_prover(tb)}},
@@ -572,7 +576,7 @@ std::vector<SymTok> Biimp::to_sentence(const Library &lib) const
     return ret;
 }
 
-void Biimp::get_variables(std::set<string> &vars) const
+void Biimp::get_variables(pvar_set &vars) const
 {
     this->a->get_variables(vars);
     this->b->get_variables(vars);
@@ -622,7 +626,7 @@ pwff Xor::half_imp_not_form() const
     return Not::create(Biimp::create(this->a, this->b));
 }
 
-void Xor::get_variables(std::set<string> &vars) const
+void Xor::get_variables(pvar_set &vars) const
 {
     this->a->get_variables(vars);
     this->b->get_variables(vars);
@@ -685,7 +689,7 @@ pwff Nand::half_imp_not_form() const
     return Not::create(And::create(this->a, this->b));
 }
 
-void Nand::get_variables(std::set<string> &vars) const
+void Nand::get_variables(pvar_set &vars) const
 {
     this->a->get_variables(vars);
     this->b->get_variables(vars);
@@ -748,7 +752,7 @@ pwff Or::half_imp_not_form() const
     return Imp::create(Not::create(this->a), this->b);
 }
 
-void Or::get_variables(std::set<string> &vars) const
+void Or::get_variables(pvar_set &vars) const
 {
     this->a->get_variables(vars);
     this->b->get_variables(vars);
@@ -806,7 +810,7 @@ pwff And::half_imp_not_form() const {
     return Not::create(Imp::create(this->a, Not::create(this->b)));
 }
 
-void And::get_variables(std::set<string> &vars) const
+void And::get_variables(pvar_set &vars) const
 {
     this->a->get_variables(vars);
     this->b->get_variables(vars);
@@ -857,7 +861,7 @@ bool And::operator==(const Wff &x) const
     }
 }
 
-pwff ConvertibleWff::subst(string var, bool positive) const
+pwff ConvertibleWff::subst(pvar var, bool positive) const
 {
     return this->imp_not_form()->subst(var, positive);
 }
@@ -929,7 +933,7 @@ pwff And3::half_imp_not_form() const
     return And::create(And::create(this->a, this->b), this->c);
 }
 
-void And3::get_variables(std::set<string> &vars) const
+void And3::get_variables(pvar_set &vars) const
 {
     this->a->get_variables(vars);
     this->b->get_variables(vars);
@@ -999,7 +1003,7 @@ pwff Or3::half_imp_not_form() const
     return Or::create(Or::create(this->a, this->b), this->c);
 }
 
-void Or3::get_variables(std::set<string> &vars) const
+void Or3::get_variables(pvar_set &vars) const
 {
     this->a->get_variables(vars);
     this->b->get_variables(vars);
@@ -1031,4 +1035,8 @@ bool Or3::operator==(const Wff &x) const
     } else {
         return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b() && *this->get_c() == *px->get_c();
     }
+}
+
+bool pvar_comp::operator()(const pvar x, const pvar y) {
+    return *x < *y;
 }

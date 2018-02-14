@@ -230,7 +230,7 @@ struct Z3Adapter {
                     Prover ret = this->tb.build_registered_prover(id_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}}, {});
                     pwff cur_hyp = this->get_current_abs_hyps();
                     for (size_t step = 0; step < this->hyps.size()-1; step++) {
-                        auto and_hyp = dynamic_pointer_cast< And >(cur_hyp);
+                        auto and_hyp = dynamic_pointer_cast< const And >(cur_hyp);
                         assert(and_hyp != NULL);
                         pwff left = and_hyp->get_a();
                         pwff right = and_hyp->get_b();
@@ -289,8 +289,8 @@ struct Z3Adapter {
                     cout << "TH: " << parse_expr(e.arg(2))->to_string() << endl;*/
                     Prover p1 = this->convert_proof(e.arg(0), depth+1);
                     Prover p2 = this->convert_proof(e.arg(1), depth+1);
-                    shared_ptr< Biimp > w1 = dynamic_pointer_cast< Biimp >(parse_expr(extract_thesis(e.arg(0))));
-                    shared_ptr< Biimp > w2 = dynamic_pointer_cast< Biimp >(parse_expr(extract_thesis(e.arg(1))));
+                    auto w1 = dynamic_pointer_cast< const Biimp >(parse_expr(extract_thesis(e.arg(0))));
+                    auto w2 = dynamic_pointer_cast< const Biimp >(parse_expr(extract_thesis(e.arg(1))));
                     assert(w1 != NULL && w2 != NULL);
                     assert(*w1->get_b() == *w2->get_a());
                     pwff ps = w1->get_a();
@@ -427,7 +427,7 @@ struct Z3Adapter {
                         }
 
                         // Search an eliminator for the negative form
-                        auto clause_not = dynamic_pointer_cast< Not >(clause);
+                        auto clause_not = dynamic_pointer_cast< const Not >(clause);
                         if (clause_not != NULL) {
                             auto elim_it = find_if(elims.begin(), elims.end(), [=](const pwff &w){ return *w == *clause_not->get_a(); });
                             if (elim_it != elims.end()) {
@@ -492,7 +492,7 @@ struct Z3Adapter {
                     Prover ret = this->convert_proof(e.arg(0), depth+1);
                     pwff wff = parse_expr(or_expr);
                     for (size_t i = 0; i < or_expr.num_args()-1; i++) {
-                        auto wff_or = dynamic_pointer_cast< Or >(wff);
+                        auto wff_or = dynamic_pointer_cast< const Or >(wff);
                         assert(wff != NULL);
                         if (*wff_or->get_b() == *target_wff) {
                             return this->tb.build_registered_prover(orsird_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", wff_or->get_a()->get_type_prover(this->tb)}, {"ch", wff_or->get_b()->get_type_prover(this->tb)}}, {ret});
@@ -512,7 +512,7 @@ struct Z3Adapter {
                     cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;*/
                     pwff hyp = parse_expr(extract_thesis(e.arg(0)));
                     Prover hyp_prover = this->convert_proof(e.arg(0), depth+1);
-                    auto hyp_not = dynamic_pointer_cast< Not >(hyp);
+                    auto hyp_not = dynamic_pointer_cast< const Not >(hyp);
                     assert(hyp_not != NULL);
                     return this->tb.build_registered_prover(bifald_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", hyp_not->get_a()->get_type_prover(this->tb)}}, {hyp_prover});
                     break; }

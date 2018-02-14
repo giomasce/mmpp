@@ -291,7 +291,7 @@ void test_wffs_trivial() {
             cout << "WFF: " << wff->to_string() << endl;
             {
                 ExtendedProofEngine< Sentence > engine(tb);
-                wff->get_subst_prover("ph", true, tb)(engine);
+                wff->get_subst_prover(Var::create("ph"), true, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                     cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
@@ -299,7 +299,7 @@ void test_wffs_trivial() {
             }
             {
                 ExtendedProofEngine< Sentence > engine(tb);
-                wff->get_subst_prover("ph", false, tb)(engine);
+                wff->get_subst_prover(Var::create("ph"), false, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst -. ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                     cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
@@ -307,7 +307,7 @@ void test_wffs_trivial() {
             }
             {
                 ExtendedProofEngine< Sentence > engine(tb);
-                wff->get_subst_prover("ps", true, tb)(engine);
+                wff->get_subst_prover(Var::create("ps"), true, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                     cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
@@ -315,7 +315,7 @@ void test_wffs_trivial() {
             }
             {
                 ExtendedProofEngine< Sentence > engine(tb);
-                wff->get_subst_prover("ps", false, tb)(engine);
+                wff->get_subst_prover(Var::create("ps"), false, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst -. ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                     cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;

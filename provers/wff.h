@@ -10,30 +10,37 @@
 #include "mm/toolbox.h"
 
 class Wff;
-typedef std::shared_ptr< Wff > pwff;
+typedef std::shared_ptr< const Wff > pwff;
+
+class Var;
+typedef std::shared_ptr< const Var > pvar;
+struct pvar_comp {
+    bool operator()(const pvar x, const pvar y);
+};
+typedef std::set< pvar, pvar_comp > pvar_set;
 
 class Wff {
 public:
     virtual ~Wff();
     virtual std::string to_string() const = 0;
     virtual pwff imp_not_form() const = 0;
-    virtual pwff subst(std::string var, bool positive) const = 0;
+    virtual pwff subst(pvar var, bool positive) const = 0;
     virtual std::vector< SymTok > to_sentence(const Library &lib) const = 0;
     Sentence to_asserted_sentence(const Library &lib) const;
     Sentence to_wff_sentence(const Library &lib) const;
-    virtual void get_variables(std::set< std::string > &vars) const = 0;
+    virtual void get_variables(pvar_set &vars) const = 0;
     virtual Prover get_truth_prover(const LibraryToolbox &tb) const;
     virtual bool is_true() const;
     virtual Prover get_falsity_prover(const LibraryToolbox &tb) const;
     virtual bool is_false() const;
     virtual Prover get_type_prover(const LibraryToolbox &tb) const;
     virtual Prover get_imp_not_prover(const LibraryToolbox &tb) const;
-    virtual Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
+    virtual Prover get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
     virtual bool operator==(const Wff &x) const = 0;
     Prover get_adv_truth_prover(const LibraryToolbox &tb) const;
 
 private:
-    Prover adv_truth_internal(std::set<std::string>::iterator cur_var, std::set<std::string>::iterator end_var, const LibraryToolbox &tb) const;
+    Prover adv_truth_internal(pvar_set::iterator cur_var, pvar_set::iterator end_var, const LibraryToolbox &tb) const;
 
     static RegisteredProver adv_truth_1_rp;
     static RegisteredProver adv_truth_2_rp;
@@ -46,7 +53,7 @@ private:
  */
 class ConvertibleWff : public Wff {
 public:
-    pwff subst(std::string var, bool positive) const;
+    pwff subst(pvar var, bool positive) const;
     Prover get_truth_prover(const LibraryToolbox &tb) const;
     bool is_true() const;
     Prover get_falsity_prover(const LibraryToolbox &tb) const;
@@ -62,14 +69,14 @@ class True : public Wff, public enable_create< True > {
 public:
     std::string to_string() const;
     pwff imp_not_form() const;
-    pwff subst(std::string var, bool positive) const;
+    pwff subst(pvar var, bool positive) const;
     std::vector< SymTok > to_sentence(const Library &lib) const;
-    void get_variables(std::set< std::string > &vars) const;
+    void get_variables(pvar_set &vars) const;
     Prover get_truth_prover(const LibraryToolbox &tb) const;
     bool is_true() const;
     Prover get_type_prover(const LibraryToolbox &tb) const;
     Prover get_imp_not_prover(const LibraryToolbox &tb) const;
-    Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
+    Prover get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
     bool operator==(const Wff &x) const;
 
 protected:
@@ -86,14 +93,14 @@ class False : public Wff, public enable_create< False > {
 public:
     std::string to_string() const;
     pwff imp_not_form() const;
-    pwff subst(std::string var, bool positive) const;
+    pwff subst(pvar var, bool positive) const;
     std::vector< SymTok > to_sentence(const Library &lib) const;
-    void get_variables(std::set< std::string > &vars) const;
+    void get_variables(pvar_set &vars) const;
     Prover get_falsity_prover(const LibraryToolbox &tb) const;
     bool is_false() const;
     Prover get_type_prover(const LibraryToolbox &tb) const;
     Prover get_imp_not_prover(const LibraryToolbox &tb) const;
-    Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
+    Prover get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
     bool operator==(const Wff &x) const;
 
 protected:
@@ -110,13 +117,14 @@ class Var : public Wff, public enable_create< Var > {
 public:
   std::string to_string() const;
   pwff imp_not_form() const;
-  pwff subst(std::string var, bool positive) const;
+  pwff subst(pvar var, bool positive) const;
   std::vector< SymTok > to_sentence(const Library &lib) const;
-  void get_variables(std::set< std::string > &vars) const;
+  void get_variables(pvar_set &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
-  Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
+  Prover get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
+  bool operator<(const Var &x) const;
   std::string get_name() const {
       return this->name;
   }
@@ -143,16 +151,16 @@ class Not : public Wff, public enable_create< Not > {
 public:
   std::string to_string() const;
   pwff imp_not_form() const;
-  pwff subst(std::string var, bool positive) const;
+  pwff subst(pvar var, bool positive) const;
   std::vector< SymTok > to_sentence(const Library &lib) const;
-  void get_variables(std::set< std::string > &vars) const;
+  void get_variables(pvar_set &vars) const;
   Prover get_truth_prover(const LibraryToolbox &tb) const;
   bool is_true() const;
   Prover get_falsity_prover(const LibraryToolbox &tb) const;
   bool is_false() const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
-  Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
+  Prover get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
   pwff get_a() const {
       return this->a;
@@ -174,16 +182,16 @@ class Imp : public Wff, public enable_create< Imp > {
 public:
   std::string to_string() const;
   pwff imp_not_form() const;
-  pwff subst(std::string var, bool positive) const;
+  pwff subst(pvar var, bool positive) const;
   std::vector< SymTok > to_sentence(const Library &lib) const;
-  void get_variables(std::set< std::string > &vars) const;
+  void get_variables(pvar_set &vars) const;
   Prover get_truth_prover(const LibraryToolbox &tb) const;
   bool is_true() const;
   Prover get_falsity_prover(const LibraryToolbox &tb) const;
   bool is_false() const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
-  Prover get_subst_prover(std::string var, bool positive, const LibraryToolbox &tb) const;
+  Prover get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
   pwff get_a() const {
       return this->a;
@@ -214,7 +222,7 @@ public:
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
   std::vector< SymTok > to_sentence(const Library &lib) const;
-  void get_variables(std::set< std::string > &vars) const;
+  void get_variables(pvar_set &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
@@ -242,7 +250,7 @@ public:
   std::vector< SymTok > to_sentence(const Library &lib) const;
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
-  void get_variables(std::set< std::string > &vars) const;
+  void get_variables(pvar_set &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
@@ -270,7 +278,7 @@ public:
   std::vector< SymTok > to_sentence(const Library &lib) const;
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
-  void get_variables(std::set< std::string > &vars) const;
+  void get_variables(pvar_set &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
@@ -298,7 +306,7 @@ public:
   std::vector< SymTok > to_sentence(const Library &lib) const;
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
-  void get_variables(std::set< std::string > &vars) const;
+  void get_variables(pvar_set &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
@@ -326,7 +334,7 @@ public:
   std::vector<SymTok> to_sentence(const Library &lib) const;
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
-  void get_variables(std::set< std::string > &vars) const;
+  void get_variables(pvar_set &vars) const;
   Prover get_type_prover(const LibraryToolbox &tb) const;
   Prover get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
@@ -354,7 +362,7 @@ public:
     std::vector<SymTok> to_sentence(const Library &lib) const;
     pwff imp_not_form() const;
     pwff half_imp_not_form() const;
-    void get_variables(std::set< std::string > &vars) const;
+    void get_variables(pvar_set &vars) const;
     Prover get_type_prover(const LibraryToolbox &tb) const;
     Prover get_imp_not_prover(const LibraryToolbox &tb) const;
     bool operator==(const Wff &x) const;
@@ -385,7 +393,7 @@ public:
     std::vector<SymTok> to_sentence(const Library &lib) const;
     pwff imp_not_form() const;
     pwff half_imp_not_form() const;
-    void get_variables(std::set< std::string > &vars) const;
+    void get_variables(pvar_set &vars) const;
     Prover get_type_prover(const LibraryToolbox &tb) const;
     Prover get_imp_not_prover(const LibraryToolbox &tb) const;
     bool operator==(const Wff &x) const;
