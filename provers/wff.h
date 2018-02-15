@@ -31,18 +31,18 @@ public:
     Sentence to_wff_sentence(const Library &lib) const;
     //ParsingTree2<SymTok, LabTok> to_parsing_tree(const LibraryToolbox &tb) const;
     virtual void get_variables(pvar_set &vars) const = 0;
-    virtual NewProver< AbstractCheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
+    virtual Prover< AbstractCheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
     virtual bool is_true() const;
-    virtual NewProver< AbstractCheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
+    virtual Prover< AbstractCheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
     virtual bool is_false() const;
-    virtual NewProver< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-    virtual NewProver< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-    virtual NewProver< AbstractCheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
+    virtual Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+    virtual Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
+    virtual Prover< AbstractCheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
     virtual bool operator==(const Wff &x) const = 0;
-    NewProver< AbstractCheckpointedProofEngine > get_adv_truth_prover(const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_adv_truth_prover(const LibraryToolbox &tb) const;
 
 private:
-    NewProver< AbstractCheckpointedProofEngine > adv_truth_internal(pvar_set::iterator cur_var, pvar_set::iterator end_var, const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > adv_truth_internal(pvar_set::iterator cur_var, pvar_set::iterator end_var, const LibraryToolbox &tb) const;
 
     static RegisteredProver adv_truth_1_rp;
     static RegisteredProver adv_truth_2_rp;
@@ -56,11 +56,11 @@ private:
 class ConvertibleWff : public Wff {
 public:
     pwff subst(pvar var, bool positive) const;
-    NewProver< AbstractCheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
     bool is_true() const;
-    NewProver< AbstractCheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
     bool is_false() const;
-    NewProver< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
 
 private:
     static RegisteredProver truth_rp;
@@ -74,11 +74,11 @@ public:
     pwff subst(pvar var, bool positive) const;
     std::vector< SymTok > to_sentence(const Library &lib) const;
     void get_variables(pvar_set &vars) const;
-    NewProver< AbstractCheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
     bool is_true() const;
-    NewProver< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-    NewProver< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-    NewProver< AbstractCheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
     bool operator==(const Wff &x) const;
 
 protected:
@@ -98,11 +98,11 @@ public:
     pwff subst(pvar var, bool positive) const;
     std::vector< SymTok > to_sentence(const Library &lib) const;
     void get_variables(pvar_set &vars) const;
-    NewProver< AbstractCheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
     bool is_false() const;
-    NewProver< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-    NewProver< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-    NewProver< AbstractCheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
     bool operator==(const Wff &x) const;
 
 protected:
@@ -124,9 +124,9 @@ public:
   pwff subst(pvar var, bool positive) const;
   std::vector< SymTok > to_sentence(const Library &lib) const;
   void get_variables(pvar_set &vars) const;
-  NewProver< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  NewProver< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-  NewProver< AbstractCheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
   bool operator<(const Var &x) const;
   NameType get_name() const {
@@ -159,13 +159,13 @@ public:
   pwff subst(pvar var, bool positive) const;
   std::vector< SymTok > to_sentence(const Library &lib) const;
   void get_variables(pvar_set &vars) const;
-  NewProver< AbstractCheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
   bool is_true() const;
-  NewProver< AbstractCheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
   bool is_false() const;
-  NewProver< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  NewProver< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-  NewProver< AbstractCheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
   pwff get_a() const {
       return this->a;
@@ -190,13 +190,13 @@ public:
   pwff subst(pvar var, bool positive) const;
   std::vector< SymTok > to_sentence(const Library &lib) const;
   void get_variables(pvar_set &vars) const;
-  NewProver< AbstractCheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
   bool is_true() const;
-  NewProver< AbstractCheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
   bool is_false() const;
-  NewProver< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  NewProver< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-  NewProver< AbstractCheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
   pwff get_a() const {
       return this->a;
@@ -228,8 +228,8 @@ public:
   pwff half_imp_not_form() const;
   std::vector< SymTok > to_sentence(const Library &lib) const;
   void get_variables(pvar_set &vars) const;
-  NewProver< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  NewProver< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
   pwff get_a() const {
       return this->a;
@@ -256,8 +256,8 @@ public:
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
   void get_variables(pvar_set &vars) const;
-  NewProver< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  NewProver< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
   pwff get_a() const {
       return this->a;
@@ -284,8 +284,8 @@ public:
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
   void get_variables(pvar_set &vars) const;
-  NewProver< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  NewProver< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
   pwff get_a() const {
       return this->a;
@@ -312,8 +312,8 @@ public:
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
   void get_variables(pvar_set &vars) const;
-  NewProver< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  NewProver< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
   pwff get_a() const {
       return this->a;
@@ -340,8 +340,8 @@ public:
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
   void get_variables(pvar_set &vars) const;
-  NewProver< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  NewProver< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+  Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
   pwff get_a() const {
       return this->a;
@@ -368,8 +368,8 @@ public:
     pwff imp_not_form() const;
     pwff half_imp_not_form() const;
     void get_variables(pvar_set &vars) const;
-    NewProver< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-    NewProver< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
     bool operator==(const Wff &x) const;
     pwff get_a() const {
         return this->a;
@@ -399,8 +399,8 @@ public:
     pwff imp_not_form() const;
     pwff half_imp_not_form() const;
     void get_variables(pvar_set &vars) const;
-    NewProver< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-    NewProver< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+    Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
     bool operator==(const Wff &x) const;
     pwff get_a() const {
         return this->a;

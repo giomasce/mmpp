@@ -69,13 +69,13 @@ struct UnificationStrategyResult : public StepStrategyResult, public enable_crea
 
     virtual bool prove(ConcreteCheckpointedProofEngine< Sentence > &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
         RegisteredProverInstanceData inst_data(this->data);
-        vector< Prover > hyps_provers;
+        vector< Prover< ConcreteCheckpointedProofEngine< Sentence > > > hyps_provers;
         for (const auto &child : children) {
             hyps_provers.push_back([child](ConcreteCheckpointedProofEngine< Sentence > &engine2) {
                 return child->prove(engine2);
             });
         }
-        return this->toolbox.proving_helper(inst_data, std::unordered_map< SymTok, Prover >{}, hyps_provers, engine);
+        return this->toolbox.proving_helper(inst_data, std::unordered_map< SymTok, Prover< ConcreteCheckpointedProofEngine< Sentence > > >{}, hyps_provers, engine);
     }
 
     bool success;

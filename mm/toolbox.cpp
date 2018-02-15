@@ -467,19 +467,6 @@ const ParsingAddendumImpl &LibraryToolbox::get_parsing_addendum() const
     return this->lib.get_parsing_addendum();
 }
 
-/*Prover cascade_provers(const Prover &a,  const Prover &b)
-{
-    return [=](ProofEngine &engine) {
-        bool res;
-        res = a(engine);
-        if (res) {
-            return true;
-        }
-        res = b(engine);
-        return res;
-    };
-}*/
-
 std::vector<SymTok> LibraryToolbox::read_sentence(const string &in) const
 {
     auto toks = tokenize(in);
@@ -1087,24 +1074,6 @@ string SentencePrinter::to_string() const
     return buf.str();
 }
 
-string test_prover(Prover prover, const LibraryToolbox &tb) {
-    ExtendedProofEngine< Sentence > engine(tb);
-    bool res = prover(engine);
-    if (!res) {
-        return "(prover failed)";
-    } else {
-        if (engine.get_stack().size() == 0) {
-            return "(prover did not produce a result)";
-        } else {
-            string ret = tb.print_sentence(engine.get_stack().back()).to_string();
-            if (engine.get_stack().size() > 1) {
-                ret += " (prover did produce other stack entries)";
-            }
-            return ret;
-        }
-    }
-}
-
 ToolboxCache::~ToolboxCache()
 {
 }
@@ -1149,19 +1118,6 @@ LRParser< SymTok, LabTok >::CachedData FileToolboxCache::get_lr_parser_data() {
 void FileToolboxCache::set_lr_parser_data(const LRParser< SymTok, LabTok >::CachedData &cached_data) {
     this->lr_parser_data = cached_data;
 }
-
-/*Prover checked_prover(Prover prover, size_t hyp_num, Sentence thesis)
-{
-    return [=](ConcreteCheckpointedProofEngine< Sentence > &engine)->bool {
-        size_t stack_len_before = engine.get_stack().size();
-        bool res = prover(engine);
-        size_t stack_len_after = engine.get_stack().size();
-        assert(stack_len_after >= 1);
-        assert(stack_len_after - stack_len_before == hyp_num - 1);
-        assert(engine.get_stack().back() == thesis);
-        return res;
-    };
-}*/
 
 string ProofPrinter::to_string() const
 {
