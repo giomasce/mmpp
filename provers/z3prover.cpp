@@ -277,7 +277,9 @@ struct Z3Adapter {
                     pwff thesis = parse_expr(e.arg(0));
                     //cout << "ORACLE for '" << thesis->to_string() << "'!" << endl;
                     //Prover p1 = thesis->get_adv_truth_prover(tb);
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > p1 = this->tb.build_prover({}, thesis->to_asserted_sentence(this->tb), {}, {});
+                    auto pt = pt2_to_pt(thesis->to_parsing_tree(this->tb));
+                    auto sent = this->tb.reconstruct_sentence(pt, this->tb.get_turnstile());
+                    Prover< ConcreteCheckpointedProofEngine< Sentence > > p1 = this->tb.build_prover({}, sent, {}, {});
                     return this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(a1i_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", thesis->get_type_prover(this->tb)}}, {p1});
                     break; }
                 case Z3_OP_PR_TRANSITIVITY: {

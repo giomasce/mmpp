@@ -9,7 +9,7 @@ Wff::~Wff()
 }
 
 // FIXME Terribly inefficient, but to_sentence() is inefficient too
-Sentence Wff::to_asserted_sentence(const Library &lib) const
+/*Sentence Wff::to_asserted_sentence(const Library &lib) const
 {
     auto ret = this->to_sentence(lib);
     ret.insert(ret.begin(), lib.get_symbol("|-"));
@@ -22,16 +22,16 @@ Sentence Wff::to_wff_sentence(const Library &lib) const
     auto ret = this->to_sentence(lib);
     ret.insert(ret.begin(), lib.get_symbol("wff"));
     return ret;
-}
+}*/
 
-/*ParsingTree2<SymTok, LabTok> Wff::to_parsing_tree(const LibraryToolbox &tb) const
+ParsingTree2<SymTok, LabTok> Wff::to_parsing_tree(const LibraryToolbox &tb) const
 {
     auto type_prover = this->get_type_prover(tb);
     ExtendedProofEngine< ParsingTree2< SymTok, LabTok > > engine(tb, false);
     bool res = type_prover(engine);
     assert(res);
     return engine.get_stack().back();
-}*/
+}
 
 Prover<AbstractCheckpointedProofEngine> Wff::get_truth_prover(const LibraryToolbox &tb) const
 {
@@ -205,10 +205,10 @@ pwff False::subst(pvar var, bool positive) const
     return this->shared_from_this();
 }
 
-std::vector<SymTok> False::to_sentence(const Library &lib) const
+/*std::vector<SymTok> False::to_sentence(const Library &lib) const
 {
     return { lib.get_symbol("F.") };
-}
+}*/
 
 void False::get_variables(pvar_set &vars) const
 {
@@ -283,10 +283,10 @@ pwff Var::subst(pvar var, bool positive) const
     }
 }
 
-std::vector<SymTok> Var::to_sentence(const Library &lib) const
+/*std::vector<SymTok> Var::to_sentence(const Library &lib) const
 {
     return { lib.get_symbol(this->name) };
-}
+}*/
 
 void Var::get_variables(pvar_set &vars) const
 {
@@ -295,7 +295,12 @@ void Var::get_variables(pvar_set &vars) const
 
 Prover<AbstractCheckpointedProofEngine> Var::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_type_prover< AbstractCheckpointedProofEngine >(this->to_wff_sentence(tb));
+    //return tb.build_type_prover< AbstractCheckpointedProofEngine >(this->to_wff_sentence(tb));
+    auto label = tb.get_var_sym_to_lab(tb.get_symbol(this->name));
+    return [label](AbstractCheckpointedProofEngine &engine) {
+        engine.process_label(label);
+        return true;
+    };
 }
 
 RegisteredProver Var::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( ph <-> ph )");
@@ -372,14 +377,14 @@ pwff Not::subst(pvar var, bool positive) const
     return Not::create(this->a->subst(var, positive));
 }
 
-std::vector<SymTok> Not::to_sentence(const Library &lib) const
+/*std::vector<SymTok> Not::to_sentence(const Library &lib) const
 {
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("-."));
     vector< SymTok > sent = this->a->to_sentence(lib);
     copy(sent.begin(), sent.end(), back_inserter(ret));
     return ret;
-}
+}*/
 
 void Not::get_variables(pvar_set &vars) const
 {
@@ -458,7 +463,7 @@ pwff Imp::subst(pvar var, bool positive) const
     return Imp::create(this->a->subst(var, positive), this->b->subst(var, positive));
 }
 
-std::vector<SymTok> Imp::to_sentence(const Library &lib) const
+/*std::vector<SymTok> Imp::to_sentence(const Library &lib) const
 {
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("("));
@@ -469,7 +474,7 @@ std::vector<SymTok> Imp::to_sentence(const Library &lib) const
     copy(sentb.begin(), sentb.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol(")"));
     return ret;
-}
+}*/
 
 void Imp::get_variables(pvar_set &vars) const
 {
@@ -573,7 +578,7 @@ pwff Biimp::half_imp_not_form() const
     return Not::create(Imp::create(Imp::create(ain, bin), Not::create(Imp::create(bin, ain))));
 }
 
-std::vector<SymTok> Biimp::to_sentence(const Library &lib) const
+/*std::vector<SymTok> Biimp::to_sentence(const Library &lib) const
 {
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("("));
@@ -584,7 +589,7 @@ std::vector<SymTok> Biimp::to_sentence(const Library &lib) const
     copy(sentb.begin(), sentb.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol(")"));
     return ret;
-}
+}*/
 
 void Biimp::get_variables(pvar_set &vars) const
 {
@@ -669,7 +674,7 @@ bool Xor::operator==(const Wff &x) const
     }
 }
 
-std::vector<SymTok> Xor::to_sentence(const Library &lib) const
+/*std::vector<SymTok> Xor::to_sentence(const Library &lib) const
 {
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("("));
@@ -680,7 +685,7 @@ std::vector<SymTok> Xor::to_sentence(const Library &lib) const
     copy(sentb.begin(), sentb.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol(")"));
     return ret;
-}
+}*/
 
 Nand::Nand(pwff a, pwff b) :
     a(a), b(b) {
@@ -732,7 +737,7 @@ bool Nand::operator==(const Wff &x) const
     }
 }
 
-std::vector<SymTok> Nand::to_sentence(const Library &lib) const
+/*std::vector<SymTok> Nand::to_sentence(const Library &lib) const
 {
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("("));
@@ -743,7 +748,7 @@ std::vector<SymTok> Nand::to_sentence(const Library &lib) const
     copy(sentb.begin(), sentb.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol(")"));
     return ret;
-}
+}*/
 
 Or::Or(pwff a, pwff b) :
     a(a), b(b) {
@@ -795,7 +800,7 @@ bool Or::operator==(const Wff &x) const
     }
 }
 
-std::vector<SymTok> Or::to_sentence(const Library &lib) const
+/*std::vector<SymTok> Or::to_sentence(const Library &lib) const
 {
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("("));
@@ -806,7 +811,7 @@ std::vector<SymTok> Or::to_sentence(const Library &lib) const
     copy(sentb.begin(), sentb.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol(")"));
     return ret;
-}
+}*/
 
 And::And(pwff a, pwff b) :
     a(a), b(b) {
@@ -831,7 +836,7 @@ pwff And::imp_not_form() const
     return Not::create(Imp::create(this->a->imp_not_form(), Not::create(this->b->imp_not_form())));
 }
 
-std::vector<SymTok> And::to_sentence(const Library &lib) const
+/*std::vector<SymTok> And::to_sentence(const Library &lib) const
 {
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("("));
@@ -842,7 +847,7 @@ std::vector<SymTok> And::to_sentence(const Library &lib) const
     copy(sentb.begin(), sentb.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol(")"));
     return ret;
-}
+}*/
 
 RegisteredProver And::type_rp = LibraryToolbox::register_prover({}, "wff ( ph /\\ ps )");
 Prover<AbstractCheckpointedProofEngine> And::get_type_prover(const LibraryToolbox &tb) const
@@ -900,12 +905,13 @@ bool ConvertibleWff::is_false() const
     return this->imp_not_form()->is_false();
 }
 
-Prover<AbstractCheckpointedProofEngine> ConvertibleWff::get_type_prover(const LibraryToolbox &tb) const
+/*Prover<AbstractCheckpointedProofEngine> ConvertibleWff::get_type_prover(const LibraryToolbox &tb) const
 {
+    (void) tb;
     // Disabled, because ordinarily I do not want to use this generic and probably inefficient method
     return null_prover;
-    return tb.build_type_prover< AbstractCheckpointedProofEngine >(this->to_wff_sentence(tb));
-}
+    //return tb.build_type_prover< AbstractCheckpointedProofEngine >(this->to_wff_sentence(tb));
+}*/
 
 And3::And3(pwff a, pwff b, pwff c) :
     a(a), b(b), c(c)
@@ -917,7 +923,7 @@ string And3::to_string() const
     return "( " + this->a->to_string() + " /\\ " + this->b->to_string() + " /\\ " + this->c->to_string() + " )";
 }
 
-std::vector<SymTok> And3::to_sentence(const Library &lib) const
+/*std::vector<SymTok> And3::to_sentence(const Library &lib) const
 {
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("("));
@@ -931,7 +937,7 @@ std::vector<SymTok> And3::to_sentence(const Library &lib) const
     copy(sentc.begin(), sentc.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol(")"));
     return ret;
-}
+}*/
 
 pwff And3::imp_not_form() const
 {
@@ -987,7 +993,7 @@ string Or3::to_string() const
     return "( " + this->a->to_string() + " \\/ " + this->b->to_string() + " \\/ " + this->c->to_string() + " )";
 }
 
-std::vector<SymTok> Or3::to_sentence(const Library &lib) const
+/*std::vector<SymTok> Or3::to_sentence(const Library &lib) const
 {
     vector< SymTok > ret;
     ret.push_back(lib.get_symbol("("));
@@ -1001,7 +1007,7 @@ std::vector<SymTok> Or3::to_sentence(const Library &lib) const
     copy(sentc.begin(), sentc.end(), back_inserter(ret));
     ret.push_back(lib.get_symbol(")"));
     return ret;
-}
+}*/
 
 pwff Or3::imp_not_form() const
 {

@@ -26,10 +26,10 @@ public:
     virtual std::string to_string() const = 0;
     virtual pwff imp_not_form() const = 0;
     virtual pwff subst(pvar var, bool positive) const = 0;
-    virtual std::vector< SymTok > to_sentence(const Library &lib) const = 0;
+    /*virtual std::vector< SymTok > to_sentence(const Library &lib) const = 0;
     Sentence to_asserted_sentence(const Library &lib) const;
-    Sentence to_wff_sentence(const Library &lib) const;
-    //ParsingTree2<SymTok, LabTok> to_parsing_tree(const LibraryToolbox &tb) const;
+    Sentence to_wff_sentence(const Library &lib) const;*/
+    ParsingTree2<SymTok, LabTok> to_parsing_tree(const LibraryToolbox &tb) const;
     virtual void get_variables(pvar_set &vars) const = 0;
     virtual Prover< AbstractCheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
     virtual bool is_true() const;
@@ -60,7 +60,7 @@ public:
     bool is_true() const;
     Prover< AbstractCheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
     bool is_false() const;
-    Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+    //Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
 
 private:
     static RegisteredProver truth_rp;
@@ -96,7 +96,7 @@ public:
     std::string to_string() const;
     pwff imp_not_form() const;
     pwff subst(pvar var, bool positive) const;
-    std::vector< SymTok > to_sentence(const Library &lib) const;
+    //std::vector< SymTok > to_sentence(const Library &lib) const;
     void get_variables(pvar_set &vars) const;
     Prover< AbstractCheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
     bool is_false() const;
@@ -122,7 +122,7 @@ public:
   std::string to_string() const;
   pwff imp_not_form() const;
   pwff subst(pvar var, bool positive) const;
-  std::vector< SymTok > to_sentence(const Library &lib) const;
+  //std::vector< SymTok > to_sentence(const Library &lib) const;
   void get_variables(pvar_set &vars) const;
   Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
   Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
@@ -157,7 +157,7 @@ public:
   std::string to_string() const;
   pwff imp_not_form() const;
   pwff subst(pvar var, bool positive) const;
-  std::vector< SymTok > to_sentence(const Library &lib) const;
+  //std::vector< SymTok > to_sentence(const Library &lib) const;
   void get_variables(pvar_set &vars) const;
   Prover< AbstractCheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
   bool is_true() const;
@@ -188,7 +188,7 @@ public:
   std::string to_string() const;
   pwff imp_not_form() const;
   pwff subst(pvar var, bool positive) const;
-  std::vector< SymTok > to_sentence(const Library &lib) const;
+  //std::vector< SymTok > to_sentence(const Library &lib) const;
   void get_variables(pvar_set &vars) const;
   Prover< AbstractCheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
   bool is_true() const;
@@ -226,7 +226,7 @@ public:
   std::string to_string() const;
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
-  std::vector< SymTok > to_sentence(const Library &lib) const;
+  //std::vector< SymTok > to_sentence(const Library &lib) const;
   void get_variables(pvar_set &vars) const;
   Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
   Prover< AbstractCheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
@@ -252,7 +252,7 @@ private:
 class And : public ConvertibleWff, public enable_create< And > {
 public:
   std::string to_string() const;
-  std::vector< SymTok > to_sentence(const Library &lib) const;
+  //std::vector< SymTok > to_sentence(const Library &lib) const;
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
   void get_variables(pvar_set &vars) const;
@@ -280,7 +280,7 @@ private:
 class Or : public ConvertibleWff, public enable_create< Or > {
 public:
   std::string to_string() const;
-  std::vector< SymTok > to_sentence(const Library &lib) const;
+  //std::vector< SymTok > to_sentence(const Library &lib) const;
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
   void get_variables(pvar_set &vars) const;
@@ -308,7 +308,7 @@ private:
 class Nand : public ConvertibleWff, public enable_create< Nand > {
 public:
   std::string to_string() const;
-  std::vector< SymTok > to_sentence(const Library &lib) const;
+  //std::vector< SymTok > to_sentence(const Library &lib) const;
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
   void get_variables(pvar_set &vars) const;
@@ -336,7 +336,7 @@ private:
 class Xor : public ConvertibleWff, public enable_create< Xor > {
 public:
   std::string to_string() const;
-  std::vector<SymTok> to_sentence(const Library &lib) const;
+  //std::vector<SymTok> to_sentence(const Library &lib) const;
   pwff imp_not_form() const;
   pwff half_imp_not_form() const;
   void get_variables(pvar_set &vars) const;
@@ -364,7 +364,7 @@ private:
 class And3 : public ConvertibleWff, public enable_create< And3 > {
 public:
     std::string to_string() const;
-    std::vector<SymTok> to_sentence(const Library &lib) const;
+    //std::vector<SymTok> to_sentence(const Library &lib) const;
     pwff imp_not_form() const;
     pwff half_imp_not_form() const;
     void get_variables(pvar_set &vars) const;
@@ -395,7 +395,7 @@ protected:
 class Or3 : public ConvertibleWff, public enable_create< Or3 > {
 public:
     std::string to_string() const;
-    std::vector<SymTok> to_sentence(const Library &lib) const;
+    //std::vector<SymTok> to_sentence(const Library &lib) const;
     pwff imp_not_form() const;
     pwff half_imp_not_form() const;
     void get_variables(pvar_set &vars) const;
