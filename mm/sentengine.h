@@ -5,7 +5,7 @@
 #include "engine.h"
 #include "funds.h"
 #include "utils/vectormap.h"
-#include "toolbox.h"
+#include "mmtypes.h"
 
 template<>
 struct ProofSentenceTraits< Sentence > {

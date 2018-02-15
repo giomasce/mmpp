@@ -20,3 +20,7 @@ class UncompressedProof;
 template< typename SentType_ >
 class ProofExecutor;
 class ProofOperator;
+
+// From toolbox.h
+class Assertion;
+class LibraryToolbox;

@@ -5,6 +5,7 @@
 
 #include "library.h"
 #include "utils/utils.h"
+#include "toolbox.h"
 
 using namespace std;
 

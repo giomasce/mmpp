@@ -137,63 +137,6 @@ const ExtendedLibrary &LibraryToolbox::get_library() const {
     return this->lib;
 }
 
-static void type_proving_helper_unwind_tree(const ParsingTree< SymTok, LabTok > &tree, ConcreteCheckpointedProofEngine< Sentence > &engine, const Library &lib, const std::unordered_map<LabTok, const Prover*> &var_provers) {
-    // We need to sort children according to their order as floating hypotheses of this assertion
-    // If this is not an assertion, then there are no children
-    const Assertion &ass = lib.get_assertion(tree.label);
-    auto it = var_provers.find(tree.label);
-    if (ass.is_valid()) {
-        assert(it == var_provers.end());
-        unordered_map< SymTok, const ParsingTree< SymTok, LabTok >* > children;
-        auto it2 = tree.children.begin();
-        for (auto &tok : lib.get_sentence(tree.label)) {
-            if (!lib.is_constant(tok)) {
-                children[tok] = &(*it2);
-                it2++;
-            }
-        }
-        assert(it2 == tree.children.end());
-        for (auto &hyp : ass.get_float_hyps()) {
-            SymTok tok = lib.get_sentence(hyp).at(1);
-            type_proving_helper_unwind_tree(*children.at(tok), engine, lib, var_provers);
-        }
-        engine.process_label(tree.label);
-    } else {
-        assert(tree.children.size() == 0);
-        if (it == var_provers.end()) {
-            engine.process_label(tree.label);
-        } else {
-            (*it->second)(engine);
-        }
-    }
-}
-
-bool LibraryToolbox::type_proving_helper(const std::vector<SymTok> &type_sent, ConcreteCheckpointedProofEngine< Sentence > &engine, const std::unordered_map<SymTok, Prover> &var_provers) const
-{
-    SymTok type = type_sent[0];
-    ParsingTree tree = this->parse_sentence(type_sent.begin()+1, type_sent.end(), type);
-    if (tree.label == 0) {
-        return false;
-    } else {
-        std::unordered_map<LabTok, const Prover*> lab_var_provers;
-        for (const auto &x : var_provers) {
-            lab_var_provers.insert(make_pair(this->get_var_sym_to_lab(x.first), &x.second));
-        }
-        type_proving_helper_unwind_tree(tree, engine, *this, lab_var_provers);
-        return true;
-    }
-}
-
-bool LibraryToolbox::type_proving_helper(const ParsingTree2<SymTok, LabTok> &pt, ConcreteCheckpointedProofEngine< Sentence > &engine, const std::unordered_map<LabTok, Prover> &var_provers) const
-{
-    std::unordered_map<LabTok, const Prover*> var_provers_ptr;
-    for (const auto &x : var_provers) {
-        var_provers_ptr.insert(make_pair(x.first, &x.second));
-    }
-    type_proving_helper_unwind_tree(pt2_to_pt(pt), engine, *this, var_provers_ptr);
-    return true;
-}
-
 const std::unordered_map<SymTok, std::vector<std::pair<LabTok, std::vector<SymTok> > > > &LibraryToolbox::get_derivations() const
 {
     return this->derivations;
@@ -319,69 +262,6 @@ const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_imp_
 const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_imp_con_labels_to_theses() const
 {
     return this->imp_con_labels_to_theses;
-}
-
-Prover LibraryToolbox::build_prover(const std::vector<Sentence> &templ_hyps, const Sentence &templ_thesis, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers) const
-{
-    auto res = this->unify_assertion(templ_hyps, templ_thesis, true);
-    if (res.empty()) {
-        cerr << string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string() << endl;
-    }
-    assert_or_throw< MMPPException >(!res.empty(), string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
-    const auto &res1 = res[0];
-    return [=](ConcreteCheckpointedProofEngine< Sentence > &engine){
-        RegisteredProverInstanceData inst_data(res1);
-        return this->proving_helper(inst_data, types_provers, hyps_provers, engine);
-    };
-}
-
-bool LibraryToolbox::proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ConcreteCheckpointedProofEngine< Sentence > &engine) const {
-    std::unordered_map<SymTok, Prover> types_provers_sym;
-    for (auto &type_pair : types_provers) {
-        auto res = types_provers_sym.insert(make_pair(this->get_symbol(type_pair.first), type_pair.second));
-        assert(res.second);
-    }
-    return this->proving_helper(inst_data, types_provers_sym, hyps_provers, engine);
-}
-
-bool LibraryToolbox::proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map<SymTok, Prover> &types_provers, const std::vector<Prover> &hyps_provers, ConcreteCheckpointedProofEngine<Sentence> &engine) const
-{
-    const Assertion &ass = this->get_assertion(inst_data.label);
-    assert(ass.is_valid());
-
-    engine.checkpoint();
-
-    // Compute floating hypotheses
-    for (auto &hyp : ass.get_float_hyps()) {
-        bool res = this->type_proving_helper(substitute(this->get_sentence(hyp), inst_data.ass_map, this->get_standard_is_var_sym()), engine, types_provers);
-        if (!res) {
-            cerr << "Applying " << inst_data.label_str << " a floating hypothesis failed..." << endl;
-            engine.rollback();
-            return false;
-        }
-    }
-
-    // Compute essential hypotheses
-    for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
-        bool res = hyps_provers[inst_data.perm_inv[i]](engine);
-        if (!res) {
-            cerr << "Applying " << inst_data.label_str << " an essential hypothesis failed..." << endl;
-            engine.rollback();
-            return false;
-        }
-    }
-
-    // Finally add this assertion's label
-    try {
-        engine.process_label(ass.get_thesis());
-    } catch (const ProofException< Sentence > &e) {
-        this->dump_proof_exception(e, cerr);
-        engine.rollback();
-        return false;
-    }
-
-    engine.commit();
-    return true;
 }
 
 // FIXME Deduplicate with refresh_parsing_tree()
@@ -1055,18 +935,7 @@ RegisteredProver LibraryToolbox::register_prover(const std::vector<string> &temp
     return { index, templ_hyps, templ_thesis };
 }
 
-Prover LibraryToolbox::build_registered_prover(const RegisteredProver &prover, const std::unordered_map<string, Prover> &types_provers, const std::vector<Prover> &hyps_provers) const
-{
-    const size_t &index = prover.index;
-    if (index >= this->instance_registered_provers.size() || !this->instance_registered_provers[index].valid) {
-        throw MMPPException("cannot modify const object");
-    }
-    const RegisteredProverInstanceData &inst_data = this->instance_registered_provers[index];
 
-    return [=](ConcreteCheckpointedProofEngine< Sentence > &engine){
-        return this->proving_helper(inst_data, types_provers, hyps_provers, engine);
-    };
-}
 
 void LibraryToolbox::compute_registered_provers()
 {
@@ -1209,20 +1078,6 @@ void LibraryToolbox::new_temp_var_frame() const
 void LibraryToolbox::release_temp_var_frame() const
 {
     return this->temp_generator->release_temp_var_frame();
-}
-
-Prover LibraryToolbox::build_type_prover(const std::vector<SymTok> &type_sent, const std::unordered_map<SymTok, Prover> &var_provers) const
-{
-    return [=](ConcreteCheckpointedProofEngine< Sentence > &engine){
-        return this->type_proving_helper(type_sent, engine, var_provers);
-    };
-}
-
-Prover LibraryToolbox::build_type_prover(const ParsingTree2<SymTok, LabTok> &pt, const std::unordered_map<LabTok, Prover> &var_provers) const
-{
-    return [=](ConcreteCheckpointedProofEngine< Sentence > &engine){
-        return this->type_proving_helper(pt, engine, var_provers);
-    };
 }
 
 string SentencePrinter::to_string() const

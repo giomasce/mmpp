@@ -24,8 +24,10 @@ struct SentenceTree {
     std::vector< SentenceTree > children;
 };
 
-typedef std::function< bool(ConcreteCheckpointedProofEngine< Sentence >&) > Prover;
-const Prover null_prover = [](ConcreteCheckpointedProofEngine< Sentence >&){ return false; };
+template< typename Engine >
+using NewProver = std::function< bool(Engine&) >;
+using Prover = NewProver< ConcreteCheckpointedProofEngine< Sentence > >;
+const NewProver< AbstractProofEngine > null_prover = [](AbstractProofEngine&){ return false; };
 //Prover cascade_provers(const Prover &a, const Prover &b);
 
 std::string test_prover(Prover prover, const LibraryToolbox &tb);
@@ -158,11 +160,78 @@ private:
 
     // Type proving
 public:
-    Prover build_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
-    Prover build_type_prover(const ParsingTree2< SymTok, LabTok > &pt, const std::unordered_map< LabTok, Prover > &var_provers = {}) const;
+    template< typename Engine = AbstractProofEngine, typename std::enable_if< std::is_base_of< AbstractProofEngine, Engine >::value >::type* = nullptr >
+    NewProver< Engine > build_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, NewProver< Engine > > &var_provers = {}) const
+    {
+        return [=](Engine &engine){
+            return this->type_proving_helper(type_sent, engine, var_provers);
+        };
+    }
+    template< typename Engine = AbstractProofEngine, typename std::enable_if< std::is_base_of< AbstractProofEngine, Engine >::value >::type* = nullptr >
+    NewProver< Engine > build_type_prover(const ParsingTree2< SymTok, LabTok > &pt, const std::unordered_map< LabTok, NewProver< Engine > > &var_provers = {}) const
+    {
+        return [=](Engine &engine){
+            return this->type_proving_helper(pt, engine, var_provers);
+        };
+    }
 private:
-    bool type_proving_helper(const std::vector< SymTok > &type_sent, ConcreteCheckpointedProofEngine<Sentence> &engine, const std::unordered_map< SymTok, Prover > &var_provers = {}) const;
-    bool type_proving_helper(const ParsingTree2< SymTok, LabTok > &pt, ConcreteCheckpointedProofEngine<Sentence> &engine, const std::unordered_map< LabTok, Prover > &var_provers = {}) const;
+    template< typename Engine = AbstractProofEngine, typename std::enable_if< std::is_base_of< AbstractProofEngine, Engine >::value >::type* = nullptr >
+    void type_proving_helper_unwind_tree(const ParsingTree< SymTok, LabTok > &tree, Engine &engine, const std::unordered_map<LabTok, const NewProver< Engine >* > &var_provers) const {
+        // We need to sort children according to their order as floating hypotheses of this assertion
+        // If this is not an assertion, then there are no children
+        const Assertion &ass = this->lib.get_assertion(tree.label);
+        auto it = var_provers.find(tree.label);
+        if (ass.is_valid()) {
+            assert(it == var_provers.end());
+            std::unordered_map< SymTok, const ParsingTree< SymTok, LabTok >* > children;
+            auto it2 = tree.children.begin();
+            for (auto &tok : this->lib.get_sentence(tree.label)) {
+                if (!this->lib.is_constant(tok)) {
+                    children[tok] = &(*it2);
+                    it2++;
+                }
+            }
+            assert(it2 == tree.children.end());
+            for (auto &hyp : ass.get_float_hyps()) {
+                SymTok tok = this->lib.get_sentence(hyp).at(1);
+                this->type_proving_helper_unwind_tree(*children.at(tok), engine, var_provers);
+            }
+            engine.process_label(tree.label);
+        } else {
+            assert(tree.children.size() == 0);
+            if (it == var_provers.end()) {
+                engine.process_label(tree.label);
+            } else {
+                (*it->second)(engine);
+            }
+        }
+    }
+    template< typename Engine = AbstractProofEngine, typename std::enable_if< std::is_base_of< AbstractProofEngine, Engine >::value >::type* = nullptr >
+    bool type_proving_helper(const std::vector< SymTok > &type_sent, Engine &engine, const std::unordered_map< SymTok, NewProver< Engine > > &var_provers = {}) const
+    {
+        SymTok type = type_sent[0];
+        ParsingTree tree = this->parse_sentence(type_sent.begin()+1, type_sent.end(), type);
+        if (tree.label == 0) {
+            return false;
+        } else {
+            std::unordered_map<LabTok, const NewProver< Engine >* > lab_var_provers;
+            for (const auto &x : var_provers) {
+                lab_var_provers.insert(std::make_pair(this->get_var_sym_to_lab(x.first), &x.second));
+            }
+            this->type_proving_helper_unwind_tree(tree, engine, lab_var_provers);
+            return true;
+        }
+    }
+    template< typename Engine = AbstractProofEngine, typename std::enable_if< std::is_base_of< AbstractProofEngine, Engine >::value >::type* = nullptr >
+    bool type_proving_helper(const ParsingTree2< SymTok, LabTok > &pt, Engine &engine, const std::unordered_map< LabTok, NewProver< Engine > > &var_provers = {}) const
+    {
+        std::unordered_map<LabTok, const NewProver< Engine >* > var_provers_ptr;
+        for (const auto &x : var_provers) {
+            var_provers_ptr.insert(make_pair(x.first, &x.second));
+        }
+        this->type_proving_helper_unwind_tree(pt2_to_pt(pt), engine, var_provers_ptr);
+        return true;
+    }
 
     // Assertion unification
 public:
@@ -276,14 +345,87 @@ private:
     // Provers utilities
 public:
     static RegisteredProver register_prover(const std::vector< std::string > &templ_hyps, const std::string &templ_thesis);
-    Prover build_registered_prover(const RegisteredProver &prover, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers) const;
+    // From https://stackoverflow.com/a/30687399/807307
+    template< typename Engine = AbstractCheckpointedProofEngine, typename std::enable_if< std::is_base_of< AbstractCheckpointedProofEngine, Engine >::value >::type* = nullptr >
+    NewProver< Engine > build_registered_prover(const RegisteredProver &prover, const std::unordered_map< std::string, NewProver< Engine > > &types_provers, const std::vector< NewProver< Engine > > &hyps_provers) const
+    {
+        const size_t &index = prover.index;
+        if (index >= this->instance_registered_provers.size() || !this->instance_registered_provers[index].valid) {
+            throw MMPPException("cannot modify const object");
+        }
+        const RegisteredProverInstanceData &inst_data = this->instance_registered_provers[index];
+
+        return [=](Engine &engine){
+            return this->proving_helper(inst_data, types_provers, hyps_provers, engine);
+        };
+    }
     void compute_registered_provers();
-    Prover build_prover(const std::vector< Sentence > &templ_hyps,
+    template< typename Engine = AbstractCheckpointedProofEngine, typename std::enable_if< std::is_base_of< AbstractCheckpointedProofEngine, Engine >::value >::type* = nullptr >
+    NewProver< Engine > build_prover(const std::vector< Sentence > &templ_hyps,
                         const Sentence &templ_thesis,
-                        const std::unordered_map< std::string, Prover > &types_provers,
-                        const std::vector< Prover > &hyps_provers) const;
-    bool proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map< std::string, Prover > &types_provers, const std::vector< Prover > &hyps_provers, ConcreteCheckpointedProofEngine<Sentence> &engine) const;
-    bool proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map< SymTok, Prover > &types_provers, const std::vector< Prover > &hyps_provers, ConcreteCheckpointedProofEngine< Sentence > &engine) const;
+                        const std::unordered_map< std::string, NewProver< Engine > > &types_provers,
+                        const std::vector< NewProver< Engine > > &hyps_provers) const
+    {
+        auto res = this->unify_assertion(templ_hyps, templ_thesis, true);
+        if (res.empty()) {
+            std::cerr << std::string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string() << std::endl;
+        }
+        assert_or_throw< MMPPException >(!res.empty(), std::string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
+        const auto &res1 = res[0];
+        return [=](Engine &engine){
+            RegisteredProverInstanceData inst_data(res1);
+            return this->proving_helper(inst_data, types_provers, hyps_provers, engine);
+        };
+    }
+    template< typename Engine = AbstractCheckpointedProofEngine, typename std::enable_if< std::is_base_of< AbstractCheckpointedProofEngine, Engine >::value >::type* = nullptr >
+    bool proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map< std::string, NewProver< Engine > > &types_provers, const std::vector< NewProver< Engine > > &hyps_provers, Engine &engine) const {
+        std::unordered_map<SymTok, NewProver< Engine > > types_provers_sym;
+        for (auto &type_pair : types_provers) {
+            auto res = types_provers_sym.insert(make_pair(this->get_symbol(type_pair.first), type_pair.second));
+            assert(res.second);
+        }
+        return this->proving_helper(inst_data, types_provers_sym, hyps_provers, engine);
+    }
+    template< typename Engine = AbstractCheckpointedProofEngine, typename std::enable_if< std::is_base_of< AbstractCheckpointedProofEngine, Engine >::value >::type* = nullptr >
+    bool proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map< SymTok, NewProver< Engine > > &types_provers, const std::vector< NewProver< Engine > > &hyps_provers, Engine &engine) const
+    {
+        const Assertion &ass = this->get_assertion(inst_data.label);
+        assert(ass.is_valid());
+
+        engine.checkpoint();
+
+        // Compute floating hypotheses
+        for (auto &hyp : ass.get_float_hyps()) {
+            bool res = this->type_proving_helper(substitute(this->get_sentence(hyp), inst_data.ass_map, this->get_standard_is_var_sym()), engine, types_provers);
+            if (!res) {
+                std::cerr << "Applying " << inst_data.label_str << " a floating hypothesis failed..." << std::endl;
+                engine.rollback();
+                return false;
+            }
+        }
+
+        // Compute essential hypotheses
+        for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
+            bool res = hyps_provers[inst_data.perm_inv[i]](engine);
+            if (!res) {
+                std::cerr << "Applying " << inst_data.label_str << " an essential hypothesis failed..." << std::endl;
+                engine.rollback();
+                return false;
+            }
+        }
+
+        // Finally add this assertion's label
+        try {
+            engine.process_label(ass.get_thesis());
+        } catch (const ProofException< Sentence > &e) {
+            this->dump_proof_exception(e, std::cerr);
+            engine.rollback();
+            return false;
+        }
+
+        engine.commit();
+        return true;
+    }
 private:
     void compute_registered_prover(size_t i, bool exception_on_failure = true);
     // This is an instance of the Construct On First Use idiom, which prevents the static initialization fiasco;
