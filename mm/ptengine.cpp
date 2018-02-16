@@ -23,7 +23,8 @@ SymTok ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::floating_to_type(cons
 
 SymTok ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::sentence_to_type(const LibType &lib, const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SentType &sent)
 {
-    return lib.get_var_lab_to_type_sym(sent.get_root().get_node().label);
+    (void) lib;
+    return sent.get_root().get_node().type;
 }
 
 const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SentType &ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::get_sentence(const LibType &lib, LabTok label)
