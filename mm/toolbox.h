@@ -339,6 +339,7 @@ private:
 
     // Provers utilities
 public:
+    LabTok get_registered_prover_label(const RegisteredProver &prover) const;
     static RegisteredProver register_prover(const std::vector< std::string > &templ_hyps, const std::string &templ_thesis);
     // From https://stackoverflow.com/a/30687399/807307
     template< typename Engine = AbstractCheckpointedProofEngine, typename std::enable_if< std::is_base_of< AbstractCheckpointedProofEngine, Engine >::value >::type* = nullptr >

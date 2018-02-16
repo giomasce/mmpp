@@ -20,6 +20,8 @@ struct pvar_comp {
 };
 typedef std::set< pvar, pvar_comp > pvar_set;
 
+pwff wff_from_pt(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb);
+
 class Wff {
 public:
     virtual ~Wff();
@@ -44,10 +46,10 @@ public:
 private:
     Prover< AbstractCheckpointedProofEngine > adv_truth_internal(pvar_set::iterator cur_var, pvar_set::iterator end_var, const LibraryToolbox &tb) const;
 
-    static RegisteredProver adv_truth_1_rp;
-    static RegisteredProver adv_truth_2_rp;
-    static RegisteredProver adv_truth_3_rp;
-    static RegisteredProver adv_truth_4_rp;
+    static const RegisteredProver adv_truth_1_rp;
+    static const RegisteredProver adv_truth_2_rp;
+    static const RegisteredProver adv_truth_3_rp;
+    static const RegisteredProver adv_truth_4_rp;
 };
 
 /**
@@ -63,11 +65,12 @@ public:
     //Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
 
 private:
-    static RegisteredProver truth_rp;
-    static RegisteredProver falsity_rp;
+    static const RegisteredProver truth_rp;
+    static const RegisteredProver falsity_rp;
 };
 
 class True : public Wff, public enable_create< True > {
+    friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const;
     pwff imp_not_form() const;
@@ -85,13 +88,14 @@ protected:
     True();
 
 private:
-    static RegisteredProver truth_rp;
-    static RegisteredProver type_rp;
-    static RegisteredProver imp_not_rp;
-    static RegisteredProver subst_rp;
+    static const RegisteredProver truth_rp;
+    static const RegisteredProver type_rp;
+    static const RegisteredProver imp_not_rp;
+    static const RegisteredProver subst_rp;
 };
 
 class False : public Wff, public enable_create< False > {
+    friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const;
     pwff imp_not_form() const;
@@ -109,13 +113,14 @@ protected:
     False();
 
 private:
-    static RegisteredProver falsity_rp;
-    static RegisteredProver type_rp;
-    static RegisteredProver imp_not_rp;
-    static RegisteredProver subst_rp;
+    static const RegisteredProver falsity_rp;
+    static const RegisteredProver type_rp;
+    static const RegisteredProver imp_not_rp;
+    static const RegisteredProver subst_rp;
 };
 
 class Var : public Wff, public enable_create< Var > {
+    friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
   typedef ParsingTree2< SymTok, LabTok > NameType;
 
@@ -136,24 +141,26 @@ public:
 protected:
   Var(NameType name, std::string string_repr);
   Var(const std::string &string_repr, const LibraryToolbox &tb);
+  Var(const NameType &name, const LibraryToolbox &tb);
 
 private:
   NameType name;
   std::string string_repr;
 
-  static RegisteredProver imp_not_rp;
-  static RegisteredProver subst_pos_1_rp;
-  static RegisteredProver subst_pos_2_rp;
-  static RegisteredProver subst_pos_3_rp;
-  static RegisteredProver subst_pos_truth_rp;
-  static RegisteredProver subst_neg_1_rp;
-  static RegisteredProver subst_neg_2_rp;
-  static RegisteredProver subst_neg_3_rp;
-  static RegisteredProver subst_neg_falsity_rp;
-  static RegisteredProver subst_indep_rp;
+  static const RegisteredProver imp_not_rp;
+  static const RegisteredProver subst_pos_1_rp;
+  static const RegisteredProver subst_pos_2_rp;
+  static const RegisteredProver subst_pos_3_rp;
+  static const RegisteredProver subst_pos_truth_rp;
+  static const RegisteredProver subst_neg_1_rp;
+  static const RegisteredProver subst_neg_2_rp;
+  static const RegisteredProver subst_neg_3_rp;
+  static const RegisteredProver subst_neg_falsity_rp;
+  static const RegisteredProver subst_indep_rp;
 };
 
 class Not : public Wff, public enable_create< Not > {
+    friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
   std::string to_string() const;
   pwff imp_not_form() const;
@@ -178,13 +185,14 @@ protected:
 private:
   pwff a;
 
-  static RegisteredProver falsity_rp;
-  static RegisteredProver type_rp;
-  static RegisteredProver imp_not_rp;
-  static RegisteredProver subst_rp;
+  static const RegisteredProver falsity_rp;
+  static const RegisteredProver type_rp;
+  static const RegisteredProver imp_not_rp;
+  static const RegisteredProver subst_rp;
 };
 
 class Imp : public Wff, public enable_create< Imp > {
+    friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
   std::string to_string() const;
   pwff imp_not_form() const;
@@ -212,17 +220,18 @@ protected:
 private:
   pwff a, b;
 
-  static RegisteredProver truth_1_rp;
-  static RegisteredProver truth_2_rp;
-  static RegisteredProver falsity_1_rp;
-  static RegisteredProver falsity_2_rp;
-  static RegisteredProver falsity_3_rp;
-  static RegisteredProver type_rp;
-  static RegisteredProver imp_not_rp;
-  static RegisteredProver subst_rp;
+  static const RegisteredProver truth_1_rp;
+  static const RegisteredProver truth_2_rp;
+  static const RegisteredProver falsity_1_rp;
+  static const RegisteredProver falsity_2_rp;
+  static const RegisteredProver falsity_3_rp;
+  static const RegisteredProver type_rp;
+  static const RegisteredProver imp_not_rp;
+  static const RegisteredProver subst_rp;
 };
 
 class Biimp : public ConvertibleWff, public enable_create< Biimp > {
+    friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
   std::string to_string() const;
   pwff imp_not_form() const;
@@ -245,12 +254,13 @@ protected:
 private:
   pwff a, b;
 
-  static RegisteredProver type_rp;
-  static RegisteredProver imp_not_1_rp;
-  static RegisteredProver imp_not_2_rp;
+  static const RegisteredProver type_rp;
+  static const RegisteredProver imp_not_1_rp;
+  static const RegisteredProver imp_not_2_rp;
 };
 
 class And : public ConvertibleWff, public enable_create< And > {
+    friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
   std::string to_string() const;
   //std::vector< SymTok > to_sentence(const Library &lib) const;
@@ -273,12 +283,13 @@ protected:
 private:
   pwff a, b;
 
-  static RegisteredProver type_rp;
-  static RegisteredProver imp_not_1_rp;
-  static RegisteredProver imp_not_2_rp;
+  static const RegisteredProver type_rp;
+  static const RegisteredProver imp_not_1_rp;
+  static const RegisteredProver imp_not_2_rp;
 };
 
 class Or : public ConvertibleWff, public enable_create< Or > {
+    friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
   std::string to_string() const;
   //std::vector< SymTok > to_sentence(const Library &lib) const;
@@ -301,12 +312,13 @@ protected:
 private:
   pwff a, b;
 
-  static RegisteredProver type_rp;
-  static RegisteredProver imp_not_1_rp;
-  static RegisteredProver imp_not_2_rp;
+  static const RegisteredProver type_rp;
+  static const RegisteredProver imp_not_1_rp;
+  static const RegisteredProver imp_not_2_rp;
 };
 
 class Nand : public ConvertibleWff, public enable_create< Nand > {
+    friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
   std::string to_string() const;
   //std::vector< SymTok > to_sentence(const Library &lib) const;
@@ -329,12 +341,13 @@ protected:
 private:
   pwff a, b;
 
-  static RegisteredProver type_rp;
-  static RegisteredProver imp_not_1_rp;
-  static RegisteredProver imp_not_2_rp;
+  static const RegisteredProver type_rp;
+  static const RegisteredProver imp_not_1_rp;
+  static const RegisteredProver imp_not_2_rp;
 };
 
 class Xor : public ConvertibleWff, public enable_create< Xor > {
+    friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
   std::string to_string() const;
   //std::vector<SymTok> to_sentence(const Library &lib) const;
@@ -357,12 +370,13 @@ protected:
 private:
   pwff a, b;
 
-  static RegisteredProver type_rp;
-  static RegisteredProver imp_not_1_rp;
-  static RegisteredProver imp_not_2_rp;
+  static const RegisteredProver type_rp;
+  static const RegisteredProver imp_not_1_rp;
+  static const RegisteredProver imp_not_2_rp;
 };
 
 class And3 : public ConvertibleWff, public enable_create< And3 > {
+    friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const;
     //std::vector<SymTok> to_sentence(const Library &lib) const;
@@ -388,12 +402,13 @@ protected:
   private:
     pwff a, b, c;
 
-    static RegisteredProver type_rp;
-    static RegisteredProver imp_not_1_rp;
-    static RegisteredProver imp_not_2_rp;
+    static const RegisteredProver type_rp;
+    static const RegisteredProver imp_not_1_rp;
+    static const RegisteredProver imp_not_2_rp;
 };
 
 class Or3 : public ConvertibleWff, public enable_create< Or3 > {
+    friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const;
     //std::vector<SymTok> to_sentence(const Library &lib) const;
@@ -419,7 +434,7 @@ protected:
   private:
     pwff a, b, c;
 
-    static RegisteredProver type_rp;
-    static RegisteredProver imp_not_1_rp;
-    static RegisteredProver imp_not_2_rp;
+    static const RegisteredProver type_rp;
+    static const RegisteredProver imp_not_1_rp;
+    static const RegisteredProver imp_not_2_rp;
 };

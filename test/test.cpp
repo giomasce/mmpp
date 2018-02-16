@@ -4,6 +4,8 @@
 #include <fstream>
 #include <chrono>
 
+#include <boost/type_index.hpp>
+
 #include "provers/wff.h"
 #include "mm/reader.h"
 #include "old/unification.h"
@@ -357,6 +359,30 @@ void test_wffs_advanced() {
     }
 }
 
+void test_wffs_parsing() {
+    auto &data = get_set_mm();
+    //auto &lib = data.lib;
+    auto &tb = data.tb;
+
+    vector< std::string > wffs = { "wff T.", "wff F.", "wff ph", "wff ps", "wff -. ph",
+                                   "wff ( ph -> ps )", "wff ( ph /\\ ps )", "wff ( ph \\/ ps )", "wff ( ph <-> F. )",
+                                   "wff ( ph -/\\ ps )", "wff ( ph \\/_ ps )",
+                                   "wff ( ph /\\ ps /\\ ch )", "wff ( ph \\/ ps \\/ ch )",
+                                   "wff A. x ph", "wff -. A. x ph" };
+
+    if (true) {
+        cout << "WFF parsing test" << endl;
+        for (const auto &wff : wffs) {
+            cout << "WFF: " << wff << endl;
+            auto sent = tb.read_sentence(wff);
+            auto pt = tb.parse_sentence(sent);
+            auto parsed = wff_from_pt(pt, tb);
+            cout << "Has type: " << boost::typeindex::type_id_runtime(*parsed).pretty_name() << endl;
+            cout << endl;
+        }
+    }
+}
+
 void test() {
     test_small_stuff();
     test_parsers();
@@ -368,6 +394,7 @@ void test() {
     test_unification();
     test_wffs_trivial();
     test_wffs_advanced();
+    test_wffs_parsing();
     cout << "Maximum memory usage: " << size_to_string(platform_get_peak_rss()) << endl;
 }
 

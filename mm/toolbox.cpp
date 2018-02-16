@@ -1007,6 +1007,16 @@ void LibraryToolbox::compute_sentences_parsing()
     }
 }
 
+LabTok LibraryToolbox::get_registered_prover_label(const RegisteredProver &prover) const
+{
+    const size_t &index = prover.index;
+    if (index >= this->instance_registered_provers.size() || !this->instance_registered_provers[index].valid) {
+        throw MMPPException("cannot modify const object");
+    }
+    const RegisteredProverInstanceData &inst_data = this->instance_registered_provers[index];
+    return inst_data.label;
+}
+
 const std::vector<ParsingTree<SymTok, LabTok> > &LibraryToolbox::get_parsed_sents() const
 {
     return this->parsed_sents;
