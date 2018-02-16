@@ -14,13 +14,6 @@ using namespace std;
 
 void test_small_stuff() {
     cout << "Testing random small stuff..." << endl;
-    auto ph = Var::create("ph");
-    auto ps = Var::create("ps");
-    auto w = Nand::create(ph, ps);
-    auto w2 = Xor::create(w, And::create(True::create(), ph));
-
-    cout << w2->to_string() << endl;
-    cout << w2->imp_not_form()->to_string() << endl;
 
     CompressedDecoder cd;
     string test_enc[] = { "A", "B", "T", "UA", "UB", "UT", "VA", "VB", "YT", "UUA", "YYT", "UUUA", "UUUAZ" };

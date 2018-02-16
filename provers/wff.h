@@ -117,7 +117,7 @@ private:
 
 class Var : public Wff, public enable_create< Var > {
 public:
-  typedef std::string NameType;
+  typedef ParsingTree2< SymTok, LabTok > NameType;
 
   std::string to_string() const;
   pwff imp_not_form() const;
@@ -134,7 +134,8 @@ public:
   }
 
 protected:
-  Var(NameType name);
+  Var(NameType name, std::string string_repr);
+  Var(const std::string &string_repr, const LibraryToolbox &tb);
 
 private:
   NameType name;

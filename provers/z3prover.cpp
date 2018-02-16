@@ -12,7 +12,7 @@
 using namespace std;
 using namespace z3;
 
-pwff parse_expr(expr e) {
+pwff parse_expr(expr e, const LibraryToolbox &tb) {
     assert(e.is_app());
     func_decl decl = e.decl();
     Z3_decl_kind kind = decl.decl_kind();
@@ -27,37 +27,37 @@ pwff parse_expr(expr e) {
     case Z3_OP_EQ:
         // Interpreted as biimplication; why does Z3 generates equalities between formulae?
         assert(e.num_args() == 2);
-        return Biimp::create(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
+        return Biimp::create(parse_expr(e.arg(0), tb), parse_expr(e.arg(1), tb));
     case Z3_OP_AND:
         assert(e.num_args() >= 2);
-        ret = And::create(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
+        ret = And::create(parse_expr(e.arg(0), tb), parse_expr(e.arg(1), tb));
         for (unsigned i = 2; i < e.num_args(); i++) {
-            ret = And::create(ret, parse_expr(e.arg(i)));
+            ret = And::create(ret, parse_expr(e.arg(i), tb));
         }
         return ret;
     case Z3_OP_OR:
         assert(e.num_args() >= 2);
-        ret = Or::create(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
+        ret = Or::create(parse_expr(e.arg(0), tb), parse_expr(e.arg(1), tb));
         for (unsigned i = 2; i < e.num_args(); i++) {
-            ret = Or::create(ret, parse_expr(e.arg(i)));
+            ret = Or::create(ret, parse_expr(e.arg(i), tb));
         }
         return ret;
     case Z3_OP_IFF:
         assert(e.num_args() == 2);
-        return Biimp::create(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
+        return Biimp::create(parse_expr(e.arg(0), tb), parse_expr(e.arg(1), tb));
     case Z3_OP_XOR:
         assert(e.num_args() == 2);
-        return Xor::create(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
+        return Xor::create(parse_expr(e.arg(0), tb), parse_expr(e.arg(1), tb));
     case Z3_OP_NOT:
         assert(e.num_args() == 1);
-        return Not::create(parse_expr(e.arg(0)));
+        return Not::create(parse_expr(e.arg(0), tb));
     case Z3_OP_IMPLIES:
         assert(e.num_args() == 2);
-        return Imp::create(parse_expr(e.arg(0)), parse_expr(e.arg(1)));
+        return Imp::create(parse_expr(e.arg(0), tb), parse_expr(e.arg(1), tb));
 
     case Z3_OP_UNINTERPRETED:
         assert(e.num_args() == 0);
-        return Var::create(decl.name().str());
+        return Var::create(decl.name().str(), tb);
 
     default:
         throw "Cannot handle this formula";
@@ -173,7 +173,7 @@ struct Z3Adapter {
         } else {
             this->s.add(!e);
         }
-        pwff w = parse_expr(e);
+        pwff w = parse_expr(e, tb);
         if (hyp) {
             this->hyps.push_back(w);
             if (this->target == NULL) {
@@ -222,7 +222,7 @@ struct Z3Adapter {
                     //cout << "EXPR: " << e.arg(0) << endl;
                     /*cout << "HEAD WFF: " << this->get_current_abs_hyps()->to_string() << endl;
                     cout << "WFF: " << parse_expr(e.arg(0))->to_string() << endl;*/
-                    pwff w = parse_expr(e.arg(0));
+                    pwff w = parse_expr(e.arg(0), tb);
                     assert(find_if(this->hyps.begin(), this->hyps.end(), [=](const pwff &p) { return *p == *w; }) != this->hyps.end());
                     //auto it = find_if(this->hyps.begin(), this->hyps.end(), [=](const pwff &p) { return *p == *w; });
                     //size_t pos = it - this->hyps.begin();
@@ -257,10 +257,10 @@ struct Z3Adapter {
                     switch (extract_thesis(e.arg(1)).decl().decl_kind()) {
                     case Z3_OP_EQ:
                     case Z3_OP_IFF:
-                        return this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(mp2_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", parse_expr(extract_thesis(e.arg(0)))->get_type_prover(this->tb)}, {"ch", parse_expr(e.arg(2))->get_type_prover(this->tb)}}, {p1, p2});
+                        return this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(mp2_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", parse_expr(extract_thesis(e.arg(0)), tb)->get_type_prover(this->tb)}, {"ch", parse_expr(e.arg(2), tb)->get_type_prover(this->tb)}}, {p1, p2});
                         break;
                     case Z3_OP_IMPLIES:
-                        return this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(mp1_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", parse_expr(extract_thesis(e.arg(0)))->get_type_prover(this->tb)}, {"ch", parse_expr(e.arg(2))->get_type_prover(this->tb)}}, {p1, p2});
+                        return this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(mp1_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", parse_expr(extract_thesis(e.arg(0)), tb)->get_type_prover(this->tb)}, {"ch", parse_expr(e.arg(2), tb)->get_type_prover(this->tb)}}, {p1, p2});
                         break;
                     default:
                         throw "Should not arrive here";
@@ -274,7 +274,7 @@ struct Z3Adapter {
                     cout << "WFF: " << parse_expr(e.arg(0))->to_string() << endl;*/
                     //prove_and_print(parse_expr(e.arg(0)), tb);
                     // The thesis should be true independently of ph
-                    pwff thesis = parse_expr(e.arg(0));
+                    pwff thesis = parse_expr(e.arg(0), tb);
                     //cout << "ORACLE for '" << thesis->to_string() << "'!" << endl;
                     //Prover p1 = thesis->get_adv_truth_prover(tb);
                     auto pt = pt2_to_pt(thesis->to_parsing_tree(this->tb));
@@ -291,8 +291,8 @@ struct Z3Adapter {
                     cout << "TH: " << parse_expr(e.arg(2))->to_string() << endl;*/
                     Prover< ConcreteCheckpointedProofEngine< Sentence > > p1 = this->convert_proof(e.arg(0), depth+1);
                     Prover< ConcreteCheckpointedProofEngine< Sentence > > p2 = this->convert_proof(e.arg(1), depth+1);
-                    auto w1 = dynamic_pointer_cast< const Biimp >(parse_expr(extract_thesis(e.arg(0))));
-                    auto w2 = dynamic_pointer_cast< const Biimp >(parse_expr(extract_thesis(e.arg(1))));
+                    auto w1 = dynamic_pointer_cast< const Biimp >(parse_expr(extract_thesis(e.arg(0)), tb));
+                    auto w2 = dynamic_pointer_cast< const Biimp >(parse_expr(extract_thesis(e.arg(1)), tb));
                     assert(w1 != NULL && w2 != NULL);
                     assert(*w1->get_b() == *w2->get_a());
                     pwff ps = w1->get_a();
@@ -341,14 +341,14 @@ struct Z3Adapter {
                             size_t used = 0;
                             for (size_t i = 0; i < th_left.num_args(); i++) {
                                 if (eq(th_left.arg(i), th_right.arg(i))) {
-                                    hyp_provers.push_back(this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(biidd_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", parse_expr(th_left.arg(i))->get_type_prover(this->tb)}}, {}));
+                                    hyp_provers.push_back(this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(biidd_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", parse_expr(th_left.arg(i), tb)->get_type_prover(this->tb)}}, {}));
                                 } else {
                                     assert(!used);
                                     hyp_provers.push_back(this->convert_proof(e.arg(0), depth+1));
                                     used++;
                                 }
-                                left_wffs.push_back(parse_expr(th_left.arg(i)));
-                                right_wffs.push_back(parse_expr(th_right.arg(i)));
+                                left_wffs.push_back(parse_expr(th_left.arg(i), tb));
+                                right_wffs.push_back(parse_expr(th_right.arg(i), tb));
                             }
                             assert(hyp_provers.size() == th_left.num_args());
                             assert(used == num_args - 1);
@@ -367,8 +367,8 @@ struct Z3Adapter {
                             return ret;
                             break; }
                         case Z3_OP_NOT: {
-                            pwff left_wff = parse_expr(th_left.arg(0));
-                            pwff right_wff = parse_expr(th_right.arg(0));
+                            pwff left_wff = parse_expr(th_left.arg(0), tb);
+                            pwff right_wff = parse_expr(th_right.arg(0), tb);
                             Prover< ConcreteCheckpointedProofEngine< Sentence > > ret = this->convert_proof(e.arg(0), depth+1);
                             return this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(notbid_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)},
                                                                                   {"ps", left_wff->get_type_prover(this->tb)}, {"ch", right_wff->get_type_prover(this->tb)}}, {ret});
@@ -406,7 +406,7 @@ struct Z3Adapter {
                     vector< pwff > elims;
                     vector< Prover< ConcreteCheckpointedProofEngine< Sentence > > > elim_provers;
                     for (size_t i = 0; i < elims_num; i++) {
-                        elims.push_back(parse_expr(extract_thesis(e.arg(i+1))));
+                        elims.push_back(parse_expr(extract_thesis(e.arg(i+1)), tb));
                         elim_provers.push_back(this->convert_proof(e.arg(i+1), depth+1));
                         //cerr << "TEST: " << test_prover(elim_provers.back(), this->tb) << endl;
                     }
@@ -415,7 +415,7 @@ struct Z3Adapter {
                     vector< pwff > new_clauses;
                     vector< Prover< ConcreteCheckpointedProofEngine< Sentence > > > provers;
                     for (size_t i = 0; i < or_expr.num_args(); i++) {
-                        pwff clause = parse_expr(or_expr.arg(i));
+                        pwff clause = parse_expr(or_expr.arg(i), tb);
                         orig_clauses.push_back(clause);
 
                         // Search an eliminator for the positive form
@@ -470,8 +470,8 @@ struct Z3Adapter {
                     assert(num_args == 1);
                     assert(arity == 1);
                     cout << "EXPR: " << e.arg(0) << endl;
-                    cout << "WFF: " << parse_expr(e.arg(0))->to_string() << endl;
-                    pwff thesis = parse_expr(extract_thesis(e));
+                    cout << "WFF: " << parse_expr(e.arg(0), tb)->to_string() << endl;
+                    pwff thesis = parse_expr(extract_thesis(e), tb);
                     cout << "AXIOM ORACLE for '" << thesis->to_string() << "'!" << endl;
                     Prover< ConcreteCheckpointedProofEngine< Sentence > > p1 = thesis->get_adv_truth_prover(this->tb);
                     return this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(a1i_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", thesis->get_type_prover(this->tb)}}, {p1});
@@ -490,9 +490,9 @@ struct Z3Adapter {
                     expr not_target_expr = e.arg(1);
                     assert(not_target_expr.decl().decl_kind() == Z3_OP_NOT);
                     assert(not_target_expr.num_args() == 1);
-                    pwff target_wff = parse_expr(not_target_expr.arg(0));
+                    pwff target_wff = parse_expr(not_target_expr.arg(0), tb);
                     Prover< ConcreteCheckpointedProofEngine< Sentence > > ret = this->convert_proof(e.arg(0), depth+1);
-                    pwff wff = parse_expr(or_expr);
+                    pwff wff = parse_expr(or_expr, tb);
                     for (size_t i = 0; i < or_expr.num_args()-1; i++) {
                         auto wff_or = dynamic_pointer_cast< const Or >(wff);
                         assert(wff != NULL);
@@ -512,7 +512,7 @@ struct Z3Adapter {
                     //cout << endl << "EXPR: " << e.arg(2);
                     /*cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;
                     cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;*/
-                    pwff hyp = parse_expr(extract_thesis(e.arg(0)));
+                    pwff hyp = parse_expr(extract_thesis(e.arg(0)), tb);
                     Prover< ConcreteCheckpointedProofEngine< Sentence > > hyp_prover = this->convert_proof(e.arg(0), depth+1);
                     auto hyp_not = dynamic_pointer_cast< const Not >(hyp);
                     assert(hyp_not != NULL);
@@ -525,8 +525,8 @@ struct Z3Adapter {
                     /*cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;
                     cout << "TH: " << e.arg(1) << endl;
                     cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;*/
-                    cout << "LEMMA ORACLE for '" << Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e)))->to_string() << "'!" << endl;
-                    return Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e)))->get_adv_truth_prover(this->tb);
+                    cout << "LEMMA ORACLE for '" << Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e), tb))->to_string() << "'!" << endl;
+                    return Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e), tb))->get_adv_truth_prover(this->tb);
                     break; }
                 /*case Z3_OP_PR_HYPOTHESIS:
                     cout << "hypothesis";
@@ -538,8 +538,8 @@ struct Z3Adapter {
                     break;*/
                 default:
                     //prove_and_print(Imp::create(w, parse_expr(extract_thesis(e))), tb);
-                    cout << "GENERIC ORACLE for '" << Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e)))->to_string() << "'!" << endl;
-                    return Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e)))->get_adv_truth_prover(this->tb);
+                    cout << "GENERIC ORACLE for '" << Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e), tb))->to_string() << "'!" << endl;
+                    return Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e), tb))->get_adv_truth_prover(this->tb);
                     break;
                 }
             } else {

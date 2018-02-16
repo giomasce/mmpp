@@ -188,8 +188,8 @@ void test_wffs_trivial() {
     //auto &lib = data.lib;
     auto &tb = data.tb;
     vector< pwff > wffs = { True::create(), False::create(), Not::create(True::create()), Not::create(False::create()),
-                            Var::create("ph"), Not::create(Var::create("ph")),
-                            Var::create("ps"), Not::create(Var::create("ps")),
+                            Var::create("ph", tb), Not::create(Var::create("ph", tb)),
+                            Var::create("ps", tb), Not::create(Var::create("ps", tb)),
                             Imp::create(True::create(), True::create()),
                             Imp::create(True::create(), False::create()),
                             Imp::create(False::create(), True::create()),
@@ -222,9 +222,9 @@ void test_wffs_trivial() {
                             Xor::create(True::create(), False::create()),
                             Xor::create(False::create(), True::create()),
                             Xor::create(False::create(), False::create()),
-                            Imp::create(Var::create("ph"), Var::create("ps")),
-                            And::create(Var::create("ph"), Var::create("ps")),
-                            And::create(True::create(), And::create(Var::create("ph"), False::create())),
+                            Imp::create(Var::create("ph", tb), Var::create("ps", tb)),
+                            And::create(Var::create("ph", tb), Var::create("ps", tb)),
+                            And::create(True::create(), And::create(Var::create("ph", tb), False::create())),
                             And::create(False::create(), And::create(True::create(), True::create())),
                           };
 
@@ -291,7 +291,7 @@ void test_wffs_trivial() {
             cout << "WFF: " << wff->to_string() << endl;
             {
                 ExtendedProofEngine< Sentence > engine(tb);
-                wff->get_subst_prover(Var::create("ph"), true, tb)(engine);
+                wff->get_subst_prover(Var::create("ph", tb), true, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                     cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
@@ -299,7 +299,7 @@ void test_wffs_trivial() {
             }
             {
                 ExtendedProofEngine< Sentence > engine(tb);
-                wff->get_subst_prover(Var::create("ph"), false, tb)(engine);
+                wff->get_subst_prover(Var::create("ph", tb), false, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst -. ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                     cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
@@ -307,7 +307,7 @@ void test_wffs_trivial() {
             }
             {
                 ExtendedProofEngine< Sentence > engine(tb);
-                wff->get_subst_prover(Var::create("ps"), true, tb)(engine);
+                wff->get_subst_prover(Var::create("ps", tb), true, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                     cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
@@ -315,7 +315,7 @@ void test_wffs_trivial() {
             }
             {
                 ExtendedProofEngine< Sentence > engine(tb);
-                wff->get_subst_prover(Var::create("ps"), false, tb)(engine);
+                wff->get_subst_prover(Var::create("ps", tb), false, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     cout << "subst -. ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                     cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
@@ -331,11 +331,11 @@ void test_wffs_advanced() {
     //auto &lib = data.lib;
     auto &tb = data.tb;
     vector< pwff > wffs = { True::create(), False::create(), Not::create(True::create()), Not::create(False::create()),
-                             Imp::create(Var::create("ph"), Var::create("ph")),
-                             Or3::create(Var::create("ph"), True::create(), False::create()),
-                             Imp::create(Var::create("ph"), And3::create(Var::create("ph"), True::create(), Var::create("ph"))),
-                             Biimp::create(Nand::create(Var::create("ph"), Nand::create(Var::create("ch"), Var::create("ps"))),
-                                            Imp::create(Var::create("ph"), And::create(Var::create("ch"), Var::create("ps")))),
+                             Imp::create(Var::create("ph", tb), Var::create("ph", tb)),
+                             Or3::create(Var::create("ph", tb), True::create(), False::create()),
+                             Imp::create(Var::create("ph", tb), And3::create(Var::create("ph", tb), True::create(), Var::create("ph", tb))),
+                             Biimp::create(Nand::create(Var::create("ph", tb), Nand::create(Var::create("ch", tb), Var::create("ps", tb))),
+                                            Imp::create(Var::create("ph", tb), And::create(Var::create("ch", tb), Var::create("ps", tb)))),
                            };
 
     if (true) {

@@ -258,8 +258,18 @@ bool False::operator==(const Wff &x) const
     }
 }
 
-Var::Var(NameType name) :
-    name(name), string_repr(name) {
+Var::Var(NameType name, string string_repr) :
+    name(name), string_repr(string_repr) {
+}
+
+static auto var_cons_helper(const string &string_repr, const LibraryToolbox &tb) {
+    auto sent = tb.read_sentence(string_repr);
+    auto pt = tb.parse_sentence(sent.begin(), sent.end(), tb.get_turnstile_alias());
+    return pt_to_pt2(pt);
+}
+
+Var::Var(const string &string_repr, const LibraryToolbox &tb) :
+    name(var_cons_helper(string_repr, tb)), string_repr(string_repr) {
 }
 
 string Var::to_string() const {
@@ -295,12 +305,12 @@ void Var::get_variables(pvar_set &vars) const
 
 Prover<AbstractCheckpointedProofEngine> Var::get_type_prover(const LibraryToolbox &tb) const
 {
-    //return tb.build_type_prover< AbstractCheckpointedProofEngine >(this->to_wff_sentence(tb));
-    auto label = tb.get_var_sym_to_lab(tb.get_symbol(this->name));
+    return tb.build_type_prover(this->name);
+    /*auto label = tb.get_var_sym_to_lab(tb.get_symbol(this->name));
     return [label](AbstractCheckpointedProofEngine &engine) {
         engine.process_label(label);
         return true;
-    };
+    };*/
 }
 
 RegisteredProver Var::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( ph <-> ph )");
