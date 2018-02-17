@@ -159,8 +159,9 @@ static void compress_unwind_proof_tree_phase1(const ProofTree< Sentence > &tree,
                                               set< vector< SymTok > > &sents,
                                               set< vector< SymTok > > &dupl_sents,
                                               CodeTok &code_idx) {
-    // If the sentence is duplicate, prune the subtree and record the sentence as duplicate
-    if (sents.find(tree.sentence) != sents.end()) {
+    // If the sentence is duplicate and it has children, prune the subtree and record the sentence as duplicate
+    // There is no point in deduplicating subtrees that are already trivial
+    if (!tree.children.empty() && sents.find(tree.sentence) != sents.end()) {
         dupl_sents.insert(tree.sentence);
         return;
     }
@@ -186,8 +187,8 @@ static void compress_unwind_proof_tree_phase2(const ProofTree< Sentence > &tree,
                                               const set< vector< SymTok > > &dupl_sents,
                                               map< vector< SymTok >, CodeTok > &dupl_sents_map,
                                               vector< CodeTok > &codes, CodeTok &code_idx) {
-    // If the sentence is duplicate, prune the subtree and recall saved sentence
-    if (sents.find(tree.sentence) != sents.end()) {
+    // If the sentence is duplicate and it has children, prune the subtree and recall saved sentence
+    if (!tree.children.empty() && sents.find(tree.sentence) != sents.end()) {
         codes.push_back(dupl_sents_map.at(tree.sentence));
         return;
     }
