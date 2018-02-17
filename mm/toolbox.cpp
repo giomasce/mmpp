@@ -561,7 +561,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
                         type_sent.push_back(float_hyp_sent.at(0));
                         auto &type_main_sent = unification.at(float_hyp_sent.at(1));
                         copy(type_main_sent.begin(), type_main_sent.end(), back_inserter(type_sent));
-                        ExtendedProofEngine< Sentence > engine(*this);
+                        CreativeProofEngineImpl< Sentence > engine(*this);
                         if (!this->type_proving_helper(type_sent, engine)) {
                             wrong_unification = true;
                             break;

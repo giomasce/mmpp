@@ -1,15 +1,6 @@
 
 #include "ptengine.h"
 
-template class VectorMap< SymTok, ParsingTree2< SymTok, LabTok > >;
-
-template struct ProofError< ParsingTree2< SymTok, LabTok > >;
-template class ProofException< ParsingTree2< SymTok, LabTok > >;
-template struct ProofTree< ParsingTree2< SymTok, LabTok > >;
-template class ProofEngineBase< ParsingTree2< SymTok, LabTok > >;
-template class CheckedProofEngine< ParsingTree2< SymTok, LabTok > >;
-template class ExtendedProofEngine< ParsingTree2< SymTok, LabTok > >;
-
 ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::VarType ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::floating_to_var(const LibType &lib, LabTok label)
 {
     (void) lib;
@@ -82,3 +73,12 @@ ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::PTIterator &ProofSentenceTra
 ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::VarType ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::PTIterator::operator*() const {
     return this->it->label;
 }
+
+template class VectorMap< SymTok, ParsingTree2< SymTok, LabTok > >;
+
+template struct ProofError< ParsingTree2< SymTok, LabTok > >;
+template class ProofException< ParsingTree2< SymTok, LabTok > >;
+template struct ProofTree< ParsingTree2< SymTok, LabTok > >;
+template class ProofEngineBase< ParsingTree2< SymTok, LabTok > >;
+template class CreativeProofEngineImpl< ParsingTree2< SymTok, LabTok > >;
+template class ProofEngineImpl< ParsingTree2< SymTok, LabTok > >;

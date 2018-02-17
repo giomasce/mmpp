@@ -409,14 +409,14 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             auto strong_workset = self->get_workset().lock();
             assert_or_throw< SendError >(static_cast< bool >(strong_workset), 404);
             const auto &toolbox = strong_workset->get_toolbox();
-            ExtendedProofEngine< Sentence > engine(toolbox, true);
+            CreativeProofEngineImpl< Sentence > engine(toolbox, true);
             bool res = self->prove(engine);
             json ret = json::object();
             ret["success"] = res;
             ostringstream buf;
             size_t i = 1;
             for (const auto &hyp : engine.get_new_hypotheses()) {
-                buf << "hypothesis." << i << " $e " << toolbox.print_sentence(hyp.first) << " $." << endl;
+                buf << "hypothesis." << i << " $e " << toolbox.print_sentence(hyp.second) << " $." << endl;
                 i++;
             }
             buf << "thesis $p " << toolbox.print_sentence(engine.get_stack().back()) << " $=" << endl;
@@ -462,7 +462,7 @@ std::shared_ptr<const StepStrategyResult> Step::get_result()
     return this->winning_strategy;
 }
 
-bool Step::prove(ConcreteCheckpointedProofEngine<Sentence> &engine)
+bool Step::prove(CreativeCheckpointedProofEngine<Sentence> &engine)
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
     if (this->winning_strategy) {

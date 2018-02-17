@@ -78,7 +78,7 @@ public:
     bool is_searching();
     bool found_proof();
     std::shared_ptr< const StepStrategyResult > get_result();
-    bool prove(ConcreteCheckpointedProofEngine<Sentence> &engine);
+    bool prove(CreativeCheckpointedProofEngine<Sentence> &engine);
 
 protected:
     //explicit Step(BackreferenceToken< Step, Workset > &&token);

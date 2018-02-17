@@ -10,14 +10,14 @@
 
 class StepStrategyCallback {
 public:
-    virtual bool prove(ConcreteCheckpointedProofEngine< Sentence > &engine) = 0;
+    virtual bool prove(CreativeCheckpointedProofEngine< Sentence > &engine) = 0;
 };
 
 class StepStrategyResult {
 public:
     virtual bool get_success() const = 0;
     virtual nlohmann::json get_web_json() const = 0;
-    virtual bool prove(ConcreteCheckpointedProofEngine< Sentence > &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const = 0;
+    virtual bool prove(CreativeCheckpointedProofEngine< Sentence > &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const = 0;
 };
 
 class StepStrategy;

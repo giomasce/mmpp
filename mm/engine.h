@@ -78,26 +78,32 @@ public:
         lib(lib), gen_proof_tree(gen_proof_tree)
     {
     }
+
     void set_gen_proof_tree(bool gen_proof_tree)
     {
         this->gen_proof_tree = gen_proof_tree;
     }
+
     const std::vector< SentType > &get_stack() const
     {
         return this->stack;
     }
+
     const std::set< std::pair< VarType, VarType > > &get_dists() const
     {
         return *(this->dists_stack.end()-1);
     }
+
     const std::vector< LabTok > &get_proof_labels() const
     {
         return this->proof;
     }
+
     const ProofTree< SentType_ > &get_proof_tree() const
     {
         return this->proof_tree;
     }
+
     void set_debug_output(const std::string &debug_output)
     {
         this->debug_output = debug_output;
@@ -211,6 +217,7 @@ protected:
         }
         this->proof.push_back(label);
     }
+
     void process_sentence(const SentType &sent, LabTok label = 0)
     {
         this->push_stack(sent, {});
@@ -220,6 +227,7 @@ protected:
         }
         this->proof.push_back(label);
     }
+
     void process_label(const LabTok label)
     {
         const Assertion &child_ass = this->lib.get_assertion(label);
@@ -232,21 +240,33 @@ protected:
 #endif
             this->process_assertion(child_ass, label);
         } else {
+            const auto *sentp = this->get_sentence(label);
+            if (sentp != NULL) {
 #ifdef PROOF_VERBOSE_DEBUG
-            cerr << ", which is an hypothesis" << endl;
+                cerr << ", which is an internal hypothesis" << endl;
 #endif
-            const auto &sent = TraitsType::get_sentence(this->lib, label);
-            this->process_sentence(sent, label);
+                const auto &sent = *sentp;
+                this->process_sentence(sent, label);
+            } else {
+#ifdef PROOF_VERBOSE_DEBUG
+                cerr << ", which is an hypothesis" << endl;
+#endif
+                const auto &sent = TraitsType::get_sentence(this->lib, label);
+                this->process_sentence(sent, label);
+            }
         }
     }
+
     void checkpoint()
     {
         this->checkpoints.emplace_back(this->stack.size(), this->proof.size(), this->saved_steps.size());
     }
+
     void commit()
     {
         this->checkpoints.pop_back();
     }
+
     void rollback()
     {
         this->stack.resize(std::get<0>(this->checkpoints.back()));
@@ -254,6 +274,13 @@ protected:
         this->proof.resize(std::get<1>(this->checkpoints.back()));
         this->saved_steps.resize(std::get<2>(this->checkpoints.back()));
         this->checkpoints.pop_back();
+    }
+
+    // Left to subclasses implementation
+    virtual const SentType *get_sentence(LabTok label) {
+        (void) label;
+
+        return NULL;
     }
 
 private:
@@ -295,18 +322,18 @@ private:
     std::string debug_output;
 };
 
-class AbstractProofEngine {
+class ProofEngine {
 public:
     virtual void process_label(const LabTok label) = 0;
 };
 
 template< typename SentType_ >
-class ConcreteProofEngine : virtual public AbstractProofEngine {
+class CreativeProofEngine : virtual public ProofEngine {
 public:
     virtual void process_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent) = 0;
 };
 
-class AbstractCheckpointedProofEngine : virtual public AbstractProofEngine {
+class CheckpointedProofEngine : virtual public ProofEngine {
 public:
     virtual void checkpoint() = 0;
     virtual void commit() = 0;
@@ -314,54 +341,74 @@ public:
 };
 
 template< typename SentType_ >
-class ConcreteCheckpointedProofEngine : virtual public AbstractCheckpointedProofEngine, virtual public ConcreteProofEngine< SentType_ > {
+class CreativeCheckpointedProofEngine : virtual public CheckpointedProofEngine, virtual public CreativeProofEngine< SentType_ > {
 };
 
 template< typename SentType_ >
-class ExtendedProofEngine : public ProofEngineBase< SentType_ >, public ConcreteCheckpointedProofEngine< SentType_ > {
+class CreativeProofEngineImpl final : public ProofEngineBase< SentType_ >, public CreativeCheckpointedProofEngine< SentType_ > {
 public:
-    ExtendedProofEngine(const typename ProofEngineBase< SentType_ >::AdvLibType &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType_ >(lib, gen_proof_tree), lib(lib) {}
+    CreativeProofEngineImpl(const typename ProofEngineBase< SentType_ >::AdvLibType &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType_ >(lib, gen_proof_tree), lib(lib) {}
 
     void process_label(const LabTok label) {
         this->ProofEngineBase< SentType_ >::process_label(label);
     }
-    /*void process_sentence(const typename ProofEngineBase< SentType_ >::SentType &sent, LabTok label = 0) {
-        this->ProofEngineBase< SentType_ >::process_sentence(sent, label);
-    }*/
-    void process_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent) {
-        auto it = this->new_hypotheses.find(sent);
+
+    LabTok create_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent) {
+        auto it = this->new_hypotheses_rev.find(sent);
         LabTok label = it->second;
-        if (it == this->new_hypotheses.end()) {
-            size_t num = this->new_hypotheses.size();
+        if (it == this->new_hypotheses_rev.end()) {
+            size_t num = this->new_hypotheses_rev.size();
             std::string name = "hypothesis." + num;
             label = this->lib.new_temp_label(name);
-            this->new_hypotheses[sent] = label;
+            this->new_hypotheses_rev[sent] = label;
+            this->new_hypotheses[label] = sent;
         }
-        this->ProofEngineBase< SentType_ >::process_sentence(sent, label);
+        return label;
     }
+
+    void process_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent) {
+        LabTok label = this->create_new_hypothesis(sent);
+        this->ProofEngineBase< SentType_ >::process_label(label);
+    }
+
     void checkpoint() {
         this->ProofEngineBase< SentType_ >::checkpoint();
     }
+
     void commit() {
         this->ProofEngineBase< SentType_ >::commit();
     }
+
     void rollback() {
         this->ProofEngineBase< SentType_ >::rollback();
     }
-    const std::map< typename ProofEngineBase< SentType_ >::SentType, LabTok > &get_new_hypotheses() const {
+
+    const std::map< LabTok, typename ProofEngineBase< SentType_ >::SentType > &get_new_hypotheses() const {
         return this->new_hypotheses;
     }
 
+    const typename ProofEngineBase< SentType_ >::SentType *get_sentence(LabTok label) override {
+        auto it = this->new_hypotheses.find(label);
+        if (it != this->new_hypotheses.end()) {
+            return &it->second;
+        } else {
+            return NULL;
+        }
+    }
+
+private:
     const typename ProofEngineBase< SentType_ >::AdvLibType &lib;
-    std::map< typename ProofEngineBase< SentType_ >::SentType, LabTok > new_hypotheses;
+    std::map< LabTok, typename ProofEngineBase< SentType_ >::SentType > new_hypotheses;
+    std::map< typename ProofEngineBase< SentType_ >::SentType, LabTok > new_hypotheses_rev;
 };
 
 template< typename SentType_ >
-class CheckedProofEngine : public ProofEngineBase< SentType_ >, public AbstractProofEngine {
+class ProofEngineImpl final : public ProofEngineBase< SentType_ >, public ProofEngine {
 public:
-    CheckedProofEngine(const typename ProofEngineBase< SentType_ >::LibType &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType_ >(lib, gen_proof_tree) {}
+    ProofEngineImpl(const typename ProofEngineBase< SentType_ >::LibType &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType_ >(lib, gen_proof_tree) {}
 
     void process_label(const LabTok label) {
         this->ProofEngineBase< SentType_ >::process_label(label);
     }
 };
+

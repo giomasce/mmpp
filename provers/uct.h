@@ -32,7 +32,7 @@ public:
     LibraryToolbox &get_toolbox() const;
     std::ranlux48 &get_rand();
     const std::set<std::pair<LabTok, LabTok> > &get_antidists() const;
-    void replay_proof(ExtendedProofEngine< Sentence > &engine) const;
+    void replay_proof(CreativeCheckpointedProofEngine< Sentence > &engine) const;
     bool is_assertion_useful(const Assertion &ass) const;
     const std::unordered_map< LabTok, std::vector< LabTok > > &get_root_useful_asses() const;
     const std::unordered_map< LabTok, std::vector< LabTok > > &get_imp_con_useful_asses() const;
@@ -62,7 +62,7 @@ public:
     uint32_t get_visit_num();
     std::weak_ptr< StepNode > get_parent();
     const ParsingTree2< SymTok, LabTok > &get_sentence();
-    void replay_proof(ExtendedProofEngine< Sentence > &engine) const;
+    void replay_proof(CreativeCheckpointedProofEngine<Sentence> &engine) const;
 
 protected:
     SentenceNode(std::weak_ptr< UCTProver > uct, std::weak_ptr< StepNode > parent, const ParsingTree2< SymTok, LabTok > &sentence);
@@ -90,7 +90,7 @@ public:
     float get_value() const;
     uint32_t get_visit_num() const;
     std::weak_ptr< SentenceNode > get_parent() const;
-    void replay_proof(ExtendedProofEngine< Sentence > &engine) const;
+    void replay_proof(CreativeCheckpointedProofEngine< Sentence > &engine) const;
 
 protected:
     StepNode(std::weak_ptr< UCTProver > uct, std::weak_ptr< SentenceNode > parent, LabTok label, const SubstMap2< SymTok, LabTok > &const_subst_map);

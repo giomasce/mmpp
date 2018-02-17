@@ -69,7 +69,7 @@ expr extract_thesis(expr proof) {
 }
 
 void prove_and_print(pwff wff, const LibraryToolbox &tb) {
-    ExtendedProofEngine< Sentence > engine(tb);
+    CreativeProofEngineImpl< Sentence > engine(tb);
     wff->get_adv_truth_prover(tb)(engine);
     if (engine.get_proof_labels().size() > 0) {
         //cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
@@ -86,24 +86,24 @@ RegisteredProver orfa2_rp = LibraryToolbox::register_prover({"|- ( ph -> F. )"},
 
 // Produces a prover for ( ( ... ( ph_1 \/ ph_2 ) ... \/ ph_n ) -> ( ... ( ph_{i_1} \/ ph_{i_2} ) ... \/ ph_{i_k} ) ),
 // where all instances of F. have been removed (unless they're all F.'s).
-tuple< Prover< ConcreteCheckpointedProofEngine< Sentence > >, pwff, pwff > simplify_or(const vector< pwff > &clauses, const LibraryToolbox &tb) {
+tuple< Prover< CreativeCheckpointedProofEngine< Sentence > >, pwff, pwff > simplify_or(const vector< pwff > &clauses, const LibraryToolbox &tb) {
     if (clauses.size() == 0) {
-        return make_tuple(tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(ff_rp, {}, {}), False::create(), False::create());
+        return make_tuple(tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(ff_rp, {}, {}), False::create(), False::create());
     } else {
-        Prover< ConcreteCheckpointedProofEngine< Sentence > > ret = tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(id_rp, {{"ph", clauses[0]->get_type_prover(tb)}}, {});
+        Prover< CreativeCheckpointedProofEngine< Sentence > > ret = tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(id_rp, {{"ph", clauses[0]->get_type_prover(tb)}}, {});
         pwff first = clauses[0];
         pwff second = clauses[0];
         pwff falsum = False::create();
         for (size_t i = 1; i < clauses.size(); i++) {
             pwff new_clause = clauses[i];
             if (*second == *falsum) {
-                ret = tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(orfa2_rp, {{"ph", first->get_type_prover(tb)}, {"ps", new_clause->get_type_prover(tb)}}, {ret});
+                ret = tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(orfa2_rp, {{"ph", first->get_type_prover(tb)}, {"ps", new_clause->get_type_prover(tb)}}, {ret});
                 second = new_clause;
             } else {
                 if (*new_clause == *falsum) {
-                    ret = tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(orfa_rp, {{"ph", first->get_type_prover(tb)}, {"ps", second->get_type_prover(tb)}}, {ret});
+                    ret = tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(orfa_rp, {{"ph", first->get_type_prover(tb)}, {"ps", second->get_type_prover(tb)}}, {ret});
                 } else {
-                    ret = tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(orim1i_rp, {{"ph", first->get_type_prover(tb)}, {"ps", second->get_type_prover(tb)}, {"ch", new_clause->get_type_prover(tb)}}, {ret});
+                    ret = tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(orim1i_rp, {{"ph", first->get_type_prover(tb)}, {"ps", second->get_type_prover(tb)}, {"ch", new_clause->get_type_prover(tb)}}, {ret});
                     second = Or::create(second, new_clause);
                 }
             }
@@ -115,17 +115,17 @@ tuple< Prover< ConcreteCheckpointedProofEngine< Sentence > >, pwff, pwff > simpl
 
 RegisteredProver orim12d_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps -> ch ) )", "|- ( ph -> ( th -> ta ) )"}, "|- ( ph -> ( ( ps \\/ th ) -> ( ch \\/ ta ) ) )");
 
-tuple< Prover< ConcreteCheckpointedProofEngine< Sentence > >, pwff, pwff > join_or_imp(const vector< pwff > &orig_clauses, const vector< pwff > &new_clauses, vector< Prover< ConcreteCheckpointedProofEngine< Sentence > > > &provers, const pwff &abs, const LibraryToolbox &tb) {
+tuple< Prover< CreativeCheckpointedProofEngine< Sentence > >, pwff, pwff > join_or_imp(const vector< pwff > &orig_clauses, const vector< pwff > &new_clauses, vector< Prover< CreativeCheckpointedProofEngine< Sentence > > > &provers, const pwff &abs, const LibraryToolbox &tb) {
     assert(orig_clauses.size() == new_clauses.size());
     assert(orig_clauses.size() == provers.size());
     if (orig_clauses.size() == 0) {
-        return make_tuple(tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(ff_rp, {}, {}), False::create(), False::create());
+        return make_tuple(tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(ff_rp, {}, {}), False::create(), False::create());
     } else {
-        Prover< ConcreteCheckpointedProofEngine< Sentence > > ret = provers[0];
+        Prover< CreativeCheckpointedProofEngine< Sentence > > ret = provers[0];
         pwff orig_cl = orig_clauses[0];
         pwff new_cl = new_clauses[0];
         for (size_t i = 1; i < orig_clauses.size(); i++) {
-            ret = tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(orim12d_rp, {{"ph", abs->get_type_prover(tb)}, {"ps", orig_cl->get_type_prover(tb)}, {"ch", new_cl->get_type_prover(tb)}, {"th", orig_clauses[i]->get_type_prover(tb)}, {"ta", new_clauses[i]->get_type_prover(tb)}}, {ret, provers[i]});
+            ret = tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(orim12d_rp, {{"ph", abs->get_type_prover(tb)}, {"ps", orig_cl->get_type_prover(tb)}, {"ch", new_cl->get_type_prover(tb)}, {"th", orig_clauses[i]->get_type_prover(tb)}, {"ta", new_clauses[i]->get_type_prover(tb)}}, {ret, provers[i]});
             orig_cl = Or::create(orig_cl, orig_clauses[i]);
             new_cl = Or::create(new_cl, new_clauses[i]);
         }
@@ -202,7 +202,7 @@ struct Z3Adapter {
         return this->abs;
     }
 
-    Prover< ConcreteCheckpointedProofEngine< Sentence > > convert_proof(expr e, int depth = 0) {
+    Prover< CreativeCheckpointedProofEngine< Sentence > > convert_proof(expr e, int depth = 0) {
         if (e.is_app()) {
             func_decl decl = e.decl();
             unsigned num_args = e.num_args();
@@ -227,7 +227,7 @@ struct Z3Adapter {
                     //auto it = find_if(this->hyps.begin(), this->hyps.end(), [=](const pwff &p) { return *p == *w; });
                     //size_t pos = it - this->hyps.begin();
                     assert(this->hyps.size() >= 1);
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > ret = this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(id_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}}, {});
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > ret = this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(id_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}}, {});
                     pwff cur_hyp = this->get_current_abs_hyps();
                     for (size_t step = 0; step < this->hyps.size()-1; step++) {
                         auto and_hyp = dynamic_pointer_cast< const And >(cur_hyp);
@@ -236,11 +236,11 @@ struct Z3Adapter {
                         pwff right = and_hyp->get_b();
                         if (*and_hyp->get_b() == *w) {
                             cur_hyp = and_hyp->get_b();
-                            ret = this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(simprd_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", left->get_type_prover(this->tb)}, {"ch", right->get_type_prover(this->tb)}}, {ret});
+                            ret = this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(simprd_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", left->get_type_prover(this->tb)}, {"ch", right->get_type_prover(this->tb)}}, {ret});
                             break;
                         }
                         cur_hyp = and_hyp->get_a();
-                        ret = this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(simpld_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", left->get_type_prover(this->tb)}, {"ch", right->get_type_prover(this->tb)}}, {ret});
+                        ret = this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(simpld_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", left->get_type_prover(this->tb)}, {"ch", right->get_type_prover(this->tb)}}, {ret});
                     }
                     assert(*cur_hyp == *w);
                     return ret;
@@ -252,15 +252,15 @@ struct Z3Adapter {
                     /*cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;
                     cout << "HP2: " << parse_expr(extract_thesis(e.arg(1)))->to_string() << endl;
                     cout << "TH: " << parse_expr(e.arg(2))->to_string() << endl;*/
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > p1 = this->convert_proof(e.arg(0), depth+1);
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > p2 = this->convert_proof(e.arg(1), depth+1);
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > p1 = this->convert_proof(e.arg(0), depth+1);
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > p2 = this->convert_proof(e.arg(1), depth+1);
                     switch (extract_thesis(e.arg(1)).decl().decl_kind()) {
                     case Z3_OP_EQ:
                     case Z3_OP_IFF:
-                        return this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(mp2_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", parse_expr(extract_thesis(e.arg(0)), tb)->get_type_prover(this->tb)}, {"ch", parse_expr(e.arg(2), tb)->get_type_prover(this->tb)}}, {p1, p2});
+                        return this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(mp2_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", parse_expr(extract_thesis(e.arg(0)), tb)->get_type_prover(this->tb)}, {"ch", parse_expr(e.arg(2), tb)->get_type_prover(this->tb)}}, {p1, p2});
                         break;
                     case Z3_OP_IMPLIES:
-                        return this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(mp1_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", parse_expr(extract_thesis(e.arg(0)), tb)->get_type_prover(this->tb)}, {"ch", parse_expr(e.arg(2), tb)->get_type_prover(this->tb)}}, {p1, p2});
+                        return this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(mp1_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", parse_expr(extract_thesis(e.arg(0)), tb)->get_type_prover(this->tb)}, {"ch", parse_expr(e.arg(2), tb)->get_type_prover(this->tb)}}, {p1, p2});
                         break;
                     default:
                         throw "Should not arrive here";
@@ -279,8 +279,8 @@ struct Z3Adapter {
                     //Prover p1 = thesis->get_adv_truth_prover(tb);
                     auto pt = pt2_to_pt(thesis->to_parsing_tree(this->tb));
                     auto sent = this->tb.reconstruct_sentence(pt, this->tb.get_turnstile());
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > p1 = this->tb.build_prover({}, sent, {}, {});
-                    return this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(a1i_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", thesis->get_type_prover(this->tb)}}, {p1});
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > p1 = this->tb.build_prover({}, sent, {}, {});
+                    return this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(a1i_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", thesis->get_type_prover(this->tb)}}, {p1});
                     break; }
                 case Z3_OP_PR_TRANSITIVITY: {
                     assert(num_args == 3);
@@ -289,8 +289,8 @@ struct Z3Adapter {
                     /*cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;
                     cout << "HP2: " << parse_expr(extract_thesis(e.arg(1)))->to_string() << endl;
                     cout << "TH: " << parse_expr(e.arg(2))->to_string() << endl;*/
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > p1 = this->convert_proof(e.arg(0), depth+1);
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > p2 = this->convert_proof(e.arg(1), depth+1);
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > p1 = this->convert_proof(e.arg(0), depth+1);
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > p2 = this->convert_proof(e.arg(1), depth+1);
                     auto w1 = dynamic_pointer_cast< const Biimp >(parse_expr(extract_thesis(e.arg(0)), tb));
                     auto w2 = dynamic_pointer_cast< const Biimp >(parse_expr(extract_thesis(e.arg(1)), tb));
                     assert(w1 != NULL && w2 != NULL);
@@ -298,7 +298,7 @@ struct Z3Adapter {
                     pwff ps = w1->get_a();
                     pwff ch = w1->get_b();
                     pwff th = w2->get_b();
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > ret = this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(bitrd_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", ps->get_type_prover(this->tb)}, {"ch", ch->get_type_prover(this->tb)}, {"th", th->get_type_prover(this->tb)}}, {p1, p2});
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > ret = this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(bitrd_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", ps->get_type_prover(this->tb)}, {"ch", ch->get_type_prover(this->tb)}, {"th", th->get_type_prover(this->tb)}}, {p1, p2});
                     //cerr << "TEST: " << test_prover(ret, this->tb) << endl;
                     return ret;
                     break; }
@@ -334,14 +334,14 @@ struct Z3Adapter {
                             default: throw "Should not arrive here"; break;
                             }
                             assert(th_left.num_args() >= 2);
-                            vector< Prover< ConcreteCheckpointedProofEngine< Sentence > > > hyp_provers;
+                            vector< Prover< CreativeCheckpointedProofEngine< Sentence > > > hyp_provers;
                             vector< pwff > left_wffs;
                             vector< pwff > right_wffs;
                             //vector< Prover > wffs_prover;
                             size_t used = 0;
                             for (size_t i = 0; i < th_left.num_args(); i++) {
                                 if (eq(th_left.arg(i), th_right.arg(i))) {
-                                    hyp_provers.push_back(this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(biidd_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", parse_expr(th_left.arg(i), tb)->get_type_prover(this->tb)}}, {}));
+                                    hyp_provers.push_back(this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(biidd_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", parse_expr(th_left.arg(i), tb)->get_type_prover(this->tb)}}, {}));
                                 } else {
                                     assert(!used);
                                     hyp_provers.push_back(this->convert_proof(e.arg(0), depth+1));
@@ -352,11 +352,11 @@ struct Z3Adapter {
                             }
                             assert(hyp_provers.size() == th_left.num_args());
                             assert(used == num_args - 1);
-                            Prover< ConcreteCheckpointedProofEngine< Sentence > > ret = hyp_provers[0];
+                            Prover< CreativeCheckpointedProofEngine< Sentence > > ret = hyp_provers[0];
                             pwff left_wff = left_wffs[0];
                             pwff right_wff = right_wffs[0];
                             for (size_t i = 1; i < th_left.num_args(); i++) {
-                                ret = this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)},
+                                ret = this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)},
                                                                               {"ps", left_wff->get_type_prover(this->tb)}, {"ch", right_wff->get_type_prover(this->tb)},
                                                                               {"th", left_wffs[i]->get_type_prover(this->tb)}, {"ta", right_wffs[i]->get_type_prover(this->tb)}}, {ret, hyp_provers[i]});
                                 if (th_left.decl().decl_kind() == Z3_OP_AND || th_left.decl().decl_kind() == Z3_OP_OR) {
@@ -369,8 +369,8 @@ struct Z3Adapter {
                         case Z3_OP_NOT: {
                             pwff left_wff = parse_expr(th_left.arg(0), tb);
                             pwff right_wff = parse_expr(th_right.arg(0), tb);
-                            Prover< ConcreteCheckpointedProofEngine< Sentence > > ret = this->convert_proof(e.arg(0), depth+1);
-                            return this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(notbid_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)},
+                            Prover< CreativeCheckpointedProofEngine< Sentence > > ret = this->convert_proof(e.arg(0), depth+1);
+                            return this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(notbid_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)},
                                                                                   {"ps", left_wff->get_type_prover(this->tb)}, {"ch", right_wff->get_type_prover(this->tb)}}, {ret});
                             break; }
                         default:
@@ -400,11 +400,11 @@ struct Z3Adapter {
                     assert(clauses_num >= 2);
                     assert(elims_num <= clauses_num);
 
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > orig_prover = this->convert_proof(e.arg(0), depth+1);
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > orig_prover = this->convert_proof(e.arg(0), depth+1);
                     //cerr << "TEST: " << test_prover(orig_prover, this->tb) << endl;
 
                     vector< pwff > elims;
-                    vector< Prover< ConcreteCheckpointedProofEngine< Sentence > > > elim_provers;
+                    vector< Prover< CreativeCheckpointedProofEngine< Sentence > > > elim_provers;
                     for (size_t i = 0; i < elims_num; i++) {
                         elims.push_back(parse_expr(extract_thesis(e.arg(i+1)), tb));
                         elim_provers.push_back(this->convert_proof(e.arg(i+1), depth+1));
@@ -413,7 +413,7 @@ struct Z3Adapter {
 
                     vector< pwff > orig_clauses;
                     vector< pwff > new_clauses;
-                    vector< Prover< ConcreteCheckpointedProofEngine< Sentence > > > provers;
+                    vector< Prover< CreativeCheckpointedProofEngine< Sentence > > > provers;
                     for (size_t i = 0; i < or_expr.num_args(); i++) {
                         pwff clause = parse_expr(or_expr.arg(i), tb);
                         orig_clauses.push_back(clause);
@@ -422,7 +422,7 @@ struct Z3Adapter {
                         auto elim_it = find_if(elims.begin(), elims.end(), [=](const pwff &w){ return *w == *Not::create(clause); });
                         if (elim_it != elims.end()) {
                             size_t pos = elim_it - elims.begin();
-                            provers.push_back(this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(urt_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", clause->get_type_prover(this->tb)}}, {elim_provers[pos]}));
+                            provers.push_back(this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(urt_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", clause->get_type_prover(this->tb)}}, {elim_provers[pos]}));
                             new_clauses.push_back(False::create());
                             //cerr << "TEST 1: " << test_prover(provers.back(), this->tb) << endl;
                             continue;
@@ -434,7 +434,7 @@ struct Z3Adapter {
                             auto elim_it = find_if(elims.begin(), elims.end(), [=](const pwff &w){ return *w == *clause_not->get_a(); });
                             if (elim_it != elims.end()) {
                                 size_t pos = elim_it - elims.begin();
-                                provers.push_back(this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(urf_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", clause_not->get_a()->get_type_prover(this->tb)}}, {elim_provers[pos]}));
+                                provers.push_back(this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(urf_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", clause_not->get_a()->get_type_prover(this->tb)}}, {elim_provers[pos]}));
                                 new_clauses.push_back(False::create());
                                 //cerr << "TEST 1: " << test_prover(provers.back(), this->tb) << endl;
                                 continue;
@@ -442,13 +442,13 @@ struct Z3Adapter {
                         }
 
                         // No eliminator found, keeping the clause and pushing a trivial proved
-                        provers.push_back(this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(idd_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", clause->get_type_prover(this->tb)}}, {}));
+                        provers.push_back(this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(idd_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", clause->get_type_prover(this->tb)}}, {}));
                         new_clauses.push_back(clause);
                         //cerr << "TEST 1: " << test_prover(provers.back(), this->tb) << endl;
                     }
 
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > joined_or_prover;
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > simplifcation_prover;
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > joined_or_prover;
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > simplifcation_prover;
                     pwff orig_clause;
                     pwff new_clause;
                     pwff new_clause2;
@@ -460,8 +460,8 @@ struct Z3Adapter {
                     cout << new_clause2->to_string() << endl;
                     cout << simplified_clause->to_string() << endl;*/
                     assert(*new_clause == *new_clause2);
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > ret = this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(mpd_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", orig_clause->get_type_prover(this->tb)}, {"ch", new_clause->get_type_prover(this->tb)}}, {orig_prover, joined_or_prover});
-                    ret = this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(syl_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", new_clause->get_type_prover(this->tb)}, {"ch", simplified_clause->get_type_prover(this->tb)}}, {ret, simplifcation_prover});
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > ret = this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(mpd_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", orig_clause->get_type_prover(this->tb)}, {"ch", new_clause->get_type_prover(this->tb)}}, {orig_prover, joined_or_prover});
+                    ret = this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(syl_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", new_clause->get_type_prover(this->tb)}, {"ch", simplified_clause->get_type_prover(this->tb)}}, {ret, simplifcation_prover});
                     //cerr << "TEST: " << test_prover(ret, this->tb) << endl;
                     //assert(false);
                     return ret;
@@ -473,8 +473,8 @@ struct Z3Adapter {
                     cout << "WFF: " << parse_expr(e.arg(0), tb)->to_string() << endl;
                     pwff thesis = parse_expr(extract_thesis(e), tb);
                     cout << "AXIOM ORACLE for '" << thesis->to_string() << "'!" << endl;
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > p1 = thesis->get_adv_truth_prover(this->tb);
-                    return this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(a1i_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", thesis->get_type_prover(this->tb)}}, {p1});
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > p1 = thesis->get_adv_truth_prover(this->tb);
+                    return this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(a1i_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", thesis->get_type_prover(this->tb)}}, {p1});
                     break; }
                 case Z3_OP_PR_NOT_OR_ELIM: {
                     assert(num_args == 2);
@@ -491,15 +491,15 @@ struct Z3Adapter {
                     assert(not_target_expr.decl().decl_kind() == Z3_OP_NOT);
                     assert(not_target_expr.num_args() == 1);
                     pwff target_wff = parse_expr(not_target_expr.arg(0), tb);
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > ret = this->convert_proof(e.arg(0), depth+1);
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > ret = this->convert_proof(e.arg(0), depth+1);
                     pwff wff = parse_expr(or_expr, tb);
                     for (size_t i = 0; i < or_expr.num_args()-1; i++) {
                         auto wff_or = dynamic_pointer_cast< const Or >(wff);
                         assert(wff != NULL);
                         if (*wff_or->get_b() == *target_wff) {
-                            return this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(orsird_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", wff_or->get_a()->get_type_prover(this->tb)}, {"ch", wff_or->get_b()->get_type_prover(this->tb)}}, {ret});
+                            return this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(orsird_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", wff_or->get_a()->get_type_prover(this->tb)}, {"ch", wff_or->get_b()->get_type_prover(this->tb)}}, {ret});
                         } else {
-                            ret = this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(orsild_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", wff_or->get_a()->get_type_prover(this->tb)}, {"ch", wff_or->get_b()->get_type_prover(this->tb)}}, {ret});
+                            ret = this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(orsild_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", wff_or->get_a()->get_type_prover(this->tb)}, {"ch", wff_or->get_b()->get_type_prover(this->tb)}}, {ret});
                             wff = wff_or->get_a();
                         }
                     }
@@ -513,10 +513,10 @@ struct Z3Adapter {
                     /*cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;
                     cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;*/
                     pwff hyp = parse_expr(extract_thesis(e.arg(0)), tb);
-                    Prover< ConcreteCheckpointedProofEngine< Sentence > > hyp_prover = this->convert_proof(e.arg(0), depth+1);
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > hyp_prover = this->convert_proof(e.arg(0), depth+1);
                     auto hyp_not = dynamic_pointer_cast< const Not >(hyp);
                     assert(hyp_not != NULL);
-                    return this->tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(bifald_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", hyp_not->get_a()->get_type_prover(this->tb)}}, {hyp_prover});
+                    return this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(bifald_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", hyp_not->get_a()->get_type_prover(this->tb)}}, {hyp_prover});
                     break; }
                 case Z3_OP_PR_LEMMA: {
                     assert(num_args == 2);
@@ -609,13 +609,13 @@ int test_z3_main(int argc, char *argv[])
         case unknown: cout << "unknown\n"; break;
         }
 
-        ExtendedProofEngine< Sentence > engine(tb, true);
-        Prover< ConcreteCheckpointedProofEngine< Sentence > > main_prover = adapter.convert_proof(adapter.s.proof());
+        CreativeProofEngineImpl< Sentence > engine(tb, true);
+        Prover< CreativeCheckpointedProofEngine< Sentence > > main_prover = adapter.convert_proof(adapter.s.proof());
         bool res;
         if (adapter.hyps.size() == 1) {
-            res = tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(refute_rp, {{"ph", adapter.target->get_type_prover(tb)}}, {main_prover})(engine);
+            res = tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(refute_rp, {{"ph", adapter.target->get_type_prover(tb)}}, {main_prover})(engine);
         } else {
-            res = tb.build_registered_prover< ConcreteCheckpointedProofEngine< Sentence > >(efald_rp, {{"ph", adapter.and_hyps->get_type_prover(tb)}, {"ps", adapter.thesis->get_type_prover(tb)}}, {main_prover})(engine);
+            res = tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(efald_rp, {{"ph", adapter.and_hyps->get_type_prover(tb)}, {"ps", adapter.thesis->get_type_prover(tb)}}, {main_prover})(engine);
         }
         if (res) {
             cout << endl << "FINAL PROOF FOUND!" << endl;

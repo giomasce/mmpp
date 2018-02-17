@@ -27,13 +27,13 @@ Sentence Wff::to_wff_sentence(const Library &lib) const
 ParsingTree2<SymTok, LabTok> Wff::to_parsing_tree(const LibraryToolbox &tb) const
 {
     auto type_prover = this->get_type_prover(tb);
-    ExtendedProofEngine< ParsingTree2< SymTok, LabTok > > engine(tb, false);
+    CreativeProofEngineImpl< ParsingTree2< SymTok, LabTok > > engine(tb, false);
     bool res = type_prover(engine);
     assert(res);
     return engine.get_stack().back();
 }
 
-Prover<AbstractCheckpointedProofEngine> Wff::get_truth_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Wff::get_truth_prover(const LibraryToolbox &tb) const
 {
     (void) tb;
     return null_prover;
@@ -44,7 +44,7 @@ bool Wff::is_true() const
     return false;
 }
 
-Prover<AbstractCheckpointedProofEngine> Wff::get_falsity_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Wff::get_falsity_prover(const LibraryToolbox &tb) const
 {
     (void) tb;
     return null_prover;
@@ -55,19 +55,19 @@ bool Wff::is_false() const
     return false;
 }
 
-Prover<AbstractCheckpointedProofEngine> Wff::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Wff::get_type_prover(const LibraryToolbox &tb) const
 {
     (void) tb;
     return null_prover;
 }
 
-Prover<AbstractCheckpointedProofEngine> Wff::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Wff::get_imp_not_prover(const LibraryToolbox &tb) const
 {
     (void) tb;
     return null_prover;
 }
 
-Prover< AbstractCheckpointedProofEngine > Wff::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
+Prover< CheckpointedProofEngine > Wff::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
 {
     (void) var;
     (void) positive;
@@ -78,7 +78,7 @@ Prover< AbstractCheckpointedProofEngine > Wff::get_subst_prover(pvar var, bool p
 const RegisteredProver Wff::adv_truth_1_rp = LibraryToolbox::register_prover({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )");
 const RegisteredProver Wff::adv_truth_2_rp = LibraryToolbox::register_prover({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )");
 const RegisteredProver Wff::adv_truth_3_rp = LibraryToolbox::register_prover({"|- ( ph -> ps )", "|- ( -. ph -> ps )"}, "|- ps");
-Prover<AbstractCheckpointedProofEngine> Wff::adv_truth_internal(pvar_set::iterator cur_var, pvar_set::iterator end_var, const LibraryToolbox &tb) const {
+Prover<CheckpointedProofEngine> Wff::adv_truth_internal(pvar_set::iterator cur_var, pvar_set::iterator end_var, const LibraryToolbox &tb) const {
     if (cur_var == end_var) {
         return this->get_truth_prover(tb);
     } else {
@@ -91,13 +91,13 @@ Prover<AbstractCheckpointedProofEngine> Wff::adv_truth_internal(pvar_set::iterat
         auto rec_neg_prover = neg_wff->adv_truth_internal(cur_var, end_var, tb);
         auto pos_prover = this->get_subst_prover(var, true, tb);
         auto neg_prover = this->get_subst_prover(var, false, tb);
-        auto pos_mp_prover = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Wff::adv_truth_1_rp,
+        auto pos_mp_prover = tb.build_registered_prover< CheckpointedProofEngine >(Wff::adv_truth_1_rp,
             {{"ph", pos_antecent->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}, {"ch", pos_wff->get_type_prover(tb)}},
             {rec_pos_prover, pos_prover});
-        auto neg_mp_prover = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Wff::adv_truth_2_rp,
+        auto neg_mp_prover = tb.build_registered_prover< CheckpointedProofEngine >(Wff::adv_truth_2_rp,
             {{"ph", neg_antecent->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}, {"ch", neg_wff->get_type_prover(tb)}},
             {rec_neg_prover, neg_prover});
-        auto final = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Wff::adv_truth_3_rp,
+        auto final = tb.build_registered_prover< CheckpointedProofEngine >(Wff::adv_truth_3_rp,
             {{"ph", pos_antecent->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}},
             {pos_mp_prover, neg_mp_prover});
         return final;
@@ -105,14 +105,14 @@ Prover<AbstractCheckpointedProofEngine> Wff::adv_truth_internal(pvar_set::iterat
 }
 
 const RegisteredProver Wff::adv_truth_4_rp = LibraryToolbox::register_prover({"|- ps", "|- ( ph <-> ps )"}, "|- ph");
-Prover<AbstractCheckpointedProofEngine> Wff::get_adv_truth_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Wff::get_adv_truth_prover(const LibraryToolbox &tb) const
 {
     pwff not_imp = this->imp_not_form();
     pvar_set vars;
     this->get_variables(vars);
     auto real = not_imp->adv_truth_internal(vars.begin(), vars.end(), tb);
     auto equiv = this->get_imp_not_prover(tb);
-    auto final = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Wff::adv_truth_4_rp, {{"ph", this->get_type_prover(tb)}, {"ps", not_imp->get_type_prover(tb)}}, {real, equiv});
+    auto final = tb.build_registered_prover< CheckpointedProofEngine >(Wff::adv_truth_4_rp, {{"ph", this->get_type_prover(tb)}, {"ps", not_imp->get_type_prover(tb)}}, {real, equiv});
     return final;
 }
 
@@ -145,9 +145,9 @@ void True::get_variables(pvar_set &vars) const
 }
 
 const RegisteredProver True::truth_rp = LibraryToolbox::register_prover({}, "|- T.");
-Prover<AbstractCheckpointedProofEngine> True::get_truth_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> True::get_truth_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(True::truth_rp, {}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(True::truth_rp, {}, {});
 }
 
 bool True::is_true() const
@@ -156,25 +156,25 @@ bool True::is_true() const
 }
 
 const RegisteredProver True::type_rp = LibraryToolbox::register_prover({}, "wff T.");
-Prover<AbstractCheckpointedProofEngine> True::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> True::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(True::type_rp, {}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(True::type_rp, {}, {});
 }
 
 const RegisteredProver True::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( T. <-> T. )");
-Prover<AbstractCheckpointedProofEngine> True::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> True::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(True::imp_not_rp, {}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(True::imp_not_rp, {}, {});
 }
 
 const RegisteredProver True::subst_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( T. <-> T. ) )");
-Prover<AbstractCheckpointedProofEngine> True::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> True::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
 {
     pwff subst = var;
     if (!positive) {
         subst = Not::create(subst);
     }
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(True::subst_rp, {{"ph", subst->get_type_prover(tb)}}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(True::subst_rp, {{"ph", subst->get_type_prover(tb)}}, {});
 }
 
 bool True::operator==(const Wff &x) const
@@ -216,9 +216,9 @@ void False::get_variables(pvar_set &vars) const
 }
 
 const RegisteredProver False::falsity_rp = LibraryToolbox::register_prover({}, "|- -. F.");
-Prover<AbstractCheckpointedProofEngine> False::get_falsity_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> False::get_falsity_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(False::falsity_rp, {}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(False::falsity_rp, {}, {});
 }
 
 bool False::is_false() const
@@ -227,25 +227,25 @@ bool False::is_false() const
 }
 
 const RegisteredProver False::type_rp = LibraryToolbox::register_prover({}, "wff F.");
-Prover<AbstractCheckpointedProofEngine> False::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> False::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(False::type_rp, {}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(False::type_rp, {}, {});
 }
 
 const RegisteredProver False::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( F. <-> F. )");
-Prover<AbstractCheckpointedProofEngine> False::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> False::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(False::imp_not_rp, {}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(False::imp_not_rp, {}, {});
 }
 
 const RegisteredProver False::subst_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( F. <-> F. ) )");
-Prover<AbstractCheckpointedProofEngine> False::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> False::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
 {
     pwff subst = var;
     if (!positive) {
         subst = Not::create(subst);
     }
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(False::subst_rp, {{"ph", subst->get_type_prover(tb)}}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(False::subst_rp, {{"ph", subst->get_type_prover(tb)}}, {});
 }
 
 bool False::operator==(const Wff &x) const
@@ -307,7 +307,7 @@ void Var::get_variables(pvar_set &vars) const
     vars.insert(this->shared_from_this());
 }
 
-Prover<AbstractCheckpointedProofEngine> Var::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Var::get_type_prover(const LibraryToolbox &tb) const
 {
     return tb.build_type_prover(this->name);
     /*auto label = tb.get_var_sym_to_lab(tb.get_symbol(this->name));
@@ -318,9 +318,9 @@ Prover<AbstractCheckpointedProofEngine> Var::get_type_prover(const LibraryToolbo
 }
 
 const RegisteredProver Var::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( ph <-> ph )");
-Prover<AbstractCheckpointedProofEngine> Var::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Var::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Var::imp_not_rp, {{"ph", this->get_type_prover(tb)}}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(Var::imp_not_rp, {{"ph", this->get_type_prover(tb)}}, {});
 }
 
 const RegisteredProver Var::subst_pos_1_rp = LibraryToolbox::register_prover({}, "|- ( T. -> ( ph -> ( T. <-> ph ) ) )");
@@ -334,20 +334,20 @@ const RegisteredProver Var::subst_neg_3_rp = LibraryToolbox::register_prover({"|
 const RegisteredProver Var::subst_neg_falsity_rp = LibraryToolbox::register_prover({}, "|- -. F.");
 
 const RegisteredProver Var::subst_indep_rp = LibraryToolbox::register_prover({}, "|- ( ps -> ( ph <-> ph ) )");
-Prover<AbstractCheckpointedProofEngine> Var::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Var::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
 {
     if (*this == *var) {
         if (positive) {
-            auto first = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Var::subst_pos_1_rp, {{"ph", this->get_type_prover(tb)}}, {});
-            auto truth = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Var::subst_pos_truth_rp, {}, {});
-            auto second = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Var::subst_pos_2_rp, {{"ph", this->get_type_prover(tb)}}, {truth, first});
-            auto third = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Var::subst_pos_3_rp, {{"ph", this->get_type_prover(tb)}}, {second});
+            auto first = tb.build_registered_prover< CheckpointedProofEngine >(Var::subst_pos_1_rp, {{"ph", this->get_type_prover(tb)}}, {});
+            auto truth = tb.build_registered_prover< CheckpointedProofEngine >(Var::subst_pos_truth_rp, {}, {});
+            auto second = tb.build_registered_prover< CheckpointedProofEngine >(Var::subst_pos_2_rp, {{"ph", this->get_type_prover(tb)}}, {truth, first});
+            auto third = tb.build_registered_prover< CheckpointedProofEngine >(Var::subst_pos_3_rp, {{"ph", this->get_type_prover(tb)}}, {second});
             return third;
         } else {
-            auto first = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Var::subst_neg_1_rp, {{"ph", this->get_type_prover(tb)}}, {});
-            auto falsity = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Var::subst_neg_falsity_rp, {}, {});
-            auto second = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Var::subst_neg_2_rp, {{"ph", this->get_type_prover(tb)}}, {falsity, first});
-            auto third = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Var::subst_neg_3_rp, {{"ph", this->get_type_prover(tb)}}, {second});
+            auto first = tb.build_registered_prover< CheckpointedProofEngine >(Var::subst_neg_1_rp, {{"ph", this->get_type_prover(tb)}}, {});
+            auto falsity = tb.build_registered_prover< CheckpointedProofEngine >(Var::subst_neg_falsity_rp, {}, {});
+            auto second = tb.build_registered_prover< CheckpointedProofEngine >(Var::subst_neg_2_rp, {{"ph", this->get_type_prover(tb)}}, {falsity, first});
+            auto third = tb.build_registered_prover< CheckpointedProofEngine >(Var::subst_neg_3_rp, {{"ph", this->get_type_prover(tb)}}, {second});
             return third;
         }
     } else {
@@ -355,7 +355,7 @@ Prover<AbstractCheckpointedProofEngine> Var::get_subst_prover(pvar var, bool pos
         if (!positive) {
             ant = Not::create(ant);
         }
-        return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Var::subst_indep_rp, {{"ps", ant->get_type_prover(tb)}, {"ph", this->get_type_prover(tb)}}, {});
+        return tb.build_registered_prover< CheckpointedProofEngine >(Var::subst_indep_rp, {{"ps", ant->get_type_prover(tb)}, {"ph", this->get_type_prover(tb)}}, {});
     }
 }
 
@@ -405,7 +405,7 @@ void Not::get_variables(pvar_set &vars) const
     this->a->get_variables(vars);
 }
 
-Prover<AbstractCheckpointedProofEngine> Not::get_truth_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Not::get_truth_prover(const LibraryToolbox &tb) const
 {
     return this->a->get_falsity_prover(tb);
 }
@@ -416,9 +416,9 @@ bool Not::is_true() const
 }
 
 const RegisteredProver Not::falsity_rp = LibraryToolbox::register_prover({ "|- ph" }, "|- -. -. ph");
-Prover<AbstractCheckpointedProofEngine> Not::get_falsity_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Not::get_falsity_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Not::falsity_rp, {{ "ph", this->a->get_type_prover(tb) }}, { this->a->get_truth_prover(tb) });
+    return tb.build_registered_prover< CheckpointedProofEngine >(Not::falsity_rp, {{ "ph", this->a->get_type_prover(tb) }}, { this->a->get_truth_prover(tb) });
 }
 
 bool Not::is_false() const
@@ -427,19 +427,19 @@ bool Not::is_false() const
 }
 
 const RegisteredProver Not::type_rp = LibraryToolbox::register_prover({}, "wff -. ph");
-Prover<AbstractCheckpointedProofEngine> Not::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Not::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Not::type_rp, {{ "ph", this->a->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(Not::type_rp, {{ "ph", this->a->get_type_prover(tb) }}, {});
 }
 
 const RegisteredProver Not::imp_not_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )"}, "|- ( -. ph <-> -. ps )");
-Prover<AbstractCheckpointedProofEngine> Not::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Not::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Not::imp_not_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->a->imp_not_form()->get_type_prover(tb) }}, { this->a->get_imp_not_prover(tb) });
+    return tb.build_registered_prover< CheckpointedProofEngine >(Not::imp_not_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->a->imp_not_form()->get_type_prover(tb) }}, { this->a->get_imp_not_prover(tb) });
 }
 
 const RegisteredProver Not::subst_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ( -. ps <-> -. ch ) )");
-Prover<AbstractCheckpointedProofEngine> Not::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Not::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
 {
     pwff ant;
     if (positive) {
@@ -447,7 +447,7 @@ Prover<AbstractCheckpointedProofEngine> Not::get_subst_prover(pvar var, bool pos
     } else {
         ant = Not::create(var);
     }
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Not::subst_rp, {{"ph", ant->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}}, {this->a->get_subst_prover(var, positive, tb)});
+    return tb.build_registered_prover< CheckpointedProofEngine >(Not::subst_rp, {{"ph", ant->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}}, {this->a->get_subst_prover(var, positive, tb)});
 }
 
 bool Not::operator==(const Wff &x) const
@@ -498,13 +498,13 @@ void Imp::get_variables(pvar_set &vars) const
 
 const RegisteredProver Imp::truth_1_rp = LibraryToolbox::register_prover({ "|- ps" }, "|- ( ph -> ps )");
 const RegisteredProver Imp::truth_2_rp = LibraryToolbox::register_prover({ "|- -. ph" }, "|- ( ph -> ps )");
-Prover<AbstractCheckpointedProofEngine> Imp::get_truth_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Imp::get_truth_prover(const LibraryToolbox &tb) const
 {
     if (this->b->is_true()) {
-        return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Imp::truth_1_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, { this->b->get_truth_prover(tb) });
+        return tb.build_registered_prover< CheckpointedProofEngine >(Imp::truth_1_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, { this->b->get_truth_prover(tb) });
     }
     if (this->a->is_false()) {
-        return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Imp::truth_2_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, { this->a->get_falsity_prover(tb) });
+        return tb.build_registered_prover< CheckpointedProofEngine >(Imp::truth_2_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, { this->a->get_falsity_prover(tb) });
     }
     return null_prover;
     //return cascade_provers(first_prover, second_prover);
@@ -518,12 +518,12 @@ bool Imp::is_true() const
 const RegisteredProver Imp::falsity_1_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( -. ps -> -. ( ph -> ps ) ) )");
 const RegisteredProver Imp::falsity_2_rp = LibraryToolbox::register_prover({ "|- ph", "|- ( ph -> ( -. ps -> -. ( ph -> ps ) ) )"}, "|- ( -. ps -> -. ( ph -> ps ) )");
 const RegisteredProver Imp::falsity_3_rp = LibraryToolbox::register_prover({ "|- ( -. ps -> -. ( ph -> ps ) )", "|- -. ps"}, "|- -. ( ph -> ps )");
-Prover<AbstractCheckpointedProofEngine> Imp::get_falsity_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Imp::get_falsity_prover(const LibraryToolbox &tb) const
 {
-    auto theorem_prover = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Imp::falsity_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
-    auto mp_prover1 = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Imp::falsity_2_rp,
+    auto theorem_prover = tb.build_registered_prover< CheckpointedProofEngine >(Imp::falsity_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
+    auto mp_prover1 = tb.build_registered_prover< CheckpointedProofEngine >(Imp::falsity_2_rp,
         {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, { this->a->get_truth_prover(tb), theorem_prover });
-    auto mp_prover2 = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Imp::falsity_3_rp,
+    auto mp_prover2 = tb.build_registered_prover< CheckpointedProofEngine >(Imp::falsity_3_rp,
         {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, { mp_prover1, this->b->get_falsity_prover(tb) });
     return mp_prover2;
 }
@@ -534,21 +534,21 @@ bool Imp::is_false() const
 }
 
 const RegisteredProver Imp::type_rp = LibraryToolbox::register_prover({}, "wff ( ph -> ps )");
-Prover<AbstractCheckpointedProofEngine> Imp::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Imp::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Imp::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(Imp::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
 }
 
 const RegisteredProver Imp::imp_not_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ch <-> th )"}, "|- ( ( ph -> ch ) <-> ( ps -> th ) )");
-Prover<AbstractCheckpointedProofEngine> Imp::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Imp::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Imp::imp_not_rp,
+    return tb.build_registered_prover< CheckpointedProofEngine >(Imp::imp_not_rp,
         {{"ph", this->a->get_type_prover(tb)}, {"ps", this->a->imp_not_form()->get_type_prover(tb) }, {"ch", this->b->get_type_prover(tb)}, {"th", this->b->imp_not_form()->get_type_prover(tb)}},
     { this->a->get_imp_not_prover(tb), this->b->get_imp_not_prover(tb) });
 }
 
 const RegisteredProver Imp::subst_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps <-> ch ) )", "|- ( ph -> ( th <-> ta ) )"}, "|- ( ph -> ( ( ps -> th ) <-> ( ch -> ta ) ) )");
-Prover<AbstractCheckpointedProofEngine> Imp::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Imp::get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const
 {
     pwff ant;
     if (positive) {
@@ -556,7 +556,7 @@ Prover<AbstractCheckpointedProofEngine> Imp::get_subst_prover(pvar var, bool pos
     } else {
         ant = Not::create(var);
     }
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Imp::subst_rp,
+    return tb.build_registered_prover< CheckpointedProofEngine >(Imp::subst_rp,
         {{"ph", ant->get_type_prover(tb)}, {"ps", this->a->get_type_prover(tb)}, {"ch", this->a->subst(var, positive)->get_type_prover(tb)}, {"th", this->b->get_type_prover(tb)}, {"ta", this->b->subst(var, positive)->get_type_prover(tb)}},
     {this->a->get_subst_prover(var, positive, tb), this->b->get_subst_prover(var, positive, tb)});
 }
@@ -612,18 +612,18 @@ void Biimp::get_variables(pvar_set &vars) const
 }
 
 const RegisteredProver Biimp::type_rp = LibraryToolbox::register_prover({}, "wff ( ph <-> ps )");
-Prover<AbstractCheckpointedProofEngine> Biimp::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Biimp::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Biimp::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(Biimp::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
 }
 
 const RegisteredProver Biimp::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph <-> ps ) <-> -. ( ( ph -> ps ) -> -. ( ps -> ph ) ) )");
 const RegisteredProver Biimp::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
-Prover<AbstractCheckpointedProofEngine> Biimp::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Biimp::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    auto first = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Biimp::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
+    auto first = tb.build_registered_prover< CheckpointedProofEngine >(Biimp::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
     auto second = this->half_imp_not_form()->get_imp_not_prover(tb);
-    auto compose = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Biimp::imp_not_2_rp,
+    auto compose = tb.build_registered_prover< CheckpointedProofEngine >(Biimp::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
 }
@@ -662,18 +662,18 @@ void Xor::get_variables(pvar_set &vars) const
 }
 
 const RegisteredProver Xor::type_rp = LibraryToolbox::register_prover({}, "wff ( ph \\/_ ps )");
-Prover<AbstractCheckpointedProofEngine> Xor::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Xor::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Xor::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(Xor::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
 }
 
 const RegisteredProver Xor::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/_ ps ) <-> -. ( ph <-> ps ) )");
 const RegisteredProver Xor::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
-Prover<AbstractCheckpointedProofEngine> Xor::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Xor::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    auto first = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Xor::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
+    auto first = tb.build_registered_prover< CheckpointedProofEngine >(Xor::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
     auto second = this->half_imp_not_form()->get_imp_not_prover(tb);
-    auto compose = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Xor::imp_not_2_rp,
+    auto compose = tb.build_registered_prover< CheckpointedProofEngine >(Xor::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
 }
@@ -725,18 +725,18 @@ void Nand::get_variables(pvar_set &vars) const
 }
 
 const RegisteredProver Nand::type_rp = LibraryToolbox::register_prover({}, "wff ( ph -/\\ ps )");
-Prover<AbstractCheckpointedProofEngine> Nand::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Nand::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Nand::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(Nand::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
 }
 
 const RegisteredProver Nand::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph -/\\ ps ) <-> -. ( ph /\\ ps ) )");
 const RegisteredProver Nand::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
-Prover<AbstractCheckpointedProofEngine> Nand::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Nand::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    auto first = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Nand::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
+    auto first = tb.build_registered_prover< CheckpointedProofEngine >(Nand::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
     auto second = this->half_imp_not_form()->get_imp_not_prover(tb);
-    auto compose = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Nand::imp_not_2_rp,
+    auto compose = tb.build_registered_prover< CheckpointedProofEngine >(Nand::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
 }
@@ -788,18 +788,18 @@ void Or::get_variables(pvar_set &vars) const
 }
 
 const RegisteredProver Or::type_rp = LibraryToolbox::register_prover({}, "wff ( ph \\/ ps )");
-Prover<AbstractCheckpointedProofEngine> Or::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Or::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Or::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(Or::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
 }
 
 const RegisteredProver Or::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/ ps ) <-> ( -. ph -> ps ) )");
 const RegisteredProver Or::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
-Prover<AbstractCheckpointedProofEngine> Or::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Or::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    auto first = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Or::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
+    auto first = tb.build_registered_prover< CheckpointedProofEngine >(Or::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
     auto second = this->half_imp_not_form()->get_imp_not_prover(tb);
-    auto compose = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Or::imp_not_2_rp,
+    auto compose = tb.build_registered_prover< CheckpointedProofEngine >(Or::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
 }
@@ -864,18 +864,18 @@ pwff And::imp_not_form() const
 }*/
 
 const RegisteredProver And::type_rp = LibraryToolbox::register_prover({}, "wff ( ph /\\ ps )");
-Prover<AbstractCheckpointedProofEngine> And::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> And::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(And::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(And::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }}, {});
 }
 
 const RegisteredProver And::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph /\\ ps ) <-> -. ( ph -> -. ps ) )");
 const RegisteredProver And::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
-Prover<AbstractCheckpointedProofEngine> And::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> And::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    auto first = tb.build_registered_prover< AbstractCheckpointedProofEngine >(And::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
+    auto first = tb.build_registered_prover< CheckpointedProofEngine >(And::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, {});
     auto second = this->half_imp_not_form()->get_imp_not_prover(tb);
-    auto compose = tb.build_registered_prover< AbstractCheckpointedProofEngine >(And::imp_not_2_rp,
+    auto compose = tb.build_registered_prover< CheckpointedProofEngine >(And::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
 }
@@ -896,10 +896,10 @@ pwff ConvertibleWff::subst(pvar var, bool positive) const
 }
 
 const RegisteredProver ConvertibleWff::truth_rp = LibraryToolbox::register_prover({"|- ( ps <-> ph )", "|- ph"}, "|- ps");
-Prover<AbstractCheckpointedProofEngine> ConvertibleWff::get_truth_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> ConvertibleWff::get_truth_prover(const LibraryToolbox &tb) const
 {
     //return null_prover;
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(ConvertibleWff::truth_rp, {{"ph", this->imp_not_form()->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}}, {this->get_imp_not_prover(tb), this->imp_not_form()->get_truth_prover(tb)});
+    return tb.build_registered_prover< CheckpointedProofEngine >(ConvertibleWff::truth_rp, {{"ph", this->imp_not_form()->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}}, {this->get_imp_not_prover(tb), this->imp_not_form()->get_truth_prover(tb)});
 }
 
 bool ConvertibleWff::is_true() const
@@ -908,10 +908,10 @@ bool ConvertibleWff::is_true() const
 }
 
 const RegisteredProver ConvertibleWff::falsity_rp = LibraryToolbox::register_prover({"|- ( ps <-> ph )", "|- -. ph"}, "|- -. ps");
-Prover<AbstractCheckpointedProofEngine> ConvertibleWff::get_falsity_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> ConvertibleWff::get_falsity_prover(const LibraryToolbox &tb) const
 {
     //return null_prover;
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(ConvertibleWff::falsity_rp, {{"ph", this->imp_not_form()->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}}, {this->get_imp_not_prover(tb), this->imp_not_form()->get_falsity_prover(tb)});
+    return tb.build_registered_prover< CheckpointedProofEngine >(ConvertibleWff::falsity_rp, {{"ph", this->imp_not_form()->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}}, {this->get_imp_not_prover(tb), this->imp_not_form()->get_falsity_prover(tb)});
 }
 
 bool ConvertibleWff::is_false() const
@@ -971,18 +971,18 @@ void And3::get_variables(pvar_set &vars) const
 }
 
 const RegisteredProver And3::type_rp = LibraryToolbox::register_prover({}, "wff ( ph /\\ ps /\\ ch )");
-Prover<AbstractCheckpointedProofEngine> And3::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> And3::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(And3::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }, { "ch", this->c->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(And3::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }, { "ch", this->c->get_type_prover(tb) }}, {});
 }
 
 const RegisteredProver And3::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph /\\ ps /\\ ch ) <-> ( ( ph /\\ ps ) /\\ ch ) )");
 const RegisteredProver And3::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
-Prover<AbstractCheckpointedProofEngine> And3::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> And3::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    auto first = tb.build_registered_prover< AbstractCheckpointedProofEngine >(And3::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}, {"ch", this->c->get_type_prover(tb)}}, {});
+    auto first = tb.build_registered_prover< CheckpointedProofEngine >(And3::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}, {"ch", this->c->get_type_prover(tb)}}, {});
     auto second = this->half_imp_not_form()->get_imp_not_prover(tb);
-    auto compose = tb.build_registered_prover< AbstractCheckpointedProofEngine >(And3::imp_not_2_rp,
+    auto compose = tb.build_registered_prover< CheckpointedProofEngine >(And3::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
 }
@@ -1041,18 +1041,18 @@ void Or3::get_variables(pvar_set &vars) const
 }
 
 const RegisteredProver Or3::type_rp = LibraryToolbox::register_prover({}, "wff ( ph \\/ ps \\/ ch )");
-Prover<AbstractCheckpointedProofEngine> Or3::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Or3::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< AbstractCheckpointedProofEngine >(Or3::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }, { "ch", this->c->get_type_prover(tb) }}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(Or3::type_rp, {{ "ph", this->a->get_type_prover(tb) }, { "ps", this->b->get_type_prover(tb) }, { "ch", this->c->get_type_prover(tb) }}, {});
 }
 
 const RegisteredProver Or3::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/ ps \\/ ch ) <-> ( ( ph \\/ ps ) \\/ ch ) )");
 const RegisteredProver Or3::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
-Prover<AbstractCheckpointedProofEngine> Or3::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> Or3::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    auto first = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Or3::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}, {"ch", this->c->get_type_prover(tb)}}, {});
+    auto first = tb.build_registered_prover< CheckpointedProofEngine >(Or3::imp_not_1_rp, {{"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}, {"ch", this->c->get_type_prover(tb)}}, {});
     auto second = this->half_imp_not_form()->get_imp_not_prover(tb);
-    auto compose = tb.build_registered_prover< AbstractCheckpointedProofEngine >(Or3::imp_not_2_rp,
+    auto compose = tb.build_registered_prover< CheckpointedProofEngine >(Or3::imp_not_2_rp,
         {{"ph", this->get_type_prover(tb)}, {"ps", this->half_imp_not_form()->get_type_prover(tb)}, {"ch", this->imp_not_form()->get_type_prover(tb)}}, {first, second});
     return compose;
 }

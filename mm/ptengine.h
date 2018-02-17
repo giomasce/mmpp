@@ -52,5 +52,5 @@ extern template struct ProofError< ParsingTree2< SymTok, LabTok > >;
 extern template class ProofException< ParsingTree2< SymTok, LabTok > >;
 extern template struct ProofTree< ParsingTree2< SymTok, LabTok > >;
 extern template class ProofEngineBase< ParsingTree2< SymTok, LabTok > >;
-extern template class CheckedProofEngine< ParsingTree2< SymTok, LabTok > >;
-extern template class ExtendedProofEngine< ParsingTree2< SymTok, LabTok > >;
+extern template class CreativeProofEngineImpl< ParsingTree2< SymTok, LabTok > >;
+extern template class ProofEngineImpl< ParsingTree2< SymTok, LabTok > >;

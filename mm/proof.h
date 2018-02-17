@@ -76,7 +76,7 @@ protected:
 
     const Library &lib;
     const Assertion &ass;
-    CheckedProofEngine< SentType_ > engine;
+    ProofEngineImpl< SentType_ > engine;
 };
 
 template< typename SentType_ >

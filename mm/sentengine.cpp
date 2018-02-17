@@ -116,5 +116,5 @@ template struct ProofError< Sentence >;
 template class ProofException< Sentence >;
 template struct ProofTree< Sentence >;
 template class ProofEngineBase< Sentence >;
-template class CheckedProofEngine< Sentence >;
-template class ExtendedProofEngine< Sentence >;
+template class CreativeProofEngineImpl< Sentence >;
+template class ProofEngineImpl< Sentence >;

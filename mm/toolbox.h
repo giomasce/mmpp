@@ -26,7 +26,7 @@ struct SentenceTree {
 
 template< typename Engine >
 using Prover = std::function< bool(Engine&) >;
-const Prover< AbstractProofEngine > null_prover = [](AbstractProofEngine&){ return false; };
+const Prover< ProofEngine > null_prover = [](ProofEngine&){ return false; };
 
 struct SentencePrinter {
     enum Style {
@@ -155,14 +155,14 @@ private:
 
     // Type proving
 public:
-    template< typename Engine = AbstractProofEngine, typename std::enable_if< std::is_base_of< AbstractProofEngine, Engine >::value >::type* = nullptr >
+    template< typename Engine = ProofEngine, typename std::enable_if< std::is_base_of< ProofEngine, Engine >::value >::type* = nullptr >
     Prover< Engine > build_type_prover(const std::vector< SymTok > &type_sent, const std::unordered_map< SymTok, Prover< Engine > > &var_provers = {}) const
     {
         return [=](Engine &engine){
             return this->type_proving_helper(type_sent, engine, var_provers);
         };
     }
-    template< typename Engine = AbstractProofEngine, typename std::enable_if< std::is_base_of< AbstractProofEngine, Engine >::value >::type* = nullptr >
+    template< typename Engine = ProofEngine, typename std::enable_if< std::is_base_of< ProofEngine, Engine >::value >::type* = nullptr >
     Prover< Engine > build_type_prover(const ParsingTree2< SymTok, LabTok > &pt, const std::unordered_map< LabTok, Prover< Engine > > &var_provers = {}) const
     {
         return [=](Engine &engine){
@@ -170,7 +170,7 @@ public:
         };
     }
 private:
-    template< typename Engine = AbstractProofEngine, typename std::enable_if< std::is_base_of< AbstractProofEngine, Engine >::value >::type* = nullptr >
+    template< typename Engine = ProofEngine, typename std::enable_if< std::is_base_of< ProofEngine, Engine >::value >::type* = nullptr >
     void type_proving_helper_unwind_tree(const ParsingTree< SymTok, LabTok > &tree, Engine &engine, const std::unordered_map<LabTok, const Prover< Engine >* > &var_provers) const {
         // We need to sort children according to their order as floating hypotheses of this assertion
         // If this is not an assertion, then there are no children
@@ -201,7 +201,7 @@ private:
             }
         }
     }
-    template< typename Engine = AbstractProofEngine, typename std::enable_if< std::is_base_of< AbstractProofEngine, Engine >::value >::type* = nullptr >
+    template< typename Engine = ProofEngine, typename std::enable_if< std::is_base_of< ProofEngine, Engine >::value >::type* = nullptr >
     bool type_proving_helper(const std::vector< SymTok > &type_sent, Engine &engine, const std::unordered_map< SymTok, Prover< Engine > > &var_provers = {}) const
     {
         SymTok type = type_sent[0];
@@ -217,7 +217,7 @@ private:
             return true;
         }
     }
-    template< typename Engine = AbstractProofEngine, typename std::enable_if< std::is_base_of< AbstractProofEngine, Engine >::value >::type* = nullptr >
+    template< typename Engine = ProofEngine, typename std::enable_if< std::is_base_of< ProofEngine, Engine >::value >::type* = nullptr >
     bool type_proving_helper(const ParsingTree2< SymTok, LabTok > &pt, Engine &engine, const std::unordered_map< LabTok, Prover< Engine > > &var_provers = {}) const
     {
         std::unordered_map<LabTok, const Prover< Engine >* > var_provers_ptr;
@@ -342,7 +342,7 @@ public:
     LabTok get_registered_prover_label(const RegisteredProver &prover) const;
     static RegisteredProver register_prover(const std::vector< std::string > &templ_hyps, const std::string &templ_thesis);
     // From https://stackoverflow.com/a/30687399/807307
-    template< typename Engine = AbstractCheckpointedProofEngine, typename std::enable_if< std::is_base_of< AbstractCheckpointedProofEngine, Engine >::value >::type* = nullptr >
+    template< typename Engine = CheckpointedProofEngine, typename std::enable_if< std::is_base_of< CheckpointedProofEngine, Engine >::value >::type* = nullptr >
     Prover< Engine > build_registered_prover(const RegisteredProver &prover, const std::unordered_map< std::string, Prover< Engine > > &types_provers, const std::vector< Prover< Engine > > &hyps_provers) const
     {
         const size_t &index = prover.index;
@@ -356,7 +356,7 @@ public:
         };
     }
     void compute_registered_provers();
-    template< typename Engine = AbstractCheckpointedProofEngine, typename std::enable_if< std::is_base_of< AbstractCheckpointedProofEngine, Engine >::value >::type* = nullptr >
+    template< typename Engine = CheckpointedProofEngine, typename std::enable_if< std::is_base_of< CheckpointedProofEngine, Engine >::value >::type* = nullptr >
     Prover< Engine > build_prover(const std::vector< Sentence > &templ_hyps,
                         const Sentence &templ_thesis,
                         const std::unordered_map< std::string, Prover< Engine > > &types_provers,
@@ -373,7 +373,7 @@ public:
             return this->proving_helper(inst_data, types_provers, hyps_provers, engine);
         };
     }
-    template< typename Engine = AbstractCheckpointedProofEngine, typename std::enable_if< std::is_base_of< AbstractCheckpointedProofEngine, Engine >::value >::type* = nullptr >
+    template< typename Engine = CheckpointedProofEngine, typename std::enable_if< std::is_base_of< CheckpointedProofEngine, Engine >::value >::type* = nullptr >
     bool proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map< std::string, Prover< Engine > > &types_provers, const std::vector< Prover< Engine > > &hyps_provers, Engine &engine) const {
         std::unordered_map<SymTok, Prover< Engine > > types_provers_sym;
         for (auto &type_pair : types_provers) {
@@ -382,7 +382,7 @@ public:
         }
         return this->proving_helper(inst_data, types_provers_sym, hyps_provers, engine);
     }
-    template< typename Engine = AbstractCheckpointedProofEngine, typename std::enable_if< std::is_base_of< AbstractCheckpointedProofEngine, Engine >::value >::type* = nullptr >
+    template< typename Engine = CheckpointedProofEngine, typename std::enable_if< std::is_base_of< CheckpointedProofEngine, Engine >::value >::type* = nullptr >
     bool proving_helper(const RegisteredProverInstanceData &inst_data, const std::unordered_map< SymTok, Prover< Engine > > &types_provers, const std::vector< Prover< Engine > > &hyps_provers, Engine &engine) const
     {
         const Assertion &ass = this->get_assertion(inst_data.label);
@@ -473,7 +473,7 @@ public:
     const ParsingAddendumImpl &get_parsing_addendum() const;
 };
 
-template< typename Engine, typename std::enable_if< std::is_base_of< AbstractProofEngine, Engine >::value >::type* = nullptr >
+template< typename Engine, typename std::enable_if< std::is_base_of< ProofEngine, Engine >::value >::type* = nullptr >
 Prover< Engine > cascade_provers(const Prover< Engine > &a,  const Prover< Engine > &b)
 {
     return [=](Engine &engine) {
@@ -487,7 +487,7 @@ Prover< Engine > cascade_provers(const Prover< Engine > &a,  const Prover< Engin
     };
 }
 
-template< typename Engine, typename std::enable_if< std::is_base_of< AbstractProofEngine, Engine >::value >::type* = nullptr >
+template< typename Engine, typename std::enable_if< std::is_base_of< ProofEngine, Engine >::value >::type* = nullptr >
 std::string test_prover(Prover< Engine > prover, const LibraryToolbox &tb) {
     Engine engine(tb);
     bool res = prover(engine);
@@ -506,7 +506,7 @@ std::string test_prover(Prover< Engine > prover, const LibraryToolbox &tb) {
     }
 }
 
-template< typename Engine, typename std::enable_if< std::is_base_of< AbstractProofEngine, Engine >::value >::type* = nullptr >
+template< typename Engine, typename std::enable_if< std::is_base_of< ProofEngine, Engine >::value >::type* = nullptr >
 Prover< Engine > checked_prover(Prover< Engine > prover, size_t hyp_num, Sentence thesis)
 {
     return [=](Engine &engine)->bool {

@@ -43,5 +43,5 @@ extern template struct ProofError< Sentence >;
 extern template class ProofException< Sentence >;
 extern template struct ProofTree< Sentence >;
 extern template class ProofEngineBase< Sentence >;
-extern template class CheckedProofEngine< Sentence >;
-extern template class ExtendedProofEngine< Sentence >;
+extern template class CreativeProofEngineImpl< Sentence >;
+extern template class ProofEngineImpl< Sentence >;
