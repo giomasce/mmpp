@@ -58,7 +58,7 @@ public:
     }
 };
 
-class Step : public enable_create< Step >, public StrategyManager, public StepStrategyCallback
+class Step : public enable_create< Step >, public StrategyManager
 {
 public:
     ~Step();

@@ -30,7 +30,7 @@ protected:
         return {};
     }
 
-    virtual bool prove(CreativeCheckpointedProofEngine< Sentence > &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
+    bool prove(CheckpointedProofEngine &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
         (void) engine;
         (void) children;
 
@@ -67,15 +67,17 @@ struct UnificationStrategyResult : public StepStrategyResult, public enable_crea
         return ret;
     }
 
-    virtual bool prove(CreativeCheckpointedProofEngine< Sentence > &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
+    bool prove(CheckpointedProofEngine &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
         RegisteredProverInstanceData inst_data(this->data);
-        vector< Prover< CreativeCheckpointedProofEngine< Sentence > > > hyps_provers;
+        vector< Prover< CheckpointedProofEngine > > hyps_provers;
         for (const auto &child : children) {
-            hyps_provers.push_back([child](CreativeCheckpointedProofEngine< Sentence > &engine2) {
-                return child->prove(engine2);
+            hyps_provers.push_back([child](CheckpointedProofEngine &engine2) {
+                (void) engine2;
+                return child->prove();
             });
         }
-        return this->toolbox.proving_helper(inst_data, std::unordered_map< SymTok, Prover< CreativeCheckpointedProofEngine< Sentence > > >{}, hyps_provers, engine);
+        // FIXME Here I assume that hyps_provers will be called on the same engine that is passed to proving_helper
+        return this->toolbox.proving_helper(inst_data, std::unordered_map< SymTok, Prover< CheckpointedProofEngine > >{}, hyps_provers, engine);
     }
 
     bool success;

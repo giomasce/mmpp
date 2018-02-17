@@ -9,7 +9,7 @@
 using namespace std;
 using namespace nlohmann;
 
-#define LOG_STEP_OPS
+//#define LOG_STEP_OPS
 
 /*Step::Step(BackreferenceToken<Step, Workset> &&token) : token(move(token))
 {
@@ -462,13 +462,24 @@ std::shared_ptr<const StepStrategyResult> Step::get_result()
     return this->winning_strategy;
 }
 
+struct StepStrategyCallbackImpl final : public StepStrategyCallback {
+    StepStrategyCallbackImpl(shared_ptr< Step > step, CreativeCheckpointedProofEngine< Sentence > &engine) : step(step), engine(engine) {}
+
+    bool prove() {
+        return this->step->prove(engine);
+    }
+
+    shared_ptr< Step > step;
+    CreativeCheckpointedProofEngine< Sentence > &engine;
+};
+
 bool Step::prove(CreativeCheckpointedProofEngine<Sentence> &engine)
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
     if (this->winning_strategy) {
         vector< shared_ptr< StepStrategyCallback > > children_steps;
         for (const auto &x : this->children) {
-            children_steps.push_back(x.lock());
+            children_steps.push_back(make_shared< StepStrategyCallbackImpl >(x.lock(), engine));
         }
         return this->winning_strategy->prove(engine, children_steps);
     } else {
