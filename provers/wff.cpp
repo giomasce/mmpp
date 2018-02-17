@@ -78,9 +78,9 @@ Prover< CheckpointedProofEngine > Wff::get_subst_prover(pvar var, bool positive,
 const RegisteredProver Wff::adv_truth_1_rp = LibraryToolbox::register_prover({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )");
 const RegisteredProver Wff::adv_truth_2_rp = LibraryToolbox::register_prover({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )");
 const RegisteredProver Wff::adv_truth_3_rp = LibraryToolbox::register_prover({"|- ( ph -> ps )", "|- ( -. ph -> ps )"}, "|- ps");
-Prover<CheckpointedProofEngine> Wff::adv_truth_internal(pvar_set::iterator cur_var, pvar_set::iterator end_var, const LibraryToolbox &tb) const {
+std::pair<bool, Prover<CheckpointedProofEngine> > Wff::adv_truth_internal(pvar_set::iterator cur_var, pvar_set::iterator end_var, const LibraryToolbox &tb) const {
     if (cur_var == end_var) {
-        return this->get_truth_prover(tb);
+        return make_pair(this->is_true(), this->get_truth_prover(tb));
     } else {
         const auto &var = *cur_var++;
         pwff pos_wff = this->subst(var, true);
@@ -89,31 +89,37 @@ Prover<CheckpointedProofEngine> Wff::adv_truth_internal(pvar_set::iterator cur_v
         pwff neg_antecent = Not::create(var);
         auto rec_pos_prover = pos_wff->adv_truth_internal(cur_var, end_var, tb);
         auto rec_neg_prover = neg_wff->adv_truth_internal(cur_var, end_var, tb);
+        if (!rec_pos_prover.first || !rec_pos_prover.second) {
+            return make_pair(false, null_prover);
+        }
         auto pos_prover = this->get_subst_prover(var, true, tb);
         auto neg_prover = this->get_subst_prover(var, false, tb);
         auto pos_mp_prover = tb.build_registered_prover< CheckpointedProofEngine >(Wff::adv_truth_1_rp,
             {{"ph", pos_antecent->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}, {"ch", pos_wff->get_type_prover(tb)}},
-            {rec_pos_prover, pos_prover});
+            {rec_pos_prover.second, pos_prover});
         auto neg_mp_prover = tb.build_registered_prover< CheckpointedProofEngine >(Wff::adv_truth_2_rp,
             {{"ph", neg_antecent->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}, {"ch", neg_wff->get_type_prover(tb)}},
-            {rec_neg_prover, neg_prover});
+            {rec_neg_prover.second, neg_prover});
         auto final = tb.build_registered_prover< CheckpointedProofEngine >(Wff::adv_truth_3_rp,
             {{"ph", pos_antecent->get_type_prover(tb)}, {"ps", this->get_type_prover(tb)}},
             {pos_mp_prover, neg_mp_prover});
-        return final;
+        return make_pair(true, final);
     }
 }
 
 const RegisteredProver Wff::adv_truth_4_rp = LibraryToolbox::register_prover({"|- ps", "|- ( ph <-> ps )"}, "|- ph");
-Prover<CheckpointedProofEngine> Wff::get_adv_truth_prover(const LibraryToolbox &tb) const
+std::pair<bool, Prover<CheckpointedProofEngine> > Wff::get_adv_truth_prover(const LibraryToolbox &tb) const
 {
     pwff not_imp = this->imp_not_form();
     pvar_set vars;
     this->get_variables(vars);
     auto real = not_imp->adv_truth_internal(vars.begin(), vars.end(), tb);
+    if (!real.first) {
+        return make_pair(false, null_prover);
+    }
     auto equiv = this->get_imp_not_prover(tb);
-    auto final = tb.build_registered_prover< CheckpointedProofEngine >(Wff::adv_truth_4_rp, {{"ph", this->get_type_prover(tb)}, {"ps", not_imp->get_type_prover(tb)}}, {real, equiv});
-    return final;
+    auto final = tb.build_registered_prover< CheckpointedProofEngine >(Wff::adv_truth_4_rp, {{"ph", this->get_type_prover(tb)}, {"ps", not_imp->get_type_prover(tb)}}, {real.second, equiv});
+    return make_pair(true, final);
 }
 
 True::True() {

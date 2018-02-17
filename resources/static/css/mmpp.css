@@ -105,6 +105,10 @@
   background-image: url("../svg/p_icon.svg");
 }
 
+.strategy {
+  font-variant: small-caps;
+}
+
 .outer_above {
   position: absolute;
   top: 0px;

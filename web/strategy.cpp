@@ -1,5 +1,6 @@
 
 #include "strategy.h"
+#include "provers/wff.h"
 
 using namespace std;
 using namespace nlohmann;
@@ -115,4 +116,56 @@ void UnificationStrategy::operator()(Yield &yield) {
     } else {
         result->success = false;
     }
+}
+
+struct WffStrategyResult : public StepStrategyResult, public enable_create< WffStrategyResult > {
+    WffStrategyResult(const LibraryToolbox &toolbox) : toolbox(toolbox) {}
+
+    bool get_success() const {
+        return this->success;
+    }
+
+    nlohmann::json get_web_json() const {
+        json ret;
+        ret["type"] = "wff";
+        return ret;
+    }
+
+    bool prove(CheckpointedProofEngine &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
+        (void) children;
+        return this->prover(engine);
+    }
+
+    bool success;
+    Prover<CheckpointedProofEngine> prover;
+    const LibraryToolbox &toolbox;
+};
+
+void WffStrategy::operator()(Yield &yield)
+{
+    auto result = WffStrategyResult::create(this->toolbox);
+
+    Finally f1([this,result]() {
+        this->maybe_report_result(this->shared_from_this(), result);
+    });
+
+    result->success = false;
+    if (this->thesis.size() == 0) {
+        return;
+    }
+    for (const auto &hyp : this->hypotheses) {
+        if (hyp.size() == 0) {
+            return;
+        }
+    }
+
+    auto pt = this->toolbox.parse_sentence(this->thesis.begin()+1, this->thesis.end(), this->toolbox.get_turnstile_alias());
+    if (pt.label == 0) {
+        return;
+    }
+    auto wff = wff_from_pt(pt, this->toolbox);
+
+    yield();
+
+    tie(result->success, result->prover) = wff->get_adv_truth_prover(this->toolbox);
 }

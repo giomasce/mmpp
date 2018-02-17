@@ -29,7 +29,7 @@ public:
 
 class StepStrategy {
 public:
-    ~StepStrategy();
+    virtual ~StepStrategy();
     virtual void operator()(Yield &yield) = 0;
 
 protected:
@@ -56,11 +56,28 @@ public:
     void operator()(Yield &yield);
 };
 
-template< typename... Args >
+class WffStrategy : public StepStrategy, public enable_create< WffStrategy > {
+    using StepStrategy::StepStrategy;
+
+public:
+    void operator()(Yield &yield);
+};
+
+/*template< typename... Args >
 std::vector< std::shared_ptr< StepStrategy > > create_strategies(Args&&... args)
 {
     return {
-        //FailingStrategy::create(std::forward< Args >(args)...),
+        FailingStrategy::create(std::forward< Args >(args)...),
         UnificationStrategy::create(std::forward< Args >(args)...),
+        WffStrategy::create(std::forward< Args >(args)...),
+    };
+}*/
+
+inline std::vector< std::shared_ptr< StepStrategy > > create_strategies(std::weak_ptr< StrategyManager > manager, const Sentence &thesis, const std::vector< Sentence > &hypotheses, const LibraryToolbox &toolbox)
+{
+    return {
+        FailingStrategy::create(manager, thesis, hypotheses, toolbox),
+        UnificationStrategy::create(manager, thesis, hypotheses, toolbox),
+        WffStrategy::create(manager, thesis, hypotheses, toolbox),
     };
 }

@@ -41,10 +41,10 @@ public:
     virtual Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
     virtual Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
     virtual bool operator==(const Wff &x) const = 0;
-    Prover< CheckpointedProofEngine > get_adv_truth_prover(const LibraryToolbox &tb) const;
+    std::pair< bool, Prover< CheckpointedProofEngine > > get_adv_truth_prover(const LibraryToolbox &tb) const;
 
 private:
-    Prover< CheckpointedProofEngine > adv_truth_internal(pvar_set::iterator cur_var, pvar_set::iterator end_var, const LibraryToolbox &tb) const;
+    std::pair< bool, Prover< CheckpointedProofEngine > > adv_truth_internal(pvar_set::iterator cur_var, pvar_set::iterator end_var, const LibraryToolbox &tb) const;
 
     static const RegisteredProver adv_truth_1_rp;
     static const RegisteredProver adv_truth_2_rp;

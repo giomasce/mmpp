@@ -333,11 +333,13 @@ void test_wffs_advanced() {
     //auto &lib = data.lib;
     auto &tb = data.tb;
     vector< pwff > wffs = { True::create(), False::create(), Not::create(True::create()), Not::create(False::create()),
-                             Imp::create(Var::create("ph", tb), Var::create("ph", tb)),
-                             Or3::create(Var::create("ph", tb), True::create(), False::create()),
-                             Imp::create(Var::create("ph", tb), And3::create(Var::create("ph", tb), True::create(), Var::create("ph", tb))),
-                             Biimp::create(Nand::create(Var::create("ph", tb), Nand::create(Var::create("ch", tb), Var::create("ps", tb))),
-                                            Imp::create(Var::create("ph", tb), And::create(Var::create("ch", tb), Var::create("ps", tb)))),
+                            Imp::create(Var::create("ph", tb), Var::create("ph", tb)),
+                            Or3::create(Var::create("ph", tb), True::create(), False::create()),
+                            Imp::create(Var::create("ph", tb), And3::create(Var::create("ph", tb), True::create(), Var::create("ph", tb))),
+                            Biimp::create(Nand::create(Var::create("ph", tb), Nand::create(Var::create("ch", tb), Var::create("ps", tb))),
+                                          Imp::create(Var::create("ph", tb), And::create(Var::create("ch", tb), Var::create("ps", tb)))),
+                            Imp::create(Var::create("ph", tb), And::create(Var::create("ph", tb), True::create())),
+                            Imp::create(Var::create("ph", tb), And::create(Var::create("ph", tb), False::create())),
                            };
 
     if (true) {
@@ -346,7 +348,7 @@ void test_wffs_advanced() {
             cout << "WFF: " << wff->to_string() << endl;
             {
                 CreativeProofEngineImpl< Sentence > engine(tb);
-                wff->get_adv_truth_prover(tb)(engine);
+                wff->get_adv_truth_prover(tb).second(engine);
                 if (engine.get_proof_labels().size() > 0) {
                     //cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
                     cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;

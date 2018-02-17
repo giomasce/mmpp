@@ -70,7 +70,7 @@ expr extract_thesis(expr proof) {
 
 void prove_and_print(pwff wff, const LibraryToolbox &tb) {
     CreativeProofEngineImpl< Sentence > engine(tb);
-    wff->get_adv_truth_prover(tb)(engine);
+    wff->get_adv_truth_prover(tb).second(engine);
     if (engine.get_proof_labels().size() > 0) {
         //cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
         cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
@@ -473,7 +473,7 @@ struct Z3Adapter {
                     cout << "WFF: " << parse_expr(e.arg(0), tb)->to_string() << endl;
                     pwff thesis = parse_expr(extract_thesis(e), tb);
                     cout << "AXIOM ORACLE for '" << thesis->to_string() << "'!" << endl;
-                    Prover< CreativeCheckpointedProofEngine< Sentence > > p1 = thesis->get_adv_truth_prover(this->tb);
+                    auto p1 = thesis->get_adv_truth_prover(this->tb).second;
                     return this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(a1i_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", thesis->get_type_prover(this->tb)}}, {p1});
                     break; }
                 case Z3_OP_PR_NOT_OR_ELIM: {
@@ -526,7 +526,7 @@ struct Z3Adapter {
                     cout << "TH: " << e.arg(1) << endl;
                     cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;*/
                     cout << "LEMMA ORACLE for '" << Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e), tb))->to_string() << "'!" << endl;
-                    return Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e), tb))->get_adv_truth_prover(this->tb);
+                    return Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e), tb))->get_adv_truth_prover(this->tb).second;
                     break; }
                 /*case Z3_OP_PR_HYPOTHESIS:
                     cout << "hypothesis";
@@ -539,7 +539,7 @@ struct Z3Adapter {
                 default:
                     //prove_and_print(Imp::create(w, parse_expr(extract_thesis(e))), tb);
                     cout << "GENERIC ORACLE for '" << Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e), tb))->to_string() << "'!" << endl;
-                    return Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e), tb))->get_adv_truth_prover(this->tb);
+                    return Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e), tb))->get_adv_truth_prover(this->tb).second;
                     break;
                 }
             } else {

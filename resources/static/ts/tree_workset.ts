@@ -159,6 +159,8 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
     } else {
       if (step.proof_data.type == "unification") {
         this.redraw_node_unification(node);
+      } else if (step.proof_data.type == "wff") {
+        this.redraw_node_wff(node);
       } else {
         throw new Error("Unknown proof_data type");
       }
@@ -178,6 +180,16 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
       number_color: proof_data.number > 0 ? spectrum_to_rgb(proof_data.number, workset.max_number) : "",
     };
     $(`#${full_id}_label`).html(Mustache.render(LABEL_UNIFICATION_TEMPL, label_params));
+  }
+
+  redraw_node_wff(node : TreeNode) : void {
+    let step : StepManager = this.get_manager_object(node);
+    let workset = this.get_workset();
+    let full_id = this.editor_manager.compute_full_id(node);
+    let proof_data = step.proof_data;
+    let label_params = {
+    };
+    $(`#${full_id}_label`).html(Mustache.render(LABEL_WFF_TEMPL, label_params));
   }
 
   show_suggestion(node : TreeNode) : void {
@@ -207,13 +219,15 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
     } else {
       if (step.proof_data.type == "unification") {
         this.get_suggestion_unification(node);
+      } else if (step.proof_data.type == "wff") {
+            this.get_suggestion_wff(node);
       } else {
         throw new Error("Unknown proof_data type");
       }
     }
   }
 
-  get_suggestion_unification(node : TreeNode) {
+  get_suggestion_unification(node : TreeNode) : void {
     let self = this;
     let step : StepManager = this.get_manager_object(node);
     let workset = this.get_workset();
@@ -243,6 +257,15 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
         step.suggestion_ready = true;
       });
     }).catch(catch_all);
+  }
+
+  get_suggestion_wff(node : TreeNode) : void {
+    let self = this;
+    let step : StepManager = this.get_manager_object(node);
+    let workset = this.get_workset();
+    let default_renderer = workset.get_default_renderer();
+    let full_id = this.editor_manager.compute_full_id(node);
+    $(`#${full_id}_suggestion`).html(Mustache.render(SUGGESTION_WFF_TEMPL, {}));
   }
 
   paint_node(node : TreeNode) : void {
@@ -389,11 +412,13 @@ const DATA1_TEMPL = `
 
 const LABEL_SEARCHING_TEMPL = `<span style="color: blue;">searching</span>`;
 const LABEL_FAILED_TEMPL = `<span style="color: red;">failed</span>`;
-const LABEL_UNIFICATION_TEMPL = `{{ label }} <span class="r" style="color: {{ number_color }}">{{ number }}</span>`;
+const LABEL_UNIFICATION_TEMPL = `<span class="strategy">Unif</span> {{ label }} <span class="r" style="color: {{ number_color }}">{{ number }}</span>`;
+const LABEL_WFF_TEMPL = `<span class="strategy">Wff</span>`;
 
 const SUGGESTION_SEARCHING_TEMPL = `Searching for a proof`;
 const SUGGESTION_FAILED_TEMPL = `Could not find a proof`;
 const SUGGESTION_LOADING_TEMPL = `<span class="loading">Loading...</span>`;
+const SUGGESTION_MISSING_TEMPL = `No suggestion available`;
 
 const SUGGESTION_UNIFICATION_TEMPL = `
   Step was proved with theorem:<br>
@@ -411,6 +436,8 @@ const SUGGESTION_UNIFICATION_TEMPL = `
   {{{ 0 }}}: {{{ 1 }}}<br>
   {{ /subst_map }}
 `;
+
+const SUGGESTION_WFF_TEMPL = SUGGESTION_MISSING_TEMPL;
 
 const DATA2_TEMPL = `
   <div><input type="text" id="{{ cell_id }}_text_input" class="text_input" value="{{ text_sentence }}"></input></div>
