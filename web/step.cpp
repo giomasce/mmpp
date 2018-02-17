@@ -408,22 +408,41 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             unique_lock< recursive_mutex > lock(self->global_mutex);
             auto strong_workset = self->get_workset().lock();
             assert_or_throw< SendError >(static_cast< bool >(strong_workset), 404);
-            const auto &toolbox = strong_workset->get_toolbox();
+            const LibraryToolbox &toolbox = strong_workset->get_toolbox();
             CreativeProofEngineImpl< Sentence > engine(toolbox, true);
             bool res = self->prove(engine);
             json ret = json::object();
             ret["success"] = res;
+
             ostringstream buf;
-            size_t i = 1;
-            for (const auto &hyp : engine.get_new_hypotheses()) {
-                buf << "hypothesis." << i << " $e " << toolbox.print_sentence(hyp.second) << " $." << endl;
-                i++;
+            const auto &thesis = engine.get_stack().back();
+            const auto &hyps = engine.get_new_hypotheses();
+            std::vector< LabTok > float_hyps;
+            std::vector< LabTok > ess_hyps;
+            std::set< SymTok > vars;
+            collect_variables(thesis, toolbox.get_standard_is_var_sym(), vars);
+            for (const auto &hyp : hyps) {
+                buf << toolbox.resolve_label(hyp.first) << " $e " << toolbox.print_sentence(hyp.second) << " $." << endl;
+                collect_variables(hyp.second, toolbox.get_standard_is_var_sym(), vars);
+                ess_hyps.push_back(hyp.first);
             }
-            buf << "thesis $p " << toolbox.print_sentence(engine.get_stack().back()) << " $=" << endl;
+            for (const auto var : vars) {
+                float_hyps.push_back(toolbox.get_var_sym_to_lab(var));
+            }
+            // Sorting floating hypotheses by their label shoud give the expected order in the Assertion
+            sort(float_hyps.begin(), float_hyps.end());
+            buf << "thesis $p " << toolbox.print_sentence(thesis) << " $=" << endl;
             UncompressedProof uncomp_proof(engine.get_proof_labels());
-            buf << toolbox.print_proof(uncomp_proof) << endl;
+            Assertion dummy_ass(float_hyps, ess_hyps);
+            auto uncomp_op = uncomp_proof.get_operator(toolbox, dummy_ass);
+            for (const auto &hyp : hyps) {
+                uncomp_op->set_new_hypothesis(hyp.first, hyp.second);
+            }
+            auto comp_proof = uncomp_op->compress(ProofOperator::CS_BACKREFS_ON_IDENTICAL_SENTENCE);
+            buf << toolbox.print_proof(comp_proof) << endl;
             buf << "$." << endl;
             ret["proof"] = buf.str();
+
             return ret;
         });
     }

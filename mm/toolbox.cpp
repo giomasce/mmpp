@@ -592,9 +592,16 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
     // Parse inputs
     vector< ParsingTree< SymTok, LabTok > > pt_hyps;
     for (auto &hyp : hypotheses) {
-        pt_hyps.push_back(this->parse_sentence(hyp.begin()+1, hyp.end(), this->turnstile_alias));
+        auto pt = this->parse_sentence(hyp.begin()+1, hyp.end(), this->turnstile_alias);
+        if (pt.label == LabTok{}) {
+            return {};
+        }
+        pt_hyps.push_back(pt);
     }
     ParsingTree< SymTok, LabTok > pt_thesis = this->parse_sentence(thesis.begin()+1, thesis.end(), this->turnstile_alias);
+    if (pt_thesis.label == LabTok{}) {
+        return {};
+    }
 
     auto assertions_gen = this->list_assertions();
     const auto &is_var = this->get_standard_is_var();

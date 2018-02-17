@@ -172,14 +172,15 @@ public:
     Assertion();
     Assertion(bool theorem,
               bool _has_proof,
-              std::set< std::pair< SymTok, SymTok > > mand_dists,
-              std::set< std::pair< SymTok, SymTok > > opt_dists,
-              std::vector< LabTok > float_hyps,
-              std::vector< LabTok > ess_hyps,
-              std::set< LabTok > opt_hyps,
+              const std::set< std::pair< SymTok, SymTok > > &mand_dists,
+              const std::set< std::pair< SymTok, SymTok > > &opt_dists,
+              const std::vector< LabTok > &float_hyps,
+              const std::vector< LabTok > &ess_hyps,
+              const std::set< LabTok > &opt_hyps,
               LabTok thesis,
               LabTok number,
-              std::string comment = "");
+              const std::string &comment = "");
+    Assertion(const std::vector< LabTok > &float_hyps, const std::vector< LabTok > &ess_hyps);
     ~Assertion();
     bool is_valid() const
     {

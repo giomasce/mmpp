@@ -231,7 +231,9 @@ const CompressedProof UncompressedProofOperator::compress(CompressionStrategy st
             codes.push_back(label_map.at(label));
         }
     } else if (strategy == CS_BACKREFS_ON_IDENTICAL_SENTENCE || strategy == CS_ANY) {
+        this->set_relax_checks(true);
         this->execute();
+        this->set_relax_checks(false);
         const auto &tree = this->engine.get_proof_tree();
         set< vector< SymTok > > sents;
         set< vector< SymTok > > dupl_sents;

@@ -176,10 +176,10 @@ Assertion::Assertion() :
 }
 
 Assertion::Assertion(bool theorem, bool _has_proof,
-                     std::set<std::pair<SymTok, SymTok> > dists,
-                     std::set<std::pair<SymTok, SymTok> > opt_dists,
-                     std::vector<LabTok> float_hyps, std::vector<LabTok> ess_hyps, std::set<LabTok> opt_hyps,
-                     LabTok thesis, LabTok number, string comment) :
+                     const std::set<std::pair<SymTok, SymTok> > &dists,
+                     const std::set<std::pair<SymTok, SymTok> > &opt_dists,
+                     const std::vector<LabTok> &float_hyps, const std::vector<LabTok> &ess_hyps, const std::set<LabTok> &opt_hyps,
+                     LabTok thesis, LabTok number, const string &comment) :
     valid(true), theorem(theorem), mand_dists(dists), opt_dists(opt_dists),
     float_hyps(float_hyps), ess_hyps(ess_hyps), opt_hyps(opt_hyps), thesis(thesis), number(number), proof(NULL),
     comment(comment), modif_disc(false), usage_disc(false), _has_proof(_has_proof)
@@ -191,6 +191,8 @@ Assertion::Assertion(bool theorem, bool _has_proof,
         this->usage_disc = true;
     }
 }
+
+Assertion::Assertion(const std::vector<LabTok> &float_hyps, const std::vector<LabTok> &ess_hyps) : Assertion({}, {}, {}, {}, float_hyps, ess_hyps, {}, {}, {}) {}
 
 Assertion::~Assertion()
 {

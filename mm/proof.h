@@ -43,40 +43,57 @@ public:
     {
     }
 
+    void set_new_hypothesis(LabTok label, const typename ProofEngineBase< SentType_ >::SentType &sent) {
+        return this->engine.set_new_hypothesis(label, sent);
+    }
+
 protected:
     ProofExecutor(const Library &lib, const Assertion &ass, bool gen_proof_tree) :
-        lib(lib), ass(ass), engine(lib, gen_proof_tree) {
+        lib(lib), ass(ass), engine(lib, gen_proof_tree), relax_checks(false) {
     }
+
     void process_label(const LabTok label)
     {
-        const Assertion &child_ass = this->lib.get_assertion(label);
-        if (!child_ass.is_valid()) {
-            // In line of principle searching in a set would be faster, but since usually hypotheses are not many the vector is probably better
-            assert_or_throw< ProofException< Sentence > >(find(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end(), label) != this->ass.get_float_hyps().end() ||
-                    find(this->ass.get_ess_hyps().begin(), this->ass.get_ess_hyps().end(), label) != this->ass.get_ess_hyps().end() ||
-                    find(this->ass.get_opt_hyps().begin(), this->ass.get_opt_hyps().end(), label) != this->ass.get_opt_hyps().end(),
-                                                          "Requested label cannot be used by this theorem");
+        if (!this->relax_checks) {
+            const Assertion &child_ass = this->lib.get_assertion(label);
+            if (!child_ass.is_valid()) {
+                // In line of principle searching in a set would be faster, but since usually hypotheses are not many the vector is probably better
+                assert_or_throw< ProofException< SentType_ > >(find(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end(), label) != this->ass.get_float_hyps().end() ||
+                        find(this->ass.get_ess_hyps().begin(), this->ass.get_ess_hyps().end(), label) != this->ass.get_ess_hyps().end() ||
+                        find(this->ass.get_opt_hyps().begin(), this->ass.get_opt_hyps().end(), label) != this->ass.get_opt_hyps().end(),
+                                                              "Requested label cannot be used by this theorem");
+            }
         }
         this->engine.process_label(label);
     }
+
     size_t save_step() {
         return this->engine.save_step();
     }
+
     void process_saved_step(size_t step_num) {
         this->engine.process_saved_step(step_num);
     }
+
     void final_checks() const
     {
-        assert_or_throw< ProofException< Sentence > >(this->get_stack().size() == 1, "Proof execution did not end with a single element on the stack");
-        assert_or_throw< ProofException< Sentence > >(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()), "Proof does not prove the thesis");
-        assert_or_throw< ProofException< Sentence > >(includes(this->ass.get_dists().begin(), this->ass.get_dists().end(),
-                                                               this->engine.get_dists().begin(), this->engine.get_dists().end()),
-                                                      "Distinct variables constraints are too wide");
+        if (!this->relax_checks) {
+            assert_or_throw< ProofException< SentType_ > >(this->get_stack().size() == 1, "Proof execution did not end with a single element on the stack");
+            assert_or_throw< ProofException< SentType_ > >(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()), "Proof does not prove the thesis");
+            assert_or_throw< ProofException< SentType_ > >(includes(this->ass.get_dists().begin(), this->ass.get_dists().end(),
+                                                                   this->engine.get_dists().begin(), this->engine.get_dists().end()),
+                                                          "Distinct variables constraints are too wide");
+        }
+    }
+
+    void set_relax_checks(bool x) {
+        this->relax_checks = x;
     }
 
     const Library &lib;
     const Assertion &ass;
-    ProofEngineImpl< SentType_ > engine;
+    SemiCreativeProofEngineImpl< SentType_ > engine;
+    bool relax_checks;
 };
 
 template< typename SentType_ >

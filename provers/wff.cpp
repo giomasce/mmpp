@@ -89,7 +89,7 @@ std::pair<bool, Prover<CheckpointedProofEngine> > Wff::adv_truth_internal(pvar_s
         pwff neg_antecent = Not::create(var);
         auto rec_pos_prover = pos_wff->adv_truth_internal(cur_var, end_var, tb);
         auto rec_neg_prover = neg_wff->adv_truth_internal(cur_var, end_var, tb);
-        if (!rec_pos_prover.first || !rec_pos_prover.second) {
+        if (!rec_pos_prover.first || !rec_neg_prover.first) {
             return make_pair(false, null_prover);
         }
         auto pos_prover = this->get_subst_prover(var, true, tb);
