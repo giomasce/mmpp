@@ -31,6 +31,10 @@ protected:
         return {};
     }
 
+    nlohmann::json get_dump_json() const {
+        return {};
+    }
+
     bool prove(CheckpointedProofEngine &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
         (void) engine;
         (void) children;
@@ -53,7 +57,7 @@ struct UnificationStrategyResult : public StepStrategyResult, public enable_crea
     }
 
     nlohmann::json get_web_json() const {
-        json ret;
+        json ret = json::object();
         LabTok label = get<0>(this->data);
         ret["type"] = "unification";
         ret["label"] = label;
@@ -65,6 +69,15 @@ struct UnificationStrategyResult : public StepStrategyResult, public enable_crea
         } else {
             ret["number"] = LabTok{};
         }
+        return ret;
+    }
+
+    nlohmann::json get_dump_json() const {
+        json ret = json::object();
+        ret["type"] = "unification";
+        ret["label"] = get<0>(this->data);
+        ret["permutation"] = get<1>(this->data);
+        ret["subst_map"] = get<2>(this->data);
         return ret;
     }
 
@@ -126,6 +139,12 @@ struct WffStrategyResult : public StepStrategyResult, public enable_create< WffS
     }
 
     nlohmann::json get_web_json() const {
+        json ret;
+        ret["type"] = "wff";
+        return ret;
+    }
+
+    nlohmann::json get_dump_json() const {
         json ret;
         ret["type"] = "wff";
         return ret;

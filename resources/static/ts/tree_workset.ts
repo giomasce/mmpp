@@ -49,6 +49,12 @@ export class StepManager {
       }
     });
   }
+
+  dump(workset_manager : WorksetManager) : Promise< string > {
+    return this.do_api_request(workset_manager, `dump`, {}).then(function (data : any) : string {
+      return JSON.stringify(data);
+    });
+  }
 }
 
 export class WorksetManager extends TreeManager implements NodePainter, WorksetEventListener {
@@ -302,13 +308,22 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
       $(`#${full_id}_sentence`).html(sentence);
     });
     $(`#${full_id}_btn_get_proof`).click(this.get_proof.bind(this, node));
+    $(`#${full_id}_btn_dump`).click(this.dump.bind(this, node));
   }
 
   get_proof(node : TreeNode) {
     let self = this;
     let step : StepManager = this.get_manager_object(node);
     step.get_proof(this).then(function (proof : string) : void {
-      $(`#workset_proof`).text(proof);
+      $(`#workset_proof`).val(proof);
+    }).catch(catch_all);
+  }
+
+  dump(node : TreeNode) {
+    let self = this;
+    let step : StepManager = this.get_manager_object(node);
+    step.dump(this).then(function (dump_data : string) : void {
+      $(`#workset_proof`).val(dump_data);
     }).catch(catch_all);
   }
 
@@ -322,12 +337,18 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
     });
   }
 
-  creating_node(node : TreeNode) : Promise< void > {
+  creating_node(node : TreeNode, special : any) : Promise< void > {
     let self = this;
     let step = new StepManager();
     this.set_manager_object(node, step);
     if (!this.loading) {
-      return this.do_api_request(`step/create`, {}).then(function (data : any) : Promise< void > {
+      let req_url = `step/create`;
+      let req_data = {};
+      if (special) {
+        req_url = `step/create_from_dump`;
+        req_data = {"dump": special["dump"]};
+      }
+      return this.do_api_request(req_url, req_data).then(function (data : any) : Promise< void > {
         step.remote_id = data.id;
         assert(!self.remote_id_map.has(step.remote_id));
         self.remote_id_map.set(step.remote_id, node.get_id());
@@ -390,17 +411,9 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
   }
 }
 
-/*export class WorksetPainter extends TreeManager {
-  workset_manager : WorksetManager;
-
-  constructor(workset_manager : WorksetManager) {
-    super();
-    this.workset_manager = workset_manager;
-  }
-}*/
-
 const DATA1_TEMPL = `
   <button id="{{ cell_id }}_btn_get_proof" class="mini_button mini_button_get_proof"></button>
+  <button id="{{ cell_id }}_btn_dump" class="mini_button mini_button_dump"></button>
   <span style="position: relative;">
     <span id="{{ cell_id }}_label" class="label"></span>
     <div class="outer_above">

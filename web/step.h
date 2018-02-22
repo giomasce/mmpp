@@ -73,6 +73,8 @@ public:
     bool reparent(std::shared_ptr< Step > parent, size_t idx);
     void report_result(std::shared_ptr< StepStrategy > strategy, std::shared_ptr< StepStrategyResult > result);
     nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end);
+    nlohmann::json dump();
+    void load_dump(const nlohmann::json &dump);
     void add_listener(const std::shared_ptr<StepOperationsListener> &listener);
     void maybe_notify_update();
     bool is_searching();

@@ -137,25 +137,29 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             throw WaitForPost([this] (const auto &post_data) {
                 (void) post_data;
                 unique_lock< recursive_mutex > lock(this->global_mutex);
-                /*size_t parent_id = safe_stoi(safe_at(post_data, "parent").value);
-                size_t idx = safe_stoi(safe_at(post_data, "index").value);
-                shared_ptr< Step > parent_step;
-                try {
-                    parent_step = this->step_backrefs->at(parent_id);
-                } catch (out_of_range) {
-                    throw SendError(404);
-                }*/
                 auto new_step = this->create_step(false);
-                //bool res = new_step->reparent(parent_step, idx);
                 json ret = json::object();
                 ret["id"] = new_step->get_id();
                 return ret;
             });
-        } else if (*path_begin == "list") {
-            /*path_begin++;
+        } else if (*path_begin == "create_from_dump") {
+            path_begin++;
             assert_or_throw< SendError >(path_begin == path_end, 404);
-            json ret = { { "worksets", this->json_list_worksets() } };
-            return ret;*/
+            assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+            throw WaitForPost([this] (const auto &post_data) {
+                unique_lock< recursive_mutex > lock(this->global_mutex);
+                const auto dump_str = safe_at(post_data, "dump").value;
+                json dump;
+                try {
+                    dump = json::parse(dump_str);
+                } catch (nlohmann::detail::exception) {
+                    throw SendError(422);
+                }
+                auto new_step = this->create_steps_from_dump(dump);
+                json ret = json::object();
+                ret["id"] = new_step->get_id();
+                return ret;
+            });
         } else {
             size_t id = safe_stoi(*path_begin);
             path_begin++;
@@ -232,6 +236,20 @@ bool Workset::destroy_step(size_t id)
         this->steps.erase(id);
         return true;
     }
+}
+
+std::shared_ptr<Step> Workset::create_steps_from_dump(const json &dump)
+{
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    auto step = this->create_step(false);
+    step->load_dump(dump);
+    size_t idx = 0;
+    for (const auto &child : dump["children"]) {
+        auto step_child = this->create_steps_from_dump(child);
+        step_child->reparent(step, idx);
+        idx++;
+    }
+    return step;
 }
 
 /*std::shared_ptr<BackreferenceRegistry<Step, Workset> > Workset::get_step_backrefs() const

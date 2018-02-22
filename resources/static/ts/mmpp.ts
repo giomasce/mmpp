@@ -350,7 +350,14 @@ export function ui_show_tree() : void {
 export function ui_create_node() : void {
   current_tree.create_node(get_serial(), false).then(function (node : TreeNode) : void {
     node.reparent(current_tree.get_root_node(), -1);
-  });
+  }).catch(catch_all);
+}
+
+export function ui_create_node_from_dump() : void {
+  let special = {"dump": $(`#workset_proof`).val()};
+  current_tree.create_node(get_serial(), false, special).then(function (node : TreeNode) : void {
+    node.reparent(current_tree.get_root_node(), -1);
+  }).catch(catch_all);
 }
 
 /*function retrieve_sentence(label_tok : number) : number[] {
@@ -449,6 +456,7 @@ const WORKSET_TEMPL = `
     <button onclick="mmpp.ui_build_tree()">Build tree</button>
     <button onclick="mmpp.ui_show_tree()">Show tree</button>
     <button onclick="mmpp.ui_create_node()">Create node</button>
+    <button onclick="mmpp.ui_create_node_from_dump()">Create node from dump</button>
   </div>
   <div id="workset_area"></div>
 `;

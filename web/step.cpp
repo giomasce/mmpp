@@ -340,6 +340,10 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         path_begin++;
         assert_or_throw< SendError >(path_begin == path_end, 404);
         return jsonize(*this);
+    } else if (*path_begin == "dump") {
+        path_begin++;
+        assert_or_throw< SendError >(path_begin == path_end, 404);
+        return this->dump();
     } else if (*path_begin == "set_sentence") {
         path_begin++;
         assert_or_throw< SendError >(path_begin == path_end, 404);
@@ -447,6 +451,31 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         });
     }
     throw SendError(404);
+}
+
+json Step::dump()
+{
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    json ret = json::object();
+    ret["sentence"] = this->sentence;
+    ret["children"] = json::array();
+    for (const auto &child : this->get_children()) {
+        ret["children"].push_back(child.lock()->dump());
+    }
+    if (this->winning_strategy) {
+        ret["strategy"] = this->winning_strategy->get_dump_json();
+    }
+    return ret;
+}
+
+void Step::load_dump(const json &dump)
+{
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    Sentence new_sent;
+    for (SymTok x : dump["sentence"]) {
+        new_sent.push_back(x);
+    }
+    this->set_sentence(new_sent);
 }
 
 void Step::add_listener(const std::shared_ptr<StepOperationsListener> &listener)

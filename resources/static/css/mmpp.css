@@ -105,6 +105,10 @@
   background-image: url("../svg/p_icon.svg");
 }
 
+.mini_button_dump {
+  background-image: url("../svg/d_icon.svg");
+}
+
 .strategy {
   font-variant: small-caps;
 }

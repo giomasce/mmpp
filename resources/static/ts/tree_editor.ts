@@ -26,7 +26,7 @@ export class EditorManager extends TreeManager {
     this.painter.set_editor_manager(this);
   }
 
-  creating_node(node : TreeNode) : Promise< void > {
+  creating_node(node : TreeNode, special : any) : Promise< void > {
     let obj = new EditorManagerObject();
     this.set_manager_object(node, obj);
     if (node.is_root()) {

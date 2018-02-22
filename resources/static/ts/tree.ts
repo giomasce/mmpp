@@ -22,7 +22,7 @@ export class TreeManager {
     node.set_manager_object(this.get_manager_id(), obj);
   }
 
-  creating_node(node : TreeNode) : Promise< void > {
+  creating_node(node : TreeNode, special : any) : Promise< void > {
     return Promise.resolve();
   }
 
@@ -167,7 +167,7 @@ export class Tree {
     return this.id;
   }
 
-  create_node(id : number, is_root : boolean) : Promise< TreeNode > {
+  create_node(id : number, is_root : boolean, special : any = null) : Promise< TreeNode > {
     let node = new TreeNode(id, this);
     assert(!this.node_map.has(id));
     this.node_map.set(id, node);
@@ -177,7 +177,7 @@ export class Tree {
     let ret = Promise.resolve();
     for (let manager of this.managers) {
       ret = ret.then(function () : Promise< void > {
-        return manager.creating_node(node);
+        return manager.creating_node(node, special);
       });
     }
     return ret.then(function () : TreeNode {

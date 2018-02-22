@@ -17,6 +17,7 @@ class StepStrategyResult {
 public:
     virtual bool get_success() const = 0;
     virtual nlohmann::json get_web_json() const = 0;
+    virtual nlohmann::json get_dump_json() const = 0;
     virtual bool prove(CheckpointedProofEngine &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const = 0;
 };
 

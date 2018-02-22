@@ -32,6 +32,8 @@ public:
     std::shared_ptr< Step > at(size_t id);
     bool destroy_step(size_t id);
 
+    std::shared_ptr< Step > create_steps_from_dump(const nlohmann::json &dump);
+
 protected:
     Workset();
     void init();
