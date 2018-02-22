@@ -417,6 +417,9 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             bool res = self->prove(engine);
             json ret = json::object();
             ret["success"] = res;
+            if (!res) {
+                return ret;
+            }
 
             ostringstream buf;
             const auto &thesis = engine.get_stack().back();
