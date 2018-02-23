@@ -10,22 +10,6 @@ Wff::~Wff()
 {
 }
 
-// FIXME Terribly inefficient, but to_sentence() is inefficient too
-/*Sentence Wff::to_asserted_sentence(const Library &lib) const
-{
-    auto ret = this->to_sentence(lib);
-    ret.insert(ret.begin(), lib.get_symbol("|-"));
-    return ret;
-}
-
-// FIXME Terribly inefficient, but to_sentence() is inefficient too
-Sentence Wff::to_wff_sentence(const Library &lib) const
-{
-    auto ret = this->to_sentence(lib);
-    ret.insert(ret.begin(), lib.get_symbol("wff"));
-    return ret;
-}*/
-
 ParsingTree2<SymTok, LabTok> Wff::to_parsing_tree(const LibraryToolbox &tb) const
 {
     auto type_prover = this->get_type_prover(tb);
@@ -164,11 +148,6 @@ pwff True::subst(pvar var, bool positive) const
     return this->shared_from_this();
 }
 
-std::vector<SymTok> True::to_sentence(const Library &lib) const
-{
-    return { lib.get_symbol("T.") };
-}
-
 void True::get_variables(pvar_set &vars) const
 {
     (void) vars;
@@ -239,11 +218,6 @@ pwff False::subst(pvar var, bool positive) const
     (void) positive;
     return this->shared_from_this();
 }
-
-/*std::vector<SymTok> False::to_sentence(const Library &lib) const
-{
-    return { lib.get_symbol("F.") };
-}*/
 
 void False::get_variables(pvar_set &vars) const
 {
@@ -336,11 +310,6 @@ pwff Var::subst(pvar var, bool positive) const
         return this->shared_from_this();
     }
 }
-
-/*std::vector<SymTok> Var::to_sentence(const Library &lib) const
-{
-    return { lib.get_symbol(this->name) };
-}*/
 
 void Var::get_variables(pvar_set &vars) const
 {
@@ -437,15 +406,6 @@ pwff Not::subst(pvar var, bool positive) const
     return Not::create(this->a->subst(var, positive));
 }
 
-/*std::vector<SymTok> Not::to_sentence(const Library &lib) const
-{
-    vector< SymTok > ret;
-    ret.push_back(lib.get_symbol("-."));
-    vector< SymTok > sent = this->a->to_sentence(lib);
-    copy(sent.begin(), sent.end(), back_inserter(ret));
-    return ret;
-}*/
-
 void Not::get_variables(pvar_set &vars) const
 {
     this->a->get_variables(vars);
@@ -529,19 +489,6 @@ pwff Imp::subst(pvar var, bool positive) const
 {
     return Imp::create(this->a->subst(var, positive), this->b->subst(var, positive));
 }
-
-/*std::vector<SymTok> Imp::to_sentence(const Library &lib) const
-{
-    vector< SymTok > ret;
-    ret.push_back(lib.get_symbol("("));
-    vector< SymTok > senta = this->a->to_sentence(lib);
-    vector< SymTok > sentb = this->b->to_sentence(lib);
-    copy(senta.begin(), senta.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol("->"));
-    copy(sentb.begin(), sentb.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol(")"));
-    return ret;
-}*/
 
 void Imp::get_variables(pvar_set &vars) const
 {
@@ -660,19 +607,6 @@ pwff Biimp::half_imp_not_form() const
     return Not::create(Imp::create(Imp::create(ain, bin), Not::create(Imp::create(bin, ain))));
 }
 
-/*std::vector<SymTok> Biimp::to_sentence(const Library &lib) const
-{
-    vector< SymTok > ret;
-    ret.push_back(lib.get_symbol("("));
-    vector< SymTok > senta = this->a->to_sentence(lib);
-    vector< SymTok > sentb = this->b->to_sentence(lib);
-    copy(senta.begin(), senta.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol("<->"));
-    copy(sentb.begin(), sentb.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol(")"));
-    return ret;
-}*/
-
 void Biimp::get_variables(pvar_set &vars) const
 {
     this->a->get_variables(vars);
@@ -776,19 +710,6 @@ void Xor::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
     cnf.insert({{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
 }
 
-/*std::vector<SymTok> Xor::to_sentence(const Library &lib) const
-{
-    vector< SymTok > ret;
-    ret.push_back(lib.get_symbol("("));
-    vector< SymTok > senta = this->a->to_sentence(lib);
-    vector< SymTok > sentb = this->b->to_sentence(lib);
-    copy(senta.begin(), senta.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol("\\/_"));
-    copy(sentb.begin(), sentb.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol(")"));
-    return ret;
-}*/
-
 Nand::Nand(pwff a, pwff b) :
     a(a), b(b) {
 }
@@ -847,19 +768,6 @@ void Nand::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
     cnf.insert({{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
     cnf.insert({{true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
 }
-
-/*std::vector<SymTok> Nand::to_sentence(const Library &lib) const
-{
-    vector< SymTok > ret;
-    ret.push_back(lib.get_symbol("("));
-    vector< SymTok > senta = this->a->to_sentence(lib);
-    vector< SymTok > sentb = this->b->to_sentence(lib);
-    copy(senta.begin(), senta.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol("-/\\"));
-    copy(sentb.begin(), sentb.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol(")"));
-    return ret;
-}*/
 
 Or::Or(pwff a, pwff b) :
     a(a), b(b) {
@@ -920,19 +828,6 @@ void Or::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
     cnf.insert({{false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
 }
 
-/*std::vector<SymTok> Or::to_sentence(const Library &lib) const
-{
-    vector< SymTok > ret;
-    ret.push_back(lib.get_symbol("("));
-    vector< SymTok > senta = this->a->to_sentence(lib);
-    vector< SymTok > sentb = this->b->to_sentence(lib);
-    copy(senta.begin(), senta.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol("\\/"));
-    copy(sentb.begin(), sentb.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol(")"));
-    return ret;
-}*/
-
 And::And(pwff a, pwff b) :
     a(a), b(b) {
 }
@@ -955,19 +850,6 @@ pwff And::imp_not_form() const
 {
     return Not::create(Imp::create(this->a->imp_not_form(), Not::create(this->b->imp_not_form())));
 }
-
-/*std::vector<SymTok> And::to_sentence(const Library &lib) const
-{
-    vector< SymTok > ret;
-    ret.push_back(lib.get_symbol("("));
-    vector< SymTok > senta = this->a->to_sentence(lib);
-    vector< SymTok > sentb = this->b->to_sentence(lib);
-    copy(senta.begin(), senta.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol("/\\"));
-    copy(sentb.begin(), sentb.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol(")"));
-    return ret;
-}*/
 
 const RegisteredProver And::type_rp = LibraryToolbox::register_prover({}, "wff ( ph /\\ ps )");
 Prover<CheckpointedProofEngine> And::get_type_prover(const LibraryToolbox &tb) const
@@ -1052,22 +934,6 @@ string And3::to_string() const
     return "( " + this->a->to_string() + " /\\ " + this->b->to_string() + " /\\ " + this->c->to_string() + " )";
 }
 
-/*std::vector<SymTok> And3::to_sentence(const Library &lib) const
-{
-    vector< SymTok > ret;
-    ret.push_back(lib.get_symbol("("));
-    vector< SymTok > senta = this->a->to_sentence(lib);
-    vector< SymTok > sentb = this->b->to_sentence(lib);
-    vector< SymTok > sentc = this->c->to_sentence(lib);
-    copy(senta.begin(), senta.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol("/\\"));
-    copy(sentb.begin(), sentb.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol("/\\"));
-    copy(sentc.begin(), sentc.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol(")"));
-    return ret;
-}*/
-
 pwff And3::imp_not_form() const
 {
     return And::create(And::create(this->a, this->b), this->c)->imp_not_form();
@@ -1140,22 +1006,6 @@ string Or3::to_string() const
 {
     return "( " + this->a->to_string() + " \\/ " + this->b->to_string() + " \\/ " + this->c->to_string() + " )";
 }
-
-/*std::vector<SymTok> Or3::to_sentence(const Library &lib) const
-{
-    vector< SymTok > ret;
-    ret.push_back(lib.get_symbol("("));
-    vector< SymTok > senta = this->a->to_sentence(lib);
-    vector< SymTok > sentb = this->b->to_sentence(lib);
-    vector< SymTok > sentc = this->c->to_sentence(lib);
-    copy(senta.begin(), senta.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol("\\/"));
-    copy(sentb.begin(), sentb.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol("\\/"));
-    copy(sentc.begin(), sentc.end(), back_inserter(ret));
-    ret.push_back(lib.get_symbol(")"));
-    return ret;
-}*/
 
 pwff Or3::imp_not_form() const
 {
