@@ -113,7 +113,7 @@ int temp_main(int argc, char *argv[]) {
     auto tseitin = Not::create(wff)->get_tseitin_dimacs(tb);
     auto dimacs = tseitin.first;
     auto ts_map = tseitin.second;
-    dimacs.print(cout);
+    dimacs.print_dimacs(cout);
     for (const auto &x : ts_map) {
         cout << (x.second + 1) << " : " << x.first->to_string() << endl;
     }

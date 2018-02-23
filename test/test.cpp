@@ -369,7 +369,7 @@ void test_wffs_advanced() {
                 auto tseitin = wff->get_tseitin_dimacs(tb);
                 auto dimacs = tseitin.first;
                 auto ts_map = tseitin.second;
-                dimacs.print(cout);
+                dimacs.print_dimacs(cout);
                 for (const auto &x : ts_map) {
                     cout << (x.second + 1) << " : " << x.first->to_string() << endl;
                 }
@@ -380,6 +380,17 @@ void test_wffs_advanced() {
                     cout << "The formula is SATisfiable" << endl;
                 } else {
                     cout << "The formula is UNSATisfiable" << endl;
+                }
+                for (const auto &ref : solver.refutation) {
+                    if (!ref.first) {
+                        continue;
+                    }
+                    cout << "Inferring clause:";
+                    for (const auto &lit : ref.second) {
+                        auto lit2 = from_minisat_literal(lit);
+                        cout << " " << to_number_literal(lit2);
+                    }
+                    cout << endl;
                 }
             }
             cout << endl;

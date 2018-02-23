@@ -119,7 +119,7 @@ pvar Wff::get_tseitin_var(const LibraryToolbox &tb) const
     return Var::create(this->to_parsing_tree(tb), tb);
 }
 
-std::pair<DIMACS, pvar_map<uint32_t> > Wff::get_tseitin_dimacs(const LibraryToolbox &tb) const
+std::pair<CNFProblem, pvar_map<uint32_t> > Wff::get_tseitin_dimacs(const LibraryToolbox &tb) const
 {
     CNForm cnf;
     this->get_tseitin_form(cnf, tb);
@@ -1126,32 +1126,6 @@ pvar_set collect_tseitin_vars(const CNForm &cnf)
     return ret;
 }
 
-void DIMACS::print(ostream &stream)
-{
-    stream << "p cnf " << this->var_num << " " << this->clauses.size() << endl;
-    for (const auto &clause : clauses) {
-        for (const auto &term : clause) {
-            stream << (term.first ? "" : "-") << (term.second + 1) << " ";
-        }
-        stream << "0" << endl;
-    }
-}
-
-void DIMACS::feed_to_minisat(Minisat::Solver &solver)
-{
-    for (size_t i = 0; i < this->var_num; i++) {
-        Minisat::Var var = solver.newVar();
-        assert(var == (Minisat::Var) i);
-    }
-    for (const auto &clause : this->clauses) {
-        Minisat::vec< Minisat::Lit > clause2;
-        for (const auto &lit : clause) {
-            clause2.push(to_minisat_literal(lit));
-        }
-        solver.addClause_(clause2);
-    }
-}
-
 pvar_map<uint32_t> build_tseitin_map(const pvar_set &vars)
 {
     pvar_map< uint32_t > ret;
@@ -1163,9 +1137,9 @@ pvar_map<uint32_t> build_tseitin_map(const pvar_set &vars)
     return ret;
 }
 
-DIMACS build_dimacs(const CNForm &cnf, const pvar_map<uint32_t> &var_map)
+CNFProblem build_dimacs(const CNForm &cnf, const pvar_map<uint32_t> &var_map)
 {
-    DIMACS ret{var_map.size(), {}};
+    CNFProblem ret{var_map.size(), {}};
     for (const auto &clause : cnf) {
         ret.clauses.emplace_back();
         for (const auto &term : clause) {
@@ -1173,14 +1147,4 @@ DIMACS build_dimacs(const CNForm &cnf, const pvar_map<uint32_t> &var_map)
         }
     }
     return ret;
-}
-
-Minisat::Lit to_minisat_literal(const std::pair<bool, uint32_t> &lit)
-{
-    return Minisat::mkLit(lit.second, !lit.first);
-}
-
-std::pair<bool, uint32_t> from_minisat_literal(const Minisat::Lit &lit)
-{
-    return make_pair(!Minisat::sign(lit), Minisat::var(lit));
 }

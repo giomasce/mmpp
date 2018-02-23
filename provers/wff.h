@@ -9,7 +9,7 @@
 #include "mm/proof.h"
 #include "mm/toolbox.h"
 #include "parsing/parser.h"
-#include "libs/minisat/Solver.h"
+#include "provers/sat.h"
 
 class Wff;
 typedef std::shared_ptr< const Wff > pwff;
@@ -39,20 +39,9 @@ struct pvar_pair_comp {
 };
 typedef std::set< std::set< std::pair< bool, pvar >, pvar_pair_comp< bool > > > CNForm;
 
-struct DIMACS {
-    size_t var_num;
-    std::vector< std::vector< std::pair< bool, uint32_t > > > clauses;
-
-    void print(std::ostream &stream);
-    void feed_to_minisat(Minisat::Solver &solver);
-};
-
-Minisat::Lit to_minisat_literal(const std::pair< bool, uint32_t > &lit);
-std::pair< bool, uint32_t > from_minisat_literal(const Minisat::Lit &lit);
-
 pvar_set collect_tseitin_vars(const CNForm &cnf);
 pvar_map< uint32_t > build_tseitin_map(const pvar_set &vars);
-DIMACS build_dimacs(const CNForm &cnf, const pvar_map< uint32_t > &var_map);
+CNFProblem build_dimacs(const CNForm &cnf, const pvar_map< uint32_t > &var_map);
 
 class Wff {
 public:
@@ -73,7 +62,7 @@ public:
     std::pair< bool, Prover< CheckpointedProofEngine > > get_adv_truth_prover(const LibraryToolbox &tb) const;
     virtual void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const = 0;
     pvar get_tseitin_var(const LibraryToolbox &tb) const;
-    std::pair< DIMACS, pvar_map< uint32_t > > get_tseitin_dimacs(const LibraryToolbox &tb) const;
+    std::pair< CNFProblem, pvar_map< uint32_t > > get_tseitin_dimacs(const LibraryToolbox &tb) const;
 
 private:
     std::pair< bool, Prover< CheckpointedProofEngine > > adv_truth_internal(pvar_set::iterator cur_var, pvar_set::iterator end_var, const LibraryToolbox &tb) const;

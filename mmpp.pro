@@ -88,7 +88,8 @@ SOURCES += \
     mm/sentengine.cpp \
     web/strategy.cpp \
     mm/tempgen.cpp \
-    libs/minisat/Solver.cc
+    libs/minisat/Solver.cc \
+    provers/sat.cpp
 
 HEADERS += \
     pch.h \
@@ -139,7 +140,8 @@ HEADERS += \
     libs/minisat/SolverTypes.h \
     libs/minisat/Sort.h \
     libs/minisat/Vec.h \
-    libs/minisat/XAlloc.h
+    libs/minisat/XAlloc.h \
+    provers/sat.h
 
 DISTFILES += \
     README \
