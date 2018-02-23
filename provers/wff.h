@@ -47,6 +47,9 @@ struct DIMACS {
     void feed_to_minisat(Minisat::Solver &solver);
 };
 
+Minisat::Lit to_minisat_literal(const std::pair< bool, uint32_t > &lit);
+std::pair< bool, uint32_t > from_minisat_literal(const Minisat::Lit &lit);
+
 pvar_set collect_tseitin_vars(const CNForm &cnf);
 pvar_map< uint32_t > build_tseitin_map(const pvar_set &vars);
 DIMACS build_dimacs(const CNForm &cnf, const pvar_map< uint32_t > &var_map);

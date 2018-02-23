@@ -1295,8 +1295,8 @@ void DIMACS::feed_to_minisat(Minisat::Solver &solver)
     }
     for (const auto &clause : this->clauses) {
         Minisat::vec< Minisat::Lit > clause2;
-        for (const auto &term : clause) {
-            clause2.push(Minisat::mkLit(term.second, term.first));
+        for (const auto &lit : clause) {
+            clause2.push(to_minisat_literal(lit));
         }
         solver.addClause_(clause2);
     }
@@ -1323,4 +1323,14 @@ DIMACS build_dimacs(const CNForm &cnf, const pvar_map<uint32_t> &var_map)
         }
     }
     return ret;
+}
+
+Minisat::Lit to_minisat_literal(const std::pair<bool, uint32_t> &lit)
+{
+    return Minisat::mkLit(lit.second, !lit.first);
+}
+
+std::pair<bool, uint32_t> from_minisat_literal(const Minisat::Lit &lit)
+{
+    return make_pair(!Minisat::sign(lit), Minisat::var(lit));
 }

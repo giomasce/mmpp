@@ -21,6 +21,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef Minisat_Solver_h
 #define Minisat_Solver_h
 
+#include <vector>
+
 #include <cstdio>
 
 #include "Vec.h"
@@ -107,9 +109,6 @@ public:
     void    checkGarbage(double gf);
     void    checkGarbage();
 
-
-    FILE*               output;
-
     // Extra results: (read-only member variable)
     //
     vec<lbool> model;             // If problem is satisfiable, this vector contains the model (if any).
@@ -142,6 +141,8 @@ public:
     //
     uint64_t solves, starts, decisions, rnd_decisions, propagations, conflicts;
     uint64_t dec_vars, clauses_literals, learnts_literals, max_literals, tot_literals;
+
+    std::vector< std::pair< bool, std::vector< Lit > > > refutation;
 
 protected:
 
