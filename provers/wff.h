@@ -9,6 +9,7 @@
 #include "mm/proof.h"
 #include "mm/toolbox.h"
 #include "parsing/parser.h"
+#include "libs/minisat/Solver.h"
 
 class Wff;
 typedef std::shared_ptr< const Wff > pwff;
@@ -43,6 +44,7 @@ struct DIMACS {
     std::vector< std::vector< std::pair< bool, uint32_t > > > clauses;
 
     void print(std::ostream &stream);
+    void feed_to_minisat(Minisat::Solver &solver);
 };
 
 pvar_set collect_tseitin_vars(const CNForm &cnf);

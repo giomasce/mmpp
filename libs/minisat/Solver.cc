@@ -32,9 +32,11 @@ using namespace Minisat;
 
 Solver::Solver() :
 
+    output(NULL)
+
     // Parameters (user settable):
     //
-    verbosity        (0)
+  , verbosity        (0)
   , var_decay        (0.95)
   , clause_decay     (0.999)
   , random_var_freq  (0)
@@ -78,6 +80,7 @@ Solver::Solver() :
   , conflict_budget    (-1)
   , propagation_budget (-1)
   , asynch_interrupt   (false)
+
 {}
 
 

@@ -1287,6 +1287,21 @@ void DIMACS::print(ostream &stream)
     }
 }
 
+void DIMACS::feed_to_minisat(Minisat::Solver &solver)
+{
+    for (size_t i = 0; i < this->var_num; i++) {
+        Minisat::Var var = solver.newVar();
+        assert(var == (Minisat::Var) i);
+    }
+    for (const auto &clause : this->clauses) {
+        Minisat::vec< Minisat::Lit > clause2;
+        for (const auto &term : clause) {
+            clause2.push(Minisat::mkLit(term.second, term.first));
+        }
+        solver.addClause_(clause2);
+    }
+}
+
 pvar_map<uint32_t> build_tseitin_map(const pvar_set &vars)
 {
     pvar_map< uint32_t > ret;

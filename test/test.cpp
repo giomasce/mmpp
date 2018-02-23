@@ -361,7 +361,7 @@ void test_wffs_advanced() {
     }
 
     if (true) {
-        cout << "Tseitin DIMACS generation test" << endl;
+        cout << "Minisat refutation test" << endl;
         for (pwff wff : wffs) {
             wff = Not::create(wff);
             cout << "WFF: " << wff->to_string() << endl;
@@ -372,6 +372,14 @@ void test_wffs_advanced() {
                 dimacs.print(cout);
                 for (const auto &x : ts_map) {
                     cout << (x.second + 1) << " : " << x.first->to_string() << endl;
+                }
+                Minisat::Solver solver;
+                dimacs.feed_to_minisat(solver);
+                bool res = solver.solve();
+                if (res) {
+                    cout << "The formula is SATisfiable" << endl;
+                } else {
+                    cout << "The formula is UNSATisfiable" << endl;
                 }
             }
             cout << endl;
