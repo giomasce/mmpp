@@ -110,7 +110,7 @@ int temp_main(int argc, char *argv[]) {
 
     cout << wff->to_string() << endl;
 
-    auto tseitin = Not::create(wff)->get_tseitin_dimacs(tb);
+    auto tseitin = Not::create(wff)->get_tseitin_cnf_problem(tb);
     auto dimacs = tseitin.first;
     auto ts_map = tseitin.second;
     dimacs.print_dimacs(cout);

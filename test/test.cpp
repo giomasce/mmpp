@@ -366,7 +366,7 @@ void test_wffs_advanced() {
             wff = Not::create(wff);
             cout << "WFF: " << wff->to_string() << endl;
             {
-                auto tseitin = wff->get_tseitin_dimacs(tb);
+                auto tseitin = wff->get_tseitin_cnf_problem(tb);
                 auto dimacs = tseitin.first;
                 auto ts_map = tseitin.second;
                 dimacs.print_dimacs(cout);
@@ -386,11 +386,26 @@ void test_wffs_advanced() {
                         continue;
                     }
                     cout << "Inferring clause:";
+                    std::vector< Literal > negated_literals;
                     for (const auto &lit : ref.second) {
                         auto lit2 = from_minisat_literal(lit);
                         cout << " " << to_number_literal(lit2);
+                        negated_literals.push_back(make_pair(!lit2.first, lit2.second));
                     }
                     cout << endl;
+                    auto propagation = dimacs.do_unit_propagation(negated_literals);
+                    assert(!propagation.first);
+                    cout << "Unit propagation trace:" << endl;
+                    for (const auto &lit : propagation.second) {
+                        cout << " * " << to_number_literal(lit.first);
+                        if (lit.second) {
+                            cout << " from clause";
+                            for (const auto &lit2 : *lit.second) {
+                                cout << " " << to_number_literal(lit2);
+                            }
+                        }
+                        cout << endl;
+                    }
                 }
             }
             cout << endl;

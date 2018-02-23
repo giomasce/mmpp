@@ -119,14 +119,14 @@ pvar Wff::get_tseitin_var(const LibraryToolbox &tb) const
     return Var::create(this->to_parsing_tree(tb), tb);
 }
 
-std::pair<CNFProblem, pvar_map<uint32_t> > Wff::get_tseitin_dimacs(const LibraryToolbox &tb) const
+std::pair<CNFProblem, pvar_map<uint32_t> > Wff::get_tseitin_cnf_problem(const LibraryToolbox &tb) const
 {
     CNForm cnf;
     this->get_tseitin_form(cnf, tb);
     cnf.insert({{true, this->get_tseitin_var(tb)}});
     auto vars = collect_tseitin_vars(cnf);
     auto map = build_tseitin_map(vars);
-    auto dimacs = build_dimacs(cnf, map);
+    auto dimacs = build_cnf_problem(cnf, map);
     return make_pair(dimacs, map);
 }
 
@@ -1137,7 +1137,7 @@ pvar_map<uint32_t> build_tseitin_map(const pvar_set &vars)
     return ret;
 }
 
-CNFProblem build_dimacs(const CNForm &cnf, const pvar_map<uint32_t> &var_map)
+CNFProblem build_cnf_problem(const CNForm &cnf, const pvar_map<uint32_t> &var_map)
 {
     CNFProblem ret{var_map.size(), {}};
     for (const auto &clause : cnf) {

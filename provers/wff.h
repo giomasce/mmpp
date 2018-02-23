@@ -41,7 +41,7 @@ typedef std::set< std::set< std::pair< bool, pvar >, pvar_pair_comp< bool > > > 
 
 pvar_set collect_tseitin_vars(const CNForm &cnf);
 pvar_map< uint32_t > build_tseitin_map(const pvar_set &vars);
-CNFProblem build_dimacs(const CNForm &cnf, const pvar_map< uint32_t > &var_map);
+CNFProblem build_cnf_problem(const CNForm &cnf, const pvar_map< uint32_t > &var_map);
 
 class Wff {
 public:
@@ -62,7 +62,7 @@ public:
     std::pair< bool, Prover< CheckpointedProofEngine > > get_adv_truth_prover(const LibraryToolbox &tb) const;
     virtual void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const = 0;
     pvar get_tseitin_var(const LibraryToolbox &tb) const;
-    std::pair< CNFProblem, pvar_map< uint32_t > > get_tseitin_dimacs(const LibraryToolbox &tb) const;
+    std::pair< CNFProblem, pvar_map< uint32_t > > get_tseitin_cnf_problem(const LibraryToolbox &tb) const;
 
 private:
     std::pair< bool, Prover< CheckpointedProofEngine > > adv_truth_internal(pvar_set::iterator cur_var, pvar_set::iterator end_var, const LibraryToolbox &tb) const;
