@@ -87,7 +87,8 @@ SOURCES += \
     mm/ptengine.cpp \
     mm/sentengine.cpp \
     web/strategy.cpp \
-    mm/tempgen.cpp
+    mm/tempgen.cpp \
+    libs/minisat/Solver.cc
 
 HEADERS += \
     pch.h \
@@ -128,7 +129,17 @@ HEADERS += \
     mm/ptengine.h \
     mm/sentengine.h \
     web/strategy.h \
-    mm/tempgen.h
+    mm/tempgen.h \
+    libs/minisat/Alg.h \
+    libs/minisat/Alloc.h \
+    libs/minisat/Heap.h \
+    libs/minisat/IntTypes.h \
+    libs/minisat/Map.h \
+    libs/minisat/Solver.h \
+    libs/minisat/SolverTypes.h \
+    libs/minisat/Sort.h \
+    libs/minisat/Vec.h \
+    libs/minisat/XAlloc.h
 
 DISTFILES += \
     README \
