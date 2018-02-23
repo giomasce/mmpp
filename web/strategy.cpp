@@ -181,12 +181,27 @@ struct WffStrategyResult : public StepStrategyResult, public enable_create< WffS
     }
 
     bool prove(CheckpointedProofEngine &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
-        (void) children;
-        return this->prover(engine);
+        vector< Prover< CheckpointedProofEngine > > hyps_provers;
+        for (const auto &child : children) {
+            hyps_provers.push_back([child](CheckpointedProofEngine &engine2) {
+                (void) engine2;
+                return child->prove();
+            });
+        }
+        auto prover2 = this->prover;
+        auto wff2 = this->wff;
+        for (ssize_t i = children.size()-1; i >= 0; i--) {
+            auto wff_imp = dynamic_pointer_cast< const Imp >(wff2);
+            assert(wff_imp);
+            prover2 = wff_imp->get_mp_prover(hyps_provers[i], prover2, this->toolbox);
+            wff2 = wff_imp->get_b();
+        }
+        return prover2(engine);
     }
 
     bool success;
     Prover<CheckpointedProofEngine> prover;
+    pwff wff;
     const LibraryToolbox &toolbox;
 };
 
@@ -202,19 +217,27 @@ void WffStrategy::operator()(Yield &yield)
     if (this->thesis.size() == 0) {
         return;
     }
+    ParsingTree< SymTok, LabTok > thesis_pt = this->toolbox.parse_sentence(this->thesis.begin()+1, this->thesis.end(), this->toolbox.get_turnstile_alias());
+    if (thesis_pt.label == LabTok{}) {
+        return;
+    }
+    auto wff = wff_from_pt(thesis_pt, this->toolbox);
+    //vector< ParsingTree< SymTok, LabTok > > hyps_pt;
     for (const auto &hyp : this->hypotheses) {
         if (hyp.size() == 0) {
             return;
         }
+        ParsingTree< SymTok, LabTok > hyp_pt = this->toolbox.parse_sentence(hyp.begin()+1, hyp.end(), this->toolbox.get_turnstile_alias());
+        if (hyp_pt.label == LabTok{}) {
+            return;
+        }
+        //hyps_pt.push_back(hyp_pt);
+        wff = Imp::create(wff_from_pt(hyp_pt, this->toolbox), wff);
+        yield();
     }
-
-    auto pt = this->toolbox.parse_sentence(this->thesis.begin()+1, this->thesis.end(), this->toolbox.get_turnstile_alias());
-    if (pt.label == 0) {
-        return;
-    }
-    auto wff = wff_from_pt(pt, this->toolbox);
 
     yield();
 
+    result->wff = wff;
     tie(result->success, result->prover) = wff->get_adv_truth_prover(this->toolbox);
 }

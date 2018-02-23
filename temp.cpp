@@ -10,6 +10,7 @@
 
 #include "mm/toolbox.h"
 #include "parsing/unif.h"
+#include "provers/wff.h"
 
 using namespace std;
 
@@ -87,4 +88,44 @@ int count_root_type_main(int argc, char *argv[]) {
 }
 static_block {
     register_main_function("count_root_type", count_root_type_main);
+}
+
+int temp_main(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    auto &data = get_set_mm();
+    //auto &lib = data.lib;
+    auto &tb = data.tb;
+
+    auto thesis = tb.read_sentence("|- ( ( x e. SetAlg /\\ A. z ( ( z C_ x /\\ z ~<_ om ) -> U. z e. x ) ) -> ( A. y e. x ( U. x \\ y ) e. x /\\ A. z ( ( z C_ x /\\ z ~<_ om ) -> U. z e. x ) ) )");
+    auto hyp1 = tb.read_sentence("|- ( x e. _V -> ( x e. SetAlg <-> ( ( (/) e. x /\\ A. y e. x A. b e. x ( y i^i b ) e. x ) /\\ ( A. y e. x A. b e. x ( y u. b ) e. x /\\ A. y e. x ( U. x \\ y ) e. x ) ) ) )");
+    auto hyp2 = tb.read_sentence("|- x e. _V");
+
+    ParsingTree< SymTok, LabTok > thesis_pt = tb.parse_sentence(thesis.begin()+1, thesis.end(), tb.get_turnstile_alias());
+    ParsingTree< SymTok, LabTok > hyp1_pt = tb.parse_sentence(hyp1.begin()+1, hyp1.end(), tb.get_turnstile_alias());
+    ParsingTree< SymTok, LabTok > hyp2_pt = tb.parse_sentence(hyp2.begin()+1, hyp2.end(), tb.get_turnstile_alias());
+
+    pwff wff = Imp::create(wff_from_pt(hyp2_pt, tb), Imp::create(wff_from_pt(hyp1_pt, tb), wff_from_pt(thesis_pt, tb)));
+
+    cout << wff->to_string() << endl;
+    pvar_set vars;
+    wff->get_variables(vars);
+    cout << vars.size() << endl;
+    auto prover = wff->get_adv_truth_prover(tb);
+    cout << prover.first << endl;
+
+    CreativeProofEngineImpl< Sentence > engine(tb);
+    prover.second(engine);
+    if (engine.get_proof_labels().size() > 0) {
+        //cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+        cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+        cout << "proof length: " << engine.get_proof_labels().size() << endl;
+        //UncompressedProof proof = { engine.get_proof_labels() };
+    }
+
+    return 0;
+}
+static_block {
+    register_main_function("temp", temp_main);
 }

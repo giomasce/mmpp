@@ -567,6 +567,12 @@ Prover<CheckpointedProofEngine> Imp::get_subst_prover(pvar var, bool positive, c
     {this->a->get_subst_prover(var, positive, tb), this->b->get_subst_prover(var, positive, tb)});
 }
 
+const RegisteredProver Imp::mp_rp = LibraryToolbox::register_prover({"|- ph", "|- ( ph -> ps )"}, "|- ps");
+Prover<CheckpointedProofEngine> Imp::get_mp_prover(Prover<CheckpointedProofEngine> ant_prover, Prover<CheckpointedProofEngine> this_prover, const LibraryToolbox &tb) const
+{
+    return tb.build_registered_prover< CheckpointedProofEngine >(Imp::mp_rp, { {"ph", this->a->get_type_prover(tb)}, {"ps", this->b->get_type_prover(tb)}}, { ant_prover, this_prover });
+}
+
 bool Imp::operator==(const Wff &x) const
 {
     auto px = dynamic_cast< const Imp* >(&x);

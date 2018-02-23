@@ -206,6 +206,7 @@ public:
   Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
   Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
   Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
+  Prover< CheckpointedProofEngine > get_mp_prover(Prover< CheckpointedProofEngine > ant_prover, Prover< CheckpointedProofEngine > this_prover, const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
   pwff get_a() const {
       return this->a;
@@ -228,6 +229,7 @@ private:
   static const RegisteredProver type_rp;
   static const RegisteredProver imp_not_rp;
   static const RegisteredProver subst_rp;
+  static const RegisteredProver mp_rp;
 };
 
 class Biimp : public ConvertibleWff, public enable_create< Biimp > {
