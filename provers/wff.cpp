@@ -4,6 +4,8 @@
 
 using namespace std;
 
+#define LOG_WFF
+
 Wff::~Wff()
 {
 }
@@ -110,7 +112,13 @@ std::pair<bool, Prover<CheckpointedProofEngine> > Wff::adv_truth_internal(pvar_s
 const RegisteredProver Wff::adv_truth_4_rp = LibraryToolbox::register_prover({"|- ps", "|- ( ph <-> ps )"}, "|- ph");
 std::pair<bool, Prover<CheckpointedProofEngine> > Wff::get_adv_truth_prover(const LibraryToolbox &tb) const
 {
+#ifdef LOG_WFF
+    cerr << "WFF proving: " << this->to_string() << endl;
+#endif
     pwff not_imp = this->imp_not_form();
+#ifdef LOG_WFF
+    cerr << "not_imp form: " << not_imp->to_string() << endl;
+#endif
     pvar_set vars;
     this->get_variables(vars);
     auto real = not_imp->adv_truth_internal(vars.begin(), vars.end(), tb);
@@ -120,6 +128,22 @@ std::pair<bool, Prover<CheckpointedProofEngine> > Wff::get_adv_truth_prover(cons
     auto equiv = this->get_imp_not_prover(tb);
     auto final = tb.build_registered_prover< CheckpointedProofEngine >(Wff::adv_truth_4_rp, {{"ph", this->get_type_prover(tb)}, {"ps", not_imp->get_type_prover(tb)}}, {real.second, equiv});
     return make_pair(true, final);
+}
+
+pvar Wff::get_tseitin_var(const LibraryToolbox &tb) const
+{
+    return Var::create(this->to_parsing_tree(tb), tb);
+}
+
+std::pair<DIMACS, pvar_map<uint32_t> > Wff::get_tseitin_dimacs(const LibraryToolbox &tb) const
+{
+    CNForm cnf;
+    this->get_tseitin_form(cnf, tb);
+    cnf.insert({{true, this->get_tseitin_var(tb)}});
+    auto vars = collect_tseitin_vars(cnf);
+    auto map = build_tseitin_map(vars);
+    auto dimacs = build_dimacs(cnf, map);
+    return make_pair(dimacs, map);
 }
 
 True::True() {
@@ -193,6 +217,11 @@ bool True::operator==(const Wff &x) const
     }
 }
 
+void True::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+{
+    cnf.insert({{true, this->get_tseitin_var(tb)}});
+}
+
 False::False() {
 }
 
@@ -262,6 +291,11 @@ bool False::operator==(const Wff &x) const
     } else {
         return true;
     }
+}
+
+void False::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+{
+    cnf.insert({{false, this->get_tseitin_var(tb)}});
 }
 
 Var::Var(NameType name, string string_repr) :
@@ -380,6 +414,12 @@ bool Var::operator<(const Var &x) const
     return this->get_name() < x.get_name();
 }
 
+void Var::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+{
+    (void) cnf;
+    (void) tb;
+}
+
 Not::Not(pwff a) :
     a(a) {
 }
@@ -464,6 +504,13 @@ bool Not::operator==(const Wff &x) const
     } else {
         return *this->get_a() == *px->get_a();
     }
+}
+
+void Not::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb);
+    cnf.insert({{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}});
+    cnf.insert({{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
 }
 
 Imp::Imp(pwff a, pwff b) :
@@ -583,6 +630,15 @@ bool Imp::operator==(const Wff &x) const
     }
 }
 
+void Imp::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb);
+    this->get_b()->get_tseitin_form(cnf, tb);
+    cnf.insert({{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}});
+    cnf.insert({{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
+    cnf.insert({{false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
+}
+
 Biimp::Biimp(pwff a, pwff b) :
     a(a), b(b) {
 }
@@ -650,6 +706,16 @@ bool Biimp::operator==(const Wff &x) const
     }
 }
 
+void Biimp::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb);
+    this->get_b()->get_tseitin_form(cnf, tb);
+    cnf.insert({{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
+    cnf.insert({{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
+    cnf.insert({{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}});
+    cnf.insert({{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}});
+}
+
 Xor::Xor(pwff a, pwff b) :
     a(a), b(b) {
 }
@@ -698,6 +764,16 @@ bool Xor::operator==(const Wff &x) const
     } else {
         return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
     }
+}
+
+void Xor::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb);
+    this->get_b()->get_tseitin_form(cnf, tb);
+    cnf.insert({{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}});
+    cnf.insert({{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}});
+    cnf.insert({{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
+    cnf.insert({{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
 }
 
 /*std::vector<SymTok> Xor::to_sentence(const Library &lib) const
@@ -763,6 +839,15 @@ bool Nand::operator==(const Wff &x) const
     }
 }
 
+void Nand::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb);
+    this->get_b()->get_tseitin_form(cnf, tb);
+    cnf.insert({{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}});
+    cnf.insert({{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
+    cnf.insert({{true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
+}
+
 /*std::vector<SymTok> Nand::to_sentence(const Library &lib) const
 {
     vector< SymTok > ret;
@@ -824,6 +909,15 @@ bool Or::operator==(const Wff &x) const
     } else {
         return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
     }
+}
+
+void Or::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb);
+    this->get_b()->get_tseitin_form(cnf, tb);
+    cnf.insert({{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}});
+    cnf.insert({{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
+    cnf.insert({{false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
 }
 
 /*std::vector<SymTok> Or::to_sentence(const Library &lib) const
@@ -900,6 +994,15 @@ bool And::operator==(const Wff &x) const
     } else {
         return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
     }
+}
+
+void And::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb);
+    this->get_b()->get_tseitin_form(cnf, tb);
+    cnf.insert({{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
+    cnf.insert({{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}});
+    cnf.insert({{true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}});
 }
 
 pwff ConvertibleWff::subst(pvar var, bool positive) const
@@ -1009,6 +1112,25 @@ bool And3::operator==(const Wff &x) const
     }
 }
 
+void And3::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb);
+    this->get_b()->get_tseitin_form(cnf, tb);
+    this->get_c()->get_tseitin_form(cnf, tb);
+
+    auto intermediate = And::create(this->get_a(), this->get_b());
+
+    // intermediate = ( a /\ b )
+    cnf.insert({{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}});
+    cnf.insert({{true, this->get_a()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}});
+    cnf.insert({{true, this->get_b()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}});
+
+    // this = ( intermediate /\ c )
+    cnf.insert({{false, intermediate->get_tseitin_var(tb)}, {false, this->get_c()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
+    cnf.insert({{true, intermediate->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}});
+    cnf.insert({{true, this->get_c()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}});
+}
+
 Or3::Or3(pwff a, pwff b, pwff c) :
     a(a), b(b), c(c)
 {
@@ -1069,6 +1191,25 @@ Prover<CheckpointedProofEngine> Or3::get_imp_not_prover(const LibraryToolbox &tb
     return compose;
 }
 
+void Or3::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb);
+    this->get_b()->get_tseitin_form(cnf, tb);
+    this->get_c()->get_tseitin_form(cnf, tb);
+
+    auto intermediate = Or::create(this->get_a(), this->get_b());
+
+    // intermediate = ( a \/ b )
+    cnf.insert({{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}});
+    cnf.insert({{false, this->get_a()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}});
+    cnf.insert({{false, this->get_b()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}});
+
+    // this = ( intermediate \/ c )
+    cnf.insert({{true, intermediate->get_tseitin_var(tb)}, {true, this->get_c()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}});
+    cnf.insert({{false, intermediate->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
+    cnf.insert({{false, this->get_c()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}});
+}
+
 bool Or3::operator==(const Wff &x) const
 {
     auto px = dynamic_cast< const Or3* >(&x);
@@ -1079,7 +1220,7 @@ bool Or3::operator==(const Wff &x) const
     }
 }
 
-bool pvar_comp::operator()(const pvar x, const pvar y) {
+bool pvar_comp::operator()(const pvar &x, const pvar &y) const {
     return *x < *y;
 }
 
@@ -1122,4 +1263,49 @@ pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb
     } else {
         return Var::create(pt_to_pt2(pt), tb);
     }
+}
+
+pvar_set collect_tseitin_vars(const CNForm &cnf)
+{
+    pvar_set ret;
+    for (const auto &x : cnf) {
+        for (const auto &y : x) {
+            ret.insert(y.second);
+        }
+    }
+    return ret;
+}
+
+void DIMACS::print(ostream &stream)
+{
+    stream << "p cnf " << this->var_num << " " << this->clauses.size() << endl;
+    for (const auto &clause : clauses) {
+        for (const auto &term : clause) {
+            stream << (term.first ? "" : "-") << (term.second + 1) << " ";
+        }
+        stream << "0" << endl;
+    }
+}
+
+pvar_map<uint32_t> build_tseitin_map(const pvar_set &vars)
+{
+    pvar_map< uint32_t > ret;
+    uint32_t idx = 0;
+    for (const auto &var : vars) {
+        ret[var] = idx;
+        idx++;
+    }
+    return ret;
+}
+
+DIMACS build_dimacs(const CNForm &cnf, const pvar_map<uint32_t> &var_map)
+{
+    DIMACS ret{var_map.size(), {}};
+    for (const auto &clause : cnf) {
+        ret.clauses.emplace_back();
+        for (const auto &term : clause) {
+            ret.clauses.back().push_back(make_pair(term.first, var_map.at(term.second)));
+        }
+    }
+    return ret;
 }

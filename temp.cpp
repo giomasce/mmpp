@@ -109,9 +109,18 @@ int temp_main(int argc, char *argv[]) {
     pwff wff = Imp::create(wff_from_pt(hyp2_pt, tb), Imp::create(wff_from_pt(hyp1_pt, tb), wff_from_pt(thesis_pt, tb)));
 
     cout << wff->to_string() << endl;
+
+    auto tseitin = Not::create(wff)->get_tseitin_dimacs(tb);
+    auto dimacs = tseitin.first;
+    auto ts_map = tseitin.second;
+    dimacs.print(cout);
+    for (const auto &x : ts_map) {
+        cout << (x.second + 1) << " : " << x.first->to_string() << endl;
+    }
+
     pvar_set vars;
     wff->get_variables(vars);
-    cout << vars.size() << endl;
+    cout << "There are " << vars.size() << " variables" << endl;
     auto prover = wff->get_adv_truth_prover(tb);
     cout << prover.first << endl;
 

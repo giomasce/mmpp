@@ -359,6 +359,24 @@ void test_wffs_advanced() {
             cout << endl;
         }
     }
+
+    if (true) {
+        cout << "Tseitin DIMACS generation test" << endl;
+        for (pwff wff : wffs) {
+            wff = Not::create(wff);
+            cout << "WFF: " << wff->to_string() << endl;
+            {
+                auto tseitin = wff->get_tseitin_dimacs(tb);
+                auto dimacs = tseitin.first;
+                auto ts_map = tseitin.second;
+                dimacs.print(cout);
+                for (const auto &x : ts_map) {
+                    cout << (x.second + 1) << " : " << x.first->to_string() << endl;
+                }
+            }
+            cout << endl;
+        }
+    }
 }
 
 void test_wffs_parsing() {
