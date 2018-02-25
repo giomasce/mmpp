@@ -4,7 +4,7 @@
 
 using namespace std;
 
-#define LOG_WFF
+//#define LOG_WFF
 
 Wff::~Wff()
 {

@@ -74,11 +74,4 @@ std::vector< std::shared_ptr< StepStrategy > > create_strategies(Args&&... args)
     };
 }*/
 
-inline std::vector< std::shared_ptr< StepStrategy > > create_strategies(std::weak_ptr< StrategyManager > manager, const Sentence &thesis, const std::vector< Sentence > &hypotheses, const LibraryToolbox &toolbox)
-{
-    return {
-        FailingStrategy::create(manager, thesis, hypotheses, toolbox),
-        UnificationStrategy::create(manager, thesis, hypotheses, toolbox),
-        WffStrategy::create(manager, thesis, hypotheses, toolbox),
-    };
-}
+std::vector< std::shared_ptr< StepStrategy > > create_strategies(std::weak_ptr< StrategyManager > manager, const Sentence &thesis, const std::vector< Sentence > &hypotheses, const LibraryToolbox &toolbox);

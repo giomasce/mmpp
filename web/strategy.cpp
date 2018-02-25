@@ -241,3 +241,12 @@ void WffStrategy::operator()(Yield &yield)
     result->wff = wff;
     tie(result->success, result->prover) = wff->get_adv_truth_prover(this->toolbox);
 }
+
+std::vector<std::shared_ptr<StepStrategy> > create_strategies(std::weak_ptr<StrategyManager> manager, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox)
+{
+    return {
+        //FailingStrategy::create(manager, thesis, hypotheses, toolbox),
+        UnificationStrategy::create(manager, thesis, hypotheses, toolbox),
+        WffStrategy::create(manager, thesis, hypotheses, toolbox),
+    };
+}
