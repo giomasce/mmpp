@@ -353,7 +353,7 @@ class SemiCreativeProofEngineImpl : public ProofEngineBase< SentType_ >, virtual
 public:
     SemiCreativeProofEngineImpl(const typename ProofEngineBase< SentType_ >::LibType &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType_ >(lib, gen_proof_tree) {}
 
-    void process_label(const LabTok label) {
+    void process_label(const LabTok label) override {
         this->ProofEngineBase< SentType_ >::process_label(label);
     }
 
