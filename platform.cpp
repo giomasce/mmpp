@@ -165,11 +165,13 @@ bool platform_open_browser(string browser_url) {
 // FIXME
 boost::filesystem::path platform_get_resources_base() {
     //return boost::filesystem::path("./resources");
-    return boost::filesystem::path(__FILE__).parent_path().parent_path() / "resources";
+    return boost::filesystem::path(__FILE__).parent_path() / "resources";
 }
 
 // Here we depend a lot on implementation details of C++ threads
 void set_thread_name(std::thread &t, const string &name) {
+    (void) t;
+    (void) name;
     /* Apparently in macOS pthread_setname_np() can only be used 
        to change the name of the calling thread. */
 }
