@@ -115,7 +115,7 @@ size_t platform_get_current_rss( )
     return (size_t)rss * (size_t)sysconf( _SC_PAGESIZE);
 }
 
-#elif (defined(__APPLE__) && defined(__MACH__)
+#elif (defined(__APPLE__) && defined(__MACH__))
 
 #include <csignal>
 #include <atomic>
@@ -124,13 +124,13 @@ size_t platform_get_current_rss( )
 #include <sys/resource.h>
 #include <cstdio>
 #include <pthread.h>
-#include <sys/syscall.h>
+#include <mach/mach.h>
 
 void set_max_ram(uint64_t bytes) {
-    struct rlimit64 limit;
+    struct rlimit limit;
     limit.rlim_cur = bytes;
     limit.rlim_max = bytes;
-    setrlimit64(RLIMIT_AS, &limit);
+    setrlimit(RLIMIT_RSS, &limit);
 }
 
 atomic< bool > signalled;
@@ -165,25 +165,17 @@ bool platform_open_browser(string browser_url) {
 // FIXME
 boost::filesystem::path platform_get_resources_base() {
     //return boost::filesystem::path("./resources");
-    return boost::filesystem::path(__FILE__).parent_path() / "resources";
+    return boost::filesystem::path(__FILE__).parent_path().parent_path() / "resources";
 }
 
 // Here we depend a lot on implementation details of C++ threads
 void set_thread_name(std::thread &t, const string &name) {
-    pthread_t handle = t.native_handle();
-    pthread_setname_np(handle, name.c_str());
+    /* Apparently in macOS pthread_setname_np() can only be used 
+       to change the name of the calling thread. */
 }
 
 void set_current_thread_low_priority() {
-    pthread_t handle = pthread_self();
-    int policy;
-    sched_param sched;
-    pthread_getschedparam(handle, &policy, &sched);
-    // The meaning of these parameters is somewhat complicated; see sched(7)
-    policy = SCHED_BATCH;
-    sched.sched_priority = 0;
-    // We also set the nice level, that on Linux is thread-specific
-    setpriority(PRIO_PROCESS, syscall(SYS_gettid), 19);
+    // TODO
 }
 
 

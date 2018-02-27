@@ -18,7 +18,7 @@ CONFIG += c++1z
     PKGCONFIG += libcrypto++
 }
 macx {
-    QMAKE_LIBS += -lcrypto++
+    QMAKE_LIBS += -lcryptopp
 }
 QMAKE_LIBS += -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread
 
@@ -46,7 +46,7 @@ macx {
     QMAKE_LINK = clang++
     QMAKE_CFLAGS += -std=c11 -g -I/usr/local/include
     QMAKE_CXXFLAGS += -g -ftemplate-backtrace-limit=0 -I/usr/local/include
-    QMAKE_LIBS += -ldl -rdynamic
+    QMAKE_LIBS += -ldl -rdynamic -L/usr/local/lib
 }
 
 # Trick from https://stackoverflow.com/a/21335126/807307

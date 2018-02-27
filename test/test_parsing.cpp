@@ -20,7 +20,7 @@ void test_parsers(const std::vector<SymType> &sent, SymType type, const std::uno
     assert(reconstruct_sentence(earley_pt, derivations, ders_by_lab) == sent);
 
     cout << "LR parser" << endl;
-    LRParser lr_parser(derivations);
+    LRParser< SymType, LabType > lr_parser(derivations);
     lr_parser.initialize();
 
     ParsingTree< SymType, LabType > lr_pt = lr_parser.parse(sent, type);
