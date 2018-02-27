@@ -273,7 +273,7 @@ public:
 
     using Parser< SymType, LabType >::parse;
     ParsingTree< SymType, LabType > parse(typename std::vector<SymType>::const_iterator sent_begin, typename std::vector<SymType>::const_iterator sent_end, SymType type) const {
-        LRParsingHelper helper(this->automaton, sent_begin, sent_end, type);
+        LRParsingHelper< SymType, LabType > helper(this->automaton, sent_begin, sent_end, type);
         bool res;
         std::tie(res, std::ignore) = helper.do_parsing();
         if (res) {

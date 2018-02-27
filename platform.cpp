@@ -1,6 +1,8 @@
 
 #include "platform.h"
 
+using namespace std;
+
 #if defined(__linux) || defined(__linux__)
 #include <csignal>
 #include <atomic>
@@ -10,8 +12,6 @@
 #include <cstdio>
 #include <pthread.h>
 #include <sys/syscall.h>
-
-using namespace std;
 
 void set_max_ram(uint64_t bytes) {
     struct rlimit64 limit;

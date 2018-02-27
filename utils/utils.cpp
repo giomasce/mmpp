@@ -128,11 +128,11 @@ void register_main_function(const string &name, const function< int(int, char*[]
 class HasherSHA256 final : public Hasher {
 public:
     void update(const char *s, std::streamsize n) {
-        this->hasher.Update(reinterpret_cast< const ::byte* >(s), n);
+        this->hasher.Update(reinterpret_cast< const uint8_t* >(s), n);
     }
 
     std::string get_digest() {
-        ::byte digest[decltype(hasher)::DIGESTSIZE];
+        uint8_t digest[decltype(hasher)::DIGESTSIZE];
         this->hasher.Final(digest);
         return std::string(reinterpret_cast< const char* >(digest), sizeof(decltype(digest)));
     }

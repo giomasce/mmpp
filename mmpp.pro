@@ -12,24 +12,42 @@ CONFIG += link_pkgconfig
 #CONFIG += precompile_header
 #PRECOMPILED_HEADER += pch.h
 
-PKGCONFIG += libcrypto++
+CONFIG += c++1z
+
+!macx {
+    PKGCONFIG += libcrypto++
+}
+macx {
+    QMAKE_LIBS += -lcrypto++
+}
 QMAKE_LIBS += -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread
 
-# Compile with gcc
-QMAKE_CC = gcc
-QMAKE_CXX = g++
-QMAKE_LINK = g++
-QMAKE_CFLAGS += -std=c11 -g
-QMAKE_CXXFLAGS += -std=c++17 -g -ftemplate-backtrace-limit=0
-QMAKE_LIBS += -ldl -export-dynamic -rdynamic
+!macx {
+    # Compile with gcc
+    QMAKE_CC = gcc
+    QMAKE_CXX = g++
+    QMAKE_LINK = g++
+    QMAKE_CFLAGS += -std=c11 -g
+    QMAKE_CXXFLAGS += -g -ftemplate-backtrace-limit=0
+    QMAKE_LIBS += -ldl -export-dynamic -rdynamic
 
-# Compile with clang
-#QMAKE_CC = clang-7
-#QMAKE_CXX = clang++-7
-#QMAKE_LINK = clang++-7
-#QMAKE_CFLAGS += -std=c11 -g
-#QMAKE_CXXFLAGS += -std=c++17 -g -ftemplate-backtrace-limit=0
-#QMAKE_LIBS += -ldl -rdynamic
+    # Compile with clang
+    #QMAKE_CC = clang-7
+    #QMAKE_CXX = clang++-7
+    #QMAKE_LINK = clang++-7
+    #QMAKE_CFLAGS += -std=c11 -g
+    #QMAKE_CXXFLAGS += -g -ftemplate-backtrace-limit=0
+    #QMAKE_LIBS += -ldl -rdynamic
+}
+
+macx {
+    QMAKE_CC = clang
+    QMAKE_CXX = clang++
+    QMAKE_LINK = clang++
+    QMAKE_CFLAGS += -std=c11 -g -I/usr/local/include
+    QMAKE_CXXFLAGS += -g -ftemplate-backtrace-limit=0 -I/usr/local/include
+    QMAKE_LIBS += -ldl -rdynamic
+}
 
 # Trick from https://stackoverflow.com/a/21335126/807307
 #QMAKE_CXXFLAGS_RELEASE -= -O1

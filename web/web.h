@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <shared_mutex>
+#include <mutex>
 #include <unordered_map>
 
 #include "libs/json.h"
@@ -79,7 +79,7 @@ public:
     nlohmann::json json_list_worksets();
 
 private:
-    std::shared_mutex worksets_mutex;
+    std::mutex worksets_mutex;
     std::vector< std::shared_ptr< Workset > > worksets;
 
     bool constant;
@@ -95,7 +95,7 @@ public:
 private:
     std::shared_ptr<Session> get_session(std::string session_id);
 
-    std::shared_mutex sessions_mutex;
+    std::mutex sessions_mutex;
     std::unordered_map< std::string, std::string > session_tickets;
     std::unordered_map< std::string, std::shared_ptr< Session > > sessions;
 

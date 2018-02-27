@@ -145,7 +145,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
     const string &url = cb.get_url();
     const string &method = cb.get_method();
     if (method == "GET" && starts_with(url, ticket_url)) {
-        unique_lock< shared_mutex > lock(this->sessions_mutex);
+        unique_lock< mutex > lock(this->sessions_mutex);
         string ticket = string(url.begin() + ticket_url.size(), url.end());
         if (this->session_tickets.find(ticket) != this->session_tickets.end()) {
             // The ticket is valid, we set the session and remove the ticket
@@ -325,7 +325,7 @@ std::shared_ptr<Session> WebEndpoint::get_guest_session()
 
 string WebEndpoint::create_session_and_ticket()
 {
-    unique_lock< shared_mutex > lock(this->sessions_mutex);
+    unique_lock< mutex > lock(this->sessions_mutex);
     string session_id = generate_id();
     string ticket_id = generate_id();
     this->session_tickets[ticket_id] = session_id;
@@ -335,7 +335,7 @@ string WebEndpoint::create_session_and_ticket()
 
 shared_ptr< Session > WebEndpoint::get_session(string session_id)
 {
-    shared_lock< shared_mutex > lock(this->sessions_mutex);
+    unique_lock< mutex > lock(this->sessions_mutex);
     try {
         return this->sessions.at(session_id);
     } catch(out_of_range) {
@@ -385,7 +385,7 @@ bool Session::is_constant() {
 
 std::pair<size_t, std::shared_ptr<Workset> > Session::create_workset()
 {
-    unique_lock< shared_mutex > lock(this->worksets_mutex);
+    unique_lock< mutex > lock(this->worksets_mutex);
     size_t id = this->worksets.size();
     auto workset = Workset::create();
     workset->set_name("Workset " + to_string(id + 1));
@@ -396,13 +396,13 @@ std::pair<size_t, std::shared_ptr<Workset> > Session::create_workset()
 
 std::shared_ptr<Workset> Session::get_workset(size_t id)
 {
-    shared_lock< shared_mutex > lock(this->worksets_mutex);
+    unique_lock< mutex > lock(this->worksets_mutex);
     return this->worksets.at(id);
 }
 
 json Session::json_list_worksets()
 {
-    shared_lock< shared_mutex > lock(this->worksets_mutex);
+    unique_lock< mutex > lock(this->worksets_mutex);
     json ret;
     for (size_t i = 0; i < this->worksets.size(); i++) {
         json tmp;

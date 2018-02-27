@@ -205,7 +205,7 @@ private:
     bool type_proving_helper(const std::vector< SymTok > &type_sent, Engine &engine, const std::unordered_map< SymTok, Prover< Engine > > &var_provers = {}) const
     {
         SymTok type = type_sent[0];
-        ParsingTree tree = this->parse_sentence(type_sent.begin()+1, type_sent.end(), type);
+        auto tree = this->parse_sentence(type_sent.begin()+1, type_sent.end(), type);
         if (tree.label == 0) {
             return false;
         } else {

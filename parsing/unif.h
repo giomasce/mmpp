@@ -788,7 +788,7 @@ template< typename SymType, typename LabType >
 [[deprecated]]
 std::pair< bool, SubstMap< SymType, LabType > > unify2_quick(const ParsingTree< SymType, LabType > &pt1, const ParsingTree< SymType, LabType > &pt2,
                   const std::function< bool(LabType) > &is_var) {
-    BilateralUnificator unif(is_var);
+    BilateralUnificator< SymType, LabType > unif(is_var);
     unif.add_parsing_trees(pt1, pt2);
     return unif.unify();
 }
