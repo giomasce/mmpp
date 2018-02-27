@@ -1,6 +1,6 @@
 #include "prooftreemodel.h"
 
-ProofTreeModel::ProofTreeModel(const ProofTree &proof_tree, const LibraryToolbox &tb, QObject *parent) :
+ProofTreeModel::ProofTreeModel(const ProofTree< Sentence > &proof_tree, const LibraryToolbox &tb, QObject *parent) :
     QAbstractItemModel(parent),
     tb(tb),
     ptmi(new ProofTreeModelItem(proof_tree))
@@ -71,7 +71,7 @@ int ProofTreeModel::columnCount(const QModelIndex &parent) const
     return 1;
 }
 
-ProofTreeModelItem::ProofTreeModelItem(const ProofTree &pt, ProofTreeModelItem *parent, size_t num) :
+ProofTreeModelItem::ProofTreeModelItem(const ProofTree< Sentence > &pt, ProofTreeModelItem *parent, size_t num) :
     sentence(pt.sentence), label(pt.label), num(num), parent(parent)
 {
     size_t child_num = 0;

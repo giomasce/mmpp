@@ -8,7 +8,7 @@
 class ProofTreeModelItem {
     friend class ProofTreeModel;
 public:
-    ProofTreeModelItem(const ProofTree &pt, ProofTreeModelItem *parent = NULL, size_t num = 0);
+    ProofTreeModelItem(const ProofTree< Sentence > &pt, ProofTreeModelItem *parent = NULL, size_t num = 0);
     ~ProofTreeModelItem();
 private:
     Sentence sentence;
@@ -22,7 +22,7 @@ class ProofTreeModel : public QAbstractItemModel
 {
     Q_OBJECT
 public:
-    explicit ProofTreeModel(const ProofTree &proof_tree, const LibraryToolbox &tb, QObject *parent = NULL);
+    explicit ProofTreeModel(const ProofTree< Sentence > &proof_tree, const LibraryToolbox &tb, QObject *parent = NULL);
     ~ProofTreeModel();
 
     ProofTreeModelItem *get_ptmi(const QModelIndex &index) const;

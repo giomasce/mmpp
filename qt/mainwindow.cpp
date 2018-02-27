@@ -40,9 +40,9 @@ void MainWindow::load_proof(string label)
 {
     LabTok tok = this->ctx->lib->get_label(label);
     const Assertion &ass = this->ctx->lib->get_assertion(tok);
-    auto executor = ass.get_proof_executor(*this->ctx->lib, true);
+    auto executor = ass.get_proof_executor< Sentence >(*this->ctx->lib, true);
     executor->execute();
-    const ProofTree &tree = executor->get_proof_tree();
+    const auto &tree = executor->get_proof_tree();
     ProofTreeModel *model = new ProofTreeModel(tree, *this->ctx->tb, this->ui->proofTreeView);
     this->ui->proofThesis->setText(this->ctx->tb->print_sentence(tree.sentence, SentencePrinter::STYLE_ALTHTML).to_string().c_str());
     this->sentence = tree.sentence;
