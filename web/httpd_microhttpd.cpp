@@ -142,7 +142,7 @@ private:
 
 };
 
-long int reader_callback(void *cls, uint64_t pos, char* buf, size_t max) {
+int reader_callback(void *cls, long long unsigned pos, char* buf, unsigned max) {
     microhttpd_reader *reader = reinterpret_cast< microhttpd_reader* >(cls);
     return reader->callback(pos, buf, max);
 }
