@@ -31,9 +31,10 @@ HTTPD_microhttpd::HTTPD_microhttpd(int port, HTTPTarget &target, bool only_from_
 void HTTPD_microhttpd::start()
 {
     unique_lock< mutex > lock(this->daemon_mutex);
-    this->daemon = MHD_start_daemon (MHD_USE_THREAD_PER_CONNECTION | MHD_USE_POLL, this->port,
+    this->daemon = MHD_start_daemon (MHD_USE_THREAD_PER_CONNECTION | MHD_USE_INTERNAL_POLLING_THREAD | MHD_USE_POLL, this->port,
                                      &this->accept_wrapper, this,
                                      &this->answer_wrapper, this,
+                                     MHD_OPTION_THREAD_STACK_SIZE, DEFAULT_STACK_SIZE,
                                      MHD_OPTION_NOTIFY_COMPLETED, &this->cleanup_wrapper, NULL,
                                      MHD_OPTION_END);
     if (this->daemon == NULL) {

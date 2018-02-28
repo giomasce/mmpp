@@ -31,6 +31,8 @@
 template< typename T >
 struct TD;
 
+const size_t DEFAULT_STACK_SIZE = 8*1024*1024;
+
 #define EXCEPTIONS_SELF_DEBUG
 
 #if defined(__GNUG__) && defined(EXCEPTIONS_SELF_DEBUG)
