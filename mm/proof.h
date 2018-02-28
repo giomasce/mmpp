@@ -142,6 +142,8 @@ public:
     virtual ~ProofOperator();
 
 protected:
+    // Useless constructor required by g++-6
+    ProofOperator(const Library &lib, const Assertion &ass, bool gen_proof_tree=false);
     size_t get_hyp_num(const LabTok label) const;
 };
 

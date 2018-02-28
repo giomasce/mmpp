@@ -336,10 +336,14 @@ ProofOperator::~ProofOperator()
 {
 }
 
-CompressedProofOperator::CompressedProofOperator(const Library &lib, const Assertion &ass, const CompressedProof &proof) : ProofExecutor< Sentence >(lib, ass, true), CompressedProofExecutor< Sentence >(lib, ass, proof, true)
+ProofOperator::ProofOperator(const Library &lib, const Assertion &ass, bool gen_proof_tree) : ProofExecutor< Sentence >(lib, ass, gen_proof_tree)
 {
 }
 
-UncompressedProofOperator::UncompressedProofOperator(const Library &lib, const Assertion &ass, const UncompressedProof &proof) : ProofExecutor< Sentence >(lib, ass, true), UncompressedProofExecutor< Sentence >(lib, ass, proof, true)
+CompressedProofOperator::CompressedProofOperator(const Library &lib, const Assertion &ass, const CompressedProof &proof) : ProofExecutor< Sentence >(lib, ass, true), ProofOperator(lib, ass, true), CompressedProofExecutor< Sentence >(lib, ass, proof, true)
+{
+}
+
+UncompressedProofOperator::UncompressedProofOperator(const Library &lib, const Assertion &ass, const UncompressedProof &proof) : ProofExecutor< Sentence >(lib, ass, true), ProofOperator(lib, ass, true), UncompressedProofExecutor< Sentence >(lib, ass, proof, true)
 {
 }

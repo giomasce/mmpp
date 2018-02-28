@@ -198,7 +198,8 @@ void LibraryToolbox::compute_vars()
             hyps_vars.insert(hyp_vars.begin(), hyp_vars.end());
         }
         this->assertion_const_vars.push_back(thesis_vars);
-        auto &unconst_vars = this->assertion_unconst_vars.emplace_back();
+        this->assertion_unconst_vars.emplace_back();
+        auto &unconst_vars = this->assertion_unconst_vars.back();
         set_difference(hyps_vars.begin(), hyps_vars.end(), thesis_vars.begin(), thesis_vars.end(), inserter(unconst_vars, unconst_vars.begin()));
     }
 }

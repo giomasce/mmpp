@@ -144,6 +144,17 @@ struct enable_create : public std::enable_shared_from_this< T > {
         static_cast< std::shared_ptr< enable_create< T > > >(pointer)->init();
         return pointer;
     }
+
+#if __GNUC__ < 7
+    std::weak_ptr< T > weak_from_this() {
+        return this->shared_from_this();
+    }
+
+    std::weak_ptr< const T > weak_from_this() const {
+        return this->shared_from_this();
+    }
+#endif
+
 protected:
     virtual void init() {}
 };

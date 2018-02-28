@@ -83,7 +83,8 @@ public:
     Value &operator[](const Key &key) {
         auto it = this->find(key);
         if (it == this->end()) {
-            return this->container.emplace_back().second;
+            this->container.emplace_back();
+            return this->container.back().second;
         } else {
             return it->second;
         }
