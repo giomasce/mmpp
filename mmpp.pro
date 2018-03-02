@@ -14,12 +14,6 @@ CONFIG += link_pkgconfig
 
 CONFIG += c++1z
 
-!macx {
-    PKGCONFIG += libcrypto++
-}
-macx {
-    QMAKE_LIBS += -lcryptopp
-}
 QMAKE_LIBS += -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread
 
 !macx {

@@ -1,7 +1,7 @@
 
 #include "utils.h"
 
-#include <cryptopp/sha.h>
+#include <boost/crc.hpp>
 
 using namespace std;
 
@@ -125,20 +125,19 @@ void register_main_function(const string &name, const function< int(int, char*[]
     get_main_functions().insert(make_pair(name, main_function));
 }
 
-class HasherSHA256 final : public Hasher {
+class HasherCRC32 final : public Hasher {
 public:
-    void update(const char *s, std::streamsize n) {
-        this->hasher.Update(reinterpret_cast< const uint8_t* >(s), n);
+    void update(const char *s, std::size_t n) {
+        this->hasher.process_bytes(s, n);
     }
 
     std::string get_digest() {
-        uint8_t digest[decltype(hasher)::DIGESTSIZE];
-        this->hasher.Final(digest);
-        return std::string(reinterpret_cast< const char* >(digest), sizeof(decltype(digest)));
+        auto digest = this->hasher.checksum();
+        return std::string(reinterpret_cast< const char* >(&digest), sizeof(digest));
     }
 
 private:
-    CryptoPP::SHA256 hasher;
+    boost::crc_32_type hasher;
 };
 
 TextProgressBar::TextProgressBar(size_t length, double total) : last_len(0), total(total), length(length) {
@@ -208,7 +207,7 @@ public:
 NullBuffer cnull_buffer;
 std::ostream cnull(&cnull_buffer);
 
-HashSink::HashSink() : hasher(make_shared< HasherSHA256 >())
+HashSink::HashSink() : hasher(make_shared< HasherCRC32 >())
 {
 }
 

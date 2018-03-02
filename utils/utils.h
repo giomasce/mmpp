@@ -97,7 +97,7 @@ static void function_name()
 
 class Hasher {
 public:
-    virtual void update(const char* s, std::streamsize n) = 0;
+    virtual void update(const char* s, std::size_t n) = 0;
     virtual std::string get_digest() = 0;
 };
 
