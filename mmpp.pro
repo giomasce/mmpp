@@ -101,7 +101,8 @@ SOURCES += \
     web/strategy.cpp \
     mm/tempgen.cpp \
     libs/minisat/Solver.cc \
-    provers/sat.cpp
+    provers/sat.cpp \
+    provers/wffblock.cpp
 
 HEADERS += \
     pch.h \
@@ -153,7 +154,8 @@ HEADERS += \
     libs/minisat/Sort.h \
     libs/minisat/Vec.h \
     libs/minisat/XAlloc.h \
-    provers/sat.h
+    provers/sat.h \
+    provers/wffblock.h
 
 DISTFILES += \
     README \

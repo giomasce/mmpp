@@ -930,8 +930,6 @@ RegisteredProver LibraryToolbox::register_prover(const std::vector<string> &temp
     return { index, templ_hyps, templ_thesis };
 }
 
-
-
 void LibraryToolbox::compute_registered_provers()
 {
     for (size_t index = 0; index < LibraryToolbox::registered_provers().size(); index++) {
@@ -1058,6 +1056,11 @@ void LibraryToolbox::compute_registered_prover(size_t index, bool exception_on_f
             if (exception_on_failure) {
                 throw MMPPException("Could not find the template assertion");
             } else {
+                cerr << "Could not find a template assertion for:" << endl;
+                for (const auto &hyp : data.templ_hyps) {
+                    cerr << " * " << hyp << endl;
+                }
+                cerr << " => " << data.templ_thesis << endl;
                 return;
             }
         }

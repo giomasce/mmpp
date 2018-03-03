@@ -226,7 +226,6 @@ public:
   Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
   Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
   Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
-  Prover< CheckpointedProofEngine > get_mp_prover(Prover< CheckpointedProofEngine > ant_prover, Prover< CheckpointedProofEngine > this_prover, const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
   void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const;
   pwff get_a() const {

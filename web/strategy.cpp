@@ -1,6 +1,7 @@
 
 #include "strategy.h"
 #include "provers/wff.h"
+#include "provers/wffblock.h"
 
 using namespace std;
 using namespace nlohmann;
@@ -193,7 +194,7 @@ struct WffStrategyResult : public StepStrategyResult, public enable_create< WffS
         for (ssize_t i = children.size()-1; i >= 0; i--) {
             auto wff_imp = dynamic_pointer_cast< const Imp >(wff2);
             assert(wff_imp);
-            prover2 = wff_imp->get_mp_prover(hyps_provers[i], prover2, this->toolbox);
+            prover2 = imp_mp_prover(wff_imp, hyps_provers[i], prover2, this->toolbox);
             wff2 = wff_imp->get_b();
         }
         return prover2(engine);

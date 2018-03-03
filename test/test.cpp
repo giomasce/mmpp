@@ -367,36 +367,59 @@ void test_wffs_advanced() {
             cout << "WFF: " << wff->to_string() << endl;
             {
                 auto tseitin = wff->get_tseitin_cnf_problem(tb);
-                auto dimacs = tseitin.first;
+                auto cnf = tseitin.first;
                 auto ts_map = tseitin.second;
-                dimacs.print_dimacs(cout);
+                cnf.print_dimacs(cout);
                 for (const auto &x : ts_map) {
                     cout << (x.second + 1) << " : " << x.first->to_string() << endl;
                 }
                 Minisat::Solver solver;
-                dimacs.feed_to_minisat(solver);
+                cnf.feed_to_minisat(solver);
                 bool res = solver.solve();
                 if (res) {
                     cout << "The formula is SATisfiable" << endl;
                 } else {
                     cout << "The formula is UNSATisfiable" << endl;
-                }
-                for (const auto &ref : solver.refutation) {
-                    if (!ref.first) {
-                        continue;
+                    for (const auto &ref : solver.refutation) {
+                        if (!ref.first) {
+                            continue;
+                        }
+                        if (ref.second.empty()) {
+                            // Do not explicitly infer the empty clause, we will do that later
+                            continue;
+                        }
+                        cout << "Inferring clause:";
+                        std::vector< Literal > negated_literals;
+                        std::vector< Literal > ref2;
+                        for (const auto &lit : ref.second) {
+                            auto lit2 = from_minisat_literal(lit);
+                            cout << " " << to_number_literal(lit2);
+                            negated_literals.push_back(make_pair(!lit2.first, lit2.second));
+                            ref2.push_back(lit2);
+                        }
+                        cout << endl;
+                        auto propagation = cnf.do_unit_propagation(negated_literals);
+                        assert(!get<0>(propagation));
+                        cout << "Unit propagation trace:" << endl;
+                        for (const auto &lit : get<1>(propagation)) {
+                            cout << " * " << to_number_literal(lit.first);
+                            if (lit.second) {
+                                cout << " from clause";
+                                for (const auto &lit2 : *lit.second) {
+                                    cout << " " << to_number_literal(lit2);
+                                }
+                            }
+                            cout << endl;
+                        }
+                        // The refutation worked, so that we can add the new clause
+                        cnf.clauses.push_back(ref2);
+                        cnf.callbacks.push_back(make_shared< ProvenClauseCallback >(ref2, get<2>(propagation)));
                     }
-                    cout << "Inferring clause:";
-                    std::vector< Literal > negated_literals;
-                    for (const auto &lit : ref.second) {
-                        auto lit2 = from_minisat_literal(lit);
-                        cout << " " << to_number_literal(lit2);
-                        negated_literals.push_back(make_pair(!lit2.first, lit2.second));
-                    }
-                    cout << endl;
-                    auto propagation = dimacs.do_unit_propagation(negated_literals);
-                    assert(!propagation.first);
+                    cout << "Inferring falsum" << endl;
+                    auto propagation = cnf.do_unit_propagation({});
+                    assert(!get<0>(propagation));
                     cout << "Unit propagation trace:" << endl;
-                    for (const auto &lit : propagation.second) {
+                    for (const auto &lit : get<1>(propagation)) {
                         cout << " * " << to_number_literal(lit.first);
                         if (lit.second) {
                             cout << " from clause";
@@ -406,6 +429,8 @@ void test_wffs_advanced() {
                         }
                         cout << endl;
                     }
+                    cout << "Unwinding the proof..." << endl;
+                    get<2>(propagation)();
                 }
             }
             cout << endl;
@@ -445,7 +470,7 @@ void test() {
     test_statement_unification();
     test_tree_unification();
     test_type_proving();
-    test_unification();
+    //test_unification();
     test_wffs_trivial();
     test_wffs_advanced();
     test_wffs_parsing();
