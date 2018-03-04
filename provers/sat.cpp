@@ -55,27 +55,24 @@ void CNFProblem::feed_to_minisat(Minisat::Solver &solver) const
     }
 }
 
-std::tuple<bool, std::vector<std::pair<Literal, const std::vector<Literal> *> >, std::function< void() > > CNFProblem::do_unit_propagation(const std::vector<Literal> &assumptions) const
+std::tuple<bool, std::vector<std::pair<Literal, const std::vector<Literal> *> >, std::function< void() > > CNFProblem::do_unit_propagation(const std::vector<Literal> &orig_clause) const
 {
     map< Literal, size_t > ret_map;
     std::vector<std::pair<Literal, const std::vector<Literal> *> > ret;
     std::vector< std::function< void() > > ret_provers;
-    Clause orig_clause;
     auto callback = this->callback;
-    for (const auto &lit : assumptions) {
-        orig_clause.push_back(make_pair(!lit.first, lit.second));
-    }
-    for (const auto &lit : assumptions) {
-        auto neg_lit = make_pair(!lit.first, lit.second);
+    for (size_t lit_idx = 0; lit_idx < orig_clause.size(); lit_idx++) {
+        const auto &lit = orig_clause[lit_idx];
+        auto neg_lit = invert_literal(lit);
         bool res;
-        tie(ignore, res) = ret_map.insert(make_pair(lit, ret.size()));
+        tie(ignore, res) = ret_map.insert(make_pair(neg_lit, ret.size()));
         if (res) {
-            ret.push_back(make_pair(lit, nullptr));
-            ret_provers.push_back([callback,lit,orig_clause]() {
-                callback->prove_not_or_elim(lit, orig_clause);
+            ret.push_back(make_pair(neg_lit, nullptr));
+            ret_provers.push_back([callback,lit_idx,orig_clause]() {
+                callback->prove_not_or_elim(lit_idx, orig_clause);
             });
         }
-        if (ret_map.find(neg_lit) != ret_map.end()) {
+        if (ret_map.find(lit) != ret_map.end()) {
             // We already have a contradiction in the assumptions; this should actually never happens...
             assert(false);
             return make_tuple(false, ret, [](){});
@@ -100,7 +97,7 @@ std::tuple<bool, std::vector<std::pair<Literal, const std::vector<Literal> *> >,
                     skip_clause = true;
                     break;
                 }
-                auto neg_lit = make_pair(!lit.first, lit.second);
+                auto neg_lit = invert_literal(lit);
                 auto neg_it = ret_map.find(neg_lit);
                 if (neg_it != ret_map.end()) {
                     // The literal is automatically false, so we can ignore it
@@ -127,7 +124,7 @@ std::tuple<bool, std::vector<std::pair<Literal, const std::vector<Literal> *> >,
                 // If no unsolved literal was found, any literal will generate a contradiction; we just pick the last one
                 unsolved_idx = clause.size()-1;
                 unsolved = clause.at(unsolved_idx);
-                neg_unsolved = make_pair(!unsolved.first, unsolved.second);
+                neg_unsolved = invert_literal(unsolved);
                 used_provers.pop_back();
             }
             // We found exactly one unsolved literal (or perhaps anyone if noone is solved), so it must be true
@@ -188,16 +185,14 @@ std::pair<bool, std::function<void ()> > CNFProblem::solve()
             continue;
         }
         //cout << "Inferring clause:";
-        std::vector< Literal > negated_literals;
-        std::vector< Literal > ref2;
+        Clause clause;
         for (const auto &lit : ref.second) {
             auto lit2 = from_minisat_literal(lit);
             //cout << " " << to_number_literal(lit2);
-            negated_literals.push_back(make_pair(!lit2.first, lit2.second));
-            ref2.push_back(lit2);
+            clause.push_back(lit2);
         }
         //cout << endl;
-        auto propagation = this->do_unit_propagation(negated_literals);
+        auto propagation = this->do_unit_propagation(clause);
         assert(!get<0>(propagation));
         /*cout << "Unit propagation trace:" << endl;
         for (const auto &lit : get<1>(propagation)) {
@@ -211,11 +206,11 @@ std::pair<bool, std::function<void ()> > CNFProblem::solve()
             cout << endl;
         }*/
         // The refutation worked, so that we can add the new clause
-        this->clauses.push_back(ref2);
+        this->clauses.push_back(clause);
         const auto &prover = get<2>(propagation);
-        this->callbacks.push_back([prover,callback,ref2](const auto &context) {
+        this->callbacks.push_back([prover,callback,clause](const auto &context) {
             prover();
-            callback->prove_imp_intr(context, ref2);
+            callback->prove_imp_intr(context, clause);
         });
         if (ref.second.empty()) {
             // We have finally proved the empty clause, so we can return
@@ -248,11 +243,11 @@ void CNFCallbackTest::prove_clause(size_t idx, const Clause &context)
     cout << "), by hypothesis" << endl;
 }
 
-void CNFCallbackTest::prove_not_or_elim(const Literal &lit, const Clause &context)
+void CNFCallbackTest::prove_not_or_elim(size_t idx, const Clause &context)
 {
     cout << "Putting on stack: NOT (";
     print_clause(cout, context);
-    cout << ") -> " << to_number_literal(lit) << ", by conversion" << endl;
+    cout << ") -> " << to_number_literal(invert_literal(context[idx])) << ", by not or elimination" << endl;
 }
 
 void CNFCallbackTest::prove_imp_intr(const Clause &clause, const Clause &context)
@@ -276,5 +271,10 @@ void CNFCallbackTest::prove_absurduum(const Literal &lit, const Clause &context)
     (void) lit;
     cout << "Popping 2 things from the stack and proving: (";
     print_clause(cout, context);
-    cout << ") by contradiction" << endl;
+    cout << ") by absurduum" << endl;
+}
+
+Literal invert_literal(const Literal &lit)
+{
+    return make_pair(!lit.first, lit.second);
 }

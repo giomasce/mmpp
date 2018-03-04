@@ -12,21 +12,16 @@ static const RegisteredProver unitp_rp = LibraryToolbox::register_prover({"|- ( 
 static const RegisteredProver unitn_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps -> ( ch \\/ -. th ) ) )", "|- ( ph -> ( ps -> th ) )"}, "|- ( ph -> ( ps -> ch ) )");
 static const RegisteredProver or_ass_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps -> ( ( ch \\/ th ) \\/ ta ) ) )"}, "|- ( ph -> ( ps -> ( ( ch \\/ ta ) \\/ th ) ) )");
 static const RegisteredProver or_com_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps -> ( ch \\/ th ) ) )"}, "|- ( ph -> ( ps -> ( th \\/ ch ) ) )");
-Prover<CheckpointedProofEngine> or_res_prover(const std::vector<pwff> &orands, const std::vector<bool> &orand_sign, size_t thesis_idx,
+Prover<CheckpointedProofEngine> unit_res_prover(const std::vector<pwff> &orands, const std::vector<bool> &orand_sign, size_t thesis_idx,
                                               Prover<CheckpointedProofEngine> or_prover, const std::vector< Prover<CheckpointedProofEngine> > &orand_prover,
                                               pwff glob_ctx, pwff loc_ctx, const LibraryToolbox &tb)
 {
     assert(orand_prover.size() + 1 == orands.size());
     assert(orand_prover.size() == orand_sign.size());
     assert(thesis_idx < orands.size());
-    pwff structure;
-    if (orands.size() == 0) {
-        structure = False::create();
-    } else {
-        structure = orands[0];
-        for (size_t i = 1; i < orands.size(); i++) {
-            structure = Or::create(structure, orands[i]);
-        }
+    pwff structure = orands[0];
+    for (size_t i = 1; i < orands.size(); i++) {
+        structure = Or::create(structure, orands[i]);
     }
     auto ret = or_prover;
     for (size_t eliminating = orands.size() - 1; eliminating > 0; eliminating--) {
@@ -71,4 +66,24 @@ Prover<CheckpointedProofEngine> or_res_prover(const std::vector<pwff> &orands, c
         }
     }
     return ret;
+}
+
+static const RegisteredProver or_eliml_rp = LibraryToolbox::register_prover({"|- ( ph -> -. ( ps \\/ ch )  )"}, "|- ( ph -> -. ps )");
+static const RegisteredProver or_elimr_rp = LibraryToolbox::register_prover({"|- ( ph -> -. ( ps \\/ ch )  )"}, "|- ( ph -> -. ch )");
+static const RegisteredProver or_elimln_rp = LibraryToolbox::register_prover({"|- ( ph -> -. ( -. ps \\/ ch )  )"}, "|- ( ph -> ps )");
+static const RegisteredProver or_elimrn_rp = LibraryToolbox::register_prover({"|- ( ph -> -. ( ps \\/ -. ch )  )"}, "|- ( ph -> ch )");
+Prover<CheckpointedProofEngine> not_or_elim_prover(const std::vector<pwff> &orands, size_t thesis_idx, bool thesis_sign, pwff glob_ctx, const LibraryToolbox &tb)
+{
+    assert(thesis_idx < orands.size());
+    pwff structure = orands[0];
+    for (size_t i = 1; i < orands.size(); i++) {
+        structure = Or::create(structure, orands[i]);
+    }
+    for (size_t eliminating = orands.size() - 1; eliminating > 0; eliminating--) {
+        if (eliminating == thesis_idx) {
+
+        } else {
+
+        }
+    }
 }
