@@ -1133,13 +1133,13 @@ pvar_map<uint32_t> build_tseitin_map(const pvar_set &vars)
 
 CNFProblem build_cnf_problem(const CNForm &cnf, const pvar_map<uint32_t> &var_map)
 {
-    CNFProblem ret{var_map.size(), {}, {}};
+    CNFProblem ret;
+    ret.var_num = var_map.size();
     for (const auto &clause : cnf) {
         ret.clauses.emplace_back();
         for (const auto &term : clause) {
             ret.clauses.back().push_back(make_pair(term.first, var_map.at(term.second)));
         }
-        ret.callbacks.push_back(make_shared< HypClauseCallback >(ret.clauses.back()));
     }
     return ret;
 }
