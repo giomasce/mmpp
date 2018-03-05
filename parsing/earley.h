@@ -131,7 +131,7 @@ public:
             }
         }
         ParsingTree< SymType, LabType > ret;
-        ret.label = 0;
+        ret.label = {};
         return ret;
     }
 

@@ -83,5 +83,8 @@ int main(int argc, char *argv[]) {
     } catch (const char* &e) {
         cerr << "Dying because of string exception '" << e << "'..." << endl;
         return 1;
+    } catch (string &e) {
+        cerr << "Dying because of string exception '" << e << "'..." << endl;
+        return 1;
     }
 }

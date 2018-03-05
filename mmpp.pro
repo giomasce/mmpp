@@ -102,7 +102,8 @@ SOURCES += \
     mm/tempgen.cpp \
     libs/minisat/Solver.cc \
     provers/sat.cpp \
-    provers/wffblock.cpp
+    provers/wffblock.cpp \
+    apps/tstp.cpp
 
 HEADERS += \
     pch.h \
