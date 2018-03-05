@@ -633,3 +633,62 @@ int test_z3_main(int argc, char *argv[])
 static_block {
     register_main_function("test_z3", test_z3_main);
 }
+
+int test_z3_2_main(int argc, char *argv[])
+{
+    (void) argc;
+    (void) argv;
+
+    try {
+        set_param("proof", true);
+        context c;
+        Z3_set_ast_print_mode(c, Z3_PRINT_LOW_LEVEL);
+
+        solver s(c);
+        params param(c);
+        param.set("mbqi", true);
+        s.set(param);
+
+        /*z3::sort things = c.uninterpreted_sort("thing");
+        z3::sort bool_sort = c.bool_sort();
+        z3::func_decl man = c.function("man", 1, &things, bool_sort);
+        z3::func_decl mortal = c.function("mortal", 1, &things, bool_sort);
+        z3::expr socrates = c.constant("socrates", things);
+        z3::expr x = c.constant("x", things);
+        z3::expr hyp1 = forall(x, implies(man(x), mortal(x)));
+        z3::expr hyp2 = man(socrates);
+        z3::expr thesis = mortal(socrates);
+        s.add(hyp1);
+        s.add(hyp2);
+        s.add(!thesis);*/
+
+        z3::sort things = c.uninterpreted_sort("thing");
+        z3::sort bools = c.bool_sort();
+        z3::expr x = c.constant("x", things);
+        z3::expr y = c.constant("y", things);
+        z3::func_decl p = c.function("p", things, bools);
+        z3::func_decl q = c.function("q", things, bools);
+        z3::expr thesis = (exists(x, forall(y, p(x) == p(y))) == (exists(x, q(x)) == exists(y, q(y)))) == (exists(x, forall(y, q(x) == q(y))) == (exists(x, p(x)) == exists(y, p(y))));
+        s.add(!thesis);
+
+        cout << "Solver:" << endl << s << endl;
+
+        switch (s.check()) {
+        case unsat:   cout << "UNSAT\n"; break;
+        case sat:     cout << "SAT\n"; break;
+        case unknown: cout << "UNKNOWN\n"; break;
+        }
+
+        auto proof = s.proof();
+        cout << "Proof:" << endl << proof << endl;
+
+        cout << endl;
+    } catch (z3::exception &e) {
+        cerr << "Caught exception:\n" << e << endl;
+    }
+
+    return 0;
+}
+static_block {
+    register_main_function("test_z3_2", test_z3_2_main);
+}
