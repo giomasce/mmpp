@@ -24,6 +24,11 @@ enum class TSTPTokenType {
     ATOM,
     LITERAL,
     CLAUSE,
+    VARLIST,
+    UNIT_FOF,
+    FOF,
+    FOF_AND,
+    FOF_OR,
     EXPR_ARGLIST,
     EXPR,
     LINE,
@@ -81,6 +86,29 @@ enum TSTPRule {
     RULE_CLAUSE_AND_LITERAL_IS_CLAUSE,
     RULE_PARENS_CLAUSE_IS_CLAUSE,
 
+    RULE_UNIT_FOF_IS_FOF,
+    RULE_PARENS_FOF_IS_UNIT_FOF,
+    RULE_TERM_IS_UNIT_FOF,
+    RULE_NOT_UNIT_FOF_IS_UNIT_FOF,
+    RULE_TERM_EQ_IS_UNIT_FOF,
+    RULE_TERM_NEQ_IS_UNIF_FOF,
+    RULE_ID_IS_VARLIST,
+    RULE_VARLIST_AND_ID_IS_VARLIST,
+    RULE_FORALL_IS_UNIT_FOF,
+    RULE_EXISTS_IS_UNIT_FOF,
+    RULE_BIIMP_IS_FOF,
+    RULE_IMP_IS_FOF,
+    RULE_REV_IMP_IS_FOF,
+    RULE_XOR_IS_FOF,
+    RULE_NOR_IS_FOF,
+    RULE_NAND_IS_FOF,
+    RULE_AND_IS_FOF,
+    RULE_AND_IS_AND,
+    RULE_AND_AND_UNIT_FOF_IS_AND,
+    RULE_OR_IS_FOF,
+    RULE_OR_IS_OR,
+    RULE_OR_AND_UNIT_FOF_IS_OR,
+
     RULE_ID_IS_EXPR,
     RULE_EXPR_IS_ARGLIST,
     RULE_ARGLIST_AND_EXPR_IS_ARGLIST,
@@ -91,6 +119,9 @@ enum TSTPRule {
     RULE_CNF_IS_LINE,
     RULE_CNF_WITH_DERIV_IS_LINE,
     RULE_CNF_WITH_DERIV_AND_ANNOT_IS_LINE,
+    RULE_FOF_IS_LINE,
+    RULE_FOF_WITH_DERIV_IS_LINE,
+    RULE_FOF_WITH_DERIV_AND_ANNOT_IS_LINE,
 };
 
 ostream &operator<<(ostream &stream, const TSTPRule &rule);
@@ -124,6 +155,30 @@ std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, vector<TSTPToken> 
     make_rule(ders, TSTPTokenType::CLAUSE, RULE_CLAUSE_AND_LITERAL_IS_CLAUSE, {sym_tok(TSTPTokenType::CLAUSE), char_tok('|'), sym_tok(TSTPTokenType::LITERAL)});
     make_rule(ders, TSTPTokenType::CLAUSE, RULE_PARENS_CLAUSE_IS_CLAUSE, {char_tok('('), sym_tok(TSTPTokenType::CLAUSE), char_tok(')')});
 
+    // Rules for FOFs
+    make_rule(ders, TSTPTokenType::FOF, RULE_UNIT_FOF_IS_FOF, {sym_tok(TSTPTokenType::UNIT_FOF)});
+    make_rule(ders, TSTPTokenType::UNIT_FOF, RULE_PARENS_FOF_IS_UNIT_FOF, {char_tok('('), sym_tok(TSTPTokenType::FOF), char_tok(')')});
+    make_rule(ders, TSTPTokenType::UNIT_FOF, RULE_TERM_IS_UNIT_FOF, {sym_tok(TSTPTokenType::TERM)});
+    make_rule(ders, TSTPTokenType::UNIT_FOF, RULE_NOT_UNIT_FOF_IS_UNIT_FOF, {char_tok('~'), sym_tok(TSTPTokenType::UNIT_FOF)});
+    make_rule(ders, TSTPTokenType::UNIT_FOF, RULE_TERM_EQ_IS_UNIT_FOF, {sym_tok(TSTPTokenType::TERM), char_tok('='), sym_tok(TSTPTokenType::TERM)});
+    make_rule(ders, TSTPTokenType::UNIT_FOF, RULE_TERM_NEQ_IS_UNIF_FOF, {sym_tok(TSTPTokenType::TERM), char_tok('!'), char_tok('='), sym_tok(TSTPTokenType::TERM)});
+    make_rule(ders, TSTPTokenType::VARLIST, RULE_ID_IS_VARLIST, {sym_tok(TSTPTokenType::ID)});
+    make_rule(ders, TSTPTokenType::VARLIST, RULE_VARLIST_AND_ID_IS_VARLIST, {sym_tok(TSTPTokenType::VARLIST), char_tok(','), sym_tok(TSTPTokenType::ID)});
+    make_rule(ders, TSTPTokenType::UNIT_FOF, RULE_FORALL_IS_UNIT_FOF, {char_tok('!'), char_tok('['), sym_tok(TSTPTokenType::VARLIST), char_tok(']'), char_tok(':'), sym_tok(TSTPTokenType::UNIT_FOF)});
+    make_rule(ders, TSTPTokenType::UNIT_FOF, RULE_EXISTS_IS_UNIT_FOF, {char_tok('?'), char_tok('['), sym_tok(TSTPTokenType::VARLIST), char_tok(']'), char_tok(':'), sym_tok(TSTPTokenType::UNIT_FOF)});
+    make_rule(ders, TSTPTokenType::FOF, RULE_BIIMP_IS_FOF, {sym_tok(TSTPTokenType::UNIT_FOF), char_tok('<'), char_tok('='), char_tok('>'), sym_tok(TSTPTokenType::UNIT_FOF)});
+    make_rule(ders, TSTPTokenType::FOF, RULE_IMP_IS_FOF, {sym_tok(TSTPTokenType::UNIT_FOF), char_tok('='), char_tok('>'), sym_tok(TSTPTokenType::UNIT_FOF)});
+    make_rule(ders, TSTPTokenType::FOF, RULE_REV_IMP_IS_FOF, {sym_tok(TSTPTokenType::UNIT_FOF), char_tok('<'), char_tok('='), sym_tok(TSTPTokenType::UNIT_FOF)});
+    make_rule(ders, TSTPTokenType::FOF, RULE_XOR_IS_FOF, {sym_tok(TSTPTokenType::UNIT_FOF), char_tok('<'), char_tok('~'), char_tok('>'), sym_tok(TSTPTokenType::UNIT_FOF)});
+    make_rule(ders, TSTPTokenType::FOF, RULE_NOR_IS_FOF, {sym_tok(TSTPTokenType::UNIT_FOF), char_tok('~'), char_tok('|'), sym_tok(TSTPTokenType::UNIT_FOF)});
+    make_rule(ders, TSTPTokenType::FOF, RULE_NAND_IS_FOF, {sym_tok(TSTPTokenType::UNIT_FOF), char_tok('~'), char_tok('&'), sym_tok(TSTPTokenType::UNIT_FOF)});
+    make_rule(ders, TSTPTokenType::FOF, RULE_AND_IS_FOF, {sym_tok(TSTPTokenType::FOF_AND)});
+    make_rule(ders, TSTPTokenType::FOF_AND, RULE_AND_IS_AND, {sym_tok(TSTPTokenType::UNIT_FOF), char_tok('&'), sym_tok(TSTPTokenType::UNIT_FOF)});
+    make_rule(ders, TSTPTokenType::FOF_AND, RULE_AND_AND_UNIT_FOF_IS_AND, {sym_tok(TSTPTokenType::FOF_AND), char_tok('&'), sym_tok(TSTPTokenType::UNIT_FOF)});
+    make_rule(ders, TSTPTokenType::FOF, RULE_OR_IS_FOF, {sym_tok(TSTPTokenType::FOF_OR)});
+    make_rule(ders, TSTPTokenType::FOF_OR, RULE_OR_IS_OR, {sym_tok(TSTPTokenType::UNIT_FOF), char_tok('|'), sym_tok(TSTPTokenType::UNIT_FOF)});
+    make_rule(ders, TSTPTokenType::FOF_OR, RULE_OR_AND_UNIT_FOF_IS_OR, {sym_tok(TSTPTokenType::FOF_OR), char_tok('|'), sym_tok(TSTPTokenType::UNIT_FOF)});
+
     // Rules for generic expressions
     make_rule(ders, TSTPTokenType::EXPR, RULE_ID_IS_EXPR, {sym_tok(TSTPTokenType::ID)});
     make_rule(ders, TSTPTokenType::EXPR_ARGLIST, RULE_EXPR_IS_ARGLIST, {sym_tok(TSTPTokenType::EXPR)});
@@ -133,9 +188,12 @@ std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, vector<TSTPToken> 
     make_rule(ders, TSTPTokenType::EXPR, RULE_LIST_IS_EXPR, {char_tok('['), sym_tok(TSTPTokenType::EXPR_ARGLIST), char_tok(']')});
 
     // Rules for whole lines
-    make_rule(ders, TSTPTokenType::LINE, RULE_CNF_IS_LINE, {char_tok('c'), char_tok('n'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), char_tok(')'), char_tok(',')});
+    make_rule(ders, TSTPTokenType::LINE, RULE_CNF_IS_LINE, {char_tok('c'), char_tok('n'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::CLAUSE), char_tok(')'), char_tok(',')});
     make_rule(ders, TSTPTokenType::LINE, RULE_CNF_WITH_DERIV_IS_LINE, {char_tok('c'), char_tok('n'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::CLAUSE), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(')'), char_tok('.')});
     make_rule(ders, TSTPTokenType::LINE, RULE_CNF_WITH_DERIV_AND_ANNOT_IS_LINE, {char_tok('c'), char_tok('n'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::CLAUSE), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(')'), char_tok('.')});
+    make_rule(ders, TSTPTokenType::LINE, RULE_FOF_IS_LINE, {char_tok('f'), char_tok('o'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::UNIT_FOF), char_tok(')'), char_tok(',')});
+    make_rule(ders, TSTPTokenType::LINE, RULE_FOF_WITH_DERIV_IS_LINE, {char_tok('f'), char_tok('o'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::UNIT_FOF), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(')'), char_tok('.')});
+    make_rule(ders, TSTPTokenType::LINE, RULE_FOF_WITH_DERIV_AND_ANNOT_IS_LINE, {char_tok('f'), char_tok('o'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::UNIT_FOF), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(')'), char_tok('.')});
 
     return ders;
 }
