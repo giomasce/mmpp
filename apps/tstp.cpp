@@ -16,43 +16,20 @@ const string SPACE_LETTERS = " \t\n\r";
 
 enum class TSTPTokenType {
     CHAR,
+    WHITESPACE,
     LETTER,
     ID,
-    EXPR,
+    TERM,
     ARGLIST,
-    WHITESPACE,
+    ATOM,
+    LITERAL,
+    CLAUSE,
+    EXPR_ARGLIST,
+    EXPR,
     LINE,
 };
 
-ostream &operator<<(ostream &stream, const TSTPTokenType &tt) {
-    return stream << static_cast< int >(tt);
-}
-
-enum TSTPRule {
-    RULE_NONE = 0,
-    RULE_CHAR_IS_LETTER = 0x100,
-    RULE_CHAR_IS_WHITESPACE = 0x200,
-    RULE_LINE = 0x300,
-    RULE_LETTER_IS_ID,
-    RULE_ID_AND_LETTER_IS_ID,
-    RULE_ID_IS_EXPR,
-    RULE_PARENS_EXPR_IS_EXPR,
-    RULE_EXPR_IS_ARGLIST,
-    RULE_ARGLIST_AND_EXPR_IS_ARGLIST,
-    RULE_FUNC_APP_IS_EXPR,
-    RULE_EMPTY_FUNC_APP_IS_EXPR,
-    RULE_EQUALITY_IS_EXPR,
-    RULE_INEQUALITY_IS_EXPR,
-    RULE_LIST_IS_EXPR,
-    RULE_EMPTY_LIST_IS_EXPR,
-    RULE_FORALL_IS_EXPR,
-    RULE_EXISTS_IS_EXPR,
-    RULE_NEGATION_IS_EXPR,
-};
-
-ostream &operator<<(ostream &stream, const TSTPRule &rule) {
-    return stream << static_cast< int >(rule);
-}
+ostream &operator<<(ostream &stream, const TSTPTokenType &tt);
 
 struct TSTPToken {
     TSTPTokenType type;
@@ -70,22 +47,118 @@ struct TSTPToken {
     }
 };
 
-ostream &operator<<(ostream &stream, const TSTPToken &tok) {
-    return stream << "[" << tok.type << "," << tok.content << "]";
-}
+ostream &operator<<(ostream &stream, const TSTPToken &tok);
+TSTPToken char_tok(char c) { return TSTPToken(TSTPTokenType::CHAR, c); }
+TSTPToken sym_tok(TSTPTokenType type) { return TSTPToken(type); }
 
 namespace std {
 template< >
 struct hash< TSTPToken > {
     typedef TSTPToken argument_type;
     typedef std::size_t result_type;
-    result_type operator()(const argument_type &x) const noexcept {
-        result_type res = 0;
-        boost::hash_combine(res, x.type);
-        boost::hash_combine(res, x.content);
-        return res;
-    }
+    result_type operator()(const argument_type &x) const noexcept;
 };
+}
+
+enum TSTPRule {
+    RULE_NONE = 0,
+    RULE_CHAR_IS_LETTER = 0x100,
+    RULE_CHAR_IS_WHITESPACE = 0x200,
+    RULE_LINE = 0x300,
+    RULE_LETTER_IS_ID,
+    RULE_ID_AND_LETTER_IS_ID,
+
+    RULE_ID_IS_TERM,
+    RULE_TERM_IS_ARGLIST,
+    RULE_ARGLIST_AND_TERM_IS_ARGLIST,
+    RULE_FUNC_APP_IS_TERM,
+    RULE_TERM_IS_ATOM,
+    RULE_TERM_EQ_IS_ATOM,
+    RULE_TERM_NEQ_IS_ATOM,
+    RULE_ATOM_IS_LITERAL,
+    RULE_NEG_ATOM_IS_LITERAL,
+    RULE_LITERAL_IS_CLAUSE,
+    RULE_CLAUSE_AND_LITERAL_IS_CLAUSE,
+    RULE_PARENS_CLAUSE_IS_CLAUSE,
+
+    RULE_ID_IS_EXPR,
+    RULE_EXPR_IS_ARGLIST,
+    RULE_ARGLIST_AND_EXPR_IS_ARGLIST,
+    RULE_FUNC_APP_IS_EXPR,
+    RULE_EMPTY_LIST_IS_EXPR,
+    RULE_LIST_IS_EXPR,
+
+    RULE_CNF_IS_LINE,
+    RULE_CNF_WITH_DERIV_IS_LINE,
+    RULE_CNF_WITH_DERIV_AND_ANNOT_IS_LINE,
+};
+
+ostream &operator<<(ostream &stream, const TSTPRule &rule);
+
+void make_rule(std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, vector<TSTPToken> > > > &ders, TSTPTokenType type, TSTPRule rule, vector< TSTPToken > tokens) {
+    ders[type].push_back(make_pair(rule, tokens));
+}
+
+std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, vector<TSTPToken> > > > create_derivations() {
+    std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, vector<TSTPToken> > > > ders;
+    for (char c : ID_LETTERS) {
+        make_rule(ders, TSTPTokenType::LETTER, static_cast< TSTPRule >(RULE_CHAR_IS_LETTER+c), {char_tok(c)});
+    }
+    for (char c : SPACE_LETTERS) {
+        make_rule(ders, TSTPTokenType::LETTER, static_cast< TSTPRule >(RULE_CHAR_IS_WHITESPACE+c), {char_tok(c)});
+    }
+    make_rule(ders, TSTPTokenType::ID, RULE_LETTER_IS_ID, {sym_tok(TSTPTokenType::LETTER)});
+    make_rule(ders, TSTPTokenType::ID, RULE_ID_AND_LETTER_IS_ID, {sym_tok(TSTPTokenType::ID), sym_tok(TSTPTokenType::LETTER)});
+
+    // Rules for CNFs
+    make_rule(ders, TSTPTokenType::TERM, RULE_ID_IS_TERM, {sym_tok(TSTPTokenType::ID)});
+    make_rule(ders, TSTPTokenType::ARGLIST, RULE_TERM_IS_ARGLIST, {sym_tok(TSTPTokenType::TERM)});
+    make_rule(ders, TSTPTokenType::ARGLIST, RULE_ARGLIST_AND_TERM_IS_ARGLIST, {sym_tok(TSTPTokenType::ARGLIST), char_tok(','), sym_tok(TSTPTokenType::TERM)});
+    make_rule(ders, TSTPTokenType::TERM, RULE_FUNC_APP_IS_TERM, {sym_tok(TSTPTokenType::ID), char_tok('('), sym_tok(TSTPTokenType::ARGLIST), char_tok(')')});
+    make_rule(ders, TSTPTokenType::ATOM, RULE_TERM_IS_ATOM, {sym_tok(TSTPTokenType::TERM)});
+    make_rule(ders, TSTPTokenType::ATOM, RULE_TERM_EQ_IS_ATOM, {sym_tok(TSTPTokenType::TERM), char_tok('='), sym_tok(TSTPTokenType::TERM)});
+    make_rule(ders, TSTPTokenType::ATOM, RULE_TERM_NEQ_IS_ATOM, {sym_tok(TSTPTokenType::TERM), char_tok('!'), char_tok('='), sym_tok(TSTPTokenType::TERM)});
+    make_rule(ders, TSTPTokenType::LITERAL, RULE_ATOM_IS_LITERAL, {sym_tok(TSTPTokenType::ATOM)});
+    make_rule(ders, TSTPTokenType::LITERAL, RULE_NEG_ATOM_IS_LITERAL, {char_tok('~'), sym_tok(TSTPTokenType::ATOM)});
+    make_rule(ders, TSTPTokenType::CLAUSE, RULE_LITERAL_IS_CLAUSE, {sym_tok(TSTPTokenType::LITERAL)});
+    make_rule(ders, TSTPTokenType::CLAUSE, RULE_CLAUSE_AND_LITERAL_IS_CLAUSE, {sym_tok(TSTPTokenType::CLAUSE), char_tok('|'), sym_tok(TSTPTokenType::LITERAL)});
+    make_rule(ders, TSTPTokenType::CLAUSE, RULE_PARENS_CLAUSE_IS_CLAUSE, {char_tok('('), sym_tok(TSTPTokenType::CLAUSE), char_tok(')')});
+
+    // Rules for generic expressions
+    make_rule(ders, TSTPTokenType::EXPR, RULE_ID_IS_EXPR, {sym_tok(TSTPTokenType::ID)});
+    make_rule(ders, TSTPTokenType::EXPR_ARGLIST, RULE_EXPR_IS_ARGLIST, {sym_tok(TSTPTokenType::EXPR)});
+    make_rule(ders, TSTPTokenType::EXPR_ARGLIST, RULE_ARGLIST_AND_EXPR_IS_ARGLIST, {sym_tok(TSTPTokenType::EXPR_ARGLIST), char_tok(','), sym_tok(TSTPTokenType::EXPR)});
+    make_rule(ders, TSTPTokenType::EXPR, RULE_FUNC_APP_IS_EXPR, {sym_tok(TSTPTokenType::ID), char_tok('('), sym_tok(TSTPTokenType::EXPR_ARGLIST), char_tok(')')});
+    make_rule(ders, TSTPTokenType::EXPR, RULE_EMPTY_LIST_IS_EXPR, {char_tok('['), char_tok(']')});
+    make_rule(ders, TSTPTokenType::EXPR, RULE_LIST_IS_EXPR, {char_tok('['), sym_tok(TSTPTokenType::EXPR_ARGLIST), char_tok(']')});
+
+    // Rules for whole lines
+    make_rule(ders, TSTPTokenType::LINE, RULE_CNF_IS_LINE, {char_tok('c'), char_tok('n'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), char_tok(')'), char_tok(',')});
+    make_rule(ders, TSTPTokenType::LINE, RULE_CNF_WITH_DERIV_IS_LINE, {char_tok('c'), char_tok('n'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::CLAUSE), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(')'), char_tok('.')});
+    make_rule(ders, TSTPTokenType::LINE, RULE_CNF_WITH_DERIV_AND_ANNOT_IS_LINE, {char_tok('c'), char_tok('n'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::CLAUSE), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(')'), char_tok('.')});
+
+    return ders;
+}
+
+ostream &operator<<(ostream &stream, const TSTPTokenType &tt) {
+    return stream << static_cast< int >(tt);
+}
+
+ostream &operator<<(ostream &stream, const TSTPRule &rule) {
+    return stream << static_cast< int >(rule);
+}
+
+ostream &operator<<(ostream &stream, const TSTPToken &tok) {
+    return stream << "[" << tok.type << "," << tok.content << "]";
+}
+
+namespace std {
+hash<TSTPToken>::result_type hash<TSTPToken>::operator()(const hash<TSTPToken>::argument_type &x) const noexcept {
+    result_type res = 0;
+    boost::hash_combine(res, x.type);
+    boost::hash_combine(res, x.content);
+    return res;
+}
 }
 
 vector< TSTPToken > trivial_lexer(string s) {
@@ -117,30 +190,7 @@ int parse_tstp_main(int argc, char *argv[]) {
     (void) argc;
     (void) argv;
 
-    std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, vector<TSTPToken> > > > ders;
-    for (char c : ID_LETTERS) {
-        ders[TSTPToken(TSTPTokenType::LETTER)].push_back(make_pair(static_cast< TSTPRule >(RULE_CHAR_IS_LETTER+c), vector< TSTPToken >{TSTPToken(TSTPTokenType::CHAR, c)}));
-    }
-    for (char c : SPACE_LETTERS) {
-        ders[TSTPToken(TSTPTokenType::WHITESPACE)].push_back(make_pair(static_cast< TSTPRule >(RULE_CHAR_IS_WHITESPACE+c), vector< TSTPToken >{TSTPToken(TSTPTokenType::CHAR, c)}));
-    }
-    ders[TSTPToken(TSTPTokenType::LINE)].push_back(make_pair(RULE_LINE, vector< TSTPToken >{TSTPToken(TSTPTokenType::EXPR), TSTPToken(TSTPTokenType::CHAR, '.')}));
-    ders[TSTPToken(TSTPTokenType::ID)].push_back(make_pair(RULE_LETTER_IS_ID, vector< TSTPToken >{TSTPToken(TSTPTokenType::LETTER)}));
-    ders[TSTPToken(TSTPTokenType::ID)].push_back(make_pair(RULE_ID_AND_LETTER_IS_ID, vector< TSTPToken >{TSTPToken(TSTPTokenType::ID), TSTPToken(TSTPTokenType::LETTER)}));
-    ders[TSTPToken(TSTPTokenType::EXPR)].push_back(make_pair(RULE_ID_IS_EXPR, vector< TSTPToken >{TSTPToken(TSTPTokenType::ID)}));
-    ders[TSTPToken(TSTPTokenType::EXPR)].push_back(make_pair(RULE_PARENS_EXPR_IS_EXPR, vector< TSTPToken >{TSTPToken(TSTPTokenType::CHAR, '('), TSTPToken(TSTPTokenType::EXPR), TSTPToken(TSTPTokenType::CHAR, ')')}));
-    ders[TSTPToken(TSTPTokenType::ARGLIST)].push_back(make_pair(RULE_EXPR_IS_ARGLIST, vector< TSTPToken >{TSTPToken(TSTPTokenType::EXPR)}));
-    ders[TSTPToken(TSTPTokenType::ARGLIST)].push_back(make_pair(RULE_ARGLIST_AND_EXPR_IS_ARGLIST, vector< TSTPToken >{TSTPToken(TSTPTokenType::ARGLIST), TSTPToken(TSTPTokenType::CHAR, ','), TSTPToken(TSTPTokenType::EXPR)}));
-    ders[TSTPToken(TSTPTokenType::EXPR)].push_back(make_pair(RULE_FUNC_APP_IS_EXPR, vector< TSTPToken >{TSTPToken(TSTPTokenType::ID), TSTPToken(TSTPTokenType::CHAR, '('), TSTPToken(TSTPTokenType::ARGLIST), TSTPToken(TSTPTokenType::CHAR, ')')}));
-    ders[TSTPToken(TSTPTokenType::EXPR)].push_back(make_pair(RULE_EMPTY_FUNC_APP_IS_EXPR, vector< TSTPToken >{TSTPToken(TSTPTokenType::ID), TSTPToken(TSTPTokenType::CHAR, '('), TSTPToken(TSTPTokenType::CHAR, ')')}));
-    ders[TSTPToken(TSTPTokenType::EXPR)].push_back(make_pair(RULE_EQUALITY_IS_EXPR, vector< TSTPToken >{TSTPToken(TSTPTokenType::EXPR), TSTPToken(TSTPTokenType::CHAR, '='), TSTPToken(TSTPTokenType::EXPR)}));
-    ders[TSTPToken(TSTPTokenType::EXPR)].push_back(make_pair(RULE_INEQUALITY_IS_EXPR, vector< TSTPToken >{TSTPToken(TSTPTokenType::EXPR), TSTPToken(TSTPTokenType::CHAR, '!'), TSTPToken(TSTPTokenType::CHAR, '='), TSTPToken(TSTPTokenType::EXPR)}));
-    ders[TSTPToken(TSTPTokenType::EXPR)].push_back(make_pair(RULE_LIST_IS_EXPR, vector< TSTPToken >{TSTPToken(TSTPTokenType::CHAR, '['), TSTPToken(TSTPTokenType::ARGLIST), TSTPToken(TSTPTokenType::CHAR, ']')}));
-    ders[TSTPToken(TSTPTokenType::EXPR)].push_back(make_pair(RULE_EMPTY_LIST_IS_EXPR, vector< TSTPToken >{TSTPToken(TSTPTokenType::CHAR, '['), TSTPToken(TSTPTokenType::CHAR, ']')}));
-    ders[TSTPToken(TSTPTokenType::EXPR)].push_back(make_pair(RULE_FORALL_IS_EXPR, vector< TSTPToken >{TSTPToken(TSTPTokenType::CHAR, '!'), TSTPToken(TSTPTokenType::CHAR, '['), TSTPToken(TSTPTokenType::ID), TSTPToken(TSTPTokenType::CHAR, ']'), TSTPToken(TSTPTokenType::CHAR, ':'), TSTPToken(TSTPTokenType::EXPR)}));
-    ders[TSTPToken(TSTPTokenType::EXPR)].push_back(make_pair(RULE_EXISTS_IS_EXPR, vector< TSTPToken >{TSTPToken(TSTPTokenType::CHAR, '?'), TSTPToken(TSTPTokenType::CHAR, '['), TSTPToken(TSTPTokenType::ID), TSTPToken(TSTPTokenType::CHAR, ']'), TSTPToken(TSTPTokenType::CHAR, ':'), TSTPToken(TSTPTokenType::EXPR)}));
-    ders[TSTPToken(TSTPTokenType::EXPR)].push_back(make_pair(RULE_NEGATION_IS_EXPR, vector< TSTPToken >{TSTPToken(TSTPTokenType::CHAR, '~'), TSTPToken(TSTPTokenType::EXPR)}));
-
+    auto ders = create_derivations();
     LRParser< TSTPToken, TSTPRule > parser(ders);
     //EarleyParser< TSTPToken, TSTPRule > parser(ders);
     parser.initialize();
