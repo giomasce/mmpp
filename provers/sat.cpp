@@ -153,7 +153,7 @@ std::tuple<bool, std::vector<std::pair<Literal, const std::vector<Literal> *> >,
                 return make_tuple(false, ret, [orig_clause,pos_prover,neg_prover,lit,callback](){
                     pos_prover();
                     neg_prover();
-                    callback->prove_absurduum(lit, orig_clause);
+                    callback->prove_absurdum(lit, orig_clause);
                 });
             }
             cont = true;
@@ -266,12 +266,12 @@ void CNFCallbackTest::prove_unit_res(const Clause &clause, size_t unsolved_idx, 
     cout << ") -> " << to_number_literal(clause[unsolved_idx]) << " by unit resolution" << endl;
 }
 
-void CNFCallbackTest::prove_absurduum(const Literal &lit, const Clause &context)
+void CNFCallbackTest::prove_absurdum(const Literal &lit, const Clause &context)
 {
     (void) lit;
     cout << "Popping 2 things from the stack and proving: (";
     print_clause(cout, context);
-    cout << ") by absurduum" << endl;
+    cout << ") by absurdum" << endl;
 }
 
 Literal invert_literal(const Literal &lit)

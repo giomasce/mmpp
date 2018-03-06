@@ -30,7 +30,7 @@ struct CNFCallback {
     // Pop NOT context -> ( lit_1 \/ ... \/ lit_n ) from the stack, pop NOT context -> -. lit_i for all i except unsolved_idx, then push NOT context -> lit_{unsolved_idx}
     virtual void prove_unit_res(const Clause &clause, size_t unsolved_idx, const Clause &context) = 0;
     // Pop NOT context -> lit and NOT context -> -. lit from stack, and push context (lit is always given positive)
-    virtual void prove_absurduum(const Literal &lit, const Clause &context) = 0;
+    virtual void prove_absurdum(const Literal &lit, const Clause &context) = 0;
 };
 
 struct CNFCallbackTest : public CNFCallback {
@@ -38,7 +38,7 @@ struct CNFCallbackTest : public CNFCallback {
     void prove_not_or_elim(size_t idx, const Clause &context);
     void prove_imp_intr(const Clause &clause, const Clause &context);
     void prove_unit_res(const Clause &clause, size_t unsolved_idx, const Clause &context);
-    void prove_absurduum(const Literal &lit, const Clause &context);
+    void prove_absurdum(const Literal &lit, const Clause &context);
 
     std::vector< Clause > orig_clauses;
 };

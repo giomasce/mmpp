@@ -87,3 +87,9 @@ Prover<CheckpointedProofEngine> not_or_elim_prover(const std::vector<pwff> &oran
         }
     }
 }
+
+static const RegisteredProver absurd_rp = LibraryToolbox::register_prover({"|- ( ph -> ( -. ps -> ch ) )", "|- ( ph -> ( -. ps -> -. ch ) )"}, "|- ( ph -> ps )");
+Prover<CheckpointedProofEngine> absurdum_prover(pwff concl, pwff glob_ctx, pwff loc_ctx, Prover<CheckpointedProofEngine> pos_prover, Prover<CheckpointedProofEngine> neg_prover, const LibraryToolbox &tb)
+{
+    return tb.build_registered_prover(absurd_rp, {{"ph", glob_ctx->get_type_prover(tb)}, {"ps", loc_ctx->get_type_prover(tb)}, {"ch", concl->get_type_prover(tb)}}, {pos_prover, neg_prover});
+}
