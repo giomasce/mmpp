@@ -16,7 +16,7 @@ CONFIG += c++1z
 
 QMAKE_LIBS += -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread
 
-!macx {
+unix {
     # Compile with gcc
     QMAKE_CC = gcc
     QMAKE_CXX = g++
@@ -41,6 +41,10 @@ macx {
     QMAKE_CFLAGS += -std=c11 -g -I/usr/local/include
     QMAKE_CXXFLAGS += -g -ftemplate-backtrace-limit=0 -I/usr/local/include
     QMAKE_LIBS += -ldl -rdynamic -L/usr/local/lib
+}
+
+win32 {
+    QMAKE_CXXFLAGS += /I c:\boost_1_66_0 /std:c++17
 }
 
 # Trick from https://stackoverflow.com/a/21335126/807307
