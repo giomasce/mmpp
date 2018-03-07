@@ -34,6 +34,7 @@ TestEnvironment::TestEnvironment(const boost::filesystem::path &filename, const 
 }
 
 const TestEnvironment &get_set_mm() {
+    cout << "Base resource directory is: " << platform_get_resources_base() << endl;
     static TestEnvironment data(platform_get_resources_base() / "set.mm", platform_get_resources_base() / "set.mm.cache");
     return data;
 }

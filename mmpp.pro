@@ -14,8 +14,6 @@ CONFIG += link_pkgconfig
 
 CONFIG += c++1z
 
-QMAKE_LIBS += -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread
-
 unix {
     # Compile with gcc
     QMAKE_CC = gcc
@@ -32,6 +30,8 @@ unix {
     #QMAKE_CFLAGS += -std=c11 -g
     #QMAKE_CXXFLAGS += -g -ftemplate-backtrace-limit=0
     #QMAKE_LIBS += -ldl -rdynamic
+
+    QMAKE_LIBS += -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread
 }
 
 macx {
@@ -41,10 +41,13 @@ macx {
     QMAKE_CFLAGS += -std=c11 -g -I/usr/local/include
     QMAKE_CXXFLAGS += -g -ftemplate-backtrace-limit=0 -I/usr/local/include
     QMAKE_LIBS += -ldl -rdynamic -L/usr/local/lib
+    QMAKE_LIBS += -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread
 }
 
 win32 {
-    QMAKE_CXXFLAGS += /std:c++17 /I c:\boost_1_66_0 /I c:\libs
+    QMAKE_CXXFLAGS += /std:c++17 /I c:\Boost\include\boost-1_66 /I c:\libs /FC
+    QMAKE_LIBS += /LIBPATH:c:\Boost\lib
+    CONFIG += console
 }
 
 # Trick from https://stackoverflow.com/a/21335126/807307

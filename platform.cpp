@@ -1,9 +1,8 @@
 
 #include "platform.h"
 
-using namespace std;
-
 #if defined(__linux) || defined(__linux__)
+
 #include <csignal>
 #include <atomic>
 #include <cstdlib>
@@ -12,6 +11,8 @@ using namespace std;
 #include <cstdio>
 #include <pthread.h>
 #include <sys/syscall.h>
+
+using namespace std;
 
 void set_max_ram(uint64_t bytes) {
     struct rlimit64 limit;
@@ -117,6 +118,8 @@ uint64_t platform_get_current_used_ram( )
 #include <pthread.h>
 #include <mach/mach.h>
 
+using namespace std;
+
 void set_max_ram(uint64_t bytes) {
     struct rlimit limit;
     limit.rlim_cur = bytes;
@@ -197,6 +200,60 @@ uint64_t platform_get_current_used_ram( )
     } else {
         return (size_t)info.resident_size;
     }
+}
+
+#elif (defined(_WIN32))
+
+#include "windows.h"
+#include "psapi.h"
+
+using namespace std;
+
+// FIXME
+void set_max_ram(uint64_t bytes){
+}
+
+// FIXME
+bool platform_init(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+    return true;
+}
+
+// FIXME
+bool platform_should_stop() {
+    return false;
+}
+
+// FIXME
+bool platform_open_browser(std::string browser_url) {
+    return true;
+}
+
+// FIXME
+boost::filesystem::path platform_get_resources_base() {
+    return boost::filesystem::path(__FILE__).parent_path() / "resources";
+}
+
+// From https://stackoverflow.com/a/64166 and MSDN docs
+uint64_t platform_get_peak_used_ram() {
+    PROCESS_MEMORY_COUNTERS pmc;
+    GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
+    return pmc.PeakWorkingSetSize;
+}
+
+uint64_t platform_get_current_used_ram() {
+    PROCESS_MEMORY_COUNTERS pmc;
+    GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
+    return pmc.WorkingSetSize;
+}
+
+// FIXME
+void set_thread_name(std::thread &t, const std::string &name) {
+}
+
+// FIXME
+void set_current_thread_low_priority() {
 }
 
 #else

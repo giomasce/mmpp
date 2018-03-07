@@ -74,10 +74,10 @@ static_block {
 }
 
 struct ProofStat {
-    size_t proof_size;
-    size_t ess_proof_size;
-    size_t ess_hyp_num;
-    size_t ess_hyp_steps;
+    size_t proof_size = 0;
+    size_t ess_proof_size = 0;
+    size_t ess_hyp_num = 0;
+    size_t ess_hyp_steps = 0;
 };
 
 ostream &operator<<(ostream &os, const ProofStat &stat) {
@@ -149,7 +149,6 @@ int proofs_stats_main(int argc, char *argv[]) {
         exec->execute();
 
         ProofStat stat;
-        bzero(&stat, sizeof(stat));
         //stat.proof_size = proof.get_labels().size();
         stat.ess_hyp_num = ass.get_ess_hyps().size();
         proof_stat_unwind_tree(exec->get_proof_tree(), ass, stat);
@@ -255,7 +254,7 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     //auto target_pt = tb.get_parsed_sents2()[target_label];
 
     ostringstream oss;
-    for (ssize_t i = 1; i < argc; i++) {
+    for (size_t i = 1; i < argc; i++) {
         oss << argv[i] << " ";
     }
     Sentence target_sent = tb.read_sentence(oss.str());
