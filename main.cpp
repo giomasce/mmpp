@@ -3,7 +3,7 @@
 #include <string>
 #include <cstring>
 
-#include <libgen.h>
+#include <boost/filesystem.hpp>
 
 #include "utils/utils.h"
 #include "platform.h"
@@ -58,10 +58,8 @@ static_block {
 
 int main(int argc, char *argv[]) {
     set_max_ram(4 * 1024 * 1024 * 1024LL);
-    char *tmp = strdup(argv[0]);
-    string bname(basename(tmp));
-    // string constructor should have made a copy
-    free(tmp);
+    boost::filesystem::path exec_path(argv[0]);
+    string bname = exec_path.filename().string();
     function< int(int, char*[]) > main_func;
     try {
         main_func = get_main_functions().at(bname);
