@@ -39,7 +39,7 @@ void test_old_unification() {
         }
         cout << endl;
     }
-    cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
+    cout << "Memory usage after test: " << size_to_string(platform_get_current_used_ram()) << endl << endl;
 }
 
 void test_lr_set() {
@@ -99,7 +99,7 @@ void test_statement_unification() {
         auto &thesis_sent = lib.get_sentence(ass.get_thesis());
         cout << " => " << tb.print_sentence(thesis_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
     }
-    cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
+    cout << "Memory usage after test: " << size_to_string(platform_get_current_used_ram()) << endl << endl;
 }
 
 void test_tree_unification() {
@@ -182,7 +182,7 @@ void test_type_proving() {
     }
     toc(t, reps);
 
-    cout << "Memory usage after test: " << size_to_string(platform_get_current_rss()) << endl << endl;
+    cout << "Memory usage after test: " << size_to_string(platform_get_current_used_ram()) << endl << endl;
 }
 
 void test_wffs_trivial() {
@@ -426,7 +426,7 @@ void test() {
     test_wffs_trivial();
     test_wffs_advanced();
     test_wffs_parsing();
-    cout << "Maximum memory usage: " << size_to_string(platform_get_peak_rss()) << endl;
+    cout << "Maximum memory usage: " << size_to_string(platform_get_peak_used_ram()) << endl;
 }
 
 int test_setmm(int argc, char *argv[]) {

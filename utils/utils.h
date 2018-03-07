@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <memory>
+#include <cstdint>
 
 #include <boost/filesystem.hpp>
 #include <boost/archive/text_iarchive.hpp>
@@ -66,7 +67,7 @@ inline static void assert_or_throw(bool cond, const Args&... args) {
     }
 }
 
-std::string size_to_string(size_t size);
+std::string size_to_string(uint64_t size);
 bool starts_with(std::string a, std::string b);
 
 struct Tic {

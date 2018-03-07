@@ -30,5 +30,5 @@ void test_small_stuff() {
         cout << "Testing " << val << ": " << ce.push_code(val) << endl;
     }
 
-    cout << "Finished. Memory usage: " << size_to_string(platform_get_current_rss()) << endl << endl;
+    cout << "Finished. Memory usage: " << size_to_string(platform_get_current_used_ram()) << endl << endl;
 }

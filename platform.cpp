@@ -84,23 +84,14 @@ void set_current_thread_low_priority() {
  *          http://creativecommons.org/licenses/by/3.0/deed.en_US
  */
 
-/**
- * Returns the peak (maximum so far) resident set size (physical
- * memory use) measured in bytes, or zero if the value cannot be
- * determined on this OS.
- */
-size_t platform_get_peak_rss( )
+uint64_t platform_get_peak_used_ram( )
 {
     struct rusage rusage;
     getrusage( RUSAGE_SELF, &rusage );
     return (size_t)(rusage.ru_maxrss * 1024L);
 }
 
-/**
- * Returns the current resident set size (physical memory use) measured
- * in bytes, or zero if the value cannot be determined on this OS.
- */
-size_t platform_get_current_rss( )
+uint64_t platform_get_current_used_ram( )
 {
     long rss = 0L;
     FILE* fp = NULL;
@@ -190,23 +181,14 @@ void set_current_thread_low_priority() {
  *          http://creativecommons.org/licenses/by/3.0/deed.en_US
  */
 
-/**
- * Returns the peak (maximum so far) resident set size (physical
- * memory use) measured in bytes, or zero if the value cannot be
- * determined on this OS.
- */
-size_t platform_get_peak_rss( )
+uint64_t platform_get_peak_used_ram( )
 {
     struct rusage rusage;
     getrusage( RUSAGE_SELF, &rusage );
     return (size_t)rusage.ru_maxrss;
 }
 
-/**
- * Returns the current resident set size (physical memory use) measured
- * in bytes, or zero if the value cannot be determined on this OS.
- */
-size_t platform_get_current_rss( )
+uint64_t platform_get_current_used_ram( )
 {
     struct mach_task_basic_info info;
     mach_msg_type_number_t infoCount = MACH_TASK_BASIC_INFO_COUNT;

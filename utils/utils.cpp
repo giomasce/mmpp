@@ -59,7 +59,7 @@ std::vector<string> dump_stacktrace() {
 #endif
 
 // Partly taken from http://programanddesign.com/cpp/human-readable-file-size-in-c/
-string size_to_string(size_t size) {
+string size_to_string(uint64_t size) {
     std::ostringstream stream;
     int i = 0;
     const char* units[] = {"B", "kiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};

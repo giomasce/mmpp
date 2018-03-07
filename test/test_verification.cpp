@@ -62,7 +62,7 @@ static vector< pair < string, bool > > get_tests() {
 bool test_verification_one(string filename, bool advanced_tests) {
     bool success = true;
     try {
-        cout << "Memory usage when starting: " << size_to_string(platform_get_current_rss()) << endl;
+        cout << "Memory usage when starting: " << size_to_string(platform_get_current_used_ram()) << endl;
         FileTokenizer ft(test_basename / filename);
         Reader p(ft, true, true);
         cout << "Reading library and executing all proofs..." << endl;
@@ -112,7 +112,7 @@ bool test_verification_one(string filename, bool advanced_tests) {
             cout << "Skipping compression and decompression test" << endl;
         }
 
-        cout << "Finished. Memory usage: " << size_to_string(platform_get_current_rss()) << endl;
+        cout << "Finished. Memory usage: " << size_to_string(platform_get_current_used_ram()) << endl;
     } catch (const MMPPException &e) {
         cout << "An exception with message '" << e.get_reason() << "' was thrown!" << endl;
         e.print_stacktrace(cout);
