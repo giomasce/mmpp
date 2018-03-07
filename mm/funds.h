@@ -23,7 +23,8 @@ static_assert(std::is_unsigned< CodeTok >::value);
 typedef std::vector< SymTok > Sentence;
 typedef std::vector< LabTok > Procedure;
 
-const CodeTok INVALID_CODE = std::numeric_limits< CodeTok >::max();
+// See https://stackoverflow.com/a/27443191
+const CodeTok INVALID_CODE = (std::numeric_limits< CodeTok >::max)();
 
 class MMPPParsingError : public MMPPException {
     using MMPPException::MMPPException;
@@ -73,14 +74,12 @@ inline static bool is_valid_symbol(std::string s) {
 // Taken from http://stackoverflow.com/a/217605/807307
 // trim from start (in place)
 static inline void ltrim(std::string &s) {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-            std::not1(std::ptr_fun<char, bool>(is_mm_whitespace))));
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](char ch) { return !is_mm_whitespace(ch); }));
 }
 
 // trim from end (in place)
 static inline void rtrim(std::string &s) {
-    s.erase(std::find_if(s.rbegin(), s.rend(),
-            std::not1(std::ptr_fun<char, bool>(is_mm_whitespace))).base(), s.end());
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](char ch) { return !is_mm_whitespace(ch); }).base(), s.end());
 }
 
 // trim from both ends (in place)

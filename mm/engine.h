@@ -379,20 +379,7 @@ class CreativeProofEngineImpl final : public SemiCreativeProofEngineImpl< SentTy
 public:
     CreativeProofEngineImpl(const typename ProofEngineBase< SentType_ >::AdvLibType &lib, bool gen_proof_tree = false) : SemiCreativeProofEngineImpl< SentType_ >(lib, gen_proof_tree), lib(lib) {}
 
-    LabTok create_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent) {
-        auto it = this->new_hypotheses_rev.find(sent);
-        LabTok label = it->second;
-        if (it == this->new_hypotheses_rev.end()) {
-            size_t num = this->new_hypotheses_rev.size();
-            std::ostringstream buf;
-            buf << "hypothesis." << num;
-            auto name = buf.str();
-            label = this->lib.new_temp_label(name);
-            this->new_hypotheses_rev[sent] = label;
-            this->set_new_hypothesis(label, sent);
-        }
-        return label;
-    }
+    LabTok create_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent);
 
     void process_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent) {
         LabTok label = this->create_new_hypothesis(sent);
@@ -419,6 +406,22 @@ private:
     const typename ProofEngineBase< SentType_ >::AdvLibType &lib;
     std::map< typename ProofEngineBase< SentType_ >::SentType, LabTok > new_hypotheses_rev;
 };
+
+template<typename SentType_>
+LabTok CreativeProofEngineImpl< SentType_ >::create_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent) {
+    auto it = this->new_hypotheses_rev.find(sent);
+    LabTok label = it->second;
+    if (it == this->new_hypotheses_rev.end()) {
+        size_t num = this->new_hypotheses_rev.size();
+        std::ostringstream buf;
+        buf << "hypothesis." << num;
+        auto name = buf.str();
+        label = this->lib.new_temp_label(name);
+        this->new_hypotheses_rev[sent] = label;
+        this->set_new_hypothesis(label, sent);
+    }
+    return label;
+}
 
 template< typename SentType_ >
 class ProofEngineImpl final : public ProofEngineBase< SentType_ >, virtual public ProofEngine {

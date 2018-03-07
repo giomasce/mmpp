@@ -32,7 +32,7 @@ or implied, of Christopher Allen Ogden.
 namespace boost {
 namespace serialization {
 
-template<uint N>
+template<unsigned int N>
 struct Serialize
 {
     template<class Archive, typename... Args>

@@ -15,9 +15,9 @@
 
 #include "utils.h"
 
-class Yield {
+class Yielder {
 public:
-    Yield(boost::coroutines::asymmetric_coroutine< void >::push_type &base_yield);
+    Yielder(boost::coroutines::asymmetric_coroutine< void >::push_type &base_yield);
     void operator()() {
         this->yield_impl();
     }
@@ -54,7 +54,7 @@ private:
     template< typename T >
     static boost::coroutines::asymmetric_coroutine< void >::pull_type make_coroutine(std::shared_ptr< T > body) {
         return boost::coroutines::asymmetric_coroutine< void >::pull_type([body](boost::coroutines::asymmetric_coroutine< void >::push_type &yield_impl) mutable {
-            Yield yield(yield_impl);
+            Yielder yield(yield_impl);
             yield();
             (*body)(yield);
         });
@@ -66,7 +66,7 @@ private:
 template< typename T >
 std::shared_ptr< Coroutine > make_auto_coroutine(std::shared_ptr< T > body) {
     auto coro = std::make_shared< Coroutine >();
-    auto new_body = [coro,body](Yield &yield) mutable {
+    auto new_body = [coro,body](Yielder &yield) mutable {
         Finally f([&coro]() {
            coro = NULL;
         });

@@ -64,7 +64,7 @@ void Step::after_new_sentence(const Sentence &old_sent) {
         auto workset = this->get_workset().lock();
         if (workset) {
             // Restart search from a coroutine to avoid deadlocks
-            auto body = [strong_parent](Yield &yield) {
+            auto body = [strong_parent](Yielder &yield) {
                 (void) yield;
                 strong_parent->restart_search();
             };

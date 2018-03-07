@@ -10,7 +10,10 @@
 #include "utils/utils.h"
 #include "web.h"
 #include "platform.h"
+
+#if defined(USE_MICROHTTPD)
 #include "httpd_microhttpd.h"
+#endif
 
 using namespace std;
 using namespace nlohmann;
@@ -28,9 +31,9 @@ void init_random() {
 string generate_id() {
     int len = 100;
     vector< char > id(len);
-    uniform_int_distribution< char > dist('a', 'z');
+    uniform_int_distribution< int > dist('a', 'z');
     for (int i = 0; i < len; i++) {
-        id[i] = dist(rand_mt);
+        id[i] = static_cast< char >(dist(rand_mt));
     }
     return string(id.begin(), id.end());
 }
@@ -87,7 +90,7 @@ int webmmpp_main_common(int argc, char *argv[], bool open_server) {
             httpd->stop();
             break;
         }
-        sleep(1);
+        this_thread::sleep_for(1s);
     }
     httpd->join();
 

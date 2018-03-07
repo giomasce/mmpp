@@ -44,7 +44,7 @@ protected:
     }
 };
 
-void FailingStrategy::operator()(Yield &yield) {
+void FailingStrategy::operator()(Yielder &yield) {
     (void) yield;
 
     this->maybe_report_result(this->shared_from_this(), FailingStrategyResult::create());
@@ -100,7 +100,7 @@ struct UnificationStrategyResult : public StepStrategyResult, public enable_crea
     const LibraryToolbox &toolbox;
 };
 
-void UnificationStrategy::operator()(Yield &yield) {
+void UnificationStrategy::operator()(Yielder &yield) {
     auto result = UnificationStrategyResult::create(this->toolbox);
 
     Finally f1([this,result]() {
@@ -191,7 +191,7 @@ struct WffStrategyResult : public StepStrategyResult, public enable_create< WffS
         }
         auto prover2 = this->prover;
         auto wff2 = this->wff;
-        for (ssize_t i = children.size()-1; i >= 0; i--) {
+        for (unsigned int i = children.size()-1; i >= 0; i--) {
             auto wff_imp = dynamic_pointer_cast< const Imp >(wff2);
             assert(wff_imp);
             prover2 = imp_mp_prover(wff_imp, hyps_provers[i], prover2, this->toolbox);
@@ -206,7 +206,7 @@ struct WffStrategyResult : public StepStrategyResult, public enable_create< WffS
     const LibraryToolbox &toolbox;
 };
 
-void WffStrategy::operator()(Yield &yield)
+void WffStrategy::operator()(Yielder &yield)
 {
     auto result = WffStrategyResult::create(this->toolbox);
 

@@ -44,7 +44,7 @@ macx {
 }
 
 win32 {
-    QMAKE_CXXFLAGS += /I c:\boost_1_66_0 /std:c++17
+    QMAKE_CXXFLAGS += /std:c++17 /I c:\boost_1_66_0 /I c:\libs
 }
 
 # Trick from https://stackoverflow.com/a/21335126/807307
@@ -194,7 +194,9 @@ equals(USE_MICROHTTPD, "true") {
         web/httpd_microhttpd.cpp
     HEADERS += \
         web/httpd_microhttpd.h
-    PKGCONFIG += libmicrohttpd
+    !win32 {
+        PKGCONFIG += libmicrohttpd
+    }
 }
 
 equals(USE_BEAST, "true") {

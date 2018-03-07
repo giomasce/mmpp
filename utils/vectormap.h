@@ -132,7 +132,7 @@ public:
         Iterator() : it() {
         }
 
-        Iterator(typename decltype(VectorMap::container)::iterator it) : it(it) {
+        Iterator(typename std::vector< typename VectorMap< Key, Value >::value_type >::iterator it) : it(it) {
         }
 
         bool operator==(const Iterator &x) const {
@@ -159,16 +159,16 @@ public:
             return x;
         }
 
-        typename VectorMap::value_type &operator*() const {
+        typename VectorMap< Key, Value >::value_type &operator*() const {
             return *this->it;
         }
 
-        typename VectorMap::value_type *operator->() const {
+        typename VectorMap< Key, Value >::value_type *operator->() const {
             return &(this->operator*());
         }
 
     private:
-        typename decltype(VectorMap::container)::iterator it;
+        typename std::vector< typename VectorMap< Key, Value >::value_type >::iterator it;
     };
 
     class ConstIterator {
@@ -176,10 +176,10 @@ public:
         ConstIterator() : it() {
         }
 
-        ConstIterator(typename decltype(VectorMap::container)::const_iterator it) : it(it) {
+        ConstIterator(typename std::vector< typename VectorMap< Key, Value >::value_type >::const_iterator it) : it(it) {
         }
 
-        ConstIterator(const VectorMap::Iterator &it) : it(it.it) {
+        ConstIterator(const typename VectorMap< Key, Value >::Iterator &it) : it(it.it) {
         }
 
         bool operator==(const ConstIterator &x) const {
@@ -206,15 +206,15 @@ public:
             return *this;
         }
 
-        const typename VectorMap::value_type &operator*() const {
+        const typename VectorMap< Key, Value >::value_type &operator*() const {
             return *this->it;
         }
 
-        const typename VectorMap::value_type *operator->() const {
+        const typename VectorMap< Key, Value >::value_type *operator->() const {
             return &(this->operator*());
         }
 
     private:
-        typename decltype(VectorMap::container)::const_iterator it;
+        typename std::vector< typename VectorMap< Key, Value >::value_type >::const_iterator it;
     };
 };

@@ -131,7 +131,7 @@ std::pair<bool, string> FileTokenizer::next()
                                 }
                             } else {
                                 string filename = trimmed(string(content.begin(), content.end()));
-                                string actual_filename = (this->base_path / filename).native();
+                                string actual_filename = (this->base_path / filename).string();
                                 this->cascade = new FileTokenizer(actual_filename, this->base_path);
                                 break;
                             }

@@ -12,7 +12,7 @@ using namespace boost::coroutines;
 vector< shared_ptr< Coroutine > > coroutines;
 
 shared_ptr< Coroutine > number_generator(int x, int z=-1) {
-    auto body = [x,z](Yield &yield) {
+    auto body = [x,z](Yielder &yield) {
         for (int i = 0; i != z; i++) {
             acout() << x << " " << i << endl;
             yield();
@@ -27,7 +27,7 @@ shared_ptr< Coroutine > number_generator(int x, int z=-1) {
 
 class Test {
 public:
-    void operator()(Yield &yield) {
+    void operator()(Yielder &yield) {
         yield();
     }
 };
@@ -152,5 +152,5 @@ bool Coroutine::execute() {
     }
 }
 
-Yield::Yield(asymmetric_coroutine< void >::push_type &base_yield) : yield_impl(base_yield) {
+Yielder::Yielder(asymmetric_coroutine< void >::push_type &base_yield) : yield_impl(base_yield) {
 }

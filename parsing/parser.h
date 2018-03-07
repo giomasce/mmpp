@@ -106,7 +106,7 @@ struct ParsingTreeIterator {
         return *this;
     }
 
-    void advance(ssize_t count = 1) {
+    void advance(unsigned int count = 1) {
         this->item_num += count;
     }
 

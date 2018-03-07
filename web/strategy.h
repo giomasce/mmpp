@@ -31,7 +31,7 @@ public:
 class StepStrategy {
 public:
     virtual ~StepStrategy();
-    virtual void operator()(Yield &yield) = 0;
+    virtual void operator()(Yielder &yield) = 0;
 
 protected:
     StepStrategy(std::weak_ptr< StrategyManager > manager, const Sentence &thesis, const std::vector< Sentence > &hypotheses, const LibraryToolbox &toolbox);
@@ -47,21 +47,21 @@ class FailingStrategy : public StepStrategy, public enable_create< FailingStrate
     using StepStrategy::StepStrategy;
 
 public:
-    void operator()(Yield &yield);
+    void operator()(Yielder &yield);
 };
 
 class UnificationStrategy : public StepStrategy, public enable_create< UnificationStrategy > {
     using StepStrategy::StepStrategy;
 
 public:
-    void operator()(Yield &yield);
+    void operator()(Yielder &yield);
 };
 
 class WffStrategy : public StepStrategy, public enable_create< WffStrategy > {
     using StepStrategy::StepStrategy;
 
 public:
-    void operator()(Yield &yield);
+    void operator()(Yielder &yield);
 };
 
 /*template< typename... Args >
