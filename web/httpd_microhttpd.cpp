@@ -7,8 +7,8 @@
 
 #include <cassert>
 
-//#include <netinet/in.h>
-//#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "utils/utils.h"
 

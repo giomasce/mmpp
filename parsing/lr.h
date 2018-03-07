@@ -297,7 +297,7 @@ public:
 
         auto get_state_data = [&](const LRState< SymType, LabType > &state)->std::shared_ptr< std::pair< size_t, std::map< SymType, size_t > > > {
             bool res;
-            std::map< LRState< SymType, LabType >, std::shared_ptr< std::pair< size_t, std::map< SymType, size_t > > > >::iterator it;
+            typename std::map< LRState< SymType, LabType >, std::shared_ptr< std::pair< size_t, std::map< SymType, size_t > > > >::iterator it;
             std::tie(it, res) = states.insert(std::make_pair(state, std::make_shared< std::pair< size_t, std::map< SymType, size_t > > >(num_states, std::map< SymType, size_t >())));
             if (res) {
                 num_states++;
