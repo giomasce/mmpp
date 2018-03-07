@@ -1064,6 +1064,7 @@ void LibraryToolbox::compute_registered_prover(size_t index, bool exception_on_f
                 return;
             }
         }
+        cerr << "Resolving registered prover with label " << this->resolve_label(get<0>(unification[0])) << endl;
         inst_data = RegisteredProverInstanceData(unification[0], this->resolve_label(get<0>(unification[0])));
     }
 }

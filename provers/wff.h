@@ -37,7 +37,7 @@ struct pvar_pair_comp {
         return pvar_comp()(x.second, y.second);
     }
 };
-typedef std::set< std::set< std::pair< bool, pvar >, pvar_pair_comp< bool > > > CNForm;
+typedef std::map< std::set< std::pair< bool, pvar >, pvar_pair_comp< bool > >, Prover< CheckpointedProofEngine > > CNForm;
 
 pvar_set collect_tseitin_vars(const CNForm &cnf);
 pvar_map< uint32_t > build_tseitin_map(const pvar_set &vars);
@@ -210,6 +210,8 @@ private:
   static const RegisteredProver type_rp;
   static const RegisteredProver imp_not_rp;
   static const RegisteredProver subst_rp;
+  static const RegisteredProver tseitin1_rp;
+  static const RegisteredProver tseitin2_rp;
 };
 
 class Imp : public Wff, public enable_create< Imp > {
@@ -250,6 +252,9 @@ private:
   static const RegisteredProver imp_not_rp;
   static const RegisteredProver subst_rp;
   static const RegisteredProver mp_rp;
+  static const RegisteredProver tseitin1_rp;
+  static const RegisteredProver tseitin2_rp;
+  static const RegisteredProver tseitin3_rp;
 };
 
 class Biimp : public ConvertibleWff, public enable_create< Biimp > {
@@ -279,6 +284,10 @@ private:
   static const RegisteredProver type_rp;
   static const RegisteredProver imp_not_1_rp;
   static const RegisteredProver imp_not_2_rp;
+  static const RegisteredProver tseitin1_rp;
+  static const RegisteredProver tseitin2_rp;
+  static const RegisteredProver tseitin3_rp;
+  static const RegisteredProver tseitin4_rp;
 };
 
 class And : public ConvertibleWff, public enable_create< And > {
@@ -308,6 +317,9 @@ private:
   static const RegisteredProver type_rp;
   static const RegisteredProver imp_not_1_rp;
   static const RegisteredProver imp_not_2_rp;
+  static const RegisteredProver tseitin1_rp;
+  static const RegisteredProver tseitin2_rp;
+  static const RegisteredProver tseitin3_rp;
 };
 
 class Or : public ConvertibleWff, public enable_create< Or > {
@@ -337,6 +349,9 @@ private:
   static const RegisteredProver type_rp;
   static const RegisteredProver imp_not_1_rp;
   static const RegisteredProver imp_not_2_rp;
+  static const RegisteredProver tseitin1_rp;
+  static const RegisteredProver tseitin2_rp;
+  static const RegisteredProver tseitin3_rp;
 };
 
 class Nand : public ConvertibleWff, public enable_create< Nand > {
@@ -366,6 +381,9 @@ private:
   static const RegisteredProver type_rp;
   static const RegisteredProver imp_not_1_rp;
   static const RegisteredProver imp_not_2_rp;
+  static const RegisteredProver tseitin1_rp;
+  static const RegisteredProver tseitin2_rp;
+  static const RegisteredProver tseitin3_rp;
 };
 
 class Xor : public ConvertibleWff, public enable_create< Xor > {
@@ -395,6 +413,10 @@ private:
   static const RegisteredProver type_rp;
   static const RegisteredProver imp_not_1_rp;
   static const RegisteredProver imp_not_2_rp;
+  static const RegisteredProver tseitin1_rp;
+  static const RegisteredProver tseitin2_rp;
+  static const RegisteredProver tseitin3_rp;
+  static const RegisteredProver tseitin4_rp;
 };
 
 class And3 : public ConvertibleWff, public enable_create< And3 > {
@@ -427,6 +449,12 @@ protected:
     static const RegisteredProver type_rp;
     static const RegisteredProver imp_not_1_rp;
     static const RegisteredProver imp_not_2_rp;
+    static const RegisteredProver tseitin1_rp;
+    static const RegisteredProver tseitin2_rp;
+    static const RegisteredProver tseitin3_rp;
+    static const RegisteredProver tseitin4_rp;
+    static const RegisteredProver tseitin5_rp;
+    static const RegisteredProver tseitin6_rp;
 };
 
 class Or3 : public ConvertibleWff, public enable_create< Or3 > {
@@ -459,4 +487,10 @@ protected:
     static const RegisteredProver type_rp;
     static const RegisteredProver imp_not_1_rp;
     static const RegisteredProver imp_not_2_rp;
+    static const RegisteredProver tseitin1_rp;
+    static const RegisteredProver tseitin2_rp;
+    static const RegisteredProver tseitin3_rp;
+    static const RegisteredProver tseitin4_rp;
+    static const RegisteredProver tseitin5_rp;
+    static const RegisteredProver tseitin6_rp;
 };
