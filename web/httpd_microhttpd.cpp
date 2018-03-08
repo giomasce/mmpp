@@ -7,8 +7,10 @@
 
 #include <cassert>
 
-//#include <netinet/in.h>
-//#include <arpa/inet.h>
+#if (!defined(_WIN32))
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif
 
 #include "utils/utils.h"
 
