@@ -211,8 +211,15 @@ uint64_t platform_get_current_used_ram( )
 
 using namespace std;
 
-// FIXME
 void set_max_ram(uint64_t bytes){
+    auto job_handle = CreateJobObjectA(nullptr, nullptr);
+    AssignProcessToJobObject(job_handle, GetCurrentProcess());
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION ext_limit_info;
+    DWORD set_len;
+    QueryInformationJobObject(job_handle, JobObjectExtendedLimitInformation, &ext_limit_info, sizeof(ext_limit_info), &set_len);
+    ext_limit_info.JobMemoryLimit = bytes;
+    ext_limit_info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_JOB_MEMORY;
+    SetInformationJobObject(job_handle, JobObjectExtendedLimitInformation, &ext_limit_info, sizeof(ext_limit_info));
 }
 
 atomic< bool > signalled;
@@ -261,12 +268,14 @@ uint64_t platform_get_current_used_ram() {
     return pmc.WorkingSetSize;
 }
 
-// FIXME
+// It does not seem to be meaningful on Windows machines
 void set_thread_name(std::thread &t, const std::string &name) {
+    (void) t;
+    (void) name;
 }
 
-// FIXME
 void set_current_thread_low_priority() {
+    SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
 }
 
 #else
