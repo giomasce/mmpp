@@ -20,6 +20,7 @@ Literal from_number_literal(int32_t lit);
 Literal invert_literal(const Literal &lit);
 void print_clause(std::ostream &stream, const Clause &clause);
 
+// When popping many things from the stack, you actually have to do in the opposite order
 struct CNFCallback {
     // Push NOT context -> clause on the stack
     virtual void prove_clause(size_t idx, const Clause &context) = 0;
