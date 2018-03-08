@@ -112,7 +112,8 @@ SOURCES += \
     libs/minisat/Solver.cc \
     provers/sat.cpp \
     provers/wffblock.cpp \
-    apps/tstp.cpp
+    apps/tstp.cpp \
+    provers/wffsat.cpp
 
 HEADERS += \
     pch.h \
@@ -165,7 +166,8 @@ HEADERS += \
     libs/minisat/Vec.h \
     libs/minisat/XAlloc.h \
     provers/sat.h \
-    provers/wffblock.h
+    provers/wffblock.h \
+    provers/wffsat.h
 
 DISTFILES += \
     README \

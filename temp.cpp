@@ -111,9 +111,9 @@ int temp_main(int argc, char *argv[]) {
     cout << wff->to_string() << endl;
 
     auto tseitin = Not::create(wff)->get_tseitin_cnf_problem(tb);
-    auto dimacs = tseitin.first;
-    auto ts_map = tseitin.second;
-    dimacs.print_dimacs(cout);
+    auto problem = get<0>(tseitin);
+    auto ts_map = get<1>(tseitin);
+    problem.print_dimacs(cout);
     for (const auto &x : ts_map) {
         cout << (x.second + 1) << " : " << x.first->to_string() << endl;
     }

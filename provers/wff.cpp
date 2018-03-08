@@ -120,16 +120,15 @@ pvar Wff::get_tseitin_var(const LibraryToolbox &tb) const
 }
 
 static const RegisteredProver id_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ph )");
-std::pair<CNFProblem, pvar_map<uint32_t> > Wff::get_tseitin_cnf_problem(const LibraryToolbox &tb) const
+std::tuple<CNFProblem, pvar_map<uint32_t>, std::vector< Prover< CheckpointedProofEngine > > > Wff::get_tseitin_cnf_problem(const LibraryToolbox &tb) const
 {
     CNForm cnf;
-    this->get_tseitin_form(cnf, tb);
-    //cnf[make_pair(typename CNForm::key_type{{true, this->get_tseitin_var(tb)}}, tb.build_registered_prover(id_rp, {{"ph", this->get_type_prover(tb)}}, {})));
-    cnf[{{true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(id_rp, {{"ph", this->get_type_prover(tb)}}, {});
+    this->get_tseitin_form(cnf, tb, *this);
     auto vars = collect_tseitin_vars(cnf);
+    cnf[{{true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(id_rp, {{"ph", this->get_type_prover(tb)}}, {});
     auto map = build_tseitin_map(vars);
-    auto dimacs = build_cnf_problem(cnf, map);
-    return make_pair(dimacs, map);
+    auto problem = build_cnf_problem(cnf, map);
+    return make_tuple(problem.first, map, problem.second);
 }
 
 True::True() {
@@ -198,9 +197,10 @@ bool True::operator==(const Wff &x) const
     }
 }
 
-void True::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+const RegisteredProver True::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> T. )");
+void True::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const
 {
-    cnf[{{true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(True::truth_rp, {}, {});
+    cnf[{{true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(True::tseitin1_rp, {{"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
 False::False() {
@@ -269,9 +269,10 @@ bool False::operator==(const Wff &x) const
     }
 }
 
-void False::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+const RegisteredProver False::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> -. F. )");
+void False::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const
 {
-    cnf[{{false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(False::falsity_rp, {}, {});
+    cnf[{{false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(False::falsity_rp, {{"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
 Var::Var(NameType name, string string_repr) :
@@ -385,10 +386,11 @@ bool Var::operator<(const Var &x) const
     return this->get_name() < x.get_name();
 }
 
-void Var::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+void Var::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const
 {
     (void) cnf;
     (void) tb;
+    (void) glob_ctx;
 }
 
 Not::Not(pwff a) :
@@ -468,13 +470,13 @@ bool Not::operator==(const Wff &x) const
     }
 }
 
-const RegisteredProver Not::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( -. ph \\/ -. -. ph )");
-const RegisteredProver Not::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( ph \\/ -. ph )");
-void Not::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+const RegisteredProver Not::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ph \\/ -. -. ph ) )");
+const RegisteredProver Not::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ -. ph ) )");
+void Not::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const
 {
-    this->get_a()->get_tseitin_form(cnf, tb);
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Not::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Not::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}}, {});
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Not::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Not::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
 Imp::Imp(pwff a, pwff b) :
@@ -575,16 +577,16 @@ bool Imp::operator==(const Wff &x) const
     }
 }
 
-const RegisteredProver Imp::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( ( -. ph \\/ ps ) \\/ -. ( ph -> ps ) )");
-const RegisteredProver Imp::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( ph \\/ ( ph -> ps ) )");
-const RegisteredProver Imp::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( -. ps \\/ ( ph -> ps ) )");
-void Imp::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+const RegisteredProver Imp::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ ps ) \\/ -. ( ph -> ps ) ) )");
+const RegisteredProver Imp::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ ( ph -> ps ) ) )");
+const RegisteredProver Imp::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ps \\/ ( ph -> ps ) ) )");
+void Imp::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const
 {
-    this->get_a()->get_tseitin_form(cnf, tb);
-    this->get_b()->get_tseitin_form(cnf, tb);
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Imp::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Imp::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Imp::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Imp::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Imp::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Imp::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
 Biimp::Biimp(pwff a, pwff b) :
@@ -641,18 +643,18 @@ bool Biimp::operator==(const Wff &x) const
     }
 }
 
-const RegisteredProver Biimp::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( ( -. ph \\/ -. ps ) \\/ ( ph <-> ps ) )");
-const RegisteredProver Biimp::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/ ps ) \\/ ( ph <-> ps ) )");
-const RegisteredProver Biimp::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/ -. ps ) \\/ -. ( ph <-> ps ) )");
-const RegisteredProver Biimp::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( ( -. ph \\/ ps ) \\/ -. ( ph <-> ps ) )");
-void Biimp::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+const RegisteredProver Biimp::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ ( ph <-> ps ) ) )");
+const RegisteredProver Biimp::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ ps ) \\/ ( ph <-> ps ) ) )");
+const RegisteredProver Biimp::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ -. ps ) \\/ -. ( ph <-> ps ) ) )");
+const RegisteredProver Biimp::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ ps ) \\/ -. ( ph <-> ps ) ) )");
+void Biimp::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const
 {
-    this->get_a()->get_tseitin_form(cnf, tb);
-    this->get_b()->get_tseitin_form(cnf, tb);
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Biimp::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Biimp::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Biimp::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Biimp::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Biimp::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Biimp::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Biimp::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Biimp::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
 Xor::Xor(pwff a, pwff b) :
@@ -705,18 +707,18 @@ bool Xor::operator==(const Wff &x) const
     }
 }
 
-const RegisteredProver Xor::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( ( -. ph \\/ -. ps ) \\/ -. ( ph \\/_ ps ) )");
-const RegisteredProver Xor::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/ ps ) \\/ -. ( ph \\/_ ps ) )");
-const RegisteredProver Xor::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/ -. ps ) \\/ ( ph \\/_ ps ) )");
-const RegisteredProver Xor::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( ( -. ph \\/ ps ) \\/ ( ph \\/_ ps ) )");
-void Xor::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+const RegisteredProver Xor::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ -. ( ph \\/_ ps ) ) )");
+const RegisteredProver Xor::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ ps ) \\/ -. ( ph \\/_ ps ) ) )");
+const RegisteredProver Xor::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ -. ps ) \\/ ( ph \\/_ ps ) ) )");
+const RegisteredProver Xor::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ ps ) \\/ ( ph \\/_ ps ) ) )");
+void Xor::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const
 {
-    this->get_a()->get_tseitin_form(cnf, tb);
-    this->get_b()->get_tseitin_form(cnf, tb);
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Xor::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Xor::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Xor::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Xor::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Xor::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Xor::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Xor::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Xor::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
 Nand::Nand(pwff a, pwff b) :
@@ -769,16 +771,16 @@ bool Nand::operator==(const Wff &x) const
     }
 }
 
-const RegisteredProver Nand::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( ( -. ph \\/ -. ps ) \\/ -. ( ph -/\\ ps ) )");
-const RegisteredProver Nand::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( ph \\/ ( ph -/\\ ps ) )");
-const RegisteredProver Nand::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( ps \\/ ( ph -/\\ ps ) )");
-void Nand::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+const RegisteredProver Nand::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ -. ( ph -/\\ ps ) ) )");
+const RegisteredProver Nand::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ ( ph -/\\ ps ) ) )");
+const RegisteredProver Nand::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ps \\/ ( ph -/\\ ps ) ) )");
+void Nand::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const
 {
-    this->get_a()->get_tseitin_form(cnf, tb);
-    this->get_b()->get_tseitin_form(cnf, tb);
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Nand::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Nand::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Nand::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Nand::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Nand::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Nand::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
 Or::Or(pwff a, pwff b) :
@@ -831,16 +833,16 @@ bool Or::operator==(const Wff &x) const
     }
 }
 
-const RegisteredProver Or::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/ ps ) \\/ -. ( ph \\/ ps ) )");
-const RegisteredProver Or::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( -. ph \\/ ( ph \\/ ps ) )");
-const RegisteredProver Or::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( -. ps \\/ ( ph \\/ ps ) )");
-void Or::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+const RegisteredProver Or::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ ps ) \\/ -. ( ph \\/ ps ) ) )");
+const RegisteredProver Or::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ph \\/ ( ph \\/ ps ) ) )");
+const RegisteredProver Or::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ps \\/ ( ph \\/ ps ) ) )");
+void Or::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const
 {
-    this->get_a()->get_tseitin_form(cnf, tb);
-    this->get_b()->get_tseitin_form(cnf, tb);
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
 And::And(pwff a, pwff b) :
@@ -893,16 +895,16 @@ bool And::operator==(const Wff &x) const
     }
 }
 
-const RegisteredProver And::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( ( -. ph \\/ -. ps ) \\/ ( ph /\\ ps ) )");
-const RegisteredProver And::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( ph \\/ -. ( ph /\\ ps ) )");
-const RegisteredProver And::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( ps \\/ -. ( ph /\\ ps ) )");
-void And::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+const RegisteredProver And::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ ( ph /\\ ps ) ) )");
+const RegisteredProver And::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ -. ( ph /\\ ps ) ) )");
+const RegisteredProver And::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ps \\/ -. ( ph /\\ ps ) ) )");
+void And::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const
 {
-    this->get_a()->get_tseitin_form(cnf, tb);
-    this->get_b()->get_tseitin_form(cnf, tb);
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}}, {});
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
 pwff ConvertibleWff::subst(pvar var, bool positive) const
@@ -996,29 +998,29 @@ bool And3::operator==(const Wff &x) const
     }
 }
 
-const RegisteredProver And3::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( ( -. ph \\/ -. ps ) \\/ ( ph /\\ ps ) )");
-const RegisteredProver And3::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( ph \\/ -. ( ph /\\ ps ) )");
-const RegisteredProver And3::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( ps \\/ -. ( ph /\\ ps ) )");
-const RegisteredProver And3::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( ( -. ( ph /\\ ps ) \\/ -. ch ) \\/ ( ph /\\ ps /\\ ch ) )");
-const RegisteredProver And3::tseitin5_rp = LibraryToolbox::register_prover({}, "|- ( ( ph /\\ ps ) \\/ -. ( ph /\\ ps /\\ ch ) )");
-const RegisteredProver And3::tseitin6_rp = LibraryToolbox::register_prover({}, "|- ( ch \\/ -. ( ph /\\ ps /\\ ch ) )");
-void And3::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+const RegisteredProver And3::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ ( ph /\\ ps ) ) )");
+const RegisteredProver And3::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ -. ( ph /\\ ps ) ) )");
+const RegisteredProver And3::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ps \\/ -. ( ph /\\ ps ) ) )");
+const RegisteredProver And3::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ( ph /\\ ps ) \\/ -. ch ) \\/ ( ph /\\ ps /\\ ch ) ) )");
+const RegisteredProver And3::tseitin5_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph /\\ ps ) \\/ -. ( ph /\\ ps /\\ ch ) ) )");
+const RegisteredProver And3::tseitin6_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ch \\/ -. ( ph /\\ ps /\\ ch ) ) )");
+void And3::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const
 {
-    this->get_a()->get_tseitin_form(cnf, tb);
-    this->get_b()->get_tseitin_form(cnf, tb);
-    this->get_c()->get_tseitin_form(cnf, tb);
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_c()->get_tseitin_form(cnf, tb, glob_ctx);
 
     auto intermediate = And::create(this->get_a(), this->get_b());
 
     // intermediate = ( a /\ b )
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(And3::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(And3::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_b()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(And3::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(And3::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(And3::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_b()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(And3::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 
     // this = ( intermediate /\ c )
-    cnf[{{false, intermediate->get_tseitin_var(tb)}, {false, this->get_c()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And3::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}}, {});
-    cnf[{{true, intermediate->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And3::tseitin5_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_c()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And3::tseitin6_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}}, {});
+    cnf[{{false, intermediate->get_tseitin_var(tb)}, {false, this->get_c()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And3::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, intermediate->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And3::tseitin5_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_c()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And3::tseitin6_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
 Or3::Or3(pwff a, pwff b, pwff c) :
@@ -1065,29 +1067,29 @@ Prover<CheckpointedProofEngine> Or3::get_imp_not_prover(const LibraryToolbox &tb
     return compose;
 }
 
-const RegisteredProver Or3::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/ ps ) \\/ -. ( ph \\/ ps ) )");
-const RegisteredProver Or3::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( -. ph \\/ ( ph \\/ ps ) )");
-const RegisteredProver Or3::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( -. ps \\/ ( ph \\/ ps ) )");
-const RegisteredProver Or3::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( ( ( ph \\/ ps ) \\/ ch ) \\/ -. ( ph \\/ ps \\/ ch ) )");
-const RegisteredProver Or3::tseitin5_rp = LibraryToolbox::register_prover({}, "|- ( -. ( ph \\/ ps ) \\/ ( ph \\/ ps \\/ ch ) )");
-const RegisteredProver Or3::tseitin6_rp = LibraryToolbox::register_prover({}, "|- ( -. ch \\/ ( ph \\/ ps \\/ ch ) )");
-void Or3::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const
+const RegisteredProver Or3::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ ps ) \\/ -. ( ph \\/ ps ) ) )");
+const RegisteredProver Or3::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ph \\/ ( ph \\/ ps ) ) )");
+const RegisteredProver Or3::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ps \\/ ( ph \\/ ps ) ) )");
+const RegisteredProver Or3::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ( ph \\/ ps ) \\/ ch ) \\/ -. ( ph \\/ ps \\/ ch ) ) )");
+const RegisteredProver Or3::tseitin5_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ( ph \\/ ps ) \\/ ( ph \\/ ps \\/ ch ) ) )");
+const RegisteredProver Or3::tseitin6_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ch \\/ ( ph \\/ ps \\/ ch ) ) )");
+void Or3::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const
 {
-    this->get_a()->get_tseitin_form(cnf, tb);
-    this->get_b()->get_tseitin_form(cnf, tb);
-    this->get_c()->get_tseitin_form(cnf, tb);
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_c()->get_tseitin_form(cnf, tb, glob_ctx);
 
     auto intermediate = Or::create(this->get_a(), this->get_b());
 
     // intermediate = ( a \/ b )
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_b()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_b()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 
     // this = ( intermediate \/ c )
-    cnf[{{true, intermediate->get_tseitin_var(tb)}, {true, this->get_c()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}}, {});
-    cnf[{{false, intermediate->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin5_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_c()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin6_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}}, {});
+    cnf[{{true, intermediate->get_tseitin_var(tb)}, {true, this->get_c()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, intermediate->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin5_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_c()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin6_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
 bool Or3::operator==(const Wff &x) const
@@ -1167,15 +1169,17 @@ pvar_map<uint32_t> build_tseitin_map(const pvar_set &vars)
     return ret;
 }
 
-CNFProblem build_cnf_problem(const CNForm &cnf, const pvar_map<uint32_t> &var_map)
+std::pair< CNFProblem, std::vector< Prover< CheckpointedProofEngine > > > build_cnf_problem(const CNForm &cnf, const pvar_map<uint32_t> &var_map)
 {
     CNFProblem ret;
+    vector< Prover< CheckpointedProofEngine > > provers;
     ret.var_num = var_map.size();
     for (const auto &clause : cnf) {
         ret.clauses.emplace_back();
+        provers.push_back(clause.second);
         for (const auto &term : clause.first) {
             ret.clauses.back().push_back(make_pair(term.first, var_map.at(term.second)));
         }
     }
-    return ret;
+    return make_pair(ret, provers);
 }

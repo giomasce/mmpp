@@ -41,7 +41,7 @@ typedef std::map< std::set< std::pair< bool, pvar >, pvar_pair_comp< bool > >, P
 
 pvar_set collect_tseitin_vars(const CNForm &cnf);
 pvar_map< uint32_t > build_tseitin_map(const pvar_set &vars);
-CNFProblem build_cnf_problem(const CNForm &cnf, const pvar_map< uint32_t > &var_map);
+std::pair<CNFProblem, std::vector<Prover<CheckpointedProofEngine> > > build_cnf_problem(const CNForm &cnf, const pvar_map< uint32_t > &var_map);
 
 class Wff {
 public:
@@ -60,9 +60,9 @@ public:
     virtual Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
     virtual bool operator==(const Wff &x) const = 0;
     std::pair< bool, Prover< CheckpointedProofEngine > > get_adv_truth_prover(const LibraryToolbox &tb) const;
-    virtual void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const = 0;
+    virtual void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const = 0;
     pvar get_tseitin_var(const LibraryToolbox &tb) const;
-    std::pair< CNFProblem, pvar_map< uint32_t > > get_tseitin_cnf_problem(const LibraryToolbox &tb) const;
+    std::tuple<CNFProblem, pvar_map<uint32_t>, std::vector<Prover<CheckpointedProofEngine> > > get_tseitin_cnf_problem(const LibraryToolbox &tb) const;
 
 private:
     std::pair< bool, Prover< CheckpointedProofEngine > > adv_truth_internal(pvar_set::iterator cur_var, pvar_set::iterator end_var, const LibraryToolbox &tb) const;
@@ -103,7 +103,7 @@ public:
     Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
     Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
     bool operator==(const Wff &x) const;
-    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const;
+    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
 
 protected:
     True();
@@ -113,6 +113,7 @@ private:
     static const RegisteredProver type_rp;
     static const RegisteredProver imp_not_rp;
     static const RegisteredProver subst_rp;
+    static const RegisteredProver tseitin1_rp;
 };
 
 class False : public Wff, public enable_create< False > {
@@ -128,7 +129,7 @@ public:
     Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
     Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
     bool operator==(const Wff &x) const;
-    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const;
+    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
 
 protected:
     False();
@@ -138,6 +139,7 @@ private:
     static const RegisteredProver type_rp;
     static const RegisteredProver imp_not_rp;
     static const RegisteredProver subst_rp;
+    static const RegisteredProver tseitin1_rp;
 };
 
 class Var : public Wff, public enable_create< Var > {
@@ -154,7 +156,7 @@ public:
   Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
   bool operator<(const Var &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
   NameType get_name() const {
       return this->name;
   }
@@ -195,7 +197,7 @@ public:
   Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
   Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
   pwff get_a() const {
       return this->a;
   }
@@ -229,7 +231,7 @@ public:
   Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
   Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
   pwff get_a() const {
       return this->a;
   }
@@ -267,7 +269,7 @@ public:
   Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
   Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
   pwff get_a() const {
       return this->a;
   }
@@ -300,7 +302,7 @@ public:
   Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
   Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
   pwff get_a() const {
       return this->a;
   }
@@ -332,7 +334,7 @@ public:
   Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
   Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
   pwff get_a() const {
       return this->a;
   }
@@ -364,7 +366,7 @@ public:
   Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
   Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
   pwff get_a() const {
       return this->a;
   }
@@ -396,7 +398,7 @@ public:
   Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
   Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
   bool operator==(const Wff &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
   pwff get_a() const {
       return this->a;
   }
@@ -429,7 +431,7 @@ public:
     Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
     Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
     bool operator==(const Wff &x) const;
-    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const;
+    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
     pwff get_a() const {
         return this->a;
     }
@@ -466,7 +468,7 @@ public:
     void get_variables(pvar_set &vars) const;
     Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
     Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb) const;
+    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
     bool operator==(const Wff &x) const;
     pwff get_a() const {
         return this->a;

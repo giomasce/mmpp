@@ -49,11 +49,12 @@ struct CNFProblem {
     CNFCallback *callback;
 
     void print_dimacs(std::ostream &stream) const;
-    void feed_to_minisat(Minisat::Solver &solver) const;
     std::pair< bool, std::function< void() > > solve();
 
 private:
     std::tuple<bool, std::vector<std::pair<Literal, const std::vector<Literal> *> >, std::function<void ()> > do_unit_propagation(const std::vector< Literal > &orig_clause) const;
+    void feed_to_minisat(Minisat::Solver &solver) const;
+
     std::vector< std::function< void(const Clause &context) > > callbacks;
 };
 

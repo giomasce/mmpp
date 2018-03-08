@@ -19,6 +19,7 @@
 #include "test/test_parsing.h"
 #include "test/test_verification.h"
 #include "test/test_minor.h"
+#include "provers/wffsat.h"
 
 using namespace std;
 using namespace chrono;
@@ -363,12 +364,19 @@ void test_wffs_advanced() {
     if (true) {
         cout << "Minisat refutation test" << endl;
         for (pwff wff : wffs) {
-            wff = Not::create(wff);
             cout << "WFF: " << wff->to_string() << endl;
             {
-                auto tseitin = wff->get_tseitin_cnf_problem(tb);
-                auto cnf = tseitin.first;
-                auto ts_map = tseitin.second;
+                CreativeProofEngineImpl< Sentence > engine(tb);
+                get_sat_prover(wff, tb).second(engine);
+                if (engine.get_proof_labels().size() > 0) {
+                    //cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
+                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+                    cout << "proof length: " << engine.get_proof_labels().size() << endl;
+                    //UncompressedProof proof = { engine.get_proof_labels() };
+                }
+                /*auto tseitin = wff->get_tseitin_cnf_problem(tb);
+                auto cnf = get<0>(tseitin);
+                auto ts_map = get<1>(tseitin);
                 cnf.print_dimacs(cout);
                 for (const auto &x : ts_map) {
                     cout << (x.second + 1) << " : " << x.first->to_string() << endl;
@@ -383,7 +391,7 @@ void test_wffs_advanced() {
                     cout << "The formula is UNSATisfiable" << endl;
                     cout << "Unwinding the proof..." << endl;
                     res.second();
-                }
+                }*/
             }
             cout << endl;
         }
