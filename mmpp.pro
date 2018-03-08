@@ -1,8 +1,8 @@
 
 # Enable or disable various components
-USE_QT = false
+USE_QT = true
 USE_MICROHTTPD = true
-USE_BEAST = false
+USE_BEAST = true
 USE_Z3 = true
 
 TEMPLATE = app
@@ -30,8 +30,6 @@ linux {
     #QMAKE_CFLAGS += -std=c11 -g
     #QMAKE_CXXFLAGS += -g -ftemplate-backtrace-limit=0
     #QMAKE_LIBS += -ldl -rdynamic
-
-    QMAKE_LIBS += -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread
 }
 
 macx {
@@ -41,13 +39,16 @@ macx {
     QMAKE_CFLAGS += -std=c11 -g -I/usr/local/include
     QMAKE_CXXFLAGS += -g -ftemplate-backtrace-limit=0 -I/usr/local/include
     QMAKE_LIBS += -ldl -rdynamic -L/usr/local/lib
+}
+
+!win32 {
     QMAKE_LIBS += -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread
 }
 
 win32 {
     QMAKE_CXXFLAGS += /std:c++17 /I c:\Boost\include\boost-1_66 /I c:\libs /FC
     QMAKE_LFLAGS += /STACK:8388608
-    QMAKE_LIBS += /LIBPATH:c:\Boost\lib
+    QMAKE_LIBS += /LIBPATH:c:\Boost\lib /LIBPATH:c:\libs
     CONFIG += console
 }
 
@@ -201,6 +202,9 @@ equals(USE_MICROHTTPD, "true") {
     !win32 {
         PKGCONFIG += libmicrohttpd
     }
+    win32 {
+        QMAKE_LIBS += -llibmicrohttpd
+    }
 }
 
 equals(USE_BEAST, "true") {
@@ -215,7 +219,12 @@ equals(USE_Z3, "true") {
     DEFINES += USE_Z3
     SOURCES += \
         provers/z3prover.cpp
-    QMAKE_LIBS += -lz3
+    !win32 {
+        QMAKE_LIBS += -lz3
+    }
+    win32 {
+        QMAKE_LIBS += -llibz3
+    }
 }
 
 #create_links.commands = for i in mmpp_dissector mmpp_gen_random_theorems mmpp_verify_one mmpp_simple_verify_one mmpp_verify_all mmpp_test_setmm mmpp_unificator webmmpp webmmpp_open qmmpp mmpp_test_z3 mmpp_generalizable_theorems ; do ln -s mmpp \$\$i 2>/dev/null || true ; done

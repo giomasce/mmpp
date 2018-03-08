@@ -204,8 +204,10 @@ uint64_t platform_get_current_used_ram( )
 
 #elif (defined(_WIN32))
 
-#include "windows.h"
-#include "psapi.h"
+#include <atomic>
+
+#include <windows.h>
+#include <psapi.h>
 
 using namespace std;
 
@@ -213,20 +215,31 @@ using namespace std;
 void set_max_ram(uint64_t bytes){
 }
 
-// FIXME
-bool platform_init(int argc, char *argv[]) {
-    (void) argc;
-    (void) argv;
-    return true;
-}
-
-// FIXME
-bool platform_should_stop() {
+atomic< bool > signalled;
+BOOL ctrl_handler(DWORD type) {
+    if (type == CTRL_C_EVENT) {
+        signalled = true;
+        return true;
+    }
     return false;
 }
 
-// FIXME
+bool platform_init(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    SetConsoleCtrlHandler((PHANDLER_ROUTINE) ctrl_handler, TRUE);
+
+    return true;
+}
+
+bool platform_should_stop() {
+    return signalled;
+}
+
+#pragma comment(lib, "shell32.lib")
 bool platform_open_browser(std::string browser_url) {
+    ShellExecuteA(NULL, NULL, browser_url.c_str(), NULL, NULL, SW_SHOWNORMAL);
     return true;
 }
 

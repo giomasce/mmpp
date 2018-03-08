@@ -5,15 +5,15 @@
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem/fstream.hpp>
 
+#if defined(USE_MICROHTTPD)
+#include "httpd_microhttpd.h"
+#endif
+
 #include "mm/reader.h"
 #include "memory.h"
 #include "utils/utils.h"
 #include "web.h"
 #include "platform.h"
-
-#if defined(USE_MICROHTTPD)
-#include "httpd_microhttpd.h"
-#endif
 
 using namespace std;
 using namespace nlohmann;
