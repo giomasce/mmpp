@@ -14,7 +14,7 @@ CONFIG += link_pkgconfig
 
 CONFIG += c++1z
 
-unix {
+linux {
     # Compile with gcc
     QMAKE_CC = gcc
     QMAKE_CXX = g++
