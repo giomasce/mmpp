@@ -5,6 +5,7 @@
 #include <functional>
 #include <fstream>
 #include <string>
+#include <memory>
 
 #include <boost/filesystem.hpp>
 
@@ -427,7 +428,7 @@ private:
     // This is an instance of the Construct On First Use idiom, which prevents the static initialization fiasco;
     // see https://isocpp.org/wiki/faq/ctors#static-init-order-on-first-use-members
     static std::vector< RegisteredProverData > &registered_provers() {
-        static std::vector< RegisteredProverData > *ret = new std::vector< RegisteredProverData >();
+        static auto ret = std::make_unique< std::vector< RegisteredProverData > >();
         return *ret;
     }
     std::vector< RegisteredProverInstanceData > instance_registered_provers;

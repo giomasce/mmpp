@@ -116,8 +116,8 @@ void toc(const Tic &t, int reps) {
     cout << "It took " << usecs << " microseconds to repeat " << reps << " times, which is " << (usecs / reps) << " microsecond per execution." << endl;
 }
 
-unordered_map< string, function< int(int, char*[]) > > &get_main_functions() {
-    static auto *ret = new unordered_map< string, function< int(int, char*[]) > >();
+map< string, function< int(int, char*[]) > > &get_main_functions() {
+    static auto ret = make_unique< map< string, function< int(int, char*[]) > > >();
     return *ret;
 }
 

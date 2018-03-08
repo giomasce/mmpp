@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <chrono>
 #include <unordered_map>
+#include <map>
 #include <mutex>
 #include <memory>
 #include <cstdint>
@@ -77,7 +78,7 @@ struct Tic {
 Tic tic();
 void toc(const Tic &t, int reps);
 
-std::unordered_map< std::string, std::function< int(int, char*[]) > > &get_main_functions();
+std::map< std::string, std::function< int(int, char*[]) > > &get_main_functions();
 void register_main_function(const std::string &name, const std::function< int(int, char*[]) > &main_function);
 
 // static_block implementation from https://stackoverflow.com/a/34321324/807307
