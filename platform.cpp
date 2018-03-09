@@ -46,14 +46,13 @@ bool platform_should_stop() {
 }
 
 bool platform_open_browser(string browser_url) {
-    //system(("xdg-open " + browser_url).c_str());
-    system(("chromium " + browser_url).c_str());
+    //system(("setsid xdg-open " + browser_url+ "&").c_str());
+    system(("setsid chromium " + browser_url + "&").c_str());
     return true;
 }
 
 // FIXME
 boost::filesystem::path platform_get_resources_base() {
-    //return boost::filesystem::path("./resources");
     return boost::filesystem::path(__FILE__).parent_path() / "resources";
 }
 
@@ -220,6 +219,7 @@ void set_max_ram(uint64_t bytes){
     ext_limit_info.JobMemoryLimit = bytes;
     ext_limit_info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_JOB_MEMORY;
     SetInformationJobObject(job_handle, JobObjectExtendedLimitInformation, &ext_limit_info, sizeof(ext_limit_info));
+    // FIXME When does the Job get destroyed?
 }
 
 atomic< bool > signalled;
