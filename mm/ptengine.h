@@ -40,7 +40,7 @@ struct ProofSentenceTraits< ParsingTree2< SymTok, LabTok > > {
     static SymTok floating_to_type(const LibType &lib, LabTok label);
     static SymTok sentence_to_type(const LibType &lib, const SentType &sent);
     static const SentType &get_sentence(const LibType &lib, LabTok label);
-    static void check_match(const LibType &lib, const SentType &stack, const SentType &templ, const SubstMapType &subst_map);
+    static void check_match(const LibType &lib, LabTok label, const SentType &stack, const SentType &templ, const SubstMapType &subst_map);
     static SentType substitute(const LibType &lib, const SentType &templ, const SubstMapType &subst_map);
     static PTGenerator get_variable_iterator(const LibType &lib, const SentType &sent);
     static bool is_variable(const LibType &lib, VarType var);

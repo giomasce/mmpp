@@ -374,24 +374,6 @@ void test_wffs_advanced() {
                     cout << "proof length: " << engine.get_proof_labels().size() << endl;
                     //UncompressedProof proof = { engine.get_proof_labels() };
                 }
-                /*auto tseitin = wff->get_tseitin_cnf_problem(tb);
-                auto cnf = get<0>(tseitin);
-                auto ts_map = get<1>(tseitin);
-                cnf.print_dimacs(cout);
-                for (const auto &x : ts_map) {
-                    cout << (x.second + 1) << " : " << x.first->to_string() << endl;
-                }
-                CNFCallbackTest cnf_cb;
-                cnf_cb.orig_clauses = cnf.clauses;
-                cnf.callback = &cnf_cb;
-                const auto res = cnf.solve();
-                if (res.first) {
-                    cout << "The formula is SATisfiable" << endl;
-                } else {
-                    cout << "The formula is UNSATisfiable" << endl;
-                    cout << "Unwinding the proof..." << endl;
-                    res.second();
-                }*/
             }
             cout << endl;
         }

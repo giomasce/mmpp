@@ -37,7 +37,8 @@ struct pvar_pair_comp {
         return pvar_comp()(x.second, y.second);
     }
 };
-typedef std::map< std::set< std::pair< bool, pvar >, pvar_pair_comp< bool > >, Prover< CheckpointedProofEngine > > CNForm;
+//typedef std::map< std::set< std::pair< bool, pvar >, pvar_pair_comp< bool > >, Prover< CheckpointedProofEngine > > CNForm;
+typedef std::map< std::vector< std::pair< bool, pvar > >, Prover< CheckpointedProofEngine > > CNForm;
 
 pvar_set collect_tseitin_vars(const CNForm &cnf);
 pvar_map< uint32_t > build_tseitin_map(const pvar_set &vars);

@@ -24,7 +24,7 @@ void print_clause(std::ostream &stream, const Clause &clause);
 struct CNFCallback {
     // Push NOT context -> clause on the stack
     virtual void prove_clause(size_t idx, const Clause &context) = 0;
-    // Push NOT ( lit_1 \/ ... \/ lit_n ) -> lit_{idx} on the stack
+    // Push NOT ( lit_1 \/ ... \/ lit_n ) -> NOT lit_{idx} on the stack
     virtual void prove_not_or_elim(size_t idx, const Clause &context) = 0;
     // Pop clause from the stack and push NOT context -> clause
     virtual void prove_imp_intr(const Clause &clause, const Clause &context) = 0;

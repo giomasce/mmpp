@@ -60,10 +60,9 @@ const ProofSentenceTraits<Sentence>::SentType &ProofSentenceTraits<Sentence>::ge
     return lib.get_sentence(label);
 }
 
-void ProofSentenceTraits<Sentence>::check_match(const LibType &lib, const ProofSentenceTraits<Sentence>::SentType &stack, const ProofSentenceTraits<Sentence>::SentType &templ, const ProofSentenceTraits<Sentence>::SubstMapType &subst_map)
+void ProofSentenceTraits<Sentence>::check_match(const LibType &lib, LabTok label, const ProofSentenceTraits<Sentence>::SentType &stack, const ProofSentenceTraits<Sentence>::SentType &templ, const ProofSentenceTraits<Sentence>::SubstMapType &subst_map)
 {
-    // FIXME label
-    ProofError< Sentence > err = { /* label */ {}, stack, templ, subst_map };
+    ProofError< Sentence > err = { label, stack, templ, subst_map };
     auto stack_it = stack.begin();
     for (auto it = templ.begin(); it != templ.end(); it++) {
         const SymTok &tok = *it;

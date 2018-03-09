@@ -156,7 +156,7 @@ protected:
             const SentType &hyp_sent = TraitsType::get_sentence(this->lib, hyp);
             const SentType &stack_hyp_sent = this->stack.at(stack_base + i);
             std::copy(this->dists_stack.at(stack_base + i).begin(), this->dists_stack.at(stack_base + i).end(), std::inserter(dists, dists.begin()));
-            TraitsType::check_match(this->lib, stack_hyp_sent, hyp_sent, subst_map);
+            TraitsType::check_match(this->lib, label, stack_hyp_sent, hyp_sent, subst_map);
 #ifdef PROOF_VERBOSE_DEBUG
             cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
 #endif

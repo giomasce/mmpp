@@ -58,10 +58,15 @@ public:
 };
 
 class WffStrategy : public StepStrategy, public enable_create< WffStrategy > {
-    using StepStrategy::StepStrategy;
-
 public:
+    enum SubStrategy {
+        SUBSTRATEGY_WFF,
+        SUBSTRATEGY_WFFSAT,
+    };
+    WffStrategy(std::weak_ptr< StrategyManager > manager, const Sentence &thesis, const std::vector< Sentence > &hypotheses, const LibraryToolbox &toolbox, SubStrategy substrategy);
     void operator()(Yielder &yield);
+private:
+    SubStrategy substrategy;
 };
 
 /*template< typename... Args >

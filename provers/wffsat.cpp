@@ -8,17 +8,19 @@ using namespace std;
 
 static const RegisteredProver idi_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ph )");
 static const RegisteredProver concl_rp = LibraryToolbox::register_prover({"|- ( ps -> ch )"}, "|- ( ph -> ( ps -> ch ) )");
-struct CNFCallbackImpl : public CNFCallback {
+struct CNFCallbackImpl : public CNFCallbackTest {
     void prove_clause(size_t idx, const Clause &context) {
+        //CNFCallbackTest::prove_clause(idx, context);
         pwff concl = this->clause_to_pwff(this->orig_clauses.at(idx));
         pwff loc_ctx = Not::create(this->clause_to_pwff(context));
         this->prover_stack.push_back(imp_intr_prover(concl, this->orig_provers.at(idx), this->glob_ctx, loc_ctx, this->tb));
     }
 
     void prove_not_or_elim(size_t idx, const Clause &context) {
+        //CNFCallbackTest::prove_not_or_elim(idx, context);
         pwff loc_ctx = Not::create(this->clause_to_pwff(context));
         pwff concl = this->atoms[context[idx].second];
-        if (!context[idx].first) {
+        if (context[idx].first) {
             concl = Not::create(concl);
         }
         vector< pwff > orands;
@@ -36,6 +38,7 @@ struct CNFCallbackImpl : public CNFCallback {
     }
 
     void prove_imp_intr(const Clause &clause, const Clause &context) {
+        //CNFCallbackTest::prove_imp_intr(clause, context);
         pwff loc_ctx = Not::create(this->clause_to_pwff(context));
         pwff concl = this->clause_to_pwff(clause);
         auto p1 = this->prover_stack.back();
@@ -45,6 +48,7 @@ struct CNFCallbackImpl : public CNFCallback {
     }
 
     void prove_unit_res(const Clause &clause, size_t unsolved_idx, const Clause &context) {
+        //CNFCallbackTest::prove_unit_res(clause, unsolved_idx, context);
         pwff loc_ctx = Not::create(this->clause_to_pwff(context));
         vector< pwff > orands;
         for (const auto lit : clause) {
@@ -68,7 +72,8 @@ struct CNFCallbackImpl : public CNFCallback {
     }
 
     void prove_absurdum(const Literal &lit, const Clause &context) {
-        pwff loc_ctx = Not::create(this->clause_to_pwff(context));
+        //CNFCallbackTest::prove_absurdum(lit, context);
+        pwff loc_ctx = this->clause_to_pwff(context);
         pwff concl = this->atoms[lit.second];
         auto neg_prover = this->prover_stack.back();
         this->prover_stack.pop_back();
@@ -79,7 +84,7 @@ struct CNFCallbackImpl : public CNFCallback {
     }
 
     const LibraryToolbox &tb;
-    std::vector< Clause > orig_clauses;
+    //std::vector< Clause > orig_clauses;
     vector< Prover< CheckpointedProofEngine > > orig_provers;
     vector< Prover< CheckpointedProofEngine > > prover_stack;
     pwff glob_ctx;
@@ -106,6 +111,7 @@ struct CNFCallbackImpl : public CNFCallback {
     }
 };
 
+static const RegisteredProver falsify_rp = LibraryToolbox::register_prover({"|- ( -. ph -> F. )"}, "|- ph");
 std::pair<bool, Prover<CheckpointedProofEngine> > get_sat_prover(pwff wff, const LibraryToolbox &tb)
 {
     auto glob_ctx = Not::create(wff);
@@ -121,6 +127,7 @@ std::pair<bool, Prover<CheckpointedProofEngine> > get_sat_prover(pwff wff, const
     cnf_cb.orig_clauses = cnf.clauses;
     cnf_cb.orig_provers = provers;
     cnf_cb.glob_ctx = glob_ctx;
+    cnf_cb.atoms.resize(ts_map.size());
     for (const auto &x : ts_map) {
         cnf_cb.atoms[x.second] = x.first;
     }
@@ -129,10 +136,9 @@ std::pair<bool, Prover<CheckpointedProofEngine> > get_sat_prover(pwff wff, const
     if (res.first) {
         return make_pair(false, null_prover);
     } else {
-        cout << "The formula is UNSATisfiable" << endl;
-        cout << "Unwinding the proof..." << endl;
         res.second();
         assert(cnf_cb.prover_stack.size() == 1);
-        return make_pair(true, cnf_cb.prover_stack[0]);
+        auto final_prover = tb.build_registered_prover(falsify_rp, {{"ph", wff->get_type_prover(tb)}}, {cnf_cb.prover_stack[0]});
+        return make_pair(true, final_prover);
     }
 }

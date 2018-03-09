@@ -72,6 +72,7 @@ static const RegisteredProver or_eliml_rp = LibraryToolbox::register_prover({"|-
 static const RegisteredProver or_elimr_rp = LibraryToolbox::register_prover({"|- ( ph -> -. ( ps \\/ ch )  )"}, "|- ( ph -> -. ch )");
 static const RegisteredProver or_elimln_rp = LibraryToolbox::register_prover({"|- ( ph -> -. ( -. ps \\/ ch )  )"}, "|- ( ph -> ps )");
 static const RegisteredProver or_elimrn_rp = LibraryToolbox::register_prover({"|- ( ph -> -. ( ps \\/ -. ch )  )"}, "|- ( ph -> ch )");
+static const RegisteredProver or_elim_onen_rp = LibraryToolbox::register_prover({"|- ( ph -> -. -. ps )"}, "|- ( ph -> ps )");
 Prover<CheckpointedProofEngine> not_or_elim_prover(const std::vector<pwff> &orands, size_t thesis_idx, bool thesis_sign, Prover<CheckpointedProofEngine> not_or_prover, pwff loc_ctx, const LibraryToolbox &tb)
 {
     assert(thesis_idx < orands.size());
@@ -86,17 +87,17 @@ Prover<CheckpointedProofEngine> not_or_elim_prover(const std::vector<pwff> &oran
         auto or_left = or_struct->get_a();
         auto or_right = or_struct->get_b();
         if (eliminating == thesis_idx) {
-            if (thesis_sign) {
-                ret = tb.build_registered_prover(or_elimr_rp, {{"ph", loc_ctx->get_type_prover(tb)}, {"ps", or_left->get_type_prover(tb)}, {"ch", or_right->get_type_prover(tb)}}, {ret});
-            } else {
+            if (!thesis_sign) {
                 auto or_right_not = dynamic_pointer_cast< const Not >(or_right);
                 assert(or_right_not);
                 auto or_right_not_neg = or_right_not->get_a();
                 ret = tb.build_registered_prover(or_elimrn_rp, {{"ph", loc_ctx->get_type_prover(tb)}, {"ps", or_left->get_type_prover(tb)}, {"ch", or_right_not_neg->get_type_prover(tb)}}, {ret});
+            } else {
+                ret = tb.build_registered_prover(or_elimr_rp, {{"ph", loc_ctx->get_type_prover(tb)}, {"ps", or_left->get_type_prover(tb)}, {"ch", or_right->get_type_prover(tb)}}, {ret});
             }
             break;
         } else {
-            if (eliminating == 1 && thesis_sign) {
+            if (eliminating == 1 && !thesis_sign) {
                 auto or_left_not = dynamic_pointer_cast< const Not >(or_left);
                 assert(or_left_not);
                 auto or_left_not_neg = or_left_not->get_a();
@@ -106,6 +107,12 @@ Prover<CheckpointedProofEngine> not_or_elim_prover(const std::vector<pwff> &oran
                 structure = or_left;
             }
         }
+    }
+    if (orands.size() == 1 && !thesis_sign) {
+        auto or_not = dynamic_pointer_cast< const Not >(structure);
+        assert(or_not);
+        auto or_not_neg = or_not->get_a();
+        ret = tb.build_registered_prover(or_elim_onen_rp, {{"ph", loc_ctx->get_type_prover(tb)}, {"ps", or_not_neg->get_type_prover(tb)}}, {ret});
     }
     return ret;
 }

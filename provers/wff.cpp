@@ -124,8 +124,8 @@ std::tuple<CNFProblem, pvar_map<uint32_t>, std::vector< Prover< CheckpointedProo
 {
     CNForm cnf;
     this->get_tseitin_form(cnf, tb, *this);
-    auto vars = collect_tseitin_vars(cnf);
     cnf[{{true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(id_rp, {{"ph", this->get_type_prover(tb)}}, {});
+    auto vars = collect_tseitin_vars(cnf);
     auto map = build_tseitin_map(vars);
     auto problem = build_cnf_problem(cnf, map);
     return make_tuple(problem.first, map, problem.second);
@@ -272,7 +272,7 @@ bool False::operator==(const Wff &x) const
 const RegisteredProver False::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> -. F. )");
 void False::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const
 {
-    cnf[{{false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(False::falsity_rp, {{"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(False::tseitin1_rp, {{"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
 Var::Var(NameType name, string string_repr) :

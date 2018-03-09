@@ -210,7 +210,7 @@ std::pair<bool, std::function<void ()> > CNFProblem::solve()
         const auto &prover = get<2>(propagation);
         this->callbacks.push_back([prover,callback,clause](const auto &context) {
             prover();
-            callback->prove_imp_intr(context, clause);
+            callback->prove_imp_intr(clause, context);
         });
         if (ref.second.empty()) {
             // We have finally proved the empty clause, so we can return

@@ -23,10 +23,9 @@ const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SentType &ProofSentenc
     return lib.get_parsed_sents2().at(label);
 }
 
-void ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::check_match(const LibType &lib, const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SentType &stack, const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SentType &templ, const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SubstMapType &subst_map)
+void ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::check_match(const LibType &lib, LabTok label, const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SentType &stack, const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SentType &templ, const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SubstMapType &subst_map)
 {
-    // FIXME label
-    ProofError< ParsingTree2<SymTok, LabTok> > err = { /* label */ {}, stack, templ, subst_map };
+    ProofError< ParsingTree2<SymTok, LabTok> > err = { label, stack, templ, subst_map };
     assert_or_throw< ProofException< ParsingTree2< SymTok, LabTok > > >(substitute2(templ, lib.get_standard_is_var(), subst_map) == stack, "Essential hypothesis does not match stack", err);
 }
 

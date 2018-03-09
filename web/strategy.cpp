@@ -2,6 +2,7 @@
 #include "strategy.h"
 #include "provers/wff.h"
 #include "provers/wffblock.h"
+#include "provers/wffsat.h"
 
 using namespace std;
 using namespace nlohmann;
@@ -206,6 +207,11 @@ struct WffStrategyResult : public StepStrategyResult, public enable_create< WffS
     const LibraryToolbox &toolbox;
 };
 
+WffStrategy::WffStrategy(std::weak_ptr<StrategyManager> manager, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox, WffStrategy::SubStrategy substrategy) :
+    StepStrategy(manager, thesis, hypotheses, toolbox), substrategy(substrategy)
+{
+}
+
 void WffStrategy::operator()(Yielder &yield)
 {
     auto result = WffStrategyResult::create(this->toolbox);
@@ -240,7 +246,16 @@ void WffStrategy::operator()(Yielder &yield)
     yield();
 
     result->wff = wff;
-    tie(result->success, result->prover) = wff->get_adv_truth_prover(this->toolbox);
+    switch (this->substrategy) {
+    case SUBSTRATEGY_WFF:
+        tie(result->success, result->prover) = wff->get_adv_truth_prover(this->toolbox);
+        break;
+    case SUBSTRATEGY_WFFSAT:
+        tie(result->success, result->prover) = get_sat_prover(wff, this->toolbox);
+        break;
+    default:
+        assert(!"Should not arrive here");
+    }
 }
 
 std::vector<std::shared_ptr<StepStrategy> > create_strategies(std::weak_ptr<StrategyManager> manager, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox)
@@ -248,6 +263,7 @@ std::vector<std::shared_ptr<StepStrategy> > create_strategies(std::weak_ptr<Stra
     return {
         //FailingStrategy::create(manager, thesis, hypotheses, toolbox),
         UnificationStrategy::create(manager, thesis, hypotheses, toolbox),
-        WffStrategy::create(manager, thesis, hypotheses, toolbox),
+        //WffStrategy::create(manager, thesis, hypotheses, toolbox, WffStrategy::SUBSTRATEGY_WFF),
+        WffStrategy::create(manager, thesis, hypotheses, toolbox, WffStrategy::SUBSTRATEGY_WFFSAT),
     };
 }
