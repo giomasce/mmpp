@@ -254,7 +254,7 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     //auto target_pt = tb.get_parsed_sents2()[target_label];
 
     ostringstream oss;
-    for (size_t i = 1; i < argc; i++) {
+    for (int i = 1; i < argc; i++) {
         oss << argv[i] << " ";
     }
     Sentence target_sent = tb.read_sentence(oss.str());
