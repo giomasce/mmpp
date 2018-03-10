@@ -51,7 +51,7 @@ unique_ptr< HTTPD > make_server(int port, WebEndpoint &endpoint, bool open_serve
 }
 
 int webmmpp_main_common(int argc, char *argv[], bool open_server) {
-    if (!platform_init(argc, argv)) {
+    if (!platform_webmmpp_init(argc, argv)) {
         return 1;
     }
 
@@ -84,15 +84,17 @@ int webmmpp_main_common(int argc, char *argv[], bool open_server) {
         cout << "A browser session was spawned; if you cannot see it, go to " << browser_url << endl;
     }
 
-    while (true) {
-        if (platform_should_stop()) {
-            cerr << "Signal received, stopping..." << endl;
-            httpd->stop();
-            break;
-        }
-        this_thread::sleep_for(1s);
-    }
+    auto new_session_callback = [&endpoint,port]() {
+        string ticket_id = endpoint.create_session_and_ticket();
+        string browser_url = "http://127.0.0.1:" + to_string(port) + "/ticket/" + ticket_id;
+        cout << "New session created; please visit " << browser_url << endl;
+    };
+
+    platform_webmmpp_main_loop(new_session_callback);
+    cerr << "Stopping webserver..." << endl;
+    httpd->stop();
     httpd->join();
+    cerr << "Webserver stopped, will now exit" << endl;
 
     return 0;
 }

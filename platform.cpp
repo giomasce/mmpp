@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <pthread.h>
 #include <sys/syscall.h>
+#include <iostream>
 
 using namespace std;
 
@@ -21,28 +22,70 @@ void set_max_ram(uint64_t bytes) {
     setrlimit64(RLIMIT_AS, &limit);
 }
 
-atomic< bool > signalled;
-void int_handler(int signal) {
-    (void) signal;
-    signalled = true;
+vector< int > signals = { SIGTERM, SIGHUP, SIGUSR1 };
+sigset_t create_sigset() {
+    sigset_t sigset;
+    int res = sigemptyset(&sigset);
+    if (res) {
+        throw "Error when calling sigemptyset()";
+    }
+    for (const auto signal : signals) {
+        res = sigaddset(&sigset, signal);
+        if (res) {
+            throw "Error when calling sigaddset()";
+        }
+    }
+    return sigset;
 }
 
-bool platform_init(int argc, char *argv[]) {
+bool platform_webmmpp_init(int argc, char *argv[]) {
     (void) argc;
     (void) argv;
 
-    struct sigaction act;
+    /*struct sigaction act;
     act.sa_handler = int_handler;
     act.sa_flags = 0;
     sigfillset(&act.sa_mask);
     sigaction(SIGINT, &act, NULL);
-    sigaction(SIGTERM, &act, NULL);
+    sigaction(SIGTERM, &act, NULL);*/
+
+    /* Block the signals we want to receive synchronously;
+     * this should be done before any thread is created,
+     * so that all threads inherit the same blocking mask (I hope) */
+    int res;
+    sigset_t sigset = create_sigset();
+    res = sigprocmask(SIG_BLOCK, &sigset, NULL);
+    if (res) {
+        throw "Error when calling sigprocmask()";
+    }
 
     return true;
 }
 
-bool platform_should_stop() {
-    return signalled;
+void platform_webmmpp_main_loop(const std::function<void()> &new_session_callback) {
+    sigset_t sigset = create_sigset();
+    bool running = true;
+    while (running) {
+        siginfo_t siginfo;
+        int res = sigwaitinfo(&sigset, &siginfo);
+        if (res < 0) {
+            continue;
+        }
+        switch (siginfo.si_signo) {
+        case SIGTERM:
+            cerr << "SIGTERM received!" << endl;
+            running = false;
+            break;
+        case SIGHUP:
+            cerr << "SIGHUP received!" << endl;
+            running = false;
+            break;
+        case SIGUSR1:
+            cerr << "SIGUSR1 received!" << endl;
+            new_session_callback();
+            break;
+        }
+    }
 }
 
 bool platform_open_browser(string browser_url) {
