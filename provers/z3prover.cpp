@@ -205,8 +205,11 @@ struct Z3Adapter {
     Prover< CreativeCheckpointedProofEngine< Sentence > > convert_proof(expr e, int depth = 0) {
         if (e.is_app()) {
             func_decl decl = e.decl();
-            unsigned num_args = e.num_args();
-            unsigned arity = decl.arity();
+            auto num_args = e.num_args();
+            auto arity = decl.arity();
+#ifdef NDEBUG
+            (void) arity;
+#endif
             Z3_decl_kind kind = decl.decl_kind();
 
             if (Z3_OP_PR_UNDEF <= kind && kind < Z3_OP_PR_UNDEF + 0x100) {
@@ -339,7 +342,7 @@ struct Z3Adapter {
                             vector< pwff > right_wffs;
                             //vector< Prover > wffs_prover;
                             size_t used = 0;
-                            for (size_t i = 0; i < th_left.num_args(); i++) {
+                            for (unsigned int i = 0; i < th_left.num_args(); i++) {
                                 if (eq(th_left.arg(i), th_right.arg(i))) {
                                     hyp_provers.push_back(this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(biidd_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", parse_expr(th_left.arg(i), tb)->get_type_prover(this->tb)}}, {}));
                                 } else {
@@ -397,6 +400,9 @@ struct Z3Adapter {
                     expr or_expr = extract_thesis(e.arg(0));
                     assert(or_expr.decl().decl_kind() == Z3_OP_OR);
                     size_t clauses_num = or_expr.num_args();
+#ifdef NDEBUG
+                    (void) clauses_num;
+#endif
                     assert(clauses_num >= 2);
                     assert(elims_num <= clauses_num);
 
@@ -405,7 +411,7 @@ struct Z3Adapter {
 
                     vector< pwff > elims;
                     vector< Prover< CreativeCheckpointedProofEngine< Sentence > > > elim_provers;
-                    for (size_t i = 0; i < elims_num; i++) {
+                    for (unsigned int i = 0; i < elims_num; i++) {
                         elims.push_back(parse_expr(extract_thesis(e.arg(i+1)), tb));
                         elim_provers.push_back(this->convert_proof(e.arg(i+1), depth+1));
                         //cerr << "TEST: " << test_prover(elim_provers.back(), this->tb) << endl;
@@ -414,7 +420,7 @@ struct Z3Adapter {
                     vector< pwff > orig_clauses;
                     vector< pwff > new_clauses;
                     vector< Prover< CreativeCheckpointedProofEngine< Sentence > > > provers;
-                    for (size_t i = 0; i < or_expr.num_args(); i++) {
+                    for (unsigned int i = 0; i < or_expr.num_args(); i++) {
                         pwff clause = parse_expr(or_expr.arg(i), tb);
                         orig_clauses.push_back(clause);
 

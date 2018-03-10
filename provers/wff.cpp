@@ -16,6 +16,9 @@ ParsingTree2<SymTok, LabTok> Wff::to_parsing_tree(const LibraryToolbox &tb) cons
     CreativeProofEngineImpl< ParsingTree2< SymTok, LabTok > > engine(tb, false);
     bool res = type_prover(engine);
     assert(res);
+#ifdef NDEBUG
+    (void) res;
+#endif
     return engine.get_stack().back();
 }
 

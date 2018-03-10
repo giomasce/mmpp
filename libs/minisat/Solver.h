@@ -301,10 +301,10 @@ inline void Solver::varBumpActivity(Var v, double inc) {
 
 inline void Solver::claDecayActivity() { cla_inc *= (1 / clause_decay); }
 inline void Solver::claBumpActivity (Clause& c) {
-        if ( (c.activity() += cla_inc) > 1e20 ) {
+        if ( (c.activity() += (float) cla_inc) > 1e20 ) {
             // Rescale:
             for (int i = 0; i < learnts.size(); i++)
-                ca[learnts[i]].activity() *= 1e-20;
+                ca[learnts[i]].activity() *= (float) 1e-20;
             cla_inc *= 1e-20; } }
 
 inline void Solver::checkGarbage(void){ return checkGarbage(garbage_frac); }

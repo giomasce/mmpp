@@ -192,7 +192,7 @@ struct WffStrategyResult : public StepStrategyResult, public enable_create< WffS
         }
         auto prover2 = this->prover;
         auto wff2 = this->wff;
-        for (int i = children.size()-1; i >= 0; i--) {
+        for (int i = (int) children.size()-1; i >= 0; i--) {
             auto wff_imp = dynamic_pointer_cast< const Imp >(wff2);
             assert(wff_imp);
             prover2 = imp_mp_prover(wff_imp, hyps_provers[i], prover2, this->toolbox);

@@ -22,8 +22,8 @@ public:
     LabTok get_label(std::string s);
     std::string resolve_symbol(SymTok tok);
     std::string resolve_label(LabTok tok);
-    std::size_t get_symbols_num();
-    std::size_t get_labels_num();
+    SymTok get_symbols_num();
+    LabTok get_labels_num();
     const Sentence &get_sentence(LabTok label);
 
     // LibraryToolbox-like interface

@@ -279,8 +279,8 @@ public:
     virtual LabTok get_label(std::string s) const = 0;
     virtual std::string resolve_symbol(SymTok tok) const = 0;
     virtual std::string resolve_label(LabTok tok) const = 0;
-    virtual std::size_t get_symbols_num() const = 0;
-    virtual std::size_t get_labels_num() const = 0;
+    virtual SymTok get_symbols_num() const = 0;
+    virtual LabTok get_labels_num() const = 0;
     virtual bool is_constant(SymTok c) const = 0;
     virtual const Sentence &get_sentence(LabTok label) const = 0;
     virtual SentenceType get_sentence_type(LabTok label) const = 0;
@@ -313,8 +313,8 @@ public:
     LabTok get_label(std::string s) const;
     std::string resolve_symbol(SymTok tok) const;
     std::string resolve_label(LabTok tok) const;
-    std::size_t get_symbols_num() const;
-    std::size_t get_labels_num() const;
+    SymTok get_symbols_num() const;
+    LabTok get_labels_num() const;
     const std::unordered_map< SymTok, std::string > &get_symbols() const;
     const std::unordered_map<LabTok, std::string> &get_labels() const;
     const Sentence &get_sentence(LabTok label) const;

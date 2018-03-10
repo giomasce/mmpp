@@ -68,12 +68,12 @@ string LibraryImpl::resolve_label(LabTok tok) const
     return this->labels.resolve(tok);
 }
 
-size_t LibraryImpl::get_symbols_num() const
+SymTok LibraryImpl::get_symbols_num() const
 {
     return this->syms.size();
 }
 
-size_t LibraryImpl::get_labels_num() const
+LabTok LibraryImpl::get_labels_num() const
 {
     return this->labels.size();
 }

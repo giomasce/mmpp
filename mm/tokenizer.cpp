@@ -57,7 +57,7 @@ void FileTokenizer::set_file_size()
     this->filesize = this->fin.tellg();
     this->fin.seekg(pos, ios_base::beg);
     if (this->reportable != NULL && this->filesize > 0) {
-        this->reportable->set_total(this->filesize);
+        this->reportable->set_total((double) this->filesize);
     }
 }
 
@@ -67,7 +67,7 @@ char FileTokenizer::get_char()
     this->fin.get(c);
     this->pos++;
     if (this->reportable != NULL) {
-        this->reportable->report(this->pos);
+        this->reportable->report((double) this->pos);
     }
     return c;
 }

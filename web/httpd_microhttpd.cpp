@@ -92,6 +92,9 @@ int HTTPD_microhttpd::accept_wrapper(void *cls, const sockaddr *addr, socklen_t 
         struct in_addr localhost;
         int ret = inet_pton(AF_INET, "127.0.0.1", &localhost);
         assert(ret == 1);
+#ifdef NDEBUG
+        (void) ret;
+#endif
         if (memcmp(&inetaddr->sin_addr, &localhost, sizeof(localhost)) == 0) {
             return MHD_YES;
         }
@@ -121,6 +124,9 @@ public:
 
     size_t callback(uint64_t pos, char* buf, size_t max) {
         assert(pos == this->total_pos);
+#ifdef NDEBUG
+        (void) pos;
+#endif
         size_t bytes_avail = this->buffer.size() - this->pos;
         if (bytes_avail == 0) {
             this->buffer = this->answerer.answer();

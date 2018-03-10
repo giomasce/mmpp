@@ -6,7 +6,7 @@
 template< typename TokType >
 class StringCache {
 public:
-    StringCache(size_t nex_id = 1) :
+    StringCache(TokType nex_id = 1) :
         next_id(nex_id) {
     }
 
@@ -24,7 +24,7 @@ public:
         auto it = this->dir.find(s);
         if (it == this->dir.end()) {
             bool res;
-            assert(this->next_id != std::numeric_limits< TokType >::max());
+            assert(this->next_id != (std::numeric_limits< TokType >::max)());
             std::tie(it, res) = this->dir.insert(make_pair(s, this->next_id));
             assert(res);
             std::tie(std::ignore, res) = this->inv.insert(std::make_pair(this->next_id, s));
@@ -54,8 +54,8 @@ public:
         return tok;
     }
 
-    std::size_t size() const {
-        return this->dir.size();
+    LabTok size() const {
+        return (LabTok) this->dir.size();
     }
 
     const std::unordered_map< TokType, std::string > &get_cache() const {

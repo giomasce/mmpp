@@ -142,10 +142,16 @@ void find_generalizable_theorems() {
                 //cout << " \"*\",";
                 bool res = reactor.process_hypothesis(tb.get_turnstile_alias(), it-ess_hyps.begin());
                 assert(res);
+#ifdef NDEBUG
+                (void) res;
+#endif
             } else if (tb.get_assertion(label).is_valid() && tb.get_sentence(label).at(0) == tb.get_turnstile()) {
                 //cout << " \"" << tb.resolve_label(label) << "\",";
                 bool res = reactor.process_label(label);
                 assert(res);
+#ifdef NDEBUG
+                (void) res;
+#endif
             }
         }
         //cout << " }" << endl;

@@ -123,14 +123,14 @@ string TempGenerator::resolve_label(LabTok tok)
     return this->temp_labs.resolve(tok);
 }
 
-size_t TempGenerator::get_symbols_num()
+SymTok TempGenerator::get_symbols_num()
 {
     unique_lock< mutex > lock(this->global_mutex);
 
     return this->temp_syms.size();
 }
 
-size_t TempGenerator::get_labels_num()
+LabTok TempGenerator::get_labels_num()
 {
     unique_lock< mutex > lock(this->global_mutex);
 

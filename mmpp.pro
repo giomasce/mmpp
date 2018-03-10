@@ -46,7 +46,7 @@ macx {
 }
 
 win32 {
-    QMAKE_CXXFLAGS += /std:c++17 /I c:\Boost\include\boost-1_66 /I c:\libs /FC
+    QMAKE_CXXFLAGS += /std:c++17 /I c:\Boost\include\boost-1_66 /I c:\libs /FC /wd4250 /wd4200 -DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE
     QMAKE_LFLAGS += /STACK:8388608
     QMAKE_LIBS += /LIBPATH:c:\Boost\lib /LIBPATH:c:\libs
     CONFIG += console

@@ -45,6 +45,9 @@ void CNFProblem::feed_to_minisat(Minisat::Solver &solver) const
     for (size_t i = 0; i < this->var_num; i++) {
         Minisat::Var var = solver.newVar();
         assert(var == (Minisat::Var) i);
+#ifdef NDEBUG
+        (void) var;
+#endif
     }
     for (const auto &clause : this->clauses) {
         Minisat::vec< Minisat::Lit > clause2;

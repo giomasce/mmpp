@@ -462,8 +462,8 @@ public:
     LabTok get_label(std::string s) const;
     std::string resolve_symbol(SymTok tok) const;
     std::string resolve_label(LabTok tok) const;
-    std::size_t get_symbols_num() const;
-    std::size_t get_labels_num() const;
+    SymTok get_symbols_num() const;
+    LabTok get_labels_num() const;
     bool is_constant(SymTok c) const;
     const Sentence &get_sentence(LabTok label) const;
     SentenceType get_sentence_type(LabTok label) const;

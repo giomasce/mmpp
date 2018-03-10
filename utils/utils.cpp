@@ -164,7 +164,7 @@ void TextProgressBar::report(double current, bool force) {
     if (this->total == 0.0) {
         cur_len = 0;
     } else {
-        cur_len = current / this->total * this->length;
+        cur_len = static_cast< size_t >(current / this->total * this->length);
     }
     if (!force && cur_len != this->total && cur_len == this->last_len) {
         return;

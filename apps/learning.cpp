@@ -132,7 +132,7 @@ int proofs_stats_main(int argc, char *argv[]) {
     auto &lib = data.lib;
     //auto &tb = data.tb;
 
-    TextProgressBar tpb(100, lib.get_assertions().size());
+    TextProgressBar tpb(100, (double) lib.get_assertions().size());
     vector< pair< LabTok, ProofStat > > proofs_stats;
     for (const Assertion &ass : lib.get_assertions()) {
         if (!ass.is_valid()) {

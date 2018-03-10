@@ -413,12 +413,12 @@ string LibraryToolbox::resolve_label(LabTok tok) const
     return this->temp_generator->resolve_label(tok);
 }
 
-size_t LibraryToolbox::get_symbols_num() const
+SymTok LibraryToolbox::get_symbols_num() const
 {
     return this->lib.get_symbols_num() + this->temp_generator->get_symbols_num();
 }
 
-size_t LibraryToolbox::get_labels_num() const
+LabTok LibraryToolbox::get_labels_num() const
 {
     return this->lib.get_labels_num() + this->temp_generator->get_labels_num();
 }
@@ -991,7 +991,7 @@ void LibraryToolbox::compute_sentences_parsing()
     /*if (!this->parser_initialization_computed) {
         this->compute_parser_initialization();
     }*/
-    for (size_t i = 1; i < this->get_labels_num()+1; i++) {
+    for (LabTok i = 1; i < this->get_labels_num()+1; i++) {
         const Sentence &sent = this->get_sentence(i);
         auto pt = this->parse_sentence(sent.begin()+1, sent.end(), this->get_parsing_addendum().get_syntax().at(sent[0]));
         if (pt.label == 0) {
