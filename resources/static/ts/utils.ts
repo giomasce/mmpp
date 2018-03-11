@@ -41,9 +41,9 @@ export function dump_to_console(log : string) {
   $("#console_text").append("\n" + log);
 }
 
-export function gen_random_id() : string {
+/*export function gen_random_id() : string {
   return Math.floor(Math.random() * 0x1000000).toString(16);
-}
+}*/
 
 let last_serial : number = 0;
 export function get_serial() : number {
@@ -53,6 +53,13 @@ export function get_serial() : number {
 
 export function get_serial_string() : string {
   return get_serial().toString();
+}
+
+// UDID: Unique Disposable ID
+let last_udid : number = 0;
+export function get_udid() {
+  last_udid += 1;
+  return "UDID" + last_udid.toString();
 }
 
 export function assert(test : boolean, message? : string) {

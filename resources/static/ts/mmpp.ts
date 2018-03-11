@@ -7,6 +7,7 @@ import { check_version, create_workset, load_workset, list_worksets, Step, Works
 import { Tree, TreeNode } from "./tree";
 import { EditorManager } from "./tree_editor";
 import { WorksetManager } from "./tree_workset";
+import { show_proof_for_label } from "./render_proof";
 
 let current_workset : Workset = null;
 let current_renderer : Renderer = null;
@@ -46,6 +47,10 @@ export function get_current_workset() : Workset {
   return current_workset;
 }
 
+export function get_current_renderer() : Renderer {
+  return current_renderer;
+}
+
 export function get_current_tree() : Tree {
   return current_tree;
 }
@@ -67,62 +72,6 @@ export function ui_load_data() {
   current_workset.load_data().then(update_workset_globals).catch(catch_all);
 }
 
-function render_proof_internal(proof_tree, depth : number, step : number) : [string, number] {
-  let children : [string, number][] = proof_tree.children.filter(function(el) {
-    return include_non_essentials ? true : el["essential"];
-  }).map(function (el) {
-    let proof : string;
-    [proof, step] = render_proof_internal(el, depth+1, step);
-    return [proof, step];
-  });
-  step += 1;
-  return [Mustache.render(PROOF_STEP_TEMPL, {
-    label: current_workset.labels[proof_tree.label],
-    label_tok: proof_tree.label,
-    number: proof_tree.number > 0 ? proof_tree.number.toString() : "",
-    number_color: spectrum_to_rgb(proof_tree.number, current_workset.max_number),
-    sentence: current_renderer.render_from_codes(proof_tree.sentence),
-    children: children.map(function(el) { return el[0]; }),
-    children_steps: lastize(children.map(function(el) { return { step: el[1] }; })),
-    dists: lastize(proof_tree["dists"].map(function(el) { return { dist: current_renderer.render_from_codes([el[0]]) + ", " + current_renderer.render_from_codes([el[1]]) }; })),
-    indentation: ". ".repeat(depth) + (depth+1).toString(),
-    essential: proof_tree["essential"],
-    step: step,
-  }), step];
-}
-
-function render_proof(proof_tree) {
-  return render_proof_internal(proof_tree, 0, 0)[0];
-}
-
-export function ui_show_proof_for_label(label_tok : number) {
-  current_workset.do_api_request(`get_assertion/${label_tok}`).then(function(data) : Promise<void> {
-    let assertion = data["assertion"];
-
-    // Request all the interesting things for the proof
-    let requests : Promise<any>[] = [];
-    let requests_map = {
-      thesis: push_and_get_index(requests, current_workset.do_api_request(`get_sentence/${assertion["thesis"]}`)),
-      proof_tree: push_and_get_index(requests, current_workset.do_api_request(`get_proof_tree/${assertion["thesis"]}`)),
-      ess_hyps_sent: assertion["ess_hyps"].map(function (el) { return push_and_get_index(requests, current_workset.do_api_request(`get_sentence/${el}`)); }),
-      float_hyps_sent: assertion["float_hyps"].map(function (el) { return push_and_get_index(requests, current_workset.do_api_request(`get_sentence/${el}`)); }),
-      /*ess_hyps_ass: assertion["ess_hyps"].map(function (el) { return push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset.id}/get_assertion/${el}`)); }),
-      float_hyps_ass: assertion["float_hyps"].map(function (el) { return push_and_get_index(requests, jsonAjax(`/api/1/workset/${workset.id}/get_assertion/${el}`)); }),*/
-    };
-
-    // Fire all the requests and then feed the results to the template
-    return Promise.all(requests).then(function(responses : Array<any>) : void {
-      $("#workset_area").html(Mustache.render(PROOF_TEMPL, {
-        thesis: current_renderer.render_from_codes(responses[requests_map["thesis"]]["sentence"]),
-        ess_hyps_sent: requests_map["ess_hyps_sent"].map(function(el) { return current_renderer.render_from_codes(responses[el]["sentence"]); }),
-        float_hyps_sent: requests_map["float_hyps_sent"].map(function(el) { return current_renderer.render_from_codes(responses[el]["sentence"]); }),
-        dists: lastize(assertion["dists"].map(function(el) { return { dist: current_renderer.render_from_codes([el[0]]) + ", " + current_renderer.render_from_codes([el[1]]) }; })),
-        proof: render_proof(responses[requests_map["proof_tree"]]["proof_tree"]),
-      }));
-    });
-  }).catch(catch_all);
-}
-
 export function ui_show_proof() {
   if (!current_workset.loaded) {
     return;
@@ -131,7 +80,7 @@ export function ui_show_proof() {
   // Resolve the label and request the corresponding assertion
   let label : string = $("#statement_label").val();
   let label_tok : number = current_workset.labels_inv[label];
-  ui_show_proof_for_label(label_tok);
+  show_proof_for_label(label_tok, "proof_navigator_area", include_non_essentials);
 }
 
 let editor : Editor;
@@ -360,6 +309,16 @@ export function ui_create_node_from_dump() : void {
   }).catch(catch_all);
 }
 
+export function ui_proof_navigator() : void {
+  $(`.workset_page`).css('display', 'none');
+  $(`#proof_navigator`).css('display', 'block');
+}
+
+export function ui_proof_editor() : void {
+  $(`.workset_page`).css('display', 'none');
+  $(`#proof_editor`).css('display', 'block');
+}
+
 /*function retrieve_sentence(label_tok : number) : number[] {
   let sentence : number[];
   jsonAjax(`/api/1/workset/${workset.id}/get_sentence/${label_tok}`, true, true, false).done(function(data) {
@@ -367,41 +326,6 @@ export function ui_create_node_from_dump() : void {
   });
   return sentence;
 }*/
-
-const PROOF_TEMPL = `
-  Floating hypotheses:<ol>
-  {{ #float_hyps_sent }}
-  <li>{{{ . }}}</li>
-  {{ /float_hyps_sent }}
-  </ol>
-  Essential hypotheses:<ol>
-  {{ #ess_hyps_sent }}
-  <li>{{{ . }}}</li>
-  {{ /ess_hyps_sent }}
-  </ol>
-  <p>Distinct variables: {{ #dists }}{{{ dist }}}{{ ^last }}; {{ /last }}{{ /dists }}</p>
-  <p>Thesis: {{{ thesis }}}</p>
-  <center><table summary="Proof of theorem" cellspacing="0" border="" bgcolor="#EEFFFA">
-  <caption><b>Proof of theorem <b>{{ label }}</b></caption>
-  <tbody>
-  <tr><th>Step</th><th>Hyp</th><th>Ref</th><th>Expression</th><th>Dists</th></tr>
-  {{{ proof }}}
-  </tbody>
-  </table></center>
-`;
-
-const PROOF_STEP_TEMPL = `
-  {{ #children }}
-  {{{ . }}}
-  {{ /children }}
-  <tr>
-  <td>{{ step }}</td>
-  <td>{{ #children_steps }}{{ step }}{{ ^last }}, {{ /last }}{{ /children_steps }}</td>
-  <td>{{ #label_tok }}<a href="#" onclick="mmpp.ui_show_proof_for_label({{ . }})">{{ /label_tok }}{{ label }}{{ #label_tok }}</a>{{ /label_tok }} <span class="r" style="color: {{ number_color }}">{{ number }}</span></td>
-  <td><span class="i">{{{ indentation }}}</span> {{{ sentence }}}</td>
-  <td>{{ #dists }}{{{ dist }}}{{ ^last }}; {{ /last }}{{ /dists }}</td>
-  </tr>
-`;
 
 const DATA1_TEMPL = `
   <span style="position: relative;">
@@ -450,13 +374,26 @@ const WORKSET_TEMPL = `
   <div id="workset_status"></div>
   <div id="commands">
     <button onclick="mmpp.ui_load_data()">Load database</button>
-    <input type="text" id="statement_label"></input>
-    <button onclick="mmpp.ui_show_proof()">Show proof</button>
-    <button onclick="mmpp.ui_show_modifier()">Show modifier</button>
+    <button onclick="alert('Does not work for the moment...');">Destroy workset</button>
+    <button onclick="mmpp.ui_proof_navigator()">Proof navigator</button>
+    <button onclick="mmpp.ui_proof_editor()">Proof editor</button>
+    <!--<button onclick="mmpp.ui_show_modifier()">Show modifier</button>
     <button onclick="mmpp.ui_build_tree()">Build tree</button>
-    <button onclick="mmpp.ui_show_tree()">Show tree</button>
-    <button onclick="mmpp.ui_create_node()">Create node</button>
-    <button onclick="mmpp.ui_create_node_from_dump()">Create node from dump</button>
+    <button onclick="mmpp.ui_show_tree()">Show tree</button>-->
   </div>
-  <div id="workset_area"></div>
+
+  <div id="proof_navigator" class="workset_page" style="display: none;">
+    <div>
+      <input type="text" id="statement_label"></input>
+      <button onclick="mmpp.ui_show_proof()">Show proof</button>
+    </div>
+    <div id="proof_navigator_area"></div>
+  </div>
+
+  <div id="proof_editor"" class="workset_page" style="display: none;">
+    <div>
+      <button onclick="mmpp.ui_create_node()">Create node</button>
+      <button onclick="mmpp.ui_create_node_from_dump()">Create node from dump</button>
+    </div>
+  </div>
 `;
