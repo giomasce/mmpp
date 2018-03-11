@@ -289,6 +289,8 @@ uint64_t platform_get_current_used_ram( )
 
 #elif (defined(_WIN32))
 
+#include <future>
+#include <iostream>
 #include <atomic>
 
 #include <windows.h>
@@ -308,26 +310,35 @@ void set_max_ram(uint64_t bytes){
     // FIXME When does the Job get destroyed?
 }
 
-atomic< bool > signalled;
+promise< void > exit_promise;
+future< void > exit_future;
+atomic< bool > promise_set = false;
 BOOL ctrl_handler(DWORD type) {
     if (type == CTRL_C_EVENT) {
-        signalled = true;
+        if (!promise_set) {
+            cerr << "Ctrl-C received!" << endl;
+            exit_promise.set_value();
+            promise_set = true;
+        }
         return true;
     }
     return false;
 }
 
-bool platform_init(int argc, char *argv[]) {
+bool platform_webmmpp_init(int argc, char *argv[]) {
     (void) argc;
     (void) argv;
 
+    exit_future = exit_promise.get_future();
     SetConsoleCtrlHandler((PHANDLER_ROUTINE) ctrl_handler, TRUE);
 
     return true;
 }
 
-bool platform_should_stop() {
-    return signalled;
+void platform_webmmpp_main_loop(const std::function<void ()> &new_session_callback) {
+    (void) new_session_callback;
+    assert(exit_future.valid());
+    exit_future.wait();
 }
 
 #pragma comment(lib, "shell32.lib")
