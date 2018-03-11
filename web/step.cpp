@@ -189,20 +189,21 @@ std::shared_ptr<Step> Step::get_parent() const
     return this->parent.lock();
 }
 
-bool Step::destroy()
+std::shared_ptr< Step > Step::destroy()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
-    // Take a strong reference to this, so that the object is not deallocated while this method is still running
+    // Take a strong reference to this and return it, so that the object is not deallocated while this method is still running
     auto strong_this = this->shared_from_this();
     auto strong_parent = this->get_parent();
     if (strong_parent) {
-        return false;
+        return NULL;
     }
     if (!this->children.empty()) {
-        return false;
+        return NULL;
     }
     auto workset = this->get_workset().lock();
-    return workset->destroy_step(this->get_id());
+    workset->destroy_step(this->get_id());
+    return strong_this;
 }
 
 bool Step::orphan()
@@ -398,9 +399,9 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
             (void) post_data;
             unique_lock< recursive_mutex > lock(self->global_mutex);
-            bool res = self->destroy();
+            auto res = self->destroy();
             json ret = json::object();
-            ret["success"] = res;
+            ret["success"] = static_cast< bool >(res);
             return ret;
         });
     } else if (*path_begin == "prove") {

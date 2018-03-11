@@ -12,7 +12,7 @@ using namespace std;
 using namespace chrono;
 using namespace nlohmann;
 
-Workset::Workset() : thread_manager(make_unique< CoroutineThreadManager >(4)) /*, step_backrefs(BackreferenceRegistry< Step, Workset >::create()) */
+Workset::Workset(std::weak_ptr<Session> session) : thread_manager(make_unique< CoroutineThreadManager >(4)) /*, step_backrefs(BackreferenceRegistry< Step, Workset >::create()) */, session(session)
 {
 }
 
@@ -90,6 +90,17 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         } catch (out_of_range) {
             throw SendError(404);
         }
+    } else if (*path_begin == "destroy") {
+        path_begin++;
+        assert_or_throw< SendError >(path_begin == path_end, 404);
+        assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+        throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
+            (void) post_data;
+            auto res = self->destroy();
+            json ret = json::object();
+            ret["success"] = static_cast< bool >(res);
+            return ret;
+        });
     } else if (*path_begin == "queue") {
         path_begin++;
         assert_or_throw< SendError >(path_begin == path_end, 404);
@@ -201,6 +212,16 @@ const LibraryToolbox &Workset::get_toolbox() const {
 
 std::shared_ptr<Step> Workset::get_root_step() const {
     return this->root_step;
+}
+
+std::shared_ptr<Workset> Workset::destroy()
+{
+    auto strong_this = this->shared_from_this();
+    auto strong_session = this->session.lock();
+    if (strong_session) {
+        strong_session->destroy_workset(strong_this);
+    }
+    return strong_this;
 }
 
 void Workset::add_coroutine(std::weak_ptr<Coroutine> coro)

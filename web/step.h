@@ -68,7 +68,7 @@ public:
     std::weak_ptr<Workset> get_workset();
     void set_sentence(const Sentence &sentence);
     std::shared_ptr<Step> get_parent() const;
-    bool destroy();
+    std::shared_ptr<Step> destroy();
     bool orphan();
     bool reparent(std::shared_ptr< Step > parent, size_t idx);
     void report_result(std::shared_ptr< StepStrategy > strategy, std::shared_ptr< StepStrategyResult > result);

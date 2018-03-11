@@ -24,6 +24,7 @@ public:
     void set_name(const std::string &name);
     const LibraryToolbox &get_toolbox() const;
     std::shared_ptr< Step > get_root_step() const;
+    std::shared_ptr< Workset > destroy();
 
     void add_coroutine(std::weak_ptr<Coroutine> coro);
     void add_to_queue(nlohmann::json data);
@@ -35,7 +36,7 @@ public:
     std::shared_ptr< Step > create_steps_from_dump(const nlohmann::json &dump);
 
 protected:
-    Workset();
+    Workset(std::weak_ptr< Session > session);
     void init();
 
 private:
@@ -50,6 +51,7 @@ private:
     IdDistributor id_dist;
     std::unordered_map< size_t, std::shared_ptr< Step > > steps;
     std::shared_ptr< Step > root_step;
+    std::weak_ptr< Session > session;
 
     std::mutex queue_mutex;
     std::condition_variable queue_variable;

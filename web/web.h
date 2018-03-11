@@ -6,8 +6,11 @@
 
 #include "libs/json.h"
 
+class Session;
+
 #include "web/httpd.h"
 #include "workset.h"
+#include "utils/utils.h"
 
 class SendError {
 public:
@@ -69,20 +72,24 @@ typename Container::mapped_type safe_at(Container &cont, const typename Containe
     }
 }
 
-class Session {
+class Session : public enable_create< Session >{
 public:
-    Session(bool constant = false);
     nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end);
     bool is_constant();
     std::pair< size_t, std::shared_ptr< Workset > > create_workset();
+    bool destroy_workset(std::shared_ptr< Workset > workset);
     std::shared_ptr< Workset > get_workset(size_t id);
     nlohmann::json json_list_worksets();
 
+protected:
+    Session(bool constant = false);
+
 private:
     std::mutex worksets_mutex;
-    std::vector< std::shared_ptr< Workset > > worksets;
+    std::map< size_t, std::shared_ptr< Workset > > worksets;
 
     bool constant;
+    size_t new_id;
 };
 
 class WebEndpoint : public HTTPTarget {

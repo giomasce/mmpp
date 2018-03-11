@@ -114,7 +114,7 @@ static_block {
 }
 
 WebEndpoint::WebEndpoint(int port, bool enable_guest_session) :
-    port(port), guest_session(enable_guest_session ? make_shared< Session >(true) : NULL)
+    port(port), guest_session(enable_guest_session ? Session::create(true) : NULL)
 {
 }
 
@@ -334,7 +334,7 @@ string WebEndpoint::create_session_and_ticket()
     string session_id = generate_id();
     string ticket_id = generate_id();
     this->session_tickets[ticket_id] = session_id;
-    this->sessions[session_id] = make_shared< Session >();
+    this->sessions[session_id] = Session::create();
     return ticket_id;
 }
 
@@ -348,7 +348,7 @@ shared_ptr< Session > WebEndpoint::get_session(string session_id)
     }
 }
 
-Session::Session(bool constant) : constant(constant)
+Session::Session(bool constant) : constant(constant), new_id(0)
 {
 }
 
@@ -391,12 +391,24 @@ bool Session::is_constant() {
 std::pair<size_t, std::shared_ptr<Workset> > Session::create_workset()
 {
     unique_lock< mutex > lock(this->worksets_mutex);
-    size_t id = this->worksets.size();
-    auto workset = Workset::create();
+    size_t id = this->new_id;
+    this->new_id++;
+    auto workset = Workset::create(this->weak_from_this());
     workset->set_name("Workset " + to_string(id + 1));
-    this->worksets.push_back(workset);
-
+    this->worksets[id] = workset;
     return { id, this->worksets.at(id) };
+}
+
+bool Session::destroy_workset(std::shared_ptr<Workset> workset)
+{
+    unique_lock< mutex > lock(this->worksets_mutex);
+    auto it = find_if(this->worksets.begin(), this->worksets.end(), [&workset](const auto &x) { return x.second == workset; });
+    if (it != this->worksets.end()) {
+        this->worksets.erase(it);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 std::shared_ptr<Workset> Session::get_workset(size_t id)
