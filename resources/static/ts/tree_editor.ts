@@ -244,7 +244,7 @@ const STEP_TMPL = `
     <div id="{{ eid }}_step_{{ id }}_handle" class="step_handle">
       <button id="{{ eid }}_step_{{ id }}_btn_toggle_children" class="mini_button"></button>
       <button id="{{ eid }}_step_{{ id }}_btn_toggle_data2" class="mini_button"></button>
-      <button id="{{ eid }}_step_{{ id }}_btn_close_all_children" class="mini_button"></button>
+      <button id="{{ eid }}_step_{{ id }}_btn_close_all_children" class="mini_button mini_button_close_all_children"></button>
       <button id="{{ eid }}_step_{{ id }}_btn_create" class="mini_button mini_button_create"></button>
       <button id="{{ eid }}_step_{{ id }}_btn_kill" class="mini_button mini_button_kill"></button>
     </div>

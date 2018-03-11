@@ -285,7 +285,6 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
       cell_id: full_id,
       sentence: default_renderer.render_from_codes(step.sentence),
       text_sentence: text_renderer.render_from_codes(step.sentence),
-      dists: "", //this.proof_tree["dists"].map(function(el) { return default_renderer.render_from_codes([el[0]]) + ", " + default_renderer.render_from_codes([el[1]]); }).join("; "),
     };
     this.editor_manager.compute_data1_element(node).append(Mustache.render(DATA1_TEMPL, params));
     this.editor_manager.compute_data2_element(node).append(Mustache.render(DATA2_TEMPL, params));
@@ -454,5 +453,4 @@ const SUGGESTION_WFF_TEMPL = SUGGESTION_MISSING_TEMPL;
 
 const DATA2_TEMPL = `
   <div><input type="text" id="{{ cell_id }}_text_input" class="text_input" value="{{ text_sentence }}"></input></div>
-  <div>Distinct variables: {{{ dists }}}</div>
 `;

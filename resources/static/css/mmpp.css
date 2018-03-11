@@ -86,19 +86,23 @@
 }
 
 .mini_button_closed {
-  background-color: red;
+  background-image: url("../svg/min_icon.svg");
 }
 
 .mini_button_open {
-  background-color: green;
+  background-image: url("../svg/max_icon.svg");
+}
+
+.mini_button_close_all_children {
+  background-image: url("../svg/maxmin_icon.svg");
 }
 
 .mini_button_create {
-  background-image: url("../svg/c_icon.svg");
+  background-image: url("../svg/create_icon.svg");
 }
 
 .mini_button_kill {
-  background-image: url("../svg/k_icon.svg");
+  background-image: url("../svg/kill_icon.svg");
 }
 
 .mini_button_get_proof {
