@@ -181,6 +181,25 @@ export class EditorManager extends TreeManager {
     tree.destroy_node(node).catch(catch_all);
   }
 
+  move(node : TreeNode, up : boolean) : void {
+    let parent = node.get_parent();
+    let idx = parent.find_child_idx(node);
+    let parent_children_num = parent.get_children().length;
+    let new_idx = idx + (up ? -1 : 1);
+    if (0 <= new_idx && new_idx < parent_children_num) {
+      /*node.orphan();
+      node.reparent(parent, new_idx);*/
+    }
+  }
+
+  move_up(node : TreeNode) : void {
+    this.move(node, true);
+  }
+
+  move_down(node : TreeNode) : void {
+    this.move(node, false);
+  }
+
   make_subtree_visible(parent : TreeNode, child : TreeNode, idx : number) : void {
     let self = this;
     let parent_obj : EditorManagerObject = this.get_manager_object(parent);
@@ -214,6 +233,8 @@ export class EditorManager extends TreeManager {
     $(`#${child_full_id}_btn_close_all_children`).click(this.close_all_children.bind(this, child));
     $(`#${child_full_id}_btn_create`).click(this.create_child.bind(this, child));
     $(`#${child_full_id}_btn_kill`).click(this.kill_node.bind(this, child));
+    $(`#${child_full_id}_btn_move_up`).click(this.move_up.bind(this, child));
+    $(`#${child_full_id}_btn_move_down`).click(this.move_down.bind(this, child));
     this.painter.paint_node(child);
 
     // Recur on children
@@ -247,6 +268,9 @@ const STEP_TMPL = `
       <button id="{{ eid }}_step_{{ id }}_btn_close_all_children" class="mini_button mini_button_close_all_children"></button>
       <button id="{{ eid }}_step_{{ id }}_btn_create" class="mini_button mini_button_create"></button>
       <button id="{{ eid }}_step_{{ id }}_btn_kill" class="mini_button mini_button_kill"></button>
+      <button id="{{ eid }}_step_{{ id }}_btn_move_up" class="mini_button mini_button_move_up"></button>
+      <button id="{{ eid }}_step_{{ id }}_btn_move_down" class="mini_button mini_button_move_down"></button>
+      <button id="{{ eid }}_step_{{ id }}_btn_reparent" class="mini_button mini_button_reparent"></button>
     </div>
     <div id="{{ eid }}_step_{{ id }}_data" class="step_data">
       <div id="{{ eid }}_step_{{ id }}_data1" class="step_data1"></div>

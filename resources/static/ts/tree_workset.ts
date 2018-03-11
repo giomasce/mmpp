@@ -329,6 +329,21 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
   set_sentence(node : TreeNode, sentence : number[]) : void {
     let self = this;
     let step : StepManager = this.get_manager_object(node);
+    if (sentence.length === step.sentence.length) {
+      let equal = true;
+      for (let i = 0; i < sentence.length; i++) {
+        if (sentence[i] !== step.sentence[i]) {
+          equal = false;
+          break;
+        }
+      }
+      if (equal) {
+        return;
+      }
+    }
+    if (sentence == step.sentence) {
+      return;
+    }
     step.sentence = sentence;
     this.enqueue_operation(function () : Promise< void > {
       return step.do_api_request(self, `set_sentence`, {sentence: sentence.join(" ")}).then(function (data : object) : void {

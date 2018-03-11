@@ -78,6 +78,12 @@ export class TreeNode {
     return this.parent;
   }
 
+  find_child_idx(node : TreeNode) : number {
+    return this.children.findIndex(function (value : TreeNode) : boolean {
+      return node === value;
+    });
+  }
+
   get_manager_object(id : number) : any {
     return this.manager_objects.get(id);
   }
@@ -99,10 +105,7 @@ export class TreeNode {
     // Check assertions
     let parent = this.parent;
     assert(parent !== null);
-    let self = this;
-    let idx = parent.children.findIndex(function (value : TreeNode) : boolean {
-      return self === value;
-    });
+    let idx = parent.find_child_idx(this);
     assert(0 <= idx);
     assert(idx < parent.children.length);
 

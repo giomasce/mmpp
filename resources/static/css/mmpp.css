@@ -80,9 +80,10 @@
 .mini_button {
   padding: 0px;
   border-width: 1px;
-  width: 10px;
-  height: 10px;
+  width: 13px;
+  height: 13px;
   vertical-align: middle;
+  background-size: contain;
 }
 
 .mini_button_closed {
@@ -103,6 +104,22 @@
 
 .mini_button_kill {
   background-image: url("../svg/kill_icon.svg");
+}
+
+.mini_button_move_up {
+  background-image: url("../svg/up_icon.svg");
+}
+
+.mini_button_move_down {
+  background-image: url("../svg/down_icon.svg");
+}
+
+.mini_button_reparent {
+  background-image: url("../svg/r_icon.svg");
+}
+
+.mini_button_reparent_here {
+  background-image: url("../svg/h_icon.svg");
 }
 
 .mini_button_get_proof {
