@@ -95,7 +95,7 @@ void CoroutineThreadManager::thread_fn() {
         if (dequeue_coroutine(tmp)) {
             bool reenqueue = true;
             auto strong_coro = tmp.coroutine.lock();
-            if (strong_coro == NULL) {
+            if (strong_coro == nullptr) {
                 continue;
             }
             tmp.budget += BUDGET_QUANTUM;

@@ -54,7 +54,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         json ret;
         ret["name"] = this->get_name();
         ret["root_step_id"] = this->root_step->get_id();
-        if (this->library == NULL) {
+        if (this->library == nullptr) {
             ret["status"] = "unloaded";
             return ret;
         }

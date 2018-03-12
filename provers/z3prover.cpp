@@ -176,7 +176,7 @@ struct Z3Adapter {
         pwff w = parse_expr(e, tb);
         if (hyp) {
             this->hyps.push_back(w);
-            if (this->target == NULL) {
+            if (this->target == nullptr) {
                 this->and_hyps = w;
                 this->target = w;
                 this->abs = w;
@@ -188,7 +188,7 @@ struct Z3Adapter {
         } else {
             this->hyps.push_back(Not::create(w));
             this->thesis = w;
-            if (this->target == NULL) {
+            if (this->target == nullptr) {
                 this->target = w;
                 this->abs = Not::create(w);
             } else {
@@ -234,7 +234,7 @@ struct Z3Adapter {
                     pwff cur_hyp = this->get_current_abs_hyps();
                     for (size_t step = 0; step < this->hyps.size()-1; step++) {
                         auto and_hyp = dynamic_pointer_cast< const And >(cur_hyp);
-                        assert(and_hyp != NULL);
+                        assert(and_hyp != nullptr);
                         pwff left = and_hyp->get_a();
                         pwff right = and_hyp->get_b();
                         if (*and_hyp->get_b() == *w) {
@@ -296,7 +296,7 @@ struct Z3Adapter {
                     Prover< CreativeCheckpointedProofEngine< Sentence > > p2 = this->convert_proof(e.arg(1), depth+1);
                     auto w1 = dynamic_pointer_cast< const Biimp >(parse_expr(extract_thesis(e.arg(0)), tb));
                     auto w2 = dynamic_pointer_cast< const Biimp >(parse_expr(extract_thesis(e.arg(1)), tb));
-                    assert(w1 != NULL && w2 != NULL);
+                    assert(w1 != nullptr && w2 != nullptr);
                     assert(*w1->get_b() == *w2->get_a());
                     pwff ps = w1->get_a();
                     pwff ch = w1->get_b();
@@ -436,7 +436,7 @@ struct Z3Adapter {
 
                         // Search an eliminator for the negative form
                         auto clause_not = dynamic_pointer_cast< const Not >(clause);
-                        if (clause_not != NULL) {
+                        if (clause_not != nullptr) {
                             auto elim_it = find_if(elims.begin(), elims.end(), [=](const pwff &w){ return *w == *clause_not->get_a(); });
                             if (elim_it != elims.end()) {
                                 size_t pos = elim_it - elims.begin();
@@ -501,7 +501,7 @@ struct Z3Adapter {
                     pwff wff = parse_expr(or_expr, tb);
                     for (size_t i = 0; i < or_expr.num_args()-1; i++) {
                         auto wff_or = dynamic_pointer_cast< const Or >(wff);
-                        assert(wff != NULL);
+                        assert(wff != nullptr);
                         if (*wff_or->get_b() == *target_wff) {
                             return this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(orsird_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", wff_or->get_a()->get_type_prover(this->tb)}, {"ch", wff_or->get_b()->get_type_prover(this->tb)}}, {ret});
                         } else {
@@ -521,7 +521,7 @@ struct Z3Adapter {
                     pwff hyp = parse_expr(extract_thesis(e.arg(0)), tb);
                     Prover< CreativeCheckpointedProofEngine< Sentence > > hyp_prover = this->convert_proof(e.arg(0), depth+1);
                     auto hyp_not = dynamic_pointer_cast< const Not >(hyp);
-                    assert(hyp_not != NULL);
+                    assert(hyp_not != nullptr);
                     return this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(bifald_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", hyp_not->get_a()->get_type_prover(this->tb)}}, {hyp_prover});
                     break; }
                 case Z3_OP_PR_LEMMA: {

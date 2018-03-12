@@ -46,15 +46,15 @@ bool platform_webmmpp_init(int argc, char *argv[]) {
     act.sa_handler = int_handler;
     act.sa_flags = 0;
     sigfillset(&act.sa_mask);
-    sigaction(SIGINT, &act, NULL);
-    sigaction(SIGTERM, &act, NULL);*/
+    sigaction(SIGINT, &act, nullptr);
+    sigaction(SIGTERM, &act, nullptr);*/
 
     /* Block the signals we want to receive synchronously;
      * this should be done before any thread is created,
      * so that all threads inherit the same blocking mask (I hope) */
     int res;
     sigset_t sigset = create_sigset();
-    res = sigprocmask(SIG_BLOCK, &sigset, NULL);
+    res = sigprocmask(SIG_BLOCK, &sigset, nullptr);
     if (res) {
         throw "Error when calling sigprocmask()";
     }
@@ -137,8 +137,8 @@ uint64_t platform_get_peak_used_ram( )
 uint64_t platform_get_current_used_ram( )
 {
     long rss = 0L;
-    FILE* fp = NULL;
-    if ( (fp = fopen( "/proc/self/statm", "r" )) == NULL )
+    FILE* fp = nullptr;
+    if ( (fp = fopen( "/proc/self/statm", "r" )) == nullptr )
         return (size_t)0L;		/* Can't open? */
     if ( fscanf( fp, "%*s%ld", &rss ) != 1 )
     {
@@ -194,15 +194,15 @@ bool platform_webmmpp_init(int argc, char *argv[]) {
     act.sa_handler = int_handler;
     act.sa_flags = 0;
     sigfillset(&act.sa_mask);
-    sigaction(SIGINT, &act, NULL);
-    sigaction(SIGTERM, &act, NULL);*/
+    sigaction(SIGINT, &act, nullptr);
+    sigaction(SIGTERM, &act, nullptr);*/
 
     /* Block the signals we want to receive synchronously;
      * this should be done before any thread is created,
      * so that all threads inherit the same blocking mask (I hope) */
     int res;
     sigset_t sigset = create_sigset();
-    res = sigprocmask(SIG_BLOCK, &sigset, NULL);
+    res = sigprocmask(SIG_BLOCK, &sigset, nullptr);
     if (res) {
         throw "Error when calling sigprocmask()";
     }
@@ -343,7 +343,7 @@ void platform_webmmpp_main_loop(const std::function<void ()> &new_session_callba
 
 #pragma comment(lib, "shell32.lib")
 bool platform_open_browser(std::string browser_url) {
-    ShellExecuteA(NULL, NULL, browser_url.c_str(), NULL, NULL, SW_SHOWNORMAL);
+    ShellExecuteA(nullptr, nullptr, browser_url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     return true;
 }
 

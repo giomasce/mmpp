@@ -31,7 +31,7 @@ std::vector<string> dump_stacktrace(size_t depth) {
 
         symname = dlinfo.dli_sname;
 
-        demangled = __cxa_demangle(symname, NULL, 0, &status);
+        demangled = __cxa_demangle(symname, nullptr, 0, &status);
         if (status == 0 && demangled) {
             symname = demangled;
         }

@@ -15,7 +15,7 @@ using namespace std;
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    ctx(NULL)
+    ctx(nullptr)
 {
     ui->setupUi(this);
     this->html_delegate = new HtmlDelegate();
@@ -54,7 +54,7 @@ void MainWindow::load_proof(string label)
 void MainWindow::paintEvent(QPaintEvent *event) {
     (void) event;
 
-    /*if (this->ctx == NULL) {
+    /*if (this->ctx == nullptr) {
         return;
     }
     QPainter painter(this);

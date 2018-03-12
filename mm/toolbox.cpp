@@ -20,17 +20,17 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
         os << "<SPAN " << sp.tb.get_addendum().get_htmlfont() << ">";
     }
     Sentence sent2;
-    const Sentence *sentp = NULL;
-    if (sp.sent != NULL) {
+    const Sentence *sentp = nullptr;
+    if (sp.sent != nullptr) {
         sentp = sp.sent;
-    } else if (sp.pt != NULL) {
+    } else if (sp.pt != nullptr) {
         sent2 = sp.tb.reconstruct_sentence(*sp.pt);
         sentp = &sent2;
-    } else if (sp.pt2 != NULL) {
+    } else if (sp.pt2 != nullptr) {
         sent2 = sp.tb.reconstruct_sentence(pt2_to_pt(*sp.pt2));
         sentp = &sent2;
     } else {
-        assert("Should never arrive here" == NULL);
+        assert("Should never arrive here" == nullptr);
     }
     const Sentence &sent = *sentp;
     for (auto &tok : sent) {
@@ -432,7 +432,7 @@ bool LibraryToolbox::is_constant(SymTok c) const
 const Sentence &LibraryToolbox::get_sentence(LabTok label) const
 {
     const Sentence *sent = this->lib.get_sentence_ptr(label);
-    if (sent != NULL) {
+    if (sent != nullptr) {
         return *sent;
     }
     return this->temp_generator->get_sentence(label);
@@ -524,7 +524,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
     auto assertions_gen = this->list_assertions();
     while (true) {
         const Assertion *ass2 = assertions_gen();
-        if (ass2 == NULL) {
+        if (ass2 == nullptr) {
             break;
         }
         const Assertion &ass = *ass2;
@@ -608,7 +608,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
     const auto &is_var = this->get_standard_is_var();
     while (true) {
         const Assertion *ass2 = assertions_gen();
-        if (ass2 == NULL) {
+        if (ass2 == nullptr) {
             break;
         }
         const Assertion &ass = *ass2;
@@ -842,7 +842,7 @@ void LibraryToolbox::compute_assertions_by_type()
     auto assertions_gen = this->list_assertions();
     while (true) {
         const Assertion *ass2 = assertions_gen();
-        if (ass2 == NULL) {
+        if (ass2 == nullptr) {
             break;
         }
         const Assertion &ass = *ass2;
@@ -870,7 +870,7 @@ void LibraryToolbox::compute_derivations()
     auto assertions_gen = this->list_assertions();
     while (true) {
         const Assertion *ass2 = assertions_gen();
-        if (ass2 == NULL) {
+        if (ass2 == nullptr) {
             break;
         }
         const Assertion &ass = *ass2;
@@ -946,7 +946,7 @@ void LibraryToolbox::compute_parser_initialization()
     string ders_digest = hash_object(ders);
     this->parser = make_unique< LRParser< SymTok, LabTok > >(ders, sym_printer, lab_printer);
     bool loaded = false;
-    if (this->cache != NULL) {
+    if (this->cache != nullptr) {
         if (this->cache->load()) {
             if (ders_digest == this->cache->get_digest()) {
                 this->parser->set_cached_data(this->cache->get_lr_parser_data());
@@ -956,14 +956,14 @@ void LibraryToolbox::compute_parser_initialization()
     }
     if (!loaded) {
         this->parser->initialize();
-        if (this->cache != NULL) {
+        if (this->cache != nullptr) {
             this->cache->set_digest(ders_digest);
             this->cache->set_lr_parser_data(this->parser->get_cached_data());
             this->cache->store();
         }
     }
     // Drop the cache so that memory can be recovered
-    this->cache = NULL;
+    this->cache = nullptr;
 }
 
 const LRParser<SymTok, LabTok> &LibraryToolbox::get_parser() const

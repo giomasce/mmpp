@@ -700,7 +700,7 @@ std::vector<std::vector<std::pair<bool, std::string> > > Reader::parse_comment(c
         } else if (state == 8) {
             state = 0;
         } else {
-            assert("Should not arrive here" == NULL);
+            assert("Should not arrive here" == nullptr);
         }
     }
     return code;

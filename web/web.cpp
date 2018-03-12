@@ -42,11 +42,11 @@ unique_ptr< HTTPD > make_server(int port, WebEndpoint &endpoint, bool open_serve
 #if defined(USE_MICROHTTPD)
     return make_unique< HTTPD_microhttpd >(port, endpoint, !open_server);
 #else
-    // If no HTTP implementation is provided, we return NULL
+    // If no HTTP implementation is provided, we return nullptr
     (void) port;
     (void) endpoint;
     (void) open_server;
-    return NULL;
+    return nullptr;
 #endif
 }
 
@@ -60,7 +60,7 @@ int webmmpp_main_common(int argc, char *argv[], bool open_server) {
     int port = 8888;
     WebEndpoint endpoint(port, open_server);
     unique_ptr< HTTPD > httpd = make_server(port, endpoint, open_server);
-    if (httpd == NULL) {
+    if (httpd == nullptr) {
         cerr << "Could not build an HTTP server, exiting" << endl;
         return 1;
     }
@@ -114,7 +114,7 @@ static_block {
 }
 
 WebEndpoint::WebEndpoint(int port, bool enable_guest_session) :
-    port(port), guest_session(enable_guest_session ? Session::create(true) : NULL)
+    port(port), guest_session(enable_guest_session ? Session::create(true) : nullptr)
 {
 }
 
@@ -169,7 +169,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
         }
     }
 
-    // Check auth cookie and recover session; at this point we allow a NULL session if we are publicly serving static files
+    // Check auth cookie and recover session; at this point we allow a nullptr session if we are publicly serving static files
     string session_cookie;
     try {
         session_cookie = cb.get_cookies().at(cookie_name);
@@ -177,7 +177,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
         session_cookie = "";
     }
     shared_ptr< Session > session = this->get_session(session_cookie);
-    if (!PUBLICLY_SERVE_STATIC_FILES && session == NULL) {
+    if (!PUBLICLY_SERVE_STATIC_FILES && session == nullptr) {
         cb.set_status_code(403);
         cb.add_header("Content-Type", "text/plain");
         cb.set_answer("403 Forbidden");
@@ -240,7 +240,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
     }
 
     // Check again the session: if you do not have a valid one, you cannot go past here
-    if (session == NULL) {
+    if (session == nullptr) {
         cb.set_status_code(403);
         cb.add_header("Content-Type", "text/plain");
         cb.set_answer("403 Forbidden");

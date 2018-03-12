@@ -30,18 +30,18 @@ vector< string > tokenize(const string &in) {
 }
 
 /*FileTokenizer::FileTokenizer(const string &filename) :
-    fin(filename), base_path(path(filename).parent_path()), cascade(NULL), white(true)
+    fin(filename), base_path(path(filename).parent_path()), cascade(nullptr), white(true)
 {
 }*/
 
 FileTokenizer::FileTokenizer(const path &filename, Reportable *reportable) :
-    fin(filename), base_path(filename.parent_path()), cascade(NULL), white(true), reportable(reportable)
+    fin(filename), base_path(filename.parent_path()), cascade(nullptr), white(true), reportable(reportable)
 {
     this->set_file_size();
 }
 
 FileTokenizer::FileTokenizer(string filename, path base_path) :
-    fin(filename), base_path(base_path), cascade(NULL), white(true), reportable(NULL)
+    fin(filename), base_path(base_path), cascade(nullptr), white(true), reportable(nullptr)
 {
     this->set_file_size();
 }
@@ -56,7 +56,7 @@ void FileTokenizer::set_file_size()
     this->fin.seekg(0, ios_base::end);
     this->filesize = this->fin.tellg();
     this->fin.seekg(pos, ios_base::beg);
-    if (this->reportable != NULL && this->filesize > 0) {
+    if (this->reportable != nullptr && this->filesize > 0) {
         this->reportable->set_total((double) this->filesize);
     }
 }
@@ -66,7 +66,7 @@ char FileTokenizer::get_char()
     char c;
     this->fin.get(c);
     this->pos++;
-    if (this->reportable != NULL) {
+    if (this->reportable != nullptr) {
         this->reportable->report((double) this->pos);
     }
     return c;
@@ -86,13 +86,13 @@ std::pair<bool, string> FileTokenizer::finalize_token(bool comment) {
 std::pair<bool, string> FileTokenizer::next()
 {
     while (true) {
-        if (this->cascade != NULL) {
+        if (this->cascade != nullptr) {
             auto next_pair = this->cascade->next();
             if (next_pair.second != "") {
                 return next_pair;
             } else {
                 delete this->cascade;
-                this->cascade = NULL;
+                this->cascade = nullptr;
             }
         }
         char c = this->get_char();

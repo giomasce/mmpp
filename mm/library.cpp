@@ -104,7 +104,7 @@ const Sentence *LibraryImpl::get_sentence_ptr(LabTok label) const
     if (label  < this->sentences.size()) {
         return &this->sentences[label];
     } else {
-        return NULL;
+        return nullptr;
     }
 }
 
@@ -181,7 +181,7 @@ Assertion::Assertion(bool theorem, bool _has_proof,
                      const std::vector<LabTok> &float_hyps, const std::vector<LabTok> &ess_hyps, const std::set<LabTok> &opt_hyps,
                      LabTok thesis, LabTok number, const string &comment) :
     valid(true), theorem(theorem), mand_dists(dists), opt_dists(opt_dists),
-    float_hyps(float_hyps), ess_hyps(ess_hyps), opt_hyps(opt_hyps), thesis(thesis), number(number), proof(NULL),
+    float_hyps(float_hyps), ess_hyps(ess_hyps), opt_hyps(opt_hyps), thesis(thesis), number(number), proof(nullptr),
     comment(comment), modif_disc(false), usage_disc(false), _has_proof(_has_proof)
 {
     if (this->comment.find("(Proof modification is discouraged.)") != string::npos) {
@@ -249,7 +249,7 @@ public:
                 return &*it2;
             }
         }
-        return NULL;
+        return nullptr;
     }
 
 private:

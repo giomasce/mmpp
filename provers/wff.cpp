@@ -193,7 +193,7 @@ Prover<CheckpointedProofEngine> True::get_subst_prover(pvar var, bool positive, 
 bool True::operator==(const Wff &x) const
 {
     auto px = dynamic_cast< const True* >(&x);
-    if (px == NULL) {
+    if (px == nullptr) {
         return false;
     } else {
         return true;
@@ -265,7 +265,7 @@ Prover<CheckpointedProofEngine> False::get_subst_prover(pvar var, bool positive,
 bool False::operator==(const Wff &x) const
 {
     auto px = dynamic_cast< const False* >(&x);
-    if (px == NULL) {
+    if (px == nullptr) {
         return false;
     } else {
         return true;
@@ -377,7 +377,7 @@ Prover<CheckpointedProofEngine> Var::get_subst_prover(pvar var, bool positive, c
 bool Var::operator==(const Wff &x) const
 {
     auto px = dynamic_cast< const Var* >(&x);
-    if (px == NULL) {
+    if (px == nullptr) {
         return false;
     } else {
         return this->get_name() == px->get_name();
@@ -466,7 +466,7 @@ Prover<CheckpointedProofEngine> Not::get_subst_prover(pvar var, bool positive, c
 bool Not::operator==(const Wff &x) const
 {
     auto px = dynamic_cast< const Not* >(&x);
-    if (px == NULL) {
+    if (px == nullptr) {
         return false;
     } else {
         return *this->get_a() == *px->get_a();
@@ -573,7 +573,7 @@ Prover<CheckpointedProofEngine> Imp::get_subst_prover(pvar var, bool positive, c
 bool Imp::operator==(const Wff &x) const
 {
     auto px = dynamic_cast< const Imp* >(&x);
-    if (px == NULL) {
+    if (px == nullptr) {
         return false;
     } else {
         return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
@@ -639,7 +639,7 @@ Prover<CheckpointedProofEngine> Biimp::get_imp_not_prover(const LibraryToolbox &
 bool Biimp::operator==(const Wff &x) const
 {
     auto px = dynamic_cast< const Biimp* >(&x);
-    if (px == NULL) {
+    if (px == nullptr) {
         return false;
     } else {
         return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
@@ -703,7 +703,7 @@ Prover<CheckpointedProofEngine> Xor::get_imp_not_prover(const LibraryToolbox &tb
 bool Xor::operator==(const Wff &x) const
 {
     auto px = dynamic_cast< const Xor* >(&x);
-    if (px == NULL) {
+    if (px == nullptr) {
         return false;
     } else {
         return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
@@ -767,7 +767,7 @@ Prover<CheckpointedProofEngine> Nand::get_imp_not_prover(const LibraryToolbox &t
 bool Nand::operator==(const Wff &x) const
 {
     auto px = dynamic_cast< const Nand* >(&x);
-    if (px == NULL) {
+    if (px == nullptr) {
         return false;
     } else {
         return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
@@ -829,7 +829,7 @@ Prover<CheckpointedProofEngine> Or::get_imp_not_prover(const LibraryToolbox &tb)
 bool Or::operator==(const Wff &x) const
 {
     auto px = dynamic_cast< const Or* >(&x);
-    if (px == NULL) {
+    if (px == nullptr) {
         return false;
     } else {
         return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
@@ -891,7 +891,7 @@ Prover<CheckpointedProofEngine> And::get_imp_not_prover(const LibraryToolbox &tb
 bool And::operator==(const Wff &x) const
 {
     auto px = dynamic_cast< const And* >(&x);
-    if (px == NULL) {
+    if (px == nullptr) {
         return false;
     } else {
         return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b();
@@ -994,7 +994,7 @@ Prover<CheckpointedProofEngine> And3::get_imp_not_prover(const LibraryToolbox &t
 bool And3::operator==(const Wff &x) const
 {
     auto px = dynamic_cast< const And3* >(&x);
-    if (px == NULL) {
+    if (px == nullptr) {
         return false;
     } else {
         return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b() && *this->get_c() == *px->get_c();
@@ -1098,7 +1098,7 @@ void Or3::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glo
 bool Or3::operator==(const Wff &x) const
 {
     auto px = dynamic_cast< const Or3* >(&x);
-    if (px == NULL) {
+    if (px == nullptr) {
         return false;
     } else {
         return *this->get_a() == *px->get_a() && *this->get_b() == *px->get_b() && *this->get_c() == *px->get_c();

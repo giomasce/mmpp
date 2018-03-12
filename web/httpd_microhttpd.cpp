@@ -25,9 +25,9 @@ static void microhttpd_panic(void *cls, const char *file, unsigned int line, con
 }
 
 HTTPD_microhttpd::HTTPD_microhttpd(int port, HTTPTarget &target, bool only_from_localhost) :
-    port(port), daemon(NULL), target(target), restrict_to_localhost(only_from_localhost)
+    port(port), daemon(nullptr), target(target), restrict_to_localhost(only_from_localhost)
 {
-    MHD_set_panic_func(microhttpd_panic, NULL);
+    MHD_set_panic_func(microhttpd_panic, nullptr);
 }
 
 void HTTPD_microhttpd::start()
@@ -37,9 +37,9 @@ void HTTPD_microhttpd::start()
                                      &this->accept_wrapper, this,
                                      &this->answer_wrapper, this,
                                      MHD_OPTION_THREAD_STACK_SIZE, DEFAULT_STACK_SIZE,
-                                     MHD_OPTION_NOTIFY_COMPLETED, &this->cleanup_wrapper, NULL,
+                                     MHD_OPTION_NOTIFY_COMPLETED, &this->cleanup_wrapper, nullptr,
                                      MHD_OPTION_END);
-    if (this->daemon == NULL) {
+    if (this->daemon == nullptr) {
         throw string("Could not start httpd daemon");
     }
     this->daemon_cv.notify_all();
@@ -48,9 +48,9 @@ void HTTPD_microhttpd::start()
 void HTTPD_microhttpd::stop()
 {
     unique_lock< mutex > lock(this->daemon_mutex);
-    if (this->daemon != NULL) {
+    if (this->daemon != nullptr) {
         MHD_stop_daemon (daemon);
-        this->daemon = NULL;
+        this->daemon = nullptr;
     }
     this->daemon_cv.notify_all();
 }
@@ -59,7 +59,7 @@ void HTTPD_microhttpd::join()
 {
     unique_lock< mutex > lock(this->daemon_mutex);
     while (true) {
-        if (this->daemon == NULL) {
+        if (this->daemon == nullptr) {
             return;
         }
         this->daemon_cv.wait(lock);
@@ -68,7 +68,7 @@ void HTTPD_microhttpd::join()
 
 bool HTTPD_microhttpd::is_running()
 {
-    return this->daemon != NULL;
+    return this->daemon != nullptr;
 }
 
 HTTPD_microhttpd::~HTTPD_microhttpd()
@@ -114,7 +114,7 @@ void HTTPD_microhttpd::cleanup_wrapper(void *cls, MHD_Connection *connection, vo
 
     auto cb = reinterpret_cast< HTTPCallback_microhttpd* >(*con_cls);
     delete cb;
-    *con_cls = NULL;
+    *con_cls = nullptr;
 }
 
 class microhttpd_reader {
@@ -169,7 +169,7 @@ int HTTPD_microhttpd::answer_wrapper(void *cls, MHD_Connection *connection, cons
 
     auto object = reinterpret_cast< HTTPD_microhttpd* >(cls);
     HTTPCallback_microhttpd *cb;
-    if (*con_cls == NULL) {
+    if (*con_cls == nullptr) {
         cb = new HTTPCallback_microhttpd(connection);
         *con_cls = cb;
         cb->set_url(url);
@@ -226,7 +226,7 @@ int HTTPD_microhttpd::answer_wrapper(void *cls, MHD_Connection *connection, cons
 }
 
 HTTPCallback_microhttpd::HTTPCallback_microhttpd(MHD_Connection *connection) :
-    connection(connection), post_processor(NULL), status_code(200), req_headers_extracted(false), cookies_extracted(false),
+    connection(connection), post_processor(nullptr), status_code(200), req_headers_extracted(false), cookies_extracted(false),
     answerer(std::make_unique< HTTPStringAnswerer >()), size(-1), send_response(false)
 {
 }
@@ -337,7 +337,7 @@ void HTTPCallback_microhttpd::set_version(const string &version)
 
 void HTTPCallback_microhttpd::process_post_data(const char *data, size_t size)
 {
-    if (this->post_processor == NULL) {
+    if (this->post_processor == nullptr) {
         this->post_processor = MHD_create_post_processor(this->connection, HTTP_BUFFER_SIZE, HTTPCallback_microhttpd::post_data_iterator, this);
     }
     MHD_post_process(this->post_processor, data, size);
@@ -345,9 +345,9 @@ void HTTPCallback_microhttpd::process_post_data(const char *data, size_t size)
 
 void HTTPCallback_microhttpd::close_post_processor()
 {
-    if (this->post_processor != NULL) {
+    if (this->post_processor != nullptr) {
         MHD_destroy_post_processor(this->post_processor);
-        this->post_processor = NULL;
+        this->post_processor = nullptr;
     }
 }
 
@@ -377,15 +377,15 @@ int HTTPCallback_microhttpd::post_data_iterator(void *cls, MHD_ValueKind kind, c
     auto self = reinterpret_cast< HTTPCallback_microhttpd* >(cls);
     string skey(key);
     string sfilename;
-    if (filename != NULL) {
+    if (filename != nullptr) {
         sfilename = filename;
     }
     string scontent_type;
-    if (content_type != NULL) {
+    if (content_type != nullptr) {
         scontent_type = content_type;
     }
     string stransfer_encoding;
-    if (transfer_encoding != NULL) {
+    if (transfer_encoding != nullptr) {
         stransfer_encoding = transfer_encoding;
     }
     string sdata(data, size);
