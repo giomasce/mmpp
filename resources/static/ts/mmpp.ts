@@ -181,7 +181,19 @@ function create_node_from_dump(data : object, parent : TreeNode) : Promise< void
 
 export function ui_create_node_from_dump() : void {
   let data : object = JSON.parse($(`#workset_proof`).val());
-  create_node_from_dump(data, current_tree.get_root_node());
+  if (data["sentence"] === "") {
+    // If the root sentence is empty, interpret it as the root node and directly create children
+    for (let child of data["children"]) {
+      create_node_from_dump(child, current_tree.get_root_node());
+    }
+  } else {
+    // Otherwise create it too
+    create_node_from_dump(data, current_tree.get_root_node());
+  }
+}
+
+export function ui_dump_root() : void {
+  workset_manager.dump(current_tree.get_root_node());
 }
 
 export function ui_proof_navigator() : void {
@@ -228,6 +240,7 @@ const WORKSET_TEMPL = `
     <div>
       <button onclick="mmpp.ui_create_node()">Create node</button>
       <button onclick="mmpp.ui_create_node_from_dump()">Create node from dump</button>
+      <button onclick="mmpp.ui_dump_root()">Dump whole tree</button>
     </div>
     <div id="proof_editor_area"></div>
   </div>
