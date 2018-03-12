@@ -3,6 +3,7 @@
 
 import { assert, get_serial, catch_all } from "./utils";
 import { TreeManager, TreeNode } from "./tree";
+import { OpQueue } from "./op_queue";
 
 export interface NodePainter {
   paint_node(node : TreeNode) : void;
@@ -11,17 +12,19 @@ export interface NodePainter {
 
 export class EditorManagerObject {
   visible : boolean = false;
-  children_open : boolean;
-  data2_open : boolean;
+  children_open : boolean = true;
+  data2_open : boolean = true;
 }
 
 export class EditorManager extends TreeManager {
   parent_div : string;
+  op_queue : OpQueue;
   painter : NodePainter;
 
-  constructor(parent_div : string, painter : NodePainter) {
+  constructor(parent_div : string, painter : NodePainter, op_queue : OpQueue) {
     super();
     this.parent_div = parent_div;
+    this.op_queue = op_queue;
     this.painter = painter;
     this.painter.set_editor_manager(this);
   }
@@ -182,13 +185,20 @@ export class EditorManager extends TreeManager {
   }
 
   move(node : TreeNode, up : boolean) : void {
+    let self = this;
     let parent = node.get_parent();
     let idx = parent.find_child_idx(node);
     let parent_children_num = parent.get_children().length;
     let new_idx = idx + (up ? -1 : 1);
     if (0 <= new_idx && new_idx < parent_children_num) {
-      /*node.orphan();
-      node.reparent(parent, new_idx);*/
+      this.op_queue.enqueue_operation(function() : Promise< void > {
+        node.orphan();
+        self.op_queue.enqueue_operation(function() : Promise< void > {
+          node.reparent(parent, new_idx);
+          return Promise.resolve();
+        });
+        return Promise.resolve();
+      });
     }
   }
 
@@ -225,10 +235,21 @@ export class EditorManager extends TreeManager {
       let prev_child_full_id = this.compute_full_id(parent.get_child(idx-1));
       $(`#${prev_child_full_id}`).after(html_code);
     }
-    this.open_children(child, false);
+    if (child_obj.children_open) {
+      this.close_children(child, false);
+      this.open_children(child, false);
+    } else {
+      this.open_children(child, false);
+      this.close_children(child, false);
+    }
     $(`#${child_full_id}_btn_toggle_children`).click(this.toggle_children.bind(this, child));
-    this.open_data2(child, false);
-    this.close_data2(child, false);
+    if (child_obj.data2_open) {
+      this.close_data2(child, false);
+      this.open_data2(child, false);
+    } else {
+      this.open_data2(child, false);
+      this.close_data2(child, false);
+    }
     $(`#${child_full_id}_btn_toggle_data2`).click(this.toggle_data2.bind(this, child));
     $(`#${child_full_id}_btn_close_all_children`).click(this.close_all_children.bind(this, child));
     $(`#${child_full_id}_btn_create`).click(this.create_child.bind(this, child));

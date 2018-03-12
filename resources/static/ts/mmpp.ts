@@ -7,6 +7,7 @@ import { Tree, TreeNode } from "./tree";
 import { EditorManager } from "./tree_editor";
 import { WorksetManager } from "./tree_workset";
 import { show_proof_for_label } from "./render_proof";
+import { OpQueue } from "./op_queue";
 
 let current_workset : Workset = null;
 let current_renderer : Renderer = null;
@@ -144,8 +145,9 @@ export function ui_build_tree() {
 }
 
 function load_proof_editor() : void {
-  let workset_manager = new WorksetManager(get_current_workset());
-  let editor_manager = new EditorManager("proof_editor_area", workset_manager);
+  let op_queue = new OpQueue();
+  let workset_manager = new WorksetManager(get_current_workset(), op_queue);
+  let editor_manager = new EditorManager("proof_editor_area", workset_manager, op_queue);
   current_tree = new Tree(get_serial(), [editor_manager, workset_manager]);
   workset_manager.load_data(current_tree);
 }

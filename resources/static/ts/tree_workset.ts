@@ -5,6 +5,7 @@ import { jsonAjax, assert, get_serial, spectrum_to_rgb, catch_all, push_and_get_
 import { TreeManager, TreeNode, Tree } from "./tree";
 import { Workset, RenderingStyles, WorksetEventListener } from "./workset";
 import { NodePainter, EditorManager } from "./tree_editor";
+import { OpQueue } from "./op_queue";
 
 const API_VERSION : number = 1;
 
@@ -60,32 +61,18 @@ export class StepManager {
 export class WorksetManager extends TreeManager implements NodePainter, WorksetEventListener {
   loading : boolean;
   workset : Workset;
-  ops_promise : Promise< void >;
   remote_id_map : Map< number, number >;
   tree : Tree;
   editor_manager : EditorManager;
+  op_queue : OpQueue;
 
-  constructor(workset : Workset) {
+  constructor(workset : Workset, op_queue : OpQueue) {
     super();
     this.workset = workset;
+    this.op_queue = op_queue;
     this.loading = true;
-    this.ops_promise = Promise.resolve();
     this.remote_id_map = new Map();
     workset.add_event_listener(this);
-  }
-
-  enqueue_operation(op : ()=>Promise< void >) : void {
-    this.ops_promise = this.ops_promise.then(op).catch(catch_all);
-  }
-
-  after_queue() : Promise< void > {
-    let self = this;
-    return new Promise(function (resolve, reject) : void {
-      self.enqueue_operation(function () : Promise< void > {
-        resolve();
-        return Promise.resolve();
-      })
-    });
   }
 
   set_editor_manager(editor_manager : EditorManager) : void {
@@ -345,7 +332,7 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
       return;
     }
     step.sentence = sentence;
-    this.enqueue_operation(function () : Promise< void > {
+    this.op_queue.enqueue_operation(function () : Promise< void > {
       return step.do_api_request(self, `set_sentence`, {sentence: sentence.join(" ")}).then(function (data : object) : void {
       });
     });
@@ -380,7 +367,7 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
     assert(this.remote_id_map.has(step.remote_id));
     this.remote_id_map.delete(step.remote_id);
     assert(!this.loading);
-    return this.after_queue().then(function () : Promise< void > {
+    return this.op_queue.after_queue().then(function () : Promise< void > {
       return self.do_api_request(`step/${remote_id}/destroy`, {}).then(function (data : any) : void {
         if (!data.success) {
           throw "Failed to destroy step";
@@ -396,7 +383,7 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
       let parent_step : StepManager = this.get_manager_object(parent);
       let child_remote_id = child_step.remote_id;
       let parent_remote_id = parent_step.remote_id;
-      this.enqueue_operation(function () : Promise< void > {
+      this.op_queue.enqueue_operation(function () : Promise< void > {
         return self.do_api_request(`step/${child_remote_id}/reparent`, {parent: parent_remote_id, index: idx}).then(function (data : any) : void {
           if (!data.success) {
             throw "Failed to reparent step";
@@ -411,7 +398,7 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
     let self = this;
     let child_step : StepManager = this.get_manager_object(child);
     let child_remote_id = child_step.remote_id;
-    this.enqueue_operation(function () : Promise< void > {
+    this.op_queue.enqueue_operation(function () : Promise< void > {
       return self.do_api_request(`step/${child_remote_id}/orphan`, {}).then(function (data : any) : void {
         if (!data.success) {
           throw "Failed to orphan step";
