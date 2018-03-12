@@ -51,11 +51,11 @@ export class StepManager {
     });
   }
 
-  dump(workset_manager : WorksetManager) : Promise< string > {
+  /*dump(workset_manager : WorksetManager) : Promise< string > {
     return this.do_api_request(workset_manager, `dump`, {}).then(function (data : any) : string {
       return JSON.stringify(data);
     });
-  }
+  }*/
 }
 
 export class WorksetManager extends TreeManager implements NodePainter, WorksetEventListener {
@@ -282,16 +282,7 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
       $(`#${full_id}_suggestion`).fadeOut();
     });
     $(`#${full_id}_text_input`).on("input", function() {
-      let tokens : string[] = tokenize($(`#${full_id}_text_input`).val());
-      let parsed_tokens : number[] = default_renderer.parse_from_strings(tokens);
-      let sentence : string;
-      if (parsed_tokens === null) {
-        sentence = default_renderer.render_from_strings(tokens);
-      } else {
-        self.set_sentence(node, parsed_tokens);
-        sentence = default_renderer.render_from_codes(parsed_tokens);
-      }
-      $(`#${full_id}_sentence`).html(sentence);
+      self.set_sentence_from_text(node, $(`#${full_id}_text_input`).val());
     });
     $(`#${full_id}_btn_get_proof`).click(this.get_proof.bind(this, node));
     $(`#${full_id}_btn_dump`).click(this.dump.bind(this, node));
@@ -305,12 +296,44 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
     }).catch(catch_all);
   }
 
-  dump(node : TreeNode) {
+  /*dump_old(node : TreeNode) {
     let self = this;
     let step : StepManager = this.get_manager_object(node);
     step.dump(this).then(function (dump_data : string) : void {
       $(`#workset_proof`).val(dump_data);
     }).catch(catch_all);
+  }*/
+
+  dump_json(node : TreeNode) : object {
+    let self = this;
+    let ret : object = {};
+    let step : StepManager = this.get_manager_object(node);
+    let text_renderer = this.get_workset().get_renderer(RenderingStyles.TEXT);
+    ret["sentence"] = text_renderer.render_from_codes(step.sentence);
+    ret["children"] = node.children.map(function (child : TreeNode) : object {
+      return self.dump_json(child);
+    });
+    return ret;
+  }
+
+  dump(node : TreeNode) : void {
+    $(`#workset_proof`).val(JSON.stringify(this.dump_json(node)));
+  }
+
+  set_sentence_from_text(node : TreeNode, sentence_str : string) : void {
+    let workset = this.get_workset();
+    let default_renderer = workset.get_default_renderer();
+    let tokens : string[] = tokenize(sentence_str);
+    let full_id = this.editor_manager.compute_full_id(node);
+    let parsed_tokens : number[] = default_renderer.parse_from_strings(tokens);
+    let sentence : string;
+    if (parsed_tokens === null) {
+      sentence = default_renderer.render_from_strings(tokens);
+    } else {
+      this.set_sentence(node, parsed_tokens);
+      sentence = default_renderer.render_from_codes(parsed_tokens);
+    }
+    $(`#${full_id}_sentence`).html(sentence);
   }
 
   set_sentence(node : TreeNode, sentence : number[]) : void {

@@ -12,6 +12,9 @@ import { OpQueue } from "./op_queue";
 let current_workset : Workset = null;
 let current_renderer : Renderer = null;
 let current_tree : Tree = null;
+let workset_manager : WorksetManager = null;
+let editor_manager : EditorManager = null;
+let op_queue = new OpQueue();
 
 // Whether to include non essential steps or not
 let include_non_essentials : boolean = false;
@@ -145,9 +148,8 @@ export function ui_build_tree() {
 }
 
 function load_proof_editor() : void {
-  let op_queue = new OpQueue();
-  let workset_manager = new WorksetManager(get_current_workset(), op_queue);
-  let editor_manager = new EditorManager("proof_editor_area", workset_manager, op_queue);
+  workset_manager = new WorksetManager(get_current_workset(), op_queue);
+  editor_manager = new EditorManager("proof_editor_area", workset_manager, op_queue);
   current_tree = new Tree(get_serial(), [editor_manager, workset_manager]);
   workset_manager.load_data(current_tree);
 }
@@ -158,11 +160,28 @@ export function ui_create_node() : void {
   }).catch(catch_all);
 }
 
-export function ui_create_node_from_dump() : void {
+/*export function ui_create_node_from_dump() : void {
   let special = {"dump": $(`#workset_proof`).val()};
   current_tree.create_node(get_serial(), false, special).then(function (node : TreeNode) : void {
     node.reparent(current_tree.get_root_node(), -1);
   }).catch(catch_all);
+}*/
+
+function create_node_from_dump(data : object, parent : TreeNode) : Promise< void > {
+  return current_tree.create_node(get_serial(), false).then(function (node : TreeNode) : void {
+    workset_manager.set_sentence_from_text(node, data["sentence"]);
+    for (let child of data["children"]) {
+      op_queue.enqueue_operation(function () : Promise< void > {
+        return create_node_from_dump(child, node);
+      });
+    }
+    node.reparent(parent, -1);
+  });
+}
+
+export function ui_create_node_from_dump() : void {
+  let data : object = JSON.parse($(`#workset_proof`).val());
+  create_node_from_dump(data, current_tree.get_root_node());
 }
 
 export function ui_proof_navigator() : void {
