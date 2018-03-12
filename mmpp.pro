@@ -113,7 +113,8 @@ SOURCES += \
     provers/sat.cpp \
     provers/wffblock.cpp \
     apps/tstp.cpp \
-    provers/wffsat.cpp
+    provers/wffsat.cpp \
+    apps/resolver.cpp
 
 HEADERS += \
     pch.h \

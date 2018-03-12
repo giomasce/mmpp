@@ -3,8 +3,11 @@
 
 ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::VarType ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::floating_to_var(const LibType &lib, LabTok label)
 {
-    (void) lib;
-    return label;
+    /* Sometimes the defining inference for a symbol is repeated more
+     * than once (see for example wcel.cA and cA in set.mm), so we do
+     * a round of normalization with get_var_sym_to_lab.
+     */
+    return lib.get_var_sym_to_lab(lib.get_sentence(label).at(1));
 }
 
 SymTok ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::floating_to_type(const LibType &lib, LabTok label)
