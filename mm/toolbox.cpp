@@ -983,7 +983,7 @@ ParsingTree< SymTok, LabTok > LibraryToolbox::parse_sentence(const Sentence &sen
 
 ParsingTree<SymTok, LabTok> LibraryToolbox::parse_sentence(const Sentence &sent) const
 {
-    return this->parse_sentence(sent.begin()+1, sent.end(), sent.at(0));
+    return this->parse_sentence(sent.begin()+1, sent.end(), this->lib.get_parsing_addendum().get_syntax().at(sent.at(0)));
 }
 
 void LibraryToolbox::compute_sentences_parsing()

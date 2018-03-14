@@ -160,6 +160,12 @@ const Sentence &Step::get_sentence()
     return this->sentence;
 }
 
+const ParsingTree<SymTok, LabTok> &Step::get_parsing_tree()
+{
+    unique_lock< recursive_mutex > lock(this->global_mutex);
+    return this->parsing_tree;
+}
+
 std::weak_ptr<Workset> Step::get_workset()
 {
     unique_lock< recursive_mutex > lock(this->global_mutex);
@@ -174,6 +180,17 @@ void Step::set_sentence(const Sentence &sentence)
     assert(strong_this != nullptr);
     Sentence old_sentence = this->sentence;
     this->sentence = sentence;
+    if (!sentence.empty()) {
+        auto &tb = this->get_workset().lock()->get_toolbox();
+        auto type_it = tb.get_parsing_addendum().get_syntax().find(sentence[0]);
+        if (type_it != tb.get_parsing_addendum().get_syntax().end()) {
+            this->parsing_tree = tb.parse_sentence(sentence.begin()+1, sentence.end(), type_it->second);
+        } else {
+            this->parsing_tree = tb.parse_sentence(sentence.begin()+1, sentence.end(), sentence[0]);
+        }
+    } else {
+        this->parsing_tree = {};
+    }
     this->clean_listeners();
     this->after_new_sentence(old_sentence);
     for (auto &listener : this->listeners) {

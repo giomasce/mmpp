@@ -95,6 +95,7 @@ json jsonize(Step &step)
         ret["children"].push_back(child.lock()->get_id());
     }
     ret["sentence"] = step.get_sentence();
+    ret["did_not_parse"] = step.get_parsing_tree().label == LabTok{};
     bool searching = step.is_searching();
     ret["searching"] = searching;
     if (!searching) {

@@ -65,6 +65,7 @@ public:
     size_t get_id();
     const std::vector<SafeWeakPtr<Step> > &get_children();
     const Sentence &get_sentence();
+    const ParsingTree< SymTok, LabTok > &get_parsing_tree();
     std::weak_ptr<Workset> get_workset();
     void set_sentence(const Sentence &sentence);
     std::shared_ptr<Step> get_parent() const;
@@ -112,6 +113,7 @@ private:
     std::list< std::weak_ptr< StepOperationsListener > > listeners;
 
     Sentence sentence;
+    ParsingTree< SymTok, LabTok > parsing_tree;
 
     std::list< std::pair< std::shared_ptr< StepStrategy >, std::shared_ptr< Coroutine > > > active_strategies;
     std::shared_ptr< const StepStrategyResult > winning_strategy;

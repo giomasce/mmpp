@@ -13,6 +13,7 @@ export class StepManager {
   remote_id : number;
   sentence : number[];
   searching : boolean;
+  did_not_parse : boolean;
   found_proof : boolean;
   proof_data : any;
   suggestion_ready : boolean;
@@ -31,6 +32,7 @@ export class StepManager {
     return this.do_api_request(workset_manager, `get`).then(function (data : any) : any {
       self.sentence = data.sentence;
       self.searching = data.searching;
+      self.did_not_parse = data.did_not_parse;
       if (!self.searching) {
         self.found_proof = data.found_proof;
         if (self.found_proof) {
@@ -145,7 +147,9 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
     let step : StepManager = this.get_manager_object(node);
     let workset = this.get_workset();
     let full_id = this.editor_manager.compute_full_id(node);
-    if (step.searching) {
+    if (step.did_not_parse) {
+      $(`#${full_id}_label`).html(Mustache.render(LABEL_DNP_TEMPL, {}));
+    } else if (step.searching) {
       $(`#${full_id}_label`).html(Mustache.render(LABEL_SEARCHING_TEMPL, {}));
     } else if (!step.found_proof) {
       $(`#${full_id}_label`).html(Mustache.render(LABEL_FAILED_TEMPL, {}));
@@ -203,7 +207,10 @@ export class WorksetManager extends TreeManager implements NodePainter, WorksetE
     let workset = this.get_workset();
     let default_renderer = workset.get_default_renderer();
     let full_id = this.editor_manager.compute_full_id(node);
-    if (step.searching) {
+    if (step.did_not_parse) {
+      $(`#${full_id}_suggestion`).html(Mustache.render(SUGGESTION_DNP_TEMPL, {}));
+      step.suggestion_ready = true;
+    } else if (step.searching) {
       $(`#${full_id}_suggestion`).html(Mustache.render(SUGGESTION_SEARCHING_TEMPL, {}));
       step.suggestion_ready = true;
     } else if (!step.found_proof) {
@@ -449,11 +456,13 @@ const DATA1_TEMPL = `
 
 const LABEL_SEARCHING_TEMPL = `<span style="color: blue;">searching</span>`;
 const LABEL_FAILED_TEMPL = `<span style="color: red;">failed</span>`;
+const LABEL_DNP_TEMPL = `<span style="color: red;">DNP</span>`;
 const LABEL_UNIFICATION_TEMPL = `<span class="strategy">Unif</span> {{ label }} <span class="r" style="color: {{ number_color }}">{{ number }}</span>`;
 const LABEL_WFF_TEMPL = `<span class="strategy">Wff</span>`;
 
 const SUGGESTION_SEARCHING_TEMPL = `Searching for a proof`;
 const SUGGESTION_FAILED_TEMPL = `Could not find a proof`;
+const SUGGESTION_DNP_TEMPL = `Could not parse the input sentence`;
 const SUGGESTION_LOADING_TEMPL = `<span class="loading">Loading...</span>`;
 const SUGGESTION_MISSING_TEMPL = `No suggestion available`;
 
