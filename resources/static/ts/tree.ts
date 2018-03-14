@@ -49,6 +49,7 @@ export class TreeNode {
   parent : TreeNode;
   children : TreeNode[];
   manager_objects : Map< number, any >;
+  destroyed : boolean;
 
   constructor(id : number, tree : Tree) {
     this.id = id;
@@ -56,6 +57,7 @@ export class TreeNode {
     this.parent = null;
     this.children = [];
     this.manager_objects = new Map();
+    this.destroyed = false;
   }
 
   get_id() : number {
@@ -99,6 +101,19 @@ export class TreeNode {
   null_tree() : void {
     this.tree = null;
     this.id = null;
+  }
+
+  is_descendant(node : TreeNode) {
+    let current : TreeNode = this;
+    while (true) {
+      if (current === null) {
+        return false;
+      }
+      if (current === node) {
+        return true;
+      }
+      current = current.parent;
+    }
   }
 
   orphan() : void {
@@ -193,6 +208,8 @@ export class Tree {
     assert(this.node_map.has(node.id));
     assert(node.parent === null);
     assert(node.children.length === 0);
+    assert(!node.destroyed);
+    node.destroyed = true;
     let ret = Promise.resolve();
     for (let manager of this.managers) {
       ret = ret.then(function () : void {

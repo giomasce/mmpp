@@ -20,6 +20,7 @@ export class EditorManager extends TreeManager {
   parent_div : string;
   op_queue : OpQueue;
   painter : NodePainter;
+  reparenting : TreeNode;
 
   constructor(parent_div : string, painter : NodePainter, op_queue : OpQueue) {
     super();
@@ -27,6 +28,7 @@ export class EditorManager extends TreeManager {
     this.op_queue = op_queue;
     this.painter = painter;
     this.painter.set_editor_manager(this);
+    this.reparenting = null;
   }
 
   creating_node(node : TreeNode, special : any) : Promise< void > {
@@ -165,6 +167,7 @@ export class EditorManager extends TreeManager {
   }
 
   create_child(node : TreeNode) : void {
+    this.reparent(null);
     let tree = node.get_tree();
     tree.create_node(get_serial(), false).then(function (node2 : TreeNode) : void {
       node2.reparent(node, -1);
@@ -172,6 +175,7 @@ export class EditorManager extends TreeManager {
   }
 
   kill_node(node : TreeNode) : void {
+    this.reparent(null);
     let tree = node.get_tree();
     /* In order to avoid leftovers and not violate the protocol, I need to orphan
     all the descendants (including the base node), and then destroy them. */
@@ -203,11 +207,39 @@ export class EditorManager extends TreeManager {
   }
 
   move_up(node : TreeNode) : void {
+    this.reparent(null);
     this.move(node, true);
   }
 
   move_down(node : TreeNode) : void {
+    this.reparent(null);
     this.move(node, false);
+  }
+
+  reparent(node : TreeNode) : void {
+    let self = this;
+    let reparenting  = this.reparenting;
+    let reparenting_to = node;
+    if (this.reparenting === null && node !== null) {
+      this.reparenting = node;
+      $(`.mini_button_reparent`).addClass("mini_button_reparent_here");
+    } else {
+      if (node !== null && !reparenting.destroyed && !reparenting_to.destroyed) {
+        // Check that reparenting_to is not a descendant of reparenting
+        if (!reparenting_to.is_descendant(reparenting)) {
+          this.op_queue.enqueue_operation(function() : Promise< void > {
+            reparenting.orphan();
+            self.op_queue.enqueue_operation(function () : Promise< void > {
+              reparenting.reparent(reparenting_to, -1);
+              return Promise.resolve();
+            });
+            return Promise.resolve();
+          });
+        }
+      }
+      $(`.mini_button_reparent`).removeClass("mini_button_reparent_here");
+      this.reparenting = null;
+    }
   }
 
   make_subtree_visible(parent : TreeNode, child : TreeNode, idx : number) : void {
@@ -256,6 +288,7 @@ export class EditorManager extends TreeManager {
     $(`#${child_full_id}_btn_kill`).click(this.kill_node.bind(this, child));
     $(`#${child_full_id}_btn_move_up`).click(this.move_up.bind(this, child));
     $(`#${child_full_id}_btn_move_down`).click(this.move_down.bind(this, child));
+    $(`#${child_full_id}_btn_reparent`).click(this.reparent.bind(this, child));
     this.painter.paint_node(child);
 
     // Recur on children

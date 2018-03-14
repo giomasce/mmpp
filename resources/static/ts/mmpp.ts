@@ -155,6 +155,7 @@ function load_proof_editor() : void {
 }
 
 export function ui_create_node() : void {
+  editor_manager.reparent(null);
   current_tree.create_node(get_serial(), false).then(function (node : TreeNode) : void {
     node.reparent(current_tree.get_root_node(), -1);
   }).catch(catch_all);
@@ -180,6 +181,7 @@ function create_node_from_dump(data : object, parent : TreeNode) : Promise< void
 }
 
 export function ui_create_node_from_dump() : void {
+  editor_manager.reparent(null);
   let data : object = JSON.parse($(`#workset_proof`).val());
   if (data["sentence"] === "") {
     // If the root sentence is empty, interpret it as the root node and directly create children
