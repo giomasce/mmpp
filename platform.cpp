@@ -159,8 +159,6 @@ uint64_t platform_get_current_used_ram( )
 #include <mach/mach.h>
 #include <iostream>
 
-using namespace std;
-
 void set_max_ram(uint64_t bytes) {
     struct rlimit limit;
     limit.rlim_cur = bytes;
@@ -168,7 +166,7 @@ void set_max_ram(uint64_t bytes) {
     setrlimit(RLIMIT_RSS, &limit);
 }
 
-vector< int > signals = { SIGTERM, SIGHUP, SIGUSR1 };
+std::vector< int > signals = { SIGTERM, SIGHUP, SIGUSR1 };
 sigset_t create_sigset() {
     sigset_t sigset;
     int res = sigemptyset(&sigset);
@@ -219,22 +217,22 @@ void platform_webmmpp_main_loop(const std::function<void()> &new_session_callbac
         }
         switch (signo) {
         case SIGTERM:
-            cerr << "SIGTERM received!" << endl;
+            std::cerr << "SIGTERM received!" << std::endl;
             running = false;
             break;
         case SIGHUP:
-            cerr << "SIGHUP received!" << endl;
+            std::cerr << "SIGHUP received!" << std::endl;
             running = false;
             break;
         case SIGUSR1:
-            cerr << "SIGUSR1 received!" << endl;
+            std::cerr << "SIGUSR1 received!" << std::endl;
             new_session_callback();
             break;
         }
     }
 }
 
-bool platform_open_browser(string browser_url) {
+bool platform_open_browser(std::string browser_url) {
     system(("open " + browser_url).c_str());
     return true;
 }
@@ -246,7 +244,7 @@ boost::filesystem::path platform_get_resources_base() {
 }
 
 // Here we depend a lot on implementation details of C++ threads
-void set_thread_name(std::thread &t, const string &name) {
+void set_thread_name(std::thread &t, const std::string &name) {
     (void) t;
     (void) name;
     /* Apparently in macOS pthread_setname_np() can only be used 
