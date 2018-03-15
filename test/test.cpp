@@ -21,35 +21,32 @@
 #include "test/test_minor.h"
 #include "provers/wffsat.h"
 
-using namespace std;
-using namespace chrono;
-
 void test_old_unification() {
     auto &data = get_set_mm();
     auto &lib = data.lib;
     auto &tb = data.tb;
-    cout << "Generic unification test" << endl;
-    vector< SymTok > sent = tb.read_sentence("wff ( ph -> ( ps -> ch ) )");
-    vector< SymTok > templ = tb.read_sentence("wff ( th -> et )");
+    std::cout << "Generic unification test" << std::endl;
+    std::vector< SymTok > sent = tb.read_sentence("wff ( ph -> ( ps -> ch ) )");
+    std::vector< SymTok > templ = tb.read_sentence("wff ( th -> et )");
     auto res = unify_old(sent, templ, lib, false);
-    cout << "Matching:         " << tb.print_sentence(sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl << "against template: " << tb.print_sentence(templ, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+    std::cout << "Matching:         " << tb.print_sentence(sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl << "against template: " << tb.print_sentence(templ, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
     for (auto &match : res) {
-        cout << "  *";
+        std::cout << "  *";
         for (auto &var: match) {
-            cout << " " << tb.print_sentence(Sentence({var.first}), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << " => " << tb.print_sentence(var.second, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << "  ";
+            std::cout << " " << tb.print_sentence(Sentence({var.first}), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << " => " << tb.print_sentence(var.second, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << "  ";
         }
-        cout << endl;
+        std::cout << std::endl;
     }
-    cout << "Memory usage after test: " << size_to_string(platform_get_current_used_ram()) << endl << endl;
+    std::cout << "Memory usage after test: " << size_to_string(platform_get_current_used_ram()) << std::endl << std::endl;
 }
 
 void test_lr_set() {
-    cout << "LR parsing on set.mm" << endl;
+    std::cout << "LR parsing on set.mm" << std::endl;
     auto &data = get_set_mm();
     auto &lib = data.lib;
     auto &tb = data.tb;
-    std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](ostream &os, SymTok sym)->ostream& { return os << lib.resolve_symbol(sym); };
-    std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](ostream &os, LabTok lab)->ostream& { return os << lib.resolve_label(lab); };
+    std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](std::ostream &os, SymTok sym)->std::ostream& { return os << lib.resolve_symbol(sym); };
+    std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](std::ostream &os, LabTok lab)->std::ostream& { return os << lib.resolve_label(lab); };
     const auto &derivations = tb.get_derivations();
     const auto ders_by_lab = compute_derivations_by_label(derivations);
     //EarleyParser earley_parser(derivations);
@@ -85,22 +82,22 @@ void test_statement_unification() {
     auto &data = get_set_mm();
     auto &lib = data.lib;
     auto &tb = data.tb;
-    cout << "Statement unification test" << endl;
+    std::cout << "Statement unification test" << std::endl;
     //auto res = lib.unify_assertion({ parse_sentence("|- ( ch -> th )", lib), parse_sentence("|- ch", lib) }, parse_sentence("|- th", lib));
     auto res = tb.unify_assertion({ tb.read_sentence("|- ( ch -> ( ph -> ps ) )"), tb.read_sentence("|- ch") }, tb.read_sentence("|- ( ph -> ps )"));
-    cout << "Found " << res.size() << " matching assertions:" << endl;
+    std::cout << "Found " << res.size() << " matching assertions:" << std::endl;
     for (auto &match : res) {
-        auto &label = get<0>(match);
+        auto &label = std::get<0>(match);
         const Assertion &ass = lib.get_assertion(label);
-        cout << " * " << lib.resolve_label(label) << ":";
+        std::cout << " * " << lib.resolve_label(label) << ":";
         for (auto &hyp : ass.get_ess_hyps()) {
             auto &hyp_sent = lib.get_sentence(hyp);
-            cout << " & " << tb.print_sentence(hyp_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM);
+            std::cout << " & " << tb.print_sentence(hyp_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM);
         }
         auto &thesis_sent = lib.get_sentence(ass.get_thesis());
-        cout << " => " << tb.print_sentence(thesis_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+        std::cout << " => " << tb.print_sentence(thesis_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
     }
-    cout << "Memory usage after test: " << size_to_string(platform_get_current_used_ram()) << endl << endl;
+    std::cout << "Memory usage after test: " << size_to_string(platform_get_current_used_ram()) << std::endl << std::endl;
 }
 
 void test_tree_unification() {
@@ -117,10 +114,10 @@ void test_tree_unification() {
     SubstMap< SymTok, LabTok > subst;
     UnilateralUnificator< SymTok, LabTok > unif(is_var);
     unif.add_parsing_trees(pt_templ, pt_sent);
-    tie(res, subst) = unif.unify();
+    std::tie(res, subst) = unif.unify();
 
     for (auto &i : subst) {
-        cout << lib.resolve_symbol(lib.get_sentence(i.first).at(1)) << ": " << tb.print_sentence(tb.reconstruct_sentence(i.second), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+        std::cout << lib.resolve_symbol(lib.get_sentence(i.first).at(1)) << ": " << tb.print_sentence(tb.reconstruct_sentence(i.second), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
     }
 }
 
@@ -129,25 +126,25 @@ void test_unification() {
     auto &lib = data.lib;
     auto &tb = data.tb;
 
-    vector< string > tests = { "|- ( ( A e. CC /\\ B e. CC /\\ N e. NN0 ) -> ( ( A + B ) ^ N ) = sum_ k e. ( 0 ... N ) ( ( N _C k ) x. ( ( A ^ ( N - k ) ) x. ( B ^ k ) ) ) )",
-                               "|- ( ph -> ( ps <-> ps ) )",
-                               "|- ( ph -> ph )" };
+    std::vector< std::string > tests = { "|- ( ( A e. CC /\\ B e. CC /\\ N e. NN0 ) -> ( ( A + B ) ^ N ) = sum_ k e. ( 0 ... N ) ( ( N _C k ) x. ( ( A ^ ( N - k ) ) x. ( B ^ k ) ) ) )",
+                                         "|- ( ph -> ( ps <-> ps ) )",
+                                         "|- ( ph -> ph )" };
     int reps = 30;
     for (const auto &test : tests) {
         Sentence sent = tb.read_sentence(test);
         auto res2 = tb.unify_assertion({}, sent, false, true);
-        cout << "Trying to unify " << test << endl;
-        cout << "Found " << res2.size() << " matching assertions:" << endl;
+        std::cout << "Trying to unify " << test << std::endl;
+        std::cout << "Found " << res2.size() << " matching assertions:" << std::endl;
         for (auto &match : res2) {
-            auto &label = get<0>(match);
+            auto &label = std::get<0>(match);
             const Assertion &ass = lib.get_assertion(label);
-            cout << " * " << lib.resolve_label(label) << ":";
+            std::cout << " * " << lib.resolve_label(label) << ":";
             for (auto &hyp : ass.get_ess_hyps()) {
                 auto &hyp_sent = lib.get_sentence(hyp);
-                cout << " & " << tb.print_sentence(hyp_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM);
+                std::cout << " & " << tb.print_sentence(hyp_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM);
             }
             auto &thesis_sent = lib.get_sentence(ass.get_thesis());
-            cout << " => " << tb.print_sentence(thesis_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+            std::cout << " => " << tb.print_sentence(thesis_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
         }
 
         // Do actual time measurement
@@ -164,18 +161,18 @@ void test_type_proving() {
     //auto &lib = data.lib;
     auto &tb = data.tb;
     int reps = 10;
-    cout << "Type proving test" << endl;
+    std::cout << "Type proving test" << std::endl;
     auto sent = tb.read_sentence(  "wff ( [_ suc z / z ]_ ( rec ( f , q ) ` z ) e. x <-> A. z ( z = suc z -> ( rec ( f , q ) ` z ) e. x ) )");
-    cout << "Sentence is " << tb.print_sentence(sent) << endl;
-    cout << "HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_HTML) << endl;
-    cout << "Alt HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << endl;
-    cout << "LaTeX sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_LATEX) << endl;
-    cout << "ANSI colors sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+    std::cout << "Sentence is " << tb.print_sentence(sent) << std::endl;
+    std::cout << "HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_HTML) << std::endl;
+    std::cout << "Alt HTML sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ALTHTML) << std::endl;
+    std::cout << "LaTeX sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_LATEX) << std::endl;
+    std::cout << "ANSI colors sentence is " << tb.print_sentence(sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
 
     CreativeProofEngineImpl< Sentence > engine(tb);
     tb.build_type_prover(sent)(engine);
     auto res = engine.get_proof_labels();
-    cout << "Found type proof: " << tb.print_proof(res) << endl;
+    std::cout << "Found type proof: " << tb.print_proof(res) << std::endl;
     Tic t = tic();
     for (int i = 0; i < reps; i++) {
         CreativeProofEngineImpl< Sentence > engine(tb);
@@ -183,14 +180,14 @@ void test_type_proving() {
     }
     toc(t, reps);
 
-    cout << "Memory usage after test: " << size_to_string(platform_get_current_used_ram()) << endl << endl;
+    std::cout << "Memory usage after test: " << size_to_string(platform_get_current_used_ram()) << std::endl << std::endl;
 }
 
 void test_wffs_trivial() {
     auto &data = get_set_mm();
     //auto &lib = data.lib;
     auto &tb = data.tb;
-    vector< pwff > wffs = { True::create(), False::create(), Not::create(True::create()), Not::create(False::create()),
+    std::vector< pwff > wffs = { True::create(), False::create(), Not::create(True::create()), Not::create(False::create()),
                             Var::create("ph", tb), Not::create(Var::create("ph", tb)),
                             Var::create("ps", tb), Not::create(Var::create("ps", tb)),
                             Imp::create(True::create(), True::create()),
@@ -232,99 +229,99 @@ void test_wffs_trivial() {
                           };
 
     if (true) {
-        cout << "WFF type proving test" << endl;
+        std::cout << "WFF type proving test" << std::endl;
         for (pwff &wff : wffs) {
             //wff->prove_type(lib, engine);
-            cout << "WFF: " << wff->to_string() << endl;
+            std::cout << "WFF: " << wff->to_string() << std::endl;
             {
                 CreativeProofEngineImpl< Sentence > engine(tb);
                 wff->get_type_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
-                    cout << "type proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+                    std::cout << "type proof: " << tb.print_proof(engine.get_proof_labels()) << std::endl;
+                    std::cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
                 }
             }
-            cout << endl;
+            std::cout << std::endl;
         }
     }
 
     if (true) {
-        cout << "WFF proving test" << endl;
+        std::cout << "WFF proving test" << std::endl;
         for (pwff &wff : wffs) {
-            cout << "WFF: " << wff->to_string() << endl;
+            std::cout << "WFF: " << wff->to_string() << std::endl;
             {
                 CreativeProofEngineImpl< Sentence > engine(tb);
                 wff->get_truth_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
-                    cout << "Truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+                    std::cout << "Truth proof: " << tb.print_proof(engine.get_proof_labels()) << std::endl;
+                    std::cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
                 }
             }
             {
                 CreativeProofEngineImpl< Sentence > engine(tb);
                 wff->get_falsity_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
-                    cout << "Falsity proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+                    std::cout << "Falsity proof: " << tb.print_proof(engine.get_proof_labels()) << std::endl;
+                    std::cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
                 }
             }
-            cout << endl;
+            std::cout << std::endl;
         }
     }
 
     if (true) {
-        cout << "WFF imp_not normal form test" << endl;
+        std::cout << "WFF imp_not normal form test" << std::endl;
         for (pwff &wff : wffs) {
-            cout << "WFF: " << wff->to_string() << endl;
+            std::cout << "WFF: " << wff->to_string() << std::endl;
             {
                 CreativeProofEngineImpl< Sentence > engine(tb);
                 wff->get_imp_not_prover(tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
-                    cout << "imp_not proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+                    std::cout << "imp_not proof: " << tb.print_proof(engine.get_proof_labels()) << std::endl;
+                    std::cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
                 }
             }
-            cout << endl;
+            std::cout << std::endl;
         }
     }
 
     if (true) {
-        cout << "WFF subst test" << endl;
+        std::cout << "WFF subst test" << std::endl;
         for (pwff &wff : wffs) {
-            cout << "WFF: " << wff->to_string() << endl;
+            std::cout << "WFF: " << wff->to_string() << std::endl;
             {
                 CreativeProofEngineImpl< Sentence > engine(tb);
                 wff->get_subst_prover(Var::create("ph", tb), true, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
-                    cout << "subst ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+                    std::cout << "subst ph proof: " << tb.print_proof(engine.get_proof_labels()) << std::endl;
+                    std::cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
                 }
             }
             {
                 CreativeProofEngineImpl< Sentence > engine(tb);
                 wff->get_subst_prover(Var::create("ph", tb), false, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
-                    cout << "subst -. ph proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+                    std::cout << "subst -. ph proof: " << tb.print_proof(engine.get_proof_labels()) << std::endl;
+                    std::cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
                 }
             }
             {
                 CreativeProofEngineImpl< Sentence > engine(tb);
                 wff->get_subst_prover(Var::create("ps", tb), true, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
-                    cout << "subst ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+                    std::cout << "subst ps proof: " << tb.print_proof(engine.get_proof_labels()) << std::endl;
+                    std::cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
                 }
             }
             {
                 CreativeProofEngineImpl< Sentence > engine(tb);
                 wff->get_subst_prover(Var::create("ps", tb), false, tb)(engine);
                 if (engine.get_proof_labels().size() > 0) {
-                    cout << "subst -. ps proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+                    std::cout << "subst -. ps proof: " << tb.print_proof(engine.get_proof_labels()) << std::endl;
+                    std::cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
                 }
             }
-            cout << endl;
+            std::cout << std::endl;
         }
     }
 }
@@ -333,7 +330,7 @@ void test_wffs_advanced() {
     auto &data = get_set_mm();
     //auto &lib = data.lib;
     auto &tb = data.tb;
-    vector< pwff > wffs = { True::create(), False::create(), Not::create(True::create()), Not::create(False::create()),
+    std::vector< pwff > wffs = { True::create(), False::create(), Not::create(True::create()), Not::create(False::create()),
                             Imp::create(Var::create("ph", tb), Var::create("ph", tb)),
                             Or3::create(Var::create("ph", tb), True::create(), False::create()),
                             Imp::create(Var::create("ph", tb), And3::create(Var::create("ph", tb), True::create(), Var::create("ph", tb))),
@@ -344,38 +341,38 @@ void test_wffs_advanced() {
                            };
 
     if (true) {
-        cout << "WFF adv_truth test" << endl;
+        std::cout << "WFF adv_truth test" << std::endl;
         for (pwff &wff : wffs) {
-            cout << "WFF: " << wff->to_string() << endl;
+            std::cout << "WFF: " << wff->to_string() << std::endl;
             {
                 CreativeProofEngineImpl< Sentence > engine(tb);
                 wff->get_adv_truth_prover(tb).second(engine);
                 if (engine.get_proof_labels().size() > 0) {
-                    //cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
-                    cout << "proof length: " << engine.get_proof_labels().size() << endl;
+                    //std::cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << std::endl;
+                    std::cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
+                    std::cout << "proof length: " << engine.get_proof_labels().size() << std::endl;
                     //UncompressedProof proof = { engine.get_proof_labels() };
                 }
             }
-            cout << endl;
+            std::cout << std::endl;
         }
     }
 
     if (true) {
-        cout << "Minisat refutation test" << endl;
+        std::cout << "Minisat refutation test" << std::endl;
         for (pwff wff : wffs) {
-            cout << "WFF: " << wff->to_string() << endl;
+            std::cout << "WFF: " << wff->to_string() << std::endl;
             {
                 CreativeProofEngineImpl< Sentence > engine(tb);
                 get_sat_prover(wff, tb).second(engine);
                 if (engine.get_proof_labels().size() > 0) {
-                    //cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-                    cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
-                    cout << "proof length: " << engine.get_proof_labels().size() << endl;
+                    //std::cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << std::endl;
+                    std::cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
+                    std::cout << "proof length: " << engine.get_proof_labels().size() << std::endl;
                     //UncompressedProof proof = { engine.get_proof_labels() };
                 }
             }
-            cout << endl;
+            std::cout << std::endl;
         }
     }
 }
@@ -385,21 +382,21 @@ void test_wffs_parsing() {
     //auto &lib = data.lib;
     auto &tb = data.tb;
 
-    vector< std::string > wffs = { "wff T.", "wff F.", "wff ph", "wff ps", "wff -. ph",
+    std::vector< std::string > wffs = { "wff T.", "wff F.", "wff ph", "wff ps", "wff -. ph",
                                    "wff ( ph -> ps )", "wff ( ph /\\ ps )", "wff ( ph \\/ ps )", "wff ( ph <-> F. )",
                                    "wff ( ph -/\\ ps )", "wff ( ph \\/_ ps )",
                                    "wff ( ph /\\ ps /\\ ch )", "wff ( ph \\/ ps \\/ ch )",
                                    "wff A. x ph", "wff -. A. x ph" };
 
     if (true) {
-        cout << "WFF parsing test" << endl;
+        std::cout << "WFF parsing test" << std::endl;
         for (const auto &wff : wffs) {
-            cout << "WFF: " << wff << endl;
+            std::cout << "WFF: " << wff << std::endl;
             auto sent = tb.read_sentence(wff);
             auto pt = tb.parse_sentence(sent);
             auto parsed = wff_from_pt(pt, tb);
-            cout << "Has type: " << boost::typeindex::type_id_runtime(*parsed).pretty_name() << endl;
-            cout << endl;
+            std::cout << "Has type: " << boost::typeindex::type_id_runtime(*parsed).pretty_name() << std::endl;
+            std::cout << std::endl;
         }
     }
 }
@@ -416,7 +413,7 @@ void test() {
     test_wffs_trivial();
     test_wffs_advanced();
     test_wffs_parsing();
-    cout << "Maximum memory usage: " << size_to_string(platform_get_peak_used_ram()) << endl;
+    std::cout << "Maximum memory usage: " << size_to_string(platform_get_peak_used_ram()) << std::endl;
 }
 
 int test_setmm(int argc, char *argv[]) {
@@ -432,10 +429,10 @@ static_block {
 
 int test_one_main(int argc, char *argv[]) {
     if (argc != 2) {
-        cerr << "Provide file name as argument, please" << endl;
+        std::cerr << "Provide file name as argument, please" << std::endl;
         return 1;
     }
-    string filename(argv[1]);
+    std::string filename(argv[1]);
     return test_verification_one(filename, true) ? 0 : 1;
 }
 static_block {
@@ -444,10 +441,10 @@ static_block {
 
 int test_simple_one_main(int argc, char *argv[]) {
     if (argc != 2) {
-        cerr << "Provide file name as argument, please" << endl;
+        std::cerr << "Provide file name as argument, please" << std::endl;
         return 1;
     }
-    string filename(argv[1]);
+    std::string filename(argv[1]);
     return test_verification_one(filename, false) ? 0 : 1;
 }
 static_block {

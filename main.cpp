@@ -8,18 +8,16 @@
 #include "utils/utils.h"
 #include "platform.h"
 
-using namespace std;
-
 bool mmpp_abort = false;
 
 //const string DEFAULT_MAIN_FUNCTION = "mmpp_test_z3";
 //const string DEFAULT_MAIN_FUNCTION = "mmpp_test_setmm";
-const string DEFAULT_MAIN_FUNCTION = "mmpp";
+const std::string DEFAULT_MAIN_FUNCTION = "mmpp";
 
 void list_subcommands() {
-    cout << "Supported subcommands:" << endl;
+    std::cout << "Supported subcommands:" << std::endl;
     for (const auto &subcmd : get_main_functions()) {
-        cout << " * " << subcmd.first << endl;
+        std::cout << " * " << subcmd.first << std::endl;
     }
 }
 
@@ -42,11 +40,11 @@ int main_mmpp(int argc, char *argv[]) {
     if (argc == 1) {
         return main_help(argc, argv);
     }
-    string subcmd(argv[1]);
-    function< int(int, char*[]) > main_func;
+    std::string subcmd(argv[1]);
+    std::function< int(int, char*[]) > main_func;
     try {
         main_func = get_main_functions().at(subcmd);
-    } catch (out_of_range) {
+    } catch (std::out_of_range) {
         list_subcommands();
         return 1;
     }
@@ -59,15 +57,15 @@ static_block {
 int main(int argc, char *argv[]) {
     set_max_ram(4 * 1024 * 1024 * 1024LL);
     boost::filesystem::path exec_path(argv[0]);
-    string bname = exec_path.filename().string();
-    function< int(int, char*[]) > main_func;
+    std::string bname = exec_path.filename().string();
+    std::function< int(int, char*[]) > main_func;
     try {
         main_func = get_main_functions().at(bname);
-    } catch (out_of_range) {
+    } catch (std::out_of_range) {
         // Return a default one
         try {
             main_func = get_main_functions().at(DEFAULT_MAIN_FUNCTION);
-        } catch (out_of_range e) {
+        } catch (std::out_of_range e) {
             list_subcommands();
             return 1;
         }
@@ -76,13 +74,13 @@ int main(int argc, char *argv[]) {
     try {
         return main_func(argc, argv);
     } catch (const MMPPException &e) {
-        cerr << "Dying because of MMPPException with reason '" << e.get_reason() << "'..." << endl;
+        std::cerr << "Dying because of MMPPException with reason '" << e.get_reason() << "'..." << std::endl;
         return 1;
     } catch (const char* &e) {
-        cerr << "Dying because of string exception '" << e << "'..." << endl;
+        std::cerr << "Dying because of string exception '" << e << "'..." << std::endl;
         return 1;
-    } catch (string &e) {
-        cerr << "Dying because of string exception '" << e << "'..." << endl;
+    } catch (std::string &e) {
+        std::cerr << "Dying because of string exception '" << e << "'..." << std::endl;
         return 1;
     }
 }

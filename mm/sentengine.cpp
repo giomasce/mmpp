@@ -7,8 +7,6 @@
 #include "utils/utils.h"
 #include "toolbox.h"
 
-using namespace std;
-
 template< typename Map >
 static Sentence do_subst(const Sentence &sent, const Map &subst_map, const Library &lib) {
     (void) lib;
@@ -21,7 +19,7 @@ static Sentence do_subst(const Sentence &sent, const Map &subst_map, const Libra
         if (it2 == subst_map.end()) {
             new_size += 1;
         } else {
-            const vector< SymTok > &subst = it2->second;
+            const std::vector< SymTok > &subst = it2->second;
             new_size += subst.size() - 1;
         }
     }
@@ -33,7 +31,7 @@ static Sentence do_subst(const Sentence &sent, const Map &subst_map, const Libra
             //assert(lib.is_constant(tok));
             new_sent.push_back(tok);
         } else {
-            const vector< SymTok > &subst = it2->second;
+            const std::vector< SymTok > &subst = it2->second;
             new_sent.insert(new_sent.end(), subst.begin() + 1, subst.end());
         }
     }

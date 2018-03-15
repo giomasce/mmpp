@@ -3,24 +3,23 @@
 
 #include "jsonize.h"
 
-using namespace std;
 using namespace nlohmann;
 
-string fix_htmlcss_for_web(string s)
+std::string fix_htmlcss_for_web(std::string s)
 {
-    string tmp(s);
+    std::string tmp(s);
     tmp = tmp + "\n\n";
     // We need to fix the link to the WOFF
-    tmp = regex_replace(tmp, regex("xits-math.woff"), "woff/xits-math.woff");
+    tmp = regex_replace(tmp, std::regex("xits-math.woff"), "woff/xits-math.woff");
     // We are not providing the additional stylesheets at the moment, so let us avoid a couple of errors
-    tmp = regex_replace(tmp, regex("<LINK [^>]*>"), "");
+    tmp = regex_replace(tmp, std::regex("<LINK [^>]*>"), "");
     return tmp;
 }
 
-vector< string > fix_htmldefs_for_web(const vector< string > &htmldefs) {
-    vector< string > ret;
+std::vector< std::string > fix_htmldefs_for_web(const std::vector< std::string > &htmldefs) {
+    std::vector< std::string > ret;
     for (const auto &elem : htmldefs) {
-        ret.push_back(regex_replace(elem, regex("SRC='"), "SRC='images/symbols/"));
+        ret.push_back(regex_replace(elem, std::regex("SRC='"), "SRC='images/symbols/"));
     }
     return ret;
 }

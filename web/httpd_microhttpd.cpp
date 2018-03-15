@@ -14,13 +14,11 @@
 
 #include "utils/utils.h"
 
-using namespace std;
-
 //#define LOG_MICROHTTPD_REQUESTS
 
 static void microhttpd_panic(void *cls, const char *file, unsigned int line, const char *reason) {
     (void) cls;
-    cout << "Microhttpd panic in " << file << ":" << line << " beacuse of \"" << reason << "\"" << endl;
+    std::cout << "Microhttpd panic in " << file << ":" << line << " beacuse of \"" << reason << "\"" << std::endl;
     abort();
 }
 
@@ -32,7 +30,7 @@ HTTPD_microhttpd::HTTPD_microhttpd(int port, HTTPTarget &target, bool only_from_
 
 void HTTPD_microhttpd::start()
 {
-    unique_lock< mutex > lock(this->daemon_mutex);
+    std::unique_lock< std::mutex > lock(this->daemon_mutex);
     this->daemon = MHD_start_daemon (MHD_USE_THREAD_PER_CONNECTION | MHD_USE_POLL, this->port,
                                      &this->accept_wrapper, this,
                                      &this->answer_wrapper, this,
@@ -40,14 +38,14 @@ void HTTPD_microhttpd::start()
                                      MHD_OPTION_NOTIFY_COMPLETED, &this->cleanup_wrapper, nullptr,
                                      MHD_OPTION_END);
     if (this->daemon == nullptr) {
-        throw string("Could not start httpd daemon");
+        throw std::string("Could not start httpd daemon");
     }
     this->daemon_cv.notify_all();
 }
 
 void HTTPD_microhttpd::stop()
 {
-    unique_lock< mutex > lock(this->daemon_mutex);
+    std::unique_lock< std::mutex > lock(this->daemon_mutex);
     if (this->daemon != nullptr) {
         MHD_stop_daemon (daemon);
         this->daemon = nullptr;
@@ -57,7 +55,7 @@ void HTTPD_microhttpd::stop()
 
 void HTTPD_microhttpd::join()
 {
-    unique_lock< mutex > lock(this->daemon_mutex);
+    std::unique_lock< std::mutex > lock(this->daemon_mutex);
     while (true) {
         if (this->daemon == nullptr) {
             return;
@@ -136,7 +134,7 @@ public:
             this->pos = 0;
             bytes_avail = this->buffer.size();
         }
-        size_t bytes_num = min(max, bytes_avail);
+        size_t bytes_num = std::min(max, bytes_avail);
         memcpy(buf, this->buffer.c_str() + this->pos, bytes_num);
         this->pos += bytes_num;
         this->total_pos += bytes_num;
@@ -144,7 +142,7 @@ public:
     }
 
 private:
-    string buffer;
+    std::string buffer;
     size_t pos;
     size_t total_pos;
     HTTPAnswerer &answerer;
@@ -242,9 +240,9 @@ void HTTPCallback_microhttpd::set_status_code(unsigned int status_code)
     this->send_response = true;
 }
 
-void HTTPCallback_microhttpd::add_header(string header, string content)
+void HTTPCallback_microhttpd::add_header(std::string header, std::string content)
 {
-    this->headers.push_back(make_pair(header, content));
+    this->headers.push_back(std::make_pair(header, content));
 }
 
 void HTTPCallback_microhttpd::set_post_iterator(std::unique_ptr<HTTPPostIterator> &&post_iterator)
@@ -257,9 +255,9 @@ void HTTPCallback_microhttpd::set_answerer(std::unique_ptr< HTTPAnswerer > &&ans
     this->answerer = std::move(answerer);
 }
 
-void HTTPCallback_microhttpd::set_answer(string &&answer)
+void HTTPCallback_microhttpd::set_answer(std::string &&answer)
 {
-    this->answerer = make_unique< HTTPStringAnswerer >(answer);
+    this->answerer = std::make_unique< HTTPStringAnswerer >(answer);
 }
 
 void HTTPCallback_microhttpd::set_size(uint64_t size)
@@ -267,22 +265,22 @@ void HTTPCallback_microhttpd::set_size(uint64_t size)
     this->size = size;
 }
 
-const string &HTTPCallback_microhttpd::get_url()
+const std::string &HTTPCallback_microhttpd::get_url()
 {
     return this->url;
 }
 
-const string &HTTPCallback_microhttpd::get_method()
+const std::string &HTTPCallback_microhttpd::get_method()
 {
     return this->method;
 }
 
-const string &HTTPCallback_microhttpd::get_version()
+const std::string &HTTPCallback_microhttpd::get_version()
 {
     return this->version;
 };
 
-const std::unordered_map<string, string> &HTTPCallback_microhttpd::get_request_headers()
+const std::unordered_map<std::string, std::string> &HTTPCallback_microhttpd::get_request_headers()
 {
     if (!this->req_headers_extracted) {
         this->req_headers_extracted = true;
@@ -291,7 +289,7 @@ const std::unordered_map<string, string> &HTTPCallback_microhttpd::get_request_h
     return this->req_headers;
 }
 
-const std::unordered_map<string, string> &HTTPCallback_microhttpd::get_cookies()
+const std::unordered_map<std::string, std::string> &HTTPCallback_microhttpd::get_cookies()
 {
     if (!this->cookies_extracted) {
         this->cookies_extracted = true;
@@ -305,7 +303,7 @@ unsigned int HTTPCallback_microhttpd::get_status_code() const
     return this->status_code;
 }
 
-const std::vector<std::pair<string, string> > &HTTPCallback_microhttpd::get_headers() const
+const std::vector<std::pair<std::string, std::string> > &HTTPCallback_microhttpd::get_headers() const
 {
     return this->headers;
 }
@@ -320,17 +318,17 @@ bool HTTPCallback_microhttpd::get_send_response() const
     return this->send_response;
 }
 
-void HTTPCallback_microhttpd::set_url(const string &url)
+void HTTPCallback_microhttpd::set_url(const std::string &url)
 {
     this->url = url;
 }
 
-void HTTPCallback_microhttpd::set_method(const string &method)
+void HTTPCallback_microhttpd::set_method(const std::string &method)
 {
     this->method = method;
 }
 
-void HTTPCallback_microhttpd::set_version(const string &version)
+void HTTPCallback_microhttpd::set_version(const std::string &version)
 {
     this->version = version;
 }
@@ -366,7 +364,7 @@ int HTTPCallback_microhttpd::iterator_wrapper(void *cls, MHD_ValueKind kind, con
     (void) kind;
 
     auto map = reinterpret_cast< std::unordered_map< std::string, std::string >* >(cls);
-    (*map)[string(key)] = string(value);
+    (*map)[std::string(key)] = std::string(value);
     return MHD_YES;
 }
 
@@ -375,20 +373,20 @@ int HTTPCallback_microhttpd::post_data_iterator(void *cls, MHD_ValueKind kind, c
     (void) kind;
 
     auto self = reinterpret_cast< HTTPCallback_microhttpd* >(cls);
-    string skey(key);
-    string sfilename;
+    std::string skey(key);
+    std::string sfilename;
     if (filename != nullptr) {
         sfilename = filename;
     }
-    string scontent_type;
+    std::string scontent_type;
     if (content_type != nullptr) {
         scontent_type = content_type;
     }
-    string stransfer_encoding;
+    std::string stransfer_encoding;
     if (transfer_encoding != nullptr) {
         stransfer_encoding = transfer_encoding;
     }
-    string sdata(data, size);
+    std::string sdata(data, size);
     self->get_post_iterator().receive(skey, sfilename, scontent_type, stransfer_encoding, sdata, off);
     return MHD_YES;
 }

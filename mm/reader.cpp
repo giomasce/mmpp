@@ -11,19 +11,16 @@
 #include "utils/utils.h"
 #include "proof.h"
 
-using namespace std;
-using namespace boost::filesystem;
-
 void Reader::run () {
     //cout << "Running the reader" << endl;
     //auto t = tic();
-    pair< bool, string > token_pair;
+    std::pair< bool, std::string > token_pair;
     this->label = 0;
     assert(this->stack.empty());
     this->stack.emplace_back();
     while ((token_pair = this->next_token()).second != "") {
         bool &comment = token_pair.first;
-        string &token = token_pair.second;
+        std::string &token = token_pair.second;
         if (comment) {
             this->process_comment(token);
             continue;
@@ -45,7 +42,7 @@ void Reader::run () {
             // Collect tokens in statement
             while ((token_pair = this->next_token()).second != "$.") {
                 bool &comment = token_pair.first;
-                string &token = token_pair.second;
+                std::string &token = token_pair.second;
                 if (comment) {
                     this->process_comment(token);
                     continue;
@@ -110,7 +107,7 @@ const LibraryImpl &Reader::get_library() const {
     return this->lib;
 }
 
-std::pair<bool, string> Reader::next_token()
+std::pair<bool, std::string> Reader::next_token()
 {
     return this->tg->next();
 }
@@ -164,7 +161,7 @@ void Reader::parse_e()
 {
     assert_or_throw< MMPPParsingError >(this->label != 0, "Missing label in $e statement");
     assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $e statement");
-    vector< SymTok > tmp;
+    std::vector< SymTok > tmp;
     for (auto &stok : this->toks) {
         SymTok tok = this->lib.get_symbol(stok);
         assert_or_throw< MMPPParsingError >(tok != 0, "Symbol in $e statement is not defined");
@@ -186,7 +183,7 @@ void Reader::parse_d()
             SymTok tok2 = this->lib.get_symbol(*it2);
             assert_or_throw< MMPPParsingError >(this->check_var(tok2), "Symbol in $d statement is not a variable");
             assert_or_throw< MMPPParsingError >(tok1 != tok2, "Repeated symbol in $d statement");
-            this->stack.back().dists.insert(minmax(tok1, tok2));
+            this->stack.back().dists.insert(std::minmax(tok1, tok2));
         }
     }
 }
@@ -205,8 +202,8 @@ void Reader::collect_vars_from_proof(std::set<SymTok> &vars, const std::vector<L
     }
 }
 
-set< SymTok > Reader::collect_mand_vars(const std::vector<SymTok> &sent) const {
-    set< SymTok > vars;
+std::set< SymTok > Reader::collect_mand_vars(const std::vector<SymTok> &sent) const {
+    std::set< SymTok > vars;
     this->collect_vars_from_sentence(vars, sent);
     for (auto &frame : this->stack) {
         for (auto &hyp : frame.hyps) {
@@ -218,16 +215,16 @@ set< SymTok > Reader::collect_mand_vars(const std::vector<SymTok> &sent) const {
 
 std::set<SymTok> Reader::collect_opt_vars(const std::vector<LabTok> &proof, const std::set<SymTok> &mand_vars) const
 {
-    set< SymTok > vars;
+    std::set< SymTok > vars;
     this->collect_vars_from_proof(vars, proof);
-    set< SymTok > opt_vars;
-    set_difference(vars.begin(), vars.end(), mand_vars.begin(), mand_vars.end(), inserter(opt_vars, opt_vars.begin()));
+    std::set< SymTok > opt_vars;
+    std::set_difference(vars.begin(), vars.end(), mand_vars.begin(), mand_vars.end(), std::inserter(opt_vars, opt_vars.begin()));
     return opt_vars;
 }
 
 // Here order matters! Be careful!
-pair< vector< LabTok >, vector< LabTok > > Reader::collect_mand_hyps(set< SymTok > vars) const {
-    vector< LabTok > float_hyps, ess_hyps;
+std::pair< std::vector< LabTok >, std::vector< LabTok > > Reader::collect_mand_hyps(std::set< SymTok > vars) const {
+    std::vector< LabTok > float_hyps, ess_hyps;
 
     // Floating hypotheses
     for (auto &frame : this->stack) {
@@ -251,7 +248,7 @@ pair< vector< LabTok >, vector< LabTok > > Reader::collect_mand_hyps(set< SymTok
 
 std::set<LabTok> Reader::collect_opt_hyps(std::set<SymTok> opt_vars) const
 {
-    set< LabTok > ret;
+    std::set< LabTok > ret;
     for (auto &frame : this->stack) {
         for (auto &type : frame.types) {
             const auto &sent = this->lib.get_sentence(type);
@@ -263,8 +260,8 @@ std::set<LabTok> Reader::collect_opt_hyps(std::set<SymTok> opt_vars) const
     return ret;
 }
 
-set< pair< SymTok, SymTok > > Reader::collect_mand_dists(set< SymTok > vars) const {
-    set< pair< SymTok, SymTok > > dists;
+std::set< std::pair< SymTok, SymTok > > Reader::collect_mand_dists(std::set< SymTok > vars) const {
+    std::set< std::pair< SymTok, SymTok > > dists;
     for (auto &frame : this->stack) {
         for (auto &dist : frame.dists) {
             if (vars.find(dist.first) != vars.end() && vars.find(dist.second) != vars.end()) {
@@ -275,10 +272,10 @@ set< pair< SymTok, SymTok > > Reader::collect_mand_dists(set< SymTok > vars) con
     return dists;
 }
 
-set< pair< SymTok, SymTok > > Reader::collect_opt_dists(set< SymTok > opt_vars, set< SymTok > mand_vars) const {
-    set< SymTok > vars;
-    set_union(opt_vars.begin(), opt_vars.end(), mand_vars.begin(), mand_vars.end(), inserter(vars, vars.begin()));
-    set< pair< SymTok, SymTok > > dists;
+std::set< std::pair< SymTok, SymTok > > Reader::collect_opt_dists(std::set< SymTok > opt_vars, std::set< SymTok > mand_vars) const {
+    std::set< SymTok > vars;
+    std::set_union(opt_vars.begin(), opt_vars.end(), mand_vars.begin(), mand_vars.end(), std::inserter(vars, vars.begin()));
+    std::set< std::pair< SymTok, SymTok > > dists;
     for (auto &frame : this->stack) {
         for (auto &dist : frame.dists) {
             if (vars.find(dist.first) != vars.end() && vars.find(dist.second) != vars.end()) {
@@ -296,7 +293,7 @@ void Reader::parse_a()
     // Usual sanity checks and symbol conversion
     assert_or_throw< MMPPParsingError >(this->label != 0, "Missing label in $a statement");
     assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $a statement");
-    vector< SymTok > tmp;
+    std::vector< SymTok > tmp;
     for (auto &stok : this->toks) {
         SymTok tok = this->lib.get_symbol(stok);
         assert_or_throw< MMPPParsingError >(tok != 0, "Symbol in $a statement is not defined");
@@ -307,10 +304,10 @@ void Reader::parse_a()
     this->lib.add_sentence(this->label, tmp, SentenceType::AXIOM);
 
     // Collect things
-    set< SymTok > mand_vars = this->collect_mand_vars(tmp);
-    vector< LabTok > float_hyps, ess_hyps;
-    tie(float_hyps, ess_hyps) = this->collect_mand_hyps(mand_vars);
-    set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
+    std::set< SymTok > mand_vars = this->collect_mand_vars(tmp);
+    std::vector< LabTok > float_hyps, ess_hyps;
+    std::tie(float_hyps, ess_hyps) = this->collect_mand_hyps(mand_vars);
+    std::set< std::pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
 
     // Finally build assertion
     Assertion ass(false, false, mand_dists, {}, float_hyps, ess_hyps, {}, this->label, this->number, this->last_comment);
@@ -324,10 +321,10 @@ void Reader::parse_p()
     // Usual sanity checks and symbol conversion
     assert_or_throw< MMPPParsingError >(this->label != 0, "Missing label in $p statement");
     assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $p statement");
-    vector< SymTok > tmp;
-    vector< LabTok > proof_labels;
-    vector< LabTok > proof_refs;
-    vector< CodeTok > proof_codes;
+    std::vector< SymTok > tmp;
+    std::vector< LabTok > proof_labels;
+    std::vector< LabTok > proof_refs;
+    std::vector< CodeTok > proof_codes;
     CompressedDecoder cd;
     bool in_proof = false;
     int8_t compressed_proof = 0;
@@ -385,29 +382,29 @@ void Reader::parse_p()
     this->lib.add_sentence(this->label, tmp, SentenceType::PROPOSITION);
 
     // Collect things
-    set< SymTok > mand_vars = this->collect_mand_vars(tmp);
-    vector< LabTok > float_hyps, ess_hyps;
-    tie(float_hyps, ess_hyps) = this->collect_mand_hyps(mand_vars);
-    set< pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
-    set< SymTok > opt_vars;
+    std::set< SymTok > mand_vars = this->collect_mand_vars(tmp);
+    std::vector< LabTok > float_hyps, ess_hyps;
+    std::tie(float_hyps, ess_hyps) = this->collect_mand_hyps(mand_vars);
+    std::set< std::pair< SymTok, SymTok > > mand_dists = this->collect_mand_dists(mand_vars);
+    std::set< SymTok > opt_vars;
     if (compressed_proof == -1) {
         opt_vars = this->collect_opt_vars(proof_labels, mand_vars);
     } else if (compressed_proof == 2) {
         opt_vars = this->collect_opt_vars(proof_refs, mand_vars);
     }
-    set< LabTok > opt_hyps = this->collect_opt_hyps(opt_vars);
-    set< pair< SymTok, SymTok > > opt_dists = this->collect_opt_dists(opt_vars, mand_vars);
+    std::set< LabTok > opt_hyps = this->collect_opt_hyps(opt_vars);
+    std::set< std::pair< SymTok, SymTok > > opt_dists = this->collect_opt_dists(opt_vars, mand_vars);
 
     // Finally build assertion and attach proof
     Assertion ass(true, compressed_proof != 3, mand_dists, opt_dists, float_hyps, ess_hyps, opt_hyps, this->label, this->number, this->last_comment);
     this->number++;
     this->last_comment = "";
     if (compressed_proof != 3) {
-        shared_ptr< Proof > proof;
+        std::shared_ptr< Proof > proof;
         if (compressed_proof < 0) {
-            proof = shared_ptr< Proof > (new UncompressedProof(proof_labels));
+            proof = std::make_shared< UncompressedProof > (proof_labels);
         } else {
-            proof = shared_ptr< Proof > (new CompressedProof(proof_refs, proof_codes));
+            proof = std::make_shared< CompressedProof >(proof_refs, proof_codes);
         }
         ass.set_proof(proof);
         auto po = ass.get_proof_operator(this->lib);
@@ -421,7 +418,7 @@ void Reader::parse_p()
     this->lib.add_assertion(this->label, ass);
 }
 
-void Reader::process_comment(const string &comment)
+void Reader::process_comment(const std::string &comment)
 {
     if (this->store_comments) {
         this->last_comment = comment;
@@ -435,9 +432,9 @@ void Reader::process_comment(const string &comment)
             } else {
                 if (found_dollar) {
                     if (c == 't') {
-                        this->t_comment = string(comment.begin()+i+1, comment.end());
+                        this->t_comment = std::string(comment.begin()+i+1, comment.end());
                     } else if (c == 'j') {
-                        this->j_comment += string(comment.begin()+i+1, comment.end());
+                        this->j_comment += std::string(comment.begin()+i+1, comment.end());
                     }
                     return;
                 } else {
@@ -450,9 +447,9 @@ void Reader::process_comment(const string &comment)
     }
 }
 
-static string escape_string_literal(string s) {
+static std::string escape_string_literal(std::string s) {
     bool escape = false;
-    vector< char > ret;
+    std::vector< char > ret;
     for (char c : s) {
         if (escape) {
             if (c == 'n') {
@@ -474,20 +471,20 @@ static string escape_string_literal(string s) {
     if (escape) {
         throw MMPPParsingError("Broken escape sequence");
     }
-    return string(ret.begin(), ret.end());
+    return std::string(ret.begin(), ret.end());
 }
 
-static string decode_string(vector< pair< bool, string > >::const_iterator begin, vector< pair< bool, string > >::const_iterator end, bool escape=false) {
+static std::string decode_string(std::vector< std::pair< bool, std::string > >::const_iterator begin, std::vector< std::pair< bool, std::string > >::const_iterator end, bool escape=false) {
     assert_or_throw< MMPPParsingError >(distance(begin, end) >= 1);
     assert_or_throw< MMPPParsingError >(distance(begin, end) % 2 == 1);
     for (size_t i = 1; i < (size_t) distance(begin, end); i += 2) {
         assert_or_throw< MMPPParsingError >(!(begin+i)->first, "Malformed string in $t comment");
         assert_or_throw< MMPPParsingError >((begin+i)->second == "+", "Malformed string in $t comment");
     }
-    string value;
-    for (size_t i = 0; i < (size_t) distance(begin, end); i += 2) {
+    std::string value;
+    for (size_t i = 0; i < (size_t) std::distance(begin, end); i += 2) {
         assert_or_throw< MMPPParsingError >((begin+i)->first, "Malformed string in $t comment");
-        string tmp = (begin+i)->second;
+        std::string tmp = (begin+i)->second;
         if (escape) {
             tmp = escape_string_literal(tmp);
         }
@@ -496,14 +493,14 @@ static string decode_string(vector< pair< bool, string > >::const_iterator begin
     return value;
 }
 
-void Reader::parse_j_code(const std::vector<std::vector<std::pair<bool, string> > > &code)
+void Reader::parse_j_code(const std::vector<std::vector<std::pair<bool, std::string> > > &code)
 {
     ParsingAddendumImpl add;
     this->lib.set_parsing_addendum(add);
     for (auto &tokens : code) {
         assert_or_throw< MMPPParsingError >(tokens.size() > 0, "empty instruction in $j comment");
         assert_or_throw< MMPPParsingError >(!tokens.at(0).first, "instruction in $j comment begins with a string");
-        const string &command = tokens.at(0).second;
+        const std::string &command = tokens.at(0).second;
         if (command == "syntax") {
             assert_or_throw< MMPPParsingError >(tokens.size() >= 2, "syntax instruction in $j comment with wrong length");
             assert_or_throw< MMPPParsingError >(tokens.at(1).first, "malformed syntax instruction in $j comment");
@@ -538,7 +535,7 @@ void Reader::parse_j_code(const std::vector<std::vector<std::pair<bool, string> 
     this->lib.set_parsing_addendum(add);
 }
 
-void Reader::parse_t_code(const vector< vector< pair< bool, string > > > &code) {
+void Reader::parse_t_code(const std::vector< std::vector< std::pair< bool, std::string > > > &code) {
     LibraryAddendumImpl add;
     for (auto &tokens : code) {
         assert_or_throw< MMPPParsingError >(tokens.size() > 0, "empty instruction in $t comment");
@@ -584,17 +581,17 @@ void Reader::parse_t_code(const vector< vector< pair< bool, string > > > &code) 
             assert_or_throw< MMPPParsingError >(!tokens.at(2).first, "malformed *def instruction in $t comment");
             assert_or_throw< MMPPParsingError >(tokens.at(3).first, "malformed *def instruction in $t comment");
             assert_or_throw< MMPPParsingError >(tokens.at(2).second == "as", "malformed *def instruction in $t comment");
-            string value = decode_string(tokens.begin() + 3, tokens.end());
+            std::string value = decode_string(tokens.begin() + 3, tokens.end());
             SymTok tok = this->lib.get_symbol(tokens.at(1).second);
             assert_or_throw< MMPPParsingError >(tok != 0, "unknown symbol in *def instruction in $t comment");
             if (deftype == 1) {
-                add.htmldefs.resize(max(add.htmldefs.size(), (size_t) tok+1));
+                add.htmldefs.resize(std::max(add.htmldefs.size(), (size_t) tok+1));
                 add.htmldefs[tok] = value;
             } else if (deftype == 2) {
-                add.althtmldefs.resize(max(add.althtmldefs.size(), (size_t) tok+1));
+                add.althtmldefs.resize(std::max(add.althtmldefs.size(), (size_t) tok+1));
                 add.althtmldefs[tok] = value;
             } else if (deftype == 3) {
-                add.latexdefs.resize(max(add.latexdefs.size(), (size_t) tok+1));
+                add.latexdefs.resize(std::max(add.latexdefs.size(), (size_t) tok+1));
                 add.latexdefs[tok] = value;
             }
         }
@@ -602,7 +599,7 @@ void Reader::parse_t_code(const vector< vector< pair< bool, string > > > &code) 
     this->lib.set_addendum(add);
 }
 
-std::vector<std::vector<std::pair<bool, std::string> > > Reader::parse_comment(const string &comment)
+std::vector<std::vector<std::pair<bool, std::string> > > Reader::parse_comment(const std::string &comment)
 {
     // 0 -> normal
     // 1 -> comment
@@ -614,20 +611,20 @@ std::vector<std::vector<std::pair<bool, std::string> > > Reader::parse_comment(c
     // 7 -> wait $
     // 8 -> skip one char
     uint8_t state = 0;
-    vector< vector< pair< bool, string > > > code;
-    vector< pair< bool, string > > tokens;
-    vector< char > token;
+    std::vector< std::vector< std::pair< bool, std::string > > > code;
+    std::vector< std::pair< bool, std::string > > tokens;
+    std::vector< char > token;
     for (char c : comment) {
         if (state == 0) {
             state0:
             if (is_mm_whitespace(c)) {
                 if (token.size() > 0) {
-                    tokens.push_back(make_pair(false, string(token.begin(), token.end())));
+                    tokens.push_back(std::make_pair(false, std::string(token.begin(), token.end())));
                     token.clear();
                 }
             } else if (c == ';') {
                 if (token.size() > 0) {
-                    tokens.push_back(make_pair(false, string(token.begin(), token.end())));
+                    tokens.push_back(std::make_pair(false, std::string(token.begin(), token.end())));
                     token.clear();
                 }
                 code.push_back(tokens);
@@ -649,7 +646,7 @@ std::vector<std::vector<std::pair<bool, std::string> > > Reader::parse_comment(c
             }
         } else if (state == 2) {
             if (c == '"') {
-                tokens.push_back(make_pair(true, string(token.begin(), token.end())));
+                tokens.push_back(make_pair(true, std::string(token.begin(), token.end())));
                 token.clear();
                 state = 6;
             } else {
@@ -657,7 +654,7 @@ std::vector<std::vector<std::pair<bool, std::string> > > Reader::parse_comment(c
             }
         } else if (state == 3) {
             if (c == '\'') {
-                tokens.push_back(make_pair(true, string(token.begin(), token.end())));
+                tokens.push_back(make_pair(true, std::string(token.begin(), token.end())));
                 token.clear();
                 state = 6;
             } else {
@@ -706,13 +703,13 @@ std::vector<std::vector<std::pair<bool, std::string> > > Reader::parse_comment(c
     return code;
 }
 
-void Reader::parse_t_comment(const string &comment)
+void Reader::parse_t_comment(const std::string &comment)
 {
     auto code = this->parse_comment(comment);
     this->parse_t_code(code);
 }
 
-void Reader::parse_j_comment(const string &comment)
+void Reader::parse_j_comment(const std::string &comment)
 {
     auto code = this->parse_comment(comment);
     this->parse_j_code(code);

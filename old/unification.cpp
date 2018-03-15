@@ -8,23 +8,21 @@
 
 //#define OLD_UNIFICATION_VERBOSE
 
-using namespace std;
-
 // This algorithm is probably not terribly efficient
-static void unify_old_internal(vector<SymTok>::const_iterator sent_cur, vector<SymTok>::const_iterator sent_end,
-                           vector<SymTok>::const_iterator templ_cur, vector<SymTok>::const_iterator templ_end,
-                           const Library &lib, bool allow_empty, unordered_map< SymTok, vector< SymTok > > &current_match,
-                           vector< unordered_map< SymTok, vector< SymTok > > > &matches) {
+static void unify_old_internal(std::vector<SymTok>::const_iterator sent_cur, std::vector<SymTok>::const_iterator sent_end,
+                           std::vector<SymTok>::const_iterator templ_cur, std::vector<SymTok>::const_iterator templ_end,
+                           const Library &lib, bool allow_empty, std::unordered_map< SymTok, std::vector< SymTok > > &current_match,
+                           std::vector< std::unordered_map< SymTok, std::vector< SymTok > > > &matches) {
 #ifdef OLD_UNIFICATION_VERBOSE
-    cerr << "Entering unify_internal(" << (sent_cur != sent_end ? *sent_cur : -1) <<", .., " << (templ_cur != templ_end ? *templ_cur : -1) << ", .., .., " << allow_empty << ", .., ..)" << endl;
+    std::cerr << "Entering unify_internal(" << (sent_cur != sent_end ? *sent_cur : -1) <<", .., " << (templ_cur != templ_end ? *templ_cur : -1) << ", .., .., " << allow_empty << ", .., ..)" << std::endl;
 #endif
     if (templ_cur == templ_end) {
 #ifdef OLD_UNIFICATION_VERBOSE
-        cerr << "Reached template end" << endl;
+        std::cerr << "Reached template end" << std::endl;
 #endif
         if (sent_cur == sent_end) {
 #ifdef OLD_UNIFICATION_VERBOSE
-            cerr << "Found match" << endl;
+            std::cerr << "Found match" << std::endl;
 #endif
             matches.push_back(current_match);
         }
@@ -35,12 +33,12 @@ static void unify_old_internal(vector<SymTok>::const_iterator sent_cur, vector<S
             // Easy case: the token is a constant
             if (sent_cur != sent_end && cur_tok == *sent_cur) {
 #ifdef OLD_UNIFICATION_VERBOSE
-                cerr << "Token is a constant, which matched" << endl;
+                std::cerr << "Token is a constant, which matched" << std::endl;
 #endif
                 unify_old_internal(sent_cur+1, sent_end, templ_cur+1, templ_end, lib, allow_empty, current_match, matches);
             } else {
 #ifdef OLD_UNIFICATION_VERBOSE
-                cerr << "Token is a constant, which did not match" << endl;
+                std::cerr << "Token is a constant, which did not match" << std::endl;
 #endif
             }
         } else {
@@ -49,9 +47,9 @@ static void unify_old_internal(vector<SymTok>::const_iterator sent_cur, vector<S
             if (subs == current_match.end()) {
                 // Worst case: the variable has not been bound yet, so we have to spawn all possible bindings
 #ifdef OLD_UNIFICATION_VERBOSE
-                cerr << "Token is a new variable" << endl;
+                std::cerr << "Token is a new variable" << std::endl;
 #endif
-                vector< SymTok > match;
+                std::vector< SymTok > match;
                 for (auto i = 0; i <= distance(sent_cur, sent_end); i++) {
                     if (i > 0 || allow_empty) {
                         auto this_it = current_match.insert(make_pair(cur_tok, match));
@@ -65,16 +63,16 @@ static void unify_old_internal(vector<SymTok>::const_iterator sent_cur, vector<S
                 }
             } else {
                 // Not-so-bad case: the variable has already been bound, wo we just have to check the binding
-                vector< SymTok > &match = subs->second;
+                std::vector< SymTok > &match = subs->second;
                 auto len = match.size();
                 if (distance(sent_cur, sent_end) >= (unsigned int) len && equal(match.begin(), match.end(), sent_cur)) {
 #ifdef OLD_UNIFICATION_VERBOSE
-                    cerr << "Token is an old variable, which matched" << endl;
+                    std::cerr << "Token is an old variable, which matched" << std::endl;
 #endif
                     unify_old_internal(sent_cur+len, sent_end, templ_cur+1, templ_end, lib, allow_empty, current_match, matches);
                 } else {
 #ifdef OLD_UNIFICATION_VERBOSE
-                    cerr << "Token is an old variable, which did not match" << endl;
+                    std::cerr << "Token is an old variable, which did not match" << std::endl;
 #endif
                 }
             }
@@ -89,8 +87,8 @@ static void unify_old_internal(vector<SymTok>::const_iterator sent_cur, vector<S
  * algorithm on much less sentences in the library. After quick measurements, it seems that there is
  * a noticeable (~ 30%) speedup on simple sentences and an order-of-magnitude one on complex sentences.
  */
-static bool unify_old_internal_quick(vector<SymTok>::const_iterator sent_cur, vector<SymTok>::const_iterator sent_end,
-                                 vector<SymTok>::const_iterator templ_cur, vector<SymTok>::const_iterator templ_end,
+static bool unify_old_internal_quick(std::vector<SymTok>::const_iterator sent_cur, std::vector<SymTok>::const_iterator sent_end,
+                                 std::vector<SymTok>::const_iterator templ_cur, std::vector<SymTok>::const_iterator templ_end,
                                  const Library &lib) {
     while (templ_cur != templ_end) {
         if (!lib.is_constant(*templ_cur)) {
@@ -116,8 +114,8 @@ static bool unify_old_internal_quick(vector<SymTok>::const_iterator sent_cur, ve
 
 std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > unify_old(const std::vector<SymTok> &sent, const std::vector<SymTok> &templ, const Library &lib, bool allow_empty)
 {
-    vector< unordered_map< SymTok, vector< SymTok > > > matches;
-    unordered_map< SymTok, vector< SymTok > > current_match;
+    std::vector< std::unordered_map< SymTok, std::vector< SymTok > > > matches;
+    std::unordered_map< SymTok, std::vector< SymTok > > current_match;
     if (unify_old_internal_quick(sent.begin(), sent.end(), templ.begin(), templ.end(), lib)) {
         unify_old_internal(sent.begin(), sent.end(), templ.begin(), templ.end(), lib, allow_empty, current_match, matches);
     }

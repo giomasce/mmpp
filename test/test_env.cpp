@@ -5,22 +5,20 @@
 #include "platform.h"
 #include "utils/utils.h"
 
-using namespace std;
-
 TestEnvironmentInner::TestEnvironmentInner(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename)
 {
-    cout << "Reading database from file " << filename << " using cache in file " << cache_filename << endl;
+    std::cout << "Reading database from file " << filename << " using cache in file " << cache_filename << std::endl;
     TextProgressBar tpb;
     FileTokenizer ft(filename, &tpb);
     Reader p(ft, false, true);
     p.run();
     tpb.finished();
     this->lib = new LibraryImpl(p.get_library());
-    shared_ptr< ToolboxCache > cache = make_shared< FileToolboxCache >(cache_filename);
-    cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_used_ram()) << endl;
+    std::shared_ptr< ToolboxCache > cache = std::make_shared< FileToolboxCache >(cache_filename);
+    std::cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_used_ram()) << std::endl;
     this->tb = new LibraryToolbox(*this->lib, "|-", cache);
-    cout << "Memory usage after creating the toolbox: " << size_to_string(platform_get_current_used_ram()) << endl;
-    cout << "The library has " << this->lib->get_symbols_num() << " symbols and " << this->lib->get_labels_num() << " labels" << endl << endl;
+    std::cout << "Memory usage after creating the toolbox: " << size_to_string(platform_get_current_used_ram()) << std::endl;
+    std::cout << "The library has " << this->lib->get_symbols_num() << " symbols and " << this->lib->get_labels_num() << " labels" << std::endl << std::endl;
 }
 
 TestEnvironmentInner::~TestEnvironmentInner() {
@@ -34,7 +32,7 @@ TestEnvironment::TestEnvironment(const boost::filesystem::path &filename, const 
 }
 
 const TestEnvironment &get_set_mm() {
-    cout << "Base resource directory is: " << platform_get_resources_base() << endl;
+    //std::cout << "Base resource directory is: " << platform_get_resources_base() << std::endl;
     static TestEnvironment data(platform_get_resources_base() / "set.mm", platform_get_resources_base() / "set.mm.cache");
     return data;
 }

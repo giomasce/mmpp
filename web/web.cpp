@@ -15,32 +15,31 @@
 #include "web.h"
 #include "platform.h"
 
-using namespace std;
 using namespace nlohmann;
 
 const bool SERVE_STATIC_FILES = true;
 const bool PUBLICLY_SERVE_STATIC_FILES = true;
 
-mt19937 rand_mt;
+std::mt19937 rand_mt;
 
 void init_random() {
-    random_device rand_dev;
+    std::random_device rand_dev;
     rand_mt.seed(rand_dev());
 }
 
-string generate_id() {
+std::string generate_id() {
     int len = 100;
-    vector< char > id(len);
-    uniform_int_distribution< int > dist('a', 'z');
+    std::vector< char > id(len);
+    std::uniform_int_distribution< int > dist('a', 'z');
     for (int i = 0; i < len; i++) {
         id[i] = static_cast< char >(dist(rand_mt));
     }
-    return string(id.begin(), id.end());
+    return std::string(id.begin(), id.end());
 }
 
-unique_ptr< HTTPD > make_server(int port, WebEndpoint &endpoint, bool open_server) {
+std::unique_ptr< HTTPD > make_server(int port, WebEndpoint &endpoint, bool open_server) {
 #if defined(USE_MICROHTTPD)
-    return make_unique< HTTPD_microhttpd >(port, endpoint, !open_server);
+    return std::make_unique< HTTPD_microhttpd >(port, endpoint, !open_server);
 #else
     // If no HTTP implementation is provided, we return nullptr
     (void) port;
@@ -59,17 +58,17 @@ int webmmpp_main_common(int argc, char *argv[], bool open_server) {
 
     int port = 8888;
     WebEndpoint endpoint(port, open_server);
-    unique_ptr< HTTPD > httpd = make_server(port, endpoint, open_server);
+    std::unique_ptr< HTTPD > httpd = make_server(port, endpoint, open_server);
     if (httpd == nullptr) {
-        cerr << "Could not build an HTTP server, exiting" << endl;
+        std::cerr << "Could not build an HTTP server, exiting" << std::endl;
         return 1;
     }
 
     if (open_server) {
         // The session is already available, but it is constant; we need to populate it with some content
-        shared_ptr< Session > session = endpoint.get_guest_session();
-        shared_ptr< Workset > workset;
-        tie(ignore, workset) = session->create_workset();
+        std::shared_ptr< Session > session = endpoint.get_guest_session();
+        std::shared_ptr< Workset > workset;
+        std::tie(std::ignore, workset) = session->create_workset();
         workset->set_name("Default workset");
         workset->load_library(platform_get_resources_base() / "set.mm", platform_get_resources_base() / "set.mm.cache", "|-");
     }
@@ -78,23 +77,23 @@ int webmmpp_main_common(int argc, char *argv[], bool open_server) {
 
     if (!open_server) {
         // Generate a session and pass it to the browser
-        string ticket_id = endpoint.create_session_and_ticket();
-        string browser_url = "http://127.0.0.1:" + to_string(port) + "/ticket/" + ticket_id;
+        std::string ticket_id = endpoint.create_session_and_ticket();
+        std::string browser_url = "http://127.0.0.1:" + std::to_string(port) + "/ticket/" + ticket_id;
         platform_open_browser(browser_url);
-        cout << "A browser session was spawned; if you cannot see it, go to " << browser_url << endl;
+        std::cout << "A browser session was spawned; if you cannot see it, go to " << browser_url << std::endl;
     }
 
     auto new_session_callback = [&endpoint,port]() {
-        string ticket_id = endpoint.create_session_and_ticket();
-        string browser_url = "http://127.0.0.1:" + to_string(port) + "/ticket/" + ticket_id;
-        cout << "New session created; please visit " << browser_url << endl;
+        std::string ticket_id = endpoint.create_session_and_ticket();
+        std::string browser_url = "http://127.0.0.1:" + std::to_string(port) + "/ticket/" + ticket_id;
+        std::cout << "New session created; please visit " << browser_url << std::endl;
     };
 
     platform_webmmpp_main_loop(new_session_callback);
-    cerr << "Stopping webserver..." << endl;
+    std::cerr << "Stopping webserver..." << std::endl;
     httpd->stop();
     httpd->join();
-    cerr << "Webserver stopped, will now exit" << endl;
+    std::cerr << "Webserver stopped, will now exit" << std::endl;
 
     return 0;
 }
@@ -118,7 +117,7 @@ WebEndpoint::WebEndpoint(int port, bool enable_guest_session) :
 {
 }
 
-vector< pair< string, string > > content_types = {
+std::vector< std::pair< std::string, std::string > > content_types = {
     { "css", "text/css" },
     { "gif", "image/gif" },
     { "htm", "text/html" },
@@ -133,7 +132,7 @@ vector< pair< string, string > > content_types = {
     { "svg", "image/svg+xml" },
     { "woff", "application/font-woff" },
 };
-string guess_content_type(string url) {
+std::string guess_content_type(std::string url) {
     for (const auto &pair : content_types) {
         if (url.size() >= pair.first.size() && equal(pair.first.rbegin(), pair.first.rend(), url.rbegin())) {
             return pair.second;
@@ -145,13 +144,13 @@ string guess_content_type(string url) {
 void WebEndpoint::answer(HTTPCallback &cb)
 {
     // Receive session ticket
-    string cookie_name = "mmpp_session_id";
-    string ticket_url = "/ticket/";
-    const string &url = cb.get_url();
-    const string &method = cb.get_method();
+    std::string cookie_name = "mmpp_session_id";
+    std::string ticket_url = "/ticket/";
+    const std::string &url = cb.get_url();
+    const std::string &method = cb.get_method();
     if (method == "GET" && starts_with(url, ticket_url)) {
-        unique_lock< mutex > lock(this->sessions_mutex);
-        string ticket = string(url.begin() + ticket_url.size(), url.end());
+        std::unique_lock< std::mutex > lock(this->sessions_mutex);
+        std::string ticket = std::string(url.begin() + ticket_url.size(), url.end());
         if (this->session_tickets.find(ticket) != this->session_tickets.end()) {
             // The ticket is valid, we set the session and remove the ticket
             cb.add_header("Set-Cookie", cookie_name + "=" + this->session_tickets.at(ticket) + "; path=/; httponly");
@@ -170,13 +169,13 @@ void WebEndpoint::answer(HTTPCallback &cb)
     }
 
     // Check auth cookie and recover session; at this point we allow a nullptr session if we are publicly serving static files
-    string session_cookie;
+    std::string session_cookie;
     try {
         session_cookie = cb.get_cookies().at(cookie_name);
-    } catch (out_of_range) {
+    } catch (std::out_of_range) {
         session_cookie = "";
     }
-    shared_ptr< Session > session = this->get_session(session_cookie);
+    std::shared_ptr< Session > session = this->get_session(session_cookie);
     if (!PUBLICLY_SERVE_STATIC_FILES && session == nullptr) {
         cb.set_status_code(403);
         cb.add_header("Content-Type", "text/plain");
@@ -187,10 +186,10 @@ void WebEndpoint::answer(HTTPCallback &cb)
     // Serve static files
     // TODO This is not the greatest static file server ever...
     if (SERVE_STATIC_FILES) {
-        string static_url = "/static/";
+        std::string static_url = "/static/";
         boost::filesystem::path static_dir = boost::filesystem::canonical(platform_get_resources_base() / "static");
         if (method == "GET" && starts_with(url, static_url)) {
-            boost::filesystem::path filename = platform_get_resources_base() / string(url.begin(), url.end());
+            boost::filesystem::path filename = platform_get_resources_base() / std::string(url.begin(), url.end());
             // First we have to check if the file exists, because canonical() requires it
             if (!boost::filesystem::exists(filename)) {
                 cb.set_status_code(404);
@@ -215,7 +214,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
                 return;
             }
             // Ok, we are cleared to send the file
-            auto infile = make_shared< boost::filesystem::ifstream >(filename, ios::binary);
+            auto infile = std::make_shared< boost::filesystem::ifstream >(filename, std::ios::binary);
             if (!(*infile)) {
                 cb.set_status_code(404);
                 cb.add_header("Content-Type", "text/plain");
@@ -234,7 +233,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
                 return;
             }
             cb.set_answer(move(content));*/
-            cb.set_answerer(make_unique< HTTPFileAnswerer >(infile));
+            cb.set_answerer(std::make_unique< HTTPFileAnswerer >(infile));
             return;
         }
     }
@@ -256,7 +255,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
     }
 
     // Expose API version
-    string api_version_url = "/api/version";
+    std::string api_version_url = "/api/version";
     if (url == api_version_url) {
         json res;
         res["application"] = "mmpp";
@@ -270,23 +269,23 @@ void WebEndpoint::answer(HTTPCallback &cb)
 
     // Backdoor for easily creating tickets (only enable on test builds)
     if (false) {
-        string api_create_ticket = "/api/create_ticket";
+        std::string api_create_ticket = "/api/create_ticket";
         if (url == api_create_ticket) {
             cb.add_header("Content-Type", "text/plain");
             cb.set_status_code(200);
-            string ticket_id = this->create_session_and_ticket();
-            string browser_url = "http://127.0.0.1:" + to_string(this->port) + "/ticket/" + ticket_id;
+            std::string ticket_id = this->create_session_and_ticket();
+            std::string browser_url = "http://127.0.0.1:" + std::to_string(this->port) + "/ticket/" + ticket_id;
             cb.set_answer(move(browser_url));
             return;
         }
     }
 
     // Serve API requests
-    string api_url = "/api/1/";
+    std::string api_url = "/api/1/";
     if (starts_with(url, api_url)) {
         boost::char_separator< char > sep("/");
         boost::tokenizer< boost::char_separator< char > > tokens(url.begin() + api_url.size(), url.end(), sep);
-        const vector< string > path(tokens.begin(), tokens.end());
+        const std::vector< std::string > path(tokens.begin(), tokens.end());
         try {
             json res = session->answer_api1(cb, path.begin(), path.end());
             cb.add_header("Content-Type", "application/json");
@@ -296,7 +295,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
         } catch (SendError se) {
             cb.add_header("Content-Type", "text/plain");
             cb.set_status_code(se.get_status_code());
-            cb.set_answer(to_string(se.get_status_code()) + " " + se.get_descr());
+            cb.set_answer(std::to_string(se.get_status_code()) + " " + se.get_descr());
             return;
         } catch (WaitForPost wfp) {
             auto callback = [wfp,&cb] (const auto &post_data) {
@@ -308,11 +307,11 @@ void WebEndpoint::answer(HTTPCallback &cb)
                 } catch (SendError se) {
                     cb.add_header("Content-Type", "text/plain");
                     cb.set_status_code(se.get_status_code());
-                    cb.set_answer(to_string(se.get_status_code()) + " " + se.get_descr());
+                    cb.set_answer(std::to_string(se.get_status_code()) + " " + se.get_descr());
                 }
             };
             std::function< void(const std::unordered_map< std::string, PostItem >&) > cb2 = callback;
-            cb.set_post_iterator(make_unique< HTTPSimplePostIterator >(cb2));
+            cb.set_post_iterator(std::make_unique< HTTPSimplePostIterator >(cb2));
             return;
         }
     }
@@ -328,22 +327,22 @@ std::shared_ptr<Session> WebEndpoint::get_guest_session()
     return this->guest_session;
 }
 
-string WebEndpoint::create_session_and_ticket()
+std::string WebEndpoint::create_session_and_ticket()
 {
-    unique_lock< mutex > lock(this->sessions_mutex);
-    string session_id = generate_id();
-    string ticket_id = generate_id();
+    std::unique_lock< std::mutex > lock(this->sessions_mutex);
+    std::string session_id = generate_id();
+    std::string ticket_id = generate_id();
     this->session_tickets[ticket_id] = session_id;
     this->sessions[session_id] = Session::create();
     return ticket_id;
 }
 
-shared_ptr< Session > WebEndpoint::get_session(string session_id)
+std::shared_ptr< Session > WebEndpoint::get_session(std::string session_id)
 {
-    unique_lock< mutex > lock(this->sessions_mutex);
+    std::unique_lock< std::mutex > lock(this->sessions_mutex);
     try {
         return this->sessions.at(session_id);
-    } catch(out_of_range) {
+    } catch(std::out_of_range) {
         return this->guest_session;
     }
 }
@@ -352,7 +351,7 @@ Session::Session(bool constant) : constant(constant), new_id(0)
 {
 }
 
-json Session::answer_api1(HTTPCallback &cb, vector< string >::const_iterator path_begin, vector< string >::const_iterator path_end)
+json Session::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end)
 {
     if (path_begin != path_end && *path_begin == "workset") {
         path_begin++;
@@ -372,10 +371,10 @@ json Session::answer_api1(HTTPCallback &cb, vector< string >::const_iterator pat
         } else {
             size_t id = safe_stoi(*path_begin);
             path_begin++;
-            shared_ptr< Workset > workset;
+            std::shared_ptr< Workset > workset;
             try {
                 workset = this->get_workset(id);
-            } catch (out_of_range) {
+            } catch (std::out_of_range) {
                 throw SendError(404);
             }
             return workset->answer_api1(cb, path_begin, path_end);
@@ -390,18 +389,18 @@ bool Session::is_constant() {
 
 std::pair<size_t, std::shared_ptr<Workset> > Session::create_workset()
 {
-    unique_lock< mutex > lock(this->worksets_mutex);
+    std::unique_lock< std::mutex > lock(this->worksets_mutex);
     size_t id = this->new_id;
     this->new_id++;
     auto workset = Workset::create(this->weak_from_this());
-    workset->set_name("Workset " + to_string(id + 1));
+    workset->set_name("Workset " + std::to_string(id + 1));
     this->worksets[id] = workset;
     return { id, this->worksets.at(id) };
 }
 
 bool Session::destroy_workset(std::shared_ptr<Workset> workset)
 {
-    unique_lock< mutex > lock(this->worksets_mutex);
+    std::unique_lock< std::mutex > lock(this->worksets_mutex);
     auto it = find_if(this->worksets.begin(), this->worksets.end(), [&workset](const auto &x) { return x.second == workset; });
     if (it != this->worksets.end()) {
         this->worksets.erase(it);
@@ -413,13 +412,13 @@ bool Session::destroy_workset(std::shared_ptr<Workset> workset)
 
 std::shared_ptr<Workset> Session::get_workset(size_t id)
 {
-    unique_lock< mutex > lock(this->worksets_mutex);
+    std::unique_lock< std::mutex > lock(this->worksets_mutex);
     return this->worksets.at(id);
 }
 
 json Session::json_list_worksets()
 {
-    unique_lock< mutex > lock(this->worksets_mutex);
+    std::unique_lock< std::mutex > lock(this->worksets_mutex);
     json ret;
     for (size_t i = 0; i < this->worksets.size(); i++) {
         json tmp;
@@ -430,10 +429,10 @@ json Session::json_list_worksets()
     return ret;
 }
 
-int safe_stoi(const string &s)
+int safe_stoi(const std::string &s)
 {
     try {
-        return stoi(s);
+        return std::stoi(s);
     } catch (std::invalid_argument) {
         throw SendError(404);
     } catch (std::out_of_range) {

@@ -11,21 +11,19 @@
 #include "parsing/unif.h"
 #include "utils/utils.h"
 
-using namespace std;
-
 void print_parsing_tree(const ParsingTree< SymTok, LabTok > &pt) {
     bool first = true;
     for (const auto &child : pt.children) {
         if (!first) {
-            cout << " ";
+            std::cout << " ";
         }
         print_parsing_tree(child);
         first = false;
     }
     if (!first) {
-        cout << " ";
+        std::cout << " ";
     }
-    cout << pt.children.size() << " " << pt.label;
+    std::cout << pt.children.size() << " " << pt.label;
 }
 
 void print_trace(const ProofTree< Sentence > &pt, const LibraryToolbox &tb, const Assertion &ass) {
@@ -39,17 +37,17 @@ void print_trace(const ProofTree< Sentence > &pt, const LibraryToolbox &tb, cons
     auto it = find(ass.get_ess_hyps().begin(), ass.get_ess_hyps().end(), pt.label);
     auto parsing_tree = tb.parse_sentence(pt.sentence.begin()+1, pt.sentence.end(), tb.get_turnstile_alias());
     if (it == ass.get_ess_hyps().end()) {
-        cout << "# " << essentials_num << " " << tb.resolve_label(pt.label) << " " << tb.print_sentence(pt.sentence, SentencePrinter::STYLE_PLAIN) << endl;
-        //cout << essentials_num << " " << pt.label << " " << tb.print_sentence(pt.sentence, SentencePrinter::STYLE_NUMBERS) << endl;
-        cout << essentials_num << " " << pt.label << " ";
+        std::cout << "# " << essentials_num << " " << tb.resolve_label(pt.label) << " " << tb.print_sentence(pt.sentence, SentencePrinter::STYLE_PLAIN) << std::endl;
+        //std::cout << essentials_num << " " << pt.label << " " << tb.print_sentence(pt.sentence, SentencePrinter::STYLE_NUMBERS) << std::endl;
+        std::cout << essentials_num << " " << pt.label << " ";
         print_parsing_tree(parsing_tree);
-        cout << endl;
+        std::cout << std::endl;
     } else {
-        cout << "# 0 _hyp" << (it - ass.get_ess_hyps().begin()) << " " << tb.print_sentence(pt.sentence, SentencePrinter::STYLE_PLAIN) << endl;
-        //cout << "0 0 " << tb.print_sentence(pt.sentence, SentencePrinter::STYLE_NUMBERS) << endl;
-        cout << "0 0 ";
+        std::cout << "# 0 _hyp" << (it - ass.get_ess_hyps().begin()) << " " << tb.print_sentence(pt.sentence, SentencePrinter::STYLE_PLAIN) << std::endl;
+        //std::cout << "0 0 " << tb.print_sentence(pt.sentence, SentencePrinter::STYLE_NUMBERS) << std::endl;
+        std::cout << "0 0 ";
         print_parsing_tree(parsing_tree);
-        cout << endl;
+        std::cout << std::endl;
     }
 }
 
@@ -80,14 +78,14 @@ struct ProofStat {
     size_t ess_hyp_steps = 0;
 };
 
-ostream &operator<<(ostream &os, const ProofStat &stat) {
+std::ostream &operator<<(std::ostream &os, const ProofStat &stat) {
     return os << stat.proof_size << " " << stat.ess_proof_size << " " << stat.ess_hyp_num << " " << stat.ess_hyp_steps;
 }
 
 struct StepContext {
     ParsingTree2< SymTok, LabTok > thesis;
-    vector< ParsingTree2< SymTok, LabTok > > hypotheses;
-    set< pair< LabTok, LabTok > > dists;
+    std::vector< ParsingTree2< SymTok, LabTok > > hypotheses;
+    std::set< std::pair< LabTok, LabTok > > dists;
 };
 
 namespace boost {
@@ -107,10 +105,10 @@ struct hash< StepContext > {
 
 struct StepProof {
     LabTok label;
-    vector< StepContext > children;
+    std::vector< StepContext > children;
 };
 
-unordered_map< StepContext, StepProof, boost::hash< StepContext > > mega_map;
+std::unordered_map< StepContext, StepProof, boost::hash< StepContext > > mega_map;
 
 void proof_stat_unwind_tree(const ProofTree< Sentence > &pt, const Assertion &ass, ProofStat &stat) {
     if (pt.essential) {
@@ -133,7 +131,7 @@ int proofs_stats_main(int argc, char *argv[]) {
     //auto &tb = data.tb;
 
     TextProgressBar tpb(100, (double) lib.get_assertions().size());
-    vector< pair< LabTok, ProofStat > > proofs_stats;
+    std::vector< std::pair< LabTok, ProofStat > > proofs_stats;
     for (const Assertion &ass : lib.get_assertions()) {
         if (!ass.is_valid()) {
             continue;
@@ -152,7 +150,7 @@ int proofs_stats_main(int argc, char *argv[]) {
         //stat.proof_size = proof.get_labels().size();
         stat.ess_hyp_num = ass.get_ess_hyps().size();
         proof_stat_unwind_tree(exec->get_proof_tree(), ass, stat);
-        proofs_stats.push_back(make_pair(ass.get_thesis(), stat));
+        proofs_stats.push_back(std::make_pair(ass.get_thesis(), stat));
         tpb.report(ass.get_thesis());
     }
     tpb.finished();
@@ -162,7 +160,7 @@ int proofs_stats_main(int argc, char *argv[]) {
     });
 
     for (size_t i = 0; i < 20; i++) {
-        cout << lib.resolve_label(proofs_stats[i].first) << ": " << proofs_stats[i].second << endl;
+        std::cout << lib.resolve_label(proofs_stats[i].first) << ": " << proofs_stats[i].second << std::endl;
     }
 
     return 0;
@@ -172,14 +170,14 @@ static_block {
 }
 
 void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
-                  const vector< ParsingTree2< SymTok, LabTok > > &open_hyps,
-                  const vector< LabTok > &steps,
+                  const std::vector< ParsingTree2< SymTok, LabTok > > &open_hyps,
+                  const std::vector< LabTok > &steps,
                   size_t hyps_pos,
-                  const vector< const Assertion* > &useful_asses,
+                  const std::vector< const Assertion* > &useful_asses,
                   const ParsingTree2< SymTok, LabTok > &final_thesis,
                   LibraryToolbox &tb,
                   size_t depth,
-                  const function< void(const ParsingTree2< SymTok, LabTok >&, const vector< ParsingTree2< SymTok, LabTok > >&, const vector< LabTok >&, LibraryToolbox&)> &callback) {
+                  const std::function< void(const ParsingTree2< SymTok, LabTok >&, const std::vector< ParsingTree2< SymTok, LabTok > >&, const std::vector< LabTok >&, LibraryToolbox&)> &callback) {
     if (depth == 0 || hyps_pos == open_hyps.size()) {
         auto unif2 = unif;
         SubstMap2< SymTok, LabTok > subst;
@@ -189,7 +187,7 @@ void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
             return;
         }
         auto thesis = substitute2(final_thesis, tb.get_standard_is_var(), subst);
-        vector< ParsingTree2< SymTok, LabTok > > hyps;
+        std::vector< ParsingTree2< SymTok, LabTok > > hyps;
         for (const auto &hyp : open_hyps) {
             hyps.push_back(substitute2(hyp, tb.get_standard_is_var(), subst));
         }
@@ -200,14 +198,14 @@ void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
             tb.new_temp_var_frame();
             const Assertion &ass = *assp;
             ParsingTree2< SymTok, LabTok > thesis;
-            vector< ParsingTree2< SymTok, LabTok > > hyps;
+            std::vector< ParsingTree2< SymTok, LabTok > > hyps;
             tie(hyps, thesis) = tb.refresh_assertion2(ass);
             auto unif2 = unif;
             auto steps2 = steps;
             unif2.add_parsing_trees2(open_hyps[hyps_pos], thesis);
             steps2.push_back(ass.get_thesis());
             if (unif2.is_unifiable()) {
-                //cout << "Attaching " << tb.resolve_label(ass.get_thesis()) << " in position " << hyps_pos << endl;
+                //std::cout << "Attaching " << tb.resolve_label(ass.get_thesis()) << " in position " << hyps_pos << std::endl;
                 auto open_hyps2 = open_hyps;
                 open_hyps2.erase(open_hyps2.begin() + hyps_pos);
                 open_hyps2.insert(open_hyps2.end(), hyps.begin(), hyps.end());
@@ -219,17 +217,17 @@ void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
 }
 
 size_t count = 0;
-void print_theorem(const ParsingTree2< SymTok, LabTok > &thesis, const vector< ParsingTree2< SymTok, LabTok > >&hyps, const vector< LabTok > &steps, LibraryToolbox &tb) {
+void print_theorem(const ParsingTree2< SymTok, LabTok > &thesis, const std::vector< ParsingTree2< SymTok, LabTok > >&hyps, const std::vector< LabTok > &steps, LibraryToolbox &tb) {
     ::count++;
     bool finished = hyps.empty();
     if (::count % 10000 == 0 || finished) {
-        cout << ::count << endl;
-        cout << tb.print_sentence(thesis) << endl;
-        cout << "with the hypotheses:" << endl;
+        std::cout << ::count << std::endl;
+        std::cout << tb.print_sentence(thesis) << std::endl;
+        std::cout << "with the hypotheses:" << std::endl;
         for (const auto &hyp : hyps) {
-            cout << " * " << tb.print_sentence(hyp) << endl;
+            std::cout << " * " << tb.print_sentence(hyp) << std::endl;
         }
-        cout << "Proved with steps: " << tb.print_proof(steps) << endl;
+        std::cout << "Proved with steps: " << tb.print_proof(steps) << std::endl;
     }
     if (finished) {
         exit(0);
@@ -240,8 +238,8 @@ void print_theorem(const ParsingTree2< SymTok, LabTok > &thesis, const vector< P
 }
 
 int gen_random_theorems_main(int argc, char *argv[]) {
-    random_device rand_dev;
-    mt19937 rand_mt;
+    std::random_device rand_dev;
+    std::mt19937 rand_mt;
     rand_mt.seed(rand_dev());
 
     auto &data = get_set_mm();
@@ -253,7 +251,7 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     //LabTok target_label = lib.get_label(target_label_str);
     //auto target_pt = tb.get_parsed_sents2()[target_label];
 
-    ostringstream oss;
+    std::ostringstream oss;
     for (int i = 1; i < argc; i++) {
         oss << argv[i] << " ";
     }
@@ -262,14 +260,14 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     auto target_pt = pt_to_pt2(target_pt1);
     LabTok target_label = 0;
 
-    vector< const Assertion* > useful_asses;
+    std::vector< const Assertion* > useful_asses;
     for (const auto &ass : lib.get_assertions()) {
         if (ass.is_valid() && lib.get_sentence(ass.get_thesis()).at(0) == tb.get_turnstile()) {
             /*if (ass.get_thesis() >= target_label) {
                 break;
             }*/
             if (ass.is_theorem() && ass.has_proof() && ass.get_proof_operator(lib)->is_trivial()) {
-                //cout << "Proof for " << lib.resolve_label(ass.get_thesis()) << " is trivial" << endl;
+                //std::cout << "Proof for " << lib.resolve_label(ass.get_thesis()) << " is trivial" << std::endl;
             } else {
                 if (ass.get_thesis() != target_label && ass.get_thesis()) {
                     useful_asses.push_back(&ass);
@@ -277,12 +275,12 @@ int gen_random_theorems_main(int argc, char *argv[]) {
             }
         }
     }
-    sort(useful_asses.begin(), useful_asses.end(), [&lib](const auto &x, const auto &y) {
+    std::sort(useful_asses.begin(), useful_asses.end(), [&lib](const auto &x, const auto &y) {
         return x->get_ess_hyps().size() < y->get_ess_hyps().size() || (x->get_ess_hyps().size() == y->get_ess_hyps().size() && lib.get_sentence(x->get_thesis()).size() > lib.get_sentence(y->get_thesis()).size());
     });
-    cout << "There are " << useful_asses.size() << " useful assertions" << endl;
+    std::cout << "There are " << useful_asses.size() << " useful assertions" << std::endl;
 
-    set< LabTok > target_vars;
+    std::set< LabTok > target_vars;
     collect_variables2(target_pt, standard_is_var, target_vars);
     std::function< bool(LabTok) > is_var = [&target_vars,&standard_is_var](LabTok x) {
         if (target_vars.find(x) != target_vars.end()) {
@@ -292,26 +290,26 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     };
 
     BilateralUnificator< SymTok, LabTok > unif(is_var);
-    vector< ParsingTree2< SymTok, LabTok > > open_hyps;
+    std::vector< ParsingTree2< SymTok, LabTok > > open_hyps;
     LabTok th_label;
-    tie(th_label, ignore) = tb.new_temp_var(tb.get_turnstile_alias());
+    std::tie(th_label, std::ignore) = tb.new_temp_var(tb.get_turnstile_alias());
     ParsingTree2< SymTok, LabTok > final_thesis = var_parsing_tree(th_label, tb.get_turnstile_alias());
     final_thesis = target_pt;
     open_hyps.push_back(final_thesis);
-    vector< LabTok > steps;
+    std::vector< LabTok > steps;
 
     gen_theorems(unif, open_hyps, steps, 0, useful_asses, final_thesis, tb, 2, print_theorem);
     return 0;
 
     for (size_t i = 0; i < 5; i++) {
         if (open_hyps.empty()) {
-            cout << "Terminating early" << endl;
+            std::cout << "Terminating early" << std::endl;
             break;
         }
         while (true) {
             // Select a random hypothesis, a random open hypothesis and let them match
-            size_t ass_idx = uniform_int_distribution< size_t >(0, useful_asses.size()-1)(rand_mt);
-            size_t hyp_idx = uniform_int_distribution< size_t >(0, open_hyps.size()-1)(rand_mt);
+            size_t ass_idx = std::uniform_int_distribution< size_t >(0, useful_asses.size()-1)(rand_mt);
+            size_t hyp_idx = std::uniform_int_distribution< size_t >(0, open_hyps.size()-1)(rand_mt);
             const Assertion &ass = *useful_asses[ass_idx];
             if (i == 0 && ass.get_ess_hyps().size() == 0) {
                 continue;
@@ -320,12 +318,12 @@ int gen_random_theorems_main(int argc, char *argv[]) {
                 continue;
             }
             ParsingTree2< SymTok, LabTok > thesis;
-            vector< ParsingTree2< SymTok, LabTok > > hyps;
+            std::vector< ParsingTree2< SymTok, LabTok > > hyps;
             tie(hyps, thesis) = tb.refresh_assertion2(ass);
             auto unif2 = unif;
             unif2.add_parsing_trees2(open_hyps[hyp_idx], thesis);
             if (unif2.unify2().first) {
-                cout << "Attaching " << tb.resolve_label(ass.get_thesis()) << " in position " << hyp_idx << endl;
+                std::cout << "Attaching " << tb.resolve_label(ass.get_thesis()) << " in position " << hyp_idx << std::endl;
                 unif = unif2;
                 open_hyps.erase(open_hyps.begin() + hyp_idx);
                 open_hyps.insert(open_hyps.end(), hyps.begin(), hyps.end());
@@ -339,14 +337,14 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     tie(res, subst) = unif.unify2();
 
     if (res) {
-        cout << "Unification succedeed and proved:" << endl;
-        cout << tb.print_sentence(substitute2(final_thesis, tb.get_standard_is_var(), subst)) << endl;
-        cout << "with the hypotheses:" << endl;
+        std::cout << "Unification succedeed and proved:" << std::endl;
+        std::cout << tb.print_sentence(substitute2(final_thesis, tb.get_standard_is_var(), subst)) << std::endl;
+        std::cout << "with the hypotheses:" << std::endl;
         for (const auto &hyp : open_hyps) {
-            cout << " * " << tb.print_sentence(substitute2(hyp, tb.get_standard_is_var(), subst)) << endl;
+            std::cout << " * " << tb.print_sentence(substitute2(hyp, tb.get_standard_is_var(), subst)) << std::endl;
         }
     } else {
-        cout << "Unification failed" << endl;
+        std::cout << "Unification failed" << std::endl;
     }
 
     return 0;

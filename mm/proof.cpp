@@ -12,8 +12,6 @@
 
 const size_t max_decompression_size = 1024 * 1024;
 
-using namespace std;
-
 Proof::~Proof()
 {
 }
@@ -25,7 +23,7 @@ CompressedProof::CompressedProof(const std::vector<LabTok> &refs, const std::vec
 
 std::shared_ptr<ProofOperator> CompressedProof::get_operator(const Library &lib, const Assertion &ass) const
 {
-    return make_shared< CompressedProofOperator >(lib, ass, *this);
+    return std::make_shared< CompressedProofOperator >(lib, ass, *this);
 }
 
 const std::vector<LabTok> &CompressedProof::get_refs() const
@@ -51,9 +49,9 @@ const CompressedProof CompressedProofOperator::compress(CompressionStrategy stra
 
 const UncompressedProof CompressedProofOperator::uncompress()
 {
-    vector< size_t > opening_stack;
-    vector< LabTok > labels;
-    vector< vector< LabTok > > saved;
+    std::vector< size_t > opening_stack;
+    std::vector< LabTok > labels;
+    std::vector< std::vector< LabTok > > saved;
     for (size_t i = 0; i < this->proof.get_codes().size(); i++) {
         /* The decompressiong algorithm is potentially exponential in the input data,
          * which means that even with very short compressed proof you can obtain very
@@ -86,10 +84,10 @@ const UncompressedProof CompressedProofOperator::uncompress()
             labels.push_back(label);
         } else {
             assert_or_throw< ProofException< Sentence > >(code <= this->ass.get_mand_hyps_num() + this->proof.get_refs().size() + saved.size(), "Code too big in compressed proof");
-            const vector< LabTok > &sent = saved.at(code-this->ass.get_mand_hyps_num()-this->proof.get_refs().size()-1);
+            const std::vector< LabTok > &sent = saved.at(code-this->ass.get_mand_hyps_num()-this->proof.get_refs().size()-1);
             size_t opening = labels.size();
             opening_stack.push_back(opening);
-            copy(sent.begin(), sent.end(), back_inserter(labels));
+            std::copy(sent.begin(), sent.end(), back_inserter(labels));
         }
     }
     assert_or_throw< ProofException< Sentence > >(opening_stack.size() == 1, "Proof uncompression did not end with a single element on the stack");
@@ -145,7 +143,7 @@ UncompressedProof::UncompressedProof(const std::vector<LabTok> &labels) :
 
 std::shared_ptr<ProofOperator> UncompressedProof::get_operator(const Library &lib, const Assertion &ass) const
 {
-    return make_shared< UncompressedProofOperator >(lib, ass, *this);
+    return std::make_shared< UncompressedProofOperator >(lib, ass, *this);
 }
 
 const std::vector<LabTok> &UncompressedProof::get_labels() const
@@ -154,10 +152,10 @@ const std::vector<LabTok> &UncompressedProof::get_labels() const
 }
 
 static void compress_unwind_proof_tree_phase1(const ProofTree< Sentence > &tree,
-                                              unordered_map< LabTok, CodeTok > &label_map,
-                                              vector< LabTok > &refs,
-                                              set< vector< SymTok > > &sents,
-                                              set< vector< SymTok > > &dupl_sents,
+                                              std::unordered_map< LabTok, CodeTok > &label_map,
+                                              std::vector< LabTok > &refs,
+                                              std::set< std::vector< SymTok > > &sents,
+                                              std::set< std::vector< SymTok > > &dupl_sents,
                                               CodeTok &code_idx) {
     // If the sentence is duplicate and it has children, prune the subtree and record the sentence as duplicate
     // There is no point in deduplicating subtrees that are already trivial
@@ -171,7 +169,7 @@ static void compress_unwind_proof_tree_phase1(const ProofTree< Sentence > &tree,
     }
     // If the label is new, record it
     if (label_map.find(tree.label) == label_map.end()) {
-        auto res = label_map.insert(make_pair(tree.label, code_idx++));
+        auto res = label_map.insert(std::make_pair(tree.label, code_idx++));
         assert(res.second);
         refs.push_back(tree.label);
     }
@@ -181,12 +179,12 @@ static void compress_unwind_proof_tree_phase1(const ProofTree< Sentence > &tree,
 
 // In order to avoid inconsistencies with label numbering, it is important that phase 2 performs the same prunings as phase 1
 static void compress_unwind_proof_tree_phase2(const ProofTree< Sentence > &tree,
-                                              const unordered_map< LabTok, CodeTok > &label_map,
-                                              const vector< LabTok > &refs,
-                                              set< vector< SymTok > > &sents,
-                                              const set< vector< SymTok > > &dupl_sents,
-                                              map< vector< SymTok >, CodeTok > &dupl_sents_map,
-                                              vector< CodeTok > &codes, CodeTok &code_idx) {
+                                              const std::unordered_map< LabTok, CodeTok > &label_map,
+                                              const std::vector< LabTok > &refs,
+                                              std::set< std::vector< SymTok > > &sents,
+                                              const std::set< std::vector< SymTok > > &dupl_sents,
+                                              std::map< std::vector< SymTok >, CodeTok > &dupl_sents_map,
+                                              std::vector< CodeTok > &codes, CodeTok &code_idx) {
     // If the sentence is duplicate and it has children, prune the subtree and recall saved sentence
     if (!tree.children.empty() && sents.find(tree.sentence) != sents.end()) {
         codes.push_back(dupl_sents_map.at(tree.sentence));
@@ -200,7 +198,7 @@ static void compress_unwind_proof_tree_phase2(const ProofTree< Sentence > &tree,
     codes.push_back(label_map.at(tree.label));
     // If the sentence is known to be duplicate and has not been saved yet, save it
     if (dupl_sents.find(tree.sentence) != dupl_sents.end() && dupl_sents_map.find(tree.sentence) == dupl_sents_map.end()) {
-        auto res = dupl_sents_map.insert(make_pair(tree.sentence, code_idx++));
+        auto res = dupl_sents_map.insert(std::make_pair(tree.sentence, code_idx++));
         assert(res.second);
         codes.push_back(0);
     }
@@ -211,21 +209,21 @@ static void compress_unwind_proof_tree_phase2(const ProofTree< Sentence > &tree,
 const CompressedProof UncompressedProofOperator::compress(CompressionStrategy strategy)
 {
     CodeTok code_idx = 1;
-    unordered_map< LabTok, CodeTok > label_map;
-    vector < LabTok > refs;
-    vector < CodeTok > codes;
+    std::unordered_map< LabTok, CodeTok > label_map;
+    std::vector < LabTok > refs;
+    std::vector < CodeTok > codes;
     for (auto &label : this->ass.get_float_hyps()) {
-        auto res = label_map.insert(make_pair(label, code_idx++));
+        auto res = label_map.insert(std::make_pair(label, code_idx++));
         assert(res.second);
     }
     for (auto &label : this->ass.get_ess_hyps()) {
-        auto res = label_map.insert(make_pair(label, code_idx++));
+        auto res = label_map.insert(std::make_pair(label, code_idx++));
         assert(res.second);
     }
     if (strategy == CS_NO_BACKREFS) {
         for (auto &label : this->proof.get_labels()) {
             if (label_map.find(label) == label_map.end()) {
-                auto res = label_map.insert(make_pair(label, code_idx++));
+                auto res = label_map.insert(std::make_pair(label, code_idx++));
                 assert(res.second);
                 refs.push_back(label);
             }
@@ -236,9 +234,9 @@ const CompressedProof UncompressedProofOperator::compress(CompressionStrategy st
         this->execute();
         this->set_relax_checks(false);
         const auto &tree = this->engine.get_proof_tree();
-        set< vector< SymTok > > sents;
-        set< vector< SymTok > > dupl_sents;
-        map< vector< SymTok >, CodeTok > dupl_sents_map;
+        std::set< std::vector< SymTok > > sents;
+        std::set< std::vector< SymTok > > dupl_sents;
+        std::map< std::vector< SymTok >, CodeTok > dupl_sents_map;
         compress_unwind_proof_tree_phase1(tree, label_map, refs, sents, dupl_sents, code_idx);
         sents.clear();
         compress_unwind_proof_tree_phase2(tree, label_map, refs, sents, dupl_sents, dupl_sents_map, codes, code_idx);
@@ -257,7 +255,7 @@ const UncompressedProof UncompressedProofOperator::uncompress()
 
 bool UncompressedProofOperator::check_syntax()
 {
-    set< LabTok > mand_hyps_set(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end());
+    std::set< LabTok > mand_hyps_set(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end());
     mand_hyps_set.insert(this->ass.get_ess_hyps().begin(), this->ass.get_ess_hyps().end());
     for (auto &label : this->proof.get_labels()) {
         if (!this->lib.get_assertion(label).is_valid() && mand_hyps_set.find(label) == mand_hyps_set.end()) {
@@ -312,13 +310,13 @@ CodeTok CompressedDecoder::push_char(char c)
     }
 }
 
-string CompressedEncoder::push_code(CodeTok x)
+std::string CompressedEncoder::push_code(CodeTok x)
 {
     assert_or_throw< MMPPParsingError >(x != INVALID_CODE);
     if (x == 0) {
         return "Z";
     }
-    vector< char > buf;
+    std::vector< char > buf;
     int div = (x-1) / 20;
     int rem = (x-1) % 20 + 1;
     buf.push_back('A' + rem - 1);
@@ -329,7 +327,7 @@ string CompressedEncoder::push_code(CodeTok x)
         buf.push_back('U' + rem - 1);
         x = div;
     }
-    return string(buf.rbegin(), buf.rend());
+    return std::string(buf.rbegin(), buf.rend());
 }
 
 ProofOperator::~ProofOperator()

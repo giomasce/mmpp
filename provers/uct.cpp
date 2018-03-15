@@ -11,37 +11,35 @@
 
 //#define LOG_UCT
 
-using namespace std;
-
 struct VisitContext {
     static uint32_t depth;
-    string action;
-    VisitContext(string action) : action(action) {
+    std::string action;
+    VisitContext(std::string action) : action(action) {
 #ifdef LOG_UCT
-        this->log() << "Beginning " << this->action << endl;
+        this->log() << "Beginning " << this->action << std::endl;
 #endif
         this->depth++;
     }
     ~VisitContext() {
         this->depth--;
 #ifdef LOG_UCT
-        //this->log() << "Finishing " << this->action << endl;
+        //this->log() << "Finishing " << this->action << std::endl;
 #endif
     }
     static void insert_space() {
         for (uint32_t i = 0; i < VisitContext::depth; i++) {
-            cout << "  ";
+            std::cout << "  ";
         }
     }
-    static ostream &log() {
+    static std::ostream &log() {
         VisitContext::insert_space();
-        return cout;
+        return std::cout;
     }
 };
 uint32_t VisitContext::depth = 0;
 
 #ifdef LOG_UCT
-static inline ostream &visit_log() {
+static inline std::ostream &visit_log() {
     return VisitContext::log();
 }
 #endif
@@ -92,7 +90,7 @@ UCTProver::~UCTProver()
 void UCTProver::init()
 {
     this->compute_useful_assertions();
-    this->root = SentenceNode::create(this->weak_from_this(), weak_ptr< StepNode >(), thesis);
+    this->root = SentenceNode::create(this->weak_from_this(), std::weak_ptr< StepNode >(), thesis);
 }
 
 bool UCTProver::is_assertion_useful(const Assertion &ass) const
@@ -166,19 +164,19 @@ VisitResult SentenceNode::visit()
     // First visit: do some trivial checks, but do not create new children
     if (this->visit_num == 1) {
 #ifdef LOG_UCT
-        visit_log() << "First visit" << endl;
+        visit_log() << "First visit" << std::endl;
 #endif
         auto &hyps = strong_uct->get_hypotheses();
         auto it = find(hyps.begin(), hyps.end(), this->sentence);
         if (it != hyps.end()) {
 #ifdef LOG_UCT
-            visit_log() << "Proved with an hypothesis!" << endl;
+            visit_log() << "Proved with an hypothesis!" << std::endl;
 #endif
             this->exhausted = true;
             return PROVED;
         } else {
 #ifdef LOG_UCT
-            //visit_log() << "Not proved with an hypothesis" << endl;
+            //visit_log() << "Not proved with an hypothesis" << std::endl;
 #endif
             return CONTINUE;
         }
@@ -187,7 +185,7 @@ VisitResult SentenceNode::visit()
     // We might try to create a new child, if there are too few
     bool created_child = false;
 #ifdef LOG_UCT
-    //visit_log() << "Later visit" << endl;
+    //visit_log() << "Later visit" << std::endl;
 #endif
     if (this->children.size() == 0 || this->children.size() < (this->visit_num / 3)) {
         while (this->ass_it != this->ass_range.end()) {
@@ -203,7 +201,7 @@ VisitResult SentenceNode::visit()
                 continue;
             } else {
 #ifdef LOG_UCT
-                visit_log() << "Creating a new StepNode child" << endl;
+                visit_log() << "Creating a new StepNode child" << std::endl;
 #endif
                 this->children.push_back(StepNode::create(this->uct, this->weak_from_this(), ass.get_thesis(), subst_map));
                 created_child = true;
@@ -216,13 +214,13 @@ VisitResult SentenceNode::visit()
     std::vector< std::shared_ptr< StepNode > >::iterator child_it;
     if (created_child) {
 #ifdef LOG_UCT
-        //visit_log() << "Visiting the child we just created" << endl;
+        //visit_log() << "Visiting the child we just created" << std::endl;
 #endif
         child_it = this->children.end() - 1;
     } else {
         // FIXME Implement a better policy
 #ifdef LOG_UCT
-        //visit_log() << "Visiting a random child" << endl;
+        //visit_log() << "Visiting a random child" << std::endl;
 #endif
         child_it = random_choose(this->children.begin(), this->children.end(), rand);
     }
@@ -234,14 +232,14 @@ VisitResult SentenceNode::visit()
     if (res == DEAD) {
         // If the node is dead, we remove it from the children
 #ifdef LOG_UCT
-        visit_log() << "Child is dead, removing it" << endl;
+        visit_log() << "Child is dead, removing it" << std::endl;
 #endif
         this->value -= child->get_value();
         this->children.erase(child_it);
     } else if (res == PROVED) {
         // If the visit succeeded, bingo! This node is proved, and we can evict all children exept for the one we just visited
 #ifdef LOG_UCT
-        visit_log() << "We found a proof!" << endl;
+        visit_log() << "We found a proof!" << std::endl;
 #endif
         this->exhausted = true;
         this->children = { child };
@@ -282,7 +280,7 @@ void SentenceNode::replay_proof(CreativeCheckpointedProofEngine<Sentence> &engin
     }
 }
 
-const vector< LabTok > empty_lab_vector;
+const std::vector< LabTok > empty_lab_vector;
 const LabTok zero_label = {};
 
 SentenceNode::SentenceNode(std::weak_ptr<UCTProver> uct, std::weak_ptr<StepNode> parent, const ParsingTree2<SymTok, LabTok> &sentence) : uct(uct), parent(parent), sentence(sentence), ass_range(boost::range::join(empty_lab_vector, empty_lab_vector)) {
@@ -297,8 +295,8 @@ SentenceNode::SentenceNode(std::weak_ptr<UCTProver> uct, std::weak_ptr<StepNode>
     if (tb.get_standard_is_var()(root_label)) {
         root_label = zero_label;
     }
-    const vector< LabTok > *f1 = &empty_lab_vector;
-    const vector< LabTok > *f2 = &empty_lab_vector;
+    const std::vector< LabTok > *f1 = &empty_lab_vector;
+    const std::vector< LabTok > *f2 = &empty_lab_vector;
     if (root_label != tb.get_imp_label()) {
         auto it = root_usefuls.find(root_label);
         if (it != root_usefuls.end()) {
@@ -352,14 +350,14 @@ bool SentenceNode::check_subst_map(const SubstMap2<SymTok, LabTok> &subst_map, c
             const auto lab_var2 = tb.get_var_lab_to_sym(var2);
             const auto &subst1 = it1->second;
             const auto &subst2 = it2->second;
-            if (ass_dists.find(minmax(lab_var1, lab_var2)) != ass_dists.end()) {
-                set< LabTok > vars1;
-                set< LabTok > vars2;
+            if (ass_dists.find(std::minmax(lab_var1, lab_var2)) != ass_dists.end()) {
+                std::set< LabTok > vars1;
+                std::set< LabTok > vars2;
                 collect_variables2(subst1, tb.get_standard_is_var(), vars1);
                 collect_variables2(subst2, tb.get_standard_is_var(), vars2);
                 for (const auto &lab1 : vars1) {
                     for (const auto &lab2 : vars2) {
-                        if (lab1 == lab2 || antidists.find(minmax(lab1, lab2)) != antidists.end()) {
+                        if (lab1 == lab2 || antidists.find(std::minmax(lab1, lab2)) != antidists.end()) {
                             return false;
                         }
                     }
@@ -385,14 +383,14 @@ VisitResult StepNode::visit()
     // If we have no children this must be the first visit, because it is illegal to visit a node that has already been proved
     if (this->children.empty()) {
 #ifdef LOG_UCT
-        visit_log() << "First visit, let us create children" << endl;
+        visit_log() << "First visit, let us create children" << std::endl;
 #endif
         return this->create_children();
     }
 
     // Then we visit a random child
 #ifdef LOG_UCT
-    //visit_log() << "Later visit, let us visit a random child" << endl;
+    //visit_log() << "Later visit, let us visit a random child" << std::endl;
 #endif
     size_t i = random_choose(this->active_children.begin(), this->active_children.end(), rand) - this->active_children.begin();
     return this->visit_child(i);
@@ -440,35 +438,35 @@ void StepNode::replay_proof(CreativeCheckpointedProofEngine<Sentence> &engine) c
 
 StepNode::StepNode(std::weak_ptr<UCTProver> uct, std::weak_ptr<SentenceNode> parent, LabTok label, const SubstMap2<SymTok, LabTok> &const_subst_map) : uct(uct), parent(parent), label(label), const_subst_map(const_subst_map) {
 #ifdef LOG_UCT
-    //visit_log() << this << ": Constructing StepNode" << endl;
+    //visit_log() << this << ": Constructing StepNode" << std::endl;
 #endif
 }
 
 StepNode::~StepNode()
 {
 #ifdef LOG_UCT
-    //visit_log() << this << ": Destructing StepNode" << endl;
+    //visit_log() << this << ": Destructing StepNode" << std::endl;
 #endif
 }
 
 VisitResult StepNode::create_child(const ParsingTree2<SymTok, LabTok> &sent)
 {
 #ifdef LOG_UCT
-    visit_log() << "Spawning a child for " << this->uct.lock()->get_toolbox().print_sentence(sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+    visit_log() << "Spawning a child for " << this->uct.lock()->get_toolbox().print_sentence(sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
 #endif
     // Check that we don't have the same sentence of an ancestor
-    shared_ptr< SentenceNode > parent_sent = this->parent.lock();
+    std::shared_ptr< SentenceNode > parent_sent = this->parent.lock();
     while (true) {
         if (!parent_sent) {
             break;
         }
         if (parent_sent->get_sentence() == sent) {
 #ifdef LOG_UCT
-            visit_log() << "New child coincides with one ancestor, dying..." << endl;
+            visit_log() << "New child coincides with one ancestor, dying..." << std::endl;
 #endif
             return DEAD;
         }
-        shared_ptr< StepNode > parent_step = parent_sent->get_parent().lock();
+        std::shared_ptr< StepNode > parent_step = parent_sent->get_parent().lock();
         if (!parent_step) {
             break;
         }
@@ -499,13 +497,13 @@ VisitResult StepNode::create_children()
     }
     if (this->children.empty()) {
 #ifdef LOG_UCT
-        visit_log() << "No children, so nothing to prove!" << endl;
+        visit_log() << "No children, so nothing to prove!" << std::endl;
 #endif
         this->exhausted = true;
         return PROVED;
     }
 #ifdef LOG_UCT
-    visit_log() << "Visiting each child for the first time" << endl;
+    visit_log() << "Visiting each child for the first time" << std::endl;
 #endif
     this->active_children = this->children;
     for (size_t i = 0; i < this->children.size(); i++) {
@@ -523,12 +521,12 @@ VisitResult StepNode::visit_child(size_t i)
     VisitResult res = this->active_children[i]->visit();
     if (res == PROVED) {
 #ifdef LOG_UCT
-        visit_log() << "We found a proof for a child!" << endl;
+        visit_log() << "We found a proof for a child!" << std::endl;
 #endif
         this->active_children.erase(this->active_children.begin() + i);
         if (this->active_children.empty()) {
 #ifdef LOG_UCT
-            visit_log() << "All children finally proved!" << endl;
+            visit_log() << "All children finally proved!" << std::endl;
 #endif
             this->exhausted = true;
             return PROVED;
@@ -541,20 +539,20 @@ VisitResult StepNode::visit_child(size_t i)
     return CONTINUE;
 }
 
-ParsingTree2< SymTok, LabTok > string_to_pt2(string sent_str, const LibraryToolbox &tb) {
+ParsingTree2< SymTok, LabTok > string_to_pt2(std::string sent_str, const LibraryToolbox &tb) {
     auto sent = tb.read_sentence(sent_str);
     auto thesis_pt = tb.parse_sentence(sent.begin()+1, sent.end(), tb.get_turnstile_alias());
     auto thesis_pt2 = pt_to_pt2(thesis_pt);
     return thesis_pt2;
 }
 
-vector< pair< ParsingTree2< SymTok, LabTok >, vector< ParsingTree2< SymTok, LabTok > > > > parse_tests(const LibraryToolbox &tb) {
+std::vector< std::pair< ParsingTree2< SymTok, LabTok >, std::vector< ParsingTree2< SymTok, LabTok > > > > parse_tests(const LibraryToolbox &tb) {
     boost::filesystem::ifstream fin(platform_get_resources_base() / "tests.txt");
-    string line;
+    std::string line;
     bool found_first = false;
     ParsingTree2< SymTok, LabTok > current_thesis;
-    vector< ParsingTree2< SymTok, LabTok > > current_hyps;
-    vector< pair< ParsingTree2< SymTok, LabTok >, vector< ParsingTree2< SymTok, LabTok > > > > problems;
+    std::vector< ParsingTree2< SymTok, LabTok > > current_hyps;
+    std::vector< std::pair< ParsingTree2< SymTok, LabTok >, std::vector< ParsingTree2< SymTok, LabTok > > > > problems;
     while (getline(fin, line)) {
         rtrim(line);
         if (line.empty()) {
@@ -567,7 +565,7 @@ vector< pair< ParsingTree2< SymTok, LabTok >, vector< ParsingTree2< SymTok, LabT
             current_hyps.push_back(string_to_pt2(line, tb));
         } else {
             if (found_first) {
-                problems.push_back(make_pair(current_thesis, current_hyps));
+                problems.push_back(std::make_pair(current_thesis, current_hyps));
             }
             found_first = true;
             current_hyps.clear();
@@ -575,7 +573,7 @@ vector< pair< ParsingTree2< SymTok, LabTok >, vector< ParsingTree2< SymTok, LabT
         }
     }
     if (found_first) {
-        problems.push_back(make_pair(current_thesis, current_hyps));
+        problems.push_back(std::make_pair(current_thesis, current_hyps));
     }
     return problems;
 }
@@ -593,47 +591,47 @@ int uct_main(int argc, char *argv[]) {
     auto problems = parse_tests(tb);
     auto problem = problems.at(pb_idx);
 
-    cout << "Trying to prove thesis: " << tb.print_sentence(problem.first, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
-    cout << "with hypotheses:" << endl;
+    std::cout << "Trying to prove thesis: " << tb.print_sentence(problem.first, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
+    std::cout << "with hypotheses:" << std::endl;
     for (const auto &hyp : problem.second) {
-        cout << " * " << tb.print_sentence(hyp, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
+        std::cout << " * " << tb.print_sentence(hyp, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
     }
-    cout << endl;
+    std::cout << std::endl;
 
     auto prover = UCTProver::create(tb, problem.first, problem.second);
     for (int i = 0; ; i++) {
         VisitResult res = prover->visit();
 #ifdef LOG_UCT
-        visit_log() << endl;
+        visit_log() << std::endl;
 #endif
         if (res == PROVED) {
-            cout << "Found proof after " << i+1 << " visits:";
+            std::cout << "Found proof after " << i+1 << " visits:";
             CreativeProofEngineImpl< Sentence > engine(tb, false);
             try {
                     prover->replay_proof(engine);
             } catch (ProofException< Sentence > &pe) {
-                cout << "Failed with exception:" << endl;
-                tb.dump_proof_exception(pe, cout);
+                std::cout << "Failed with exception:" << std::endl;
+                tb.dump_proof_exception(pe, std::cout);
             }
             const auto &labels = engine.get_proof_labels();
             for (const auto label : labels) {
                 if (label != 0) {
-                    cout << " " << tb.resolve_label(label);
+                    std::cout << " " << tb.resolve_label(label);
                 } else {
-                    cout << " *";
+                    std::cout << " *";
                 }
             }
-            cout << endl;
+            std::cout << std::endl;
             break;
         } else if (res == DEAD) {
 #ifdef LOG_UCT
-            visit_log() << "The node is dead, the search has failed..." << endl;
+            visit_log() << "The node is dead, the search has failed..." << std::endl;
 #endif
             break;
         }
         //while (cin.get() != '\n') {}
         if (i % 2500 == 0) {
-            cout << i << " visits done" << endl;
+            std::cout << i << " visits done" << std::endl;
         }
         if (i == 50000) {
             break;

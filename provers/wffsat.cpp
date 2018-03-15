@@ -4,8 +4,6 @@
 #include "wffblock.h"
 #include "wff.h"
 
-using namespace std;
-
 static const RegisteredProver idi_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ph )");
 static const RegisteredProver concl_rp = LibraryToolbox::register_prover({"|- ( ps -> ch )"}, "|- ( ph -> ( ps -> ch ) )");
 struct CNFCallbackImpl : public CNFCallbackTest {
@@ -23,7 +21,7 @@ struct CNFCallbackImpl : public CNFCallbackTest {
         if (context[idx].first) {
             concl = Not::create(concl);
         }
-        vector< pwff > orands;
+        std::vector< pwff > orands;
         for (const auto lit : context) {
             pwff new_lit = this->atoms[lit.second];
             if (!lit.first) {
@@ -50,7 +48,7 @@ struct CNFCallbackImpl : public CNFCallbackTest {
     void prove_unit_res(const Clause &clause, size_t unsolved_idx, const Clause &context) {
         //CNFCallbackTest::prove_unit_res(clause, unsolved_idx, context);
         pwff loc_ctx = Not::create(this->clause_to_pwff(context));
-        vector< pwff > orands;
+        std::vector< pwff > orands;
         for (const auto lit : clause) {
             pwff new_lit = this->atoms[lit.second];
             if (!lit.first) {
@@ -58,14 +56,14 @@ struct CNFCallbackImpl : public CNFCallbackTest {
             }
             orands.push_back(new_lit);
         }
-        vector< bool > orand_sign;
+        std::vector< bool > orand_sign;
         for (size_t i = 0; i < clause.size(); i++) {
             if (i != unsolved_idx) {
                 orand_sign.push_back(clause[i].first);
             }
         }
         auto p1 = this->prover_stack[this->prover_stack.size()-clause.size()];
-        vector< Prover< CheckpointedProofEngine > > provers(this->prover_stack.end()-clause.size()+1, this->prover_stack.end());
+        std::vector< Prover< CheckpointedProofEngine > > provers(this->prover_stack.end()-clause.size()+1, this->prover_stack.end());
         this->prover_stack.resize(this->prover_stack.size()-clause.size());
         auto p2 = unit_res_prover(orands, orand_sign, unsolved_idx, p1, provers, this->glob_ctx, loc_ctx, this->tb);
         this->prover_stack.push_back(p2);
@@ -85,10 +83,10 @@ struct CNFCallbackImpl : public CNFCallbackTest {
 
     const LibraryToolbox &tb;
     //std::vector< Clause > orig_clauses;
-    vector< Prover< CheckpointedProofEngine > > orig_provers;
-    vector< Prover< CheckpointedProofEngine > > prover_stack;
+    std::vector< Prover< CheckpointedProofEngine > > orig_provers;
+    std::vector< Prover< CheckpointedProofEngine > > prover_stack;
     pwff glob_ctx;
-    vector< pwff > atoms;
+    std::vector< pwff > atoms;
 
     CNFCallbackImpl(const LibraryToolbox &tb) : tb(tb) {}
 
@@ -116,9 +114,9 @@ std::pair<bool, Prover<CheckpointedProofEngine> > get_sat_prover(pwff wff, const
 {
     auto glob_ctx = Not::create(wff);
     auto tseitin = glob_ctx->get_tseitin_cnf_problem(tb);
-    auto &cnf = get<0>(tseitin);
-    auto &ts_map = get<1>(tseitin);
-    auto &provers = get<2>(tseitin);
+    auto &cnf = std::get<0>(tseitin);
+    auto &ts_map = std::get<1>(tseitin);
+    auto &provers = std::get<2>(tseitin);
     /*cnf.print_dimacs(cout);
     for (const auto &x : ts_map) {
         cout << (x.second + 1) << " : " << x.first->to_string() << endl;

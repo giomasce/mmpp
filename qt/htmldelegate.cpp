@@ -5,8 +5,6 @@
 #include <QAbstractTextDocumentLayout>
 #include <QPainter>
 
-using namespace std;
-
 void HtmlDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option_, const QModelIndex &index) const
 {
     QStyleOptionViewItem option = option_;

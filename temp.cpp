@@ -12,8 +12,6 @@
 #include "parsing/unif.h"
 #include "provers/wff.h"
 
-using namespace std;
-
 //#pragma GCC push_options
 //#pragma GCC optimize ("O0")
 
@@ -33,23 +31,23 @@ public:
     }
 
     void print_stats() const {
-        vector< pair< uint32_t, LabTok > > stat_vect;
+        std::vector< std::pair< uint32_t, LabTok > > stat_vect;
         for (const auto &x : this->stat) {
-            stat_vect.push_back(make_pair(x.second, x.first));
+            stat_vect.push_back(std::make_pair(x.second, x.first));
         }
-        sort(stat_vect.begin(), stat_vect.end());
+        std::sort(stat_vect.begin(), stat_vect.end());
 
         uint32_t total = 0;
         for (const auto &x : stat_vect) {
-            cout << x.first << ": " << this->tb.resolve_label(x.second) << endl;
+            std::cout << x.first << ": " << this->tb.resolve_label(x.second) << std::endl;
             total += x.first;
         }
-        cout << "total = " << total << endl;
+        std::cout << "total = " << total << std::endl;
     }
 
 private:
     const LibraryToolbox &tb;
-    unordered_map< LabTok, uint32_t > stat;
+    std::unordered_map< LabTok, uint32_t > stat;
 };
 
 int count_root_type_main(int argc, char *argv[]) {
@@ -75,13 +73,13 @@ int count_root_type_main(int argc, char *argv[]) {
         }
     }
 
-    cout << "ROOT LABELS" << endl;
+    std::cout << "ROOT LABELS" << std::endl;
     root.print_stats();
-    cout << endl;
-    cout << "IMPLICATION ANTECEDENTS' LABELS" << endl;
+    std::cout << std::endl;
+    std::cout << "IMPLICATION ANTECEDENTS' LABELS" << std::endl;
     imp1.print_stats();
-    cout << endl;
-    cout << "IMPLICATION CONSEQUENTS' LABELS" << endl;
+    std::cout << std::endl;
+    std::cout << "IMPLICATION CONSEQUENTS' LABELS" << std::endl;
     imp2.print_stats();
 
     return 0;
@@ -108,28 +106,28 @@ int temp_main(int argc, char *argv[]) {
 
     pwff wff = Imp::create(wff_from_pt(hyp2_pt, tb), Imp::create(wff_from_pt(hyp1_pt, tb), wff_from_pt(thesis_pt, tb)));
 
-    cout << wff->to_string() << endl;
+    std::cout << wff->to_string() << std::endl;
 
     auto tseitin = Not::create(wff)->get_tseitin_cnf_problem(tb);
-    auto problem = get<0>(tseitin);
-    auto ts_map = get<1>(tseitin);
-    problem.print_dimacs(cout);
+    auto problem = std::get<0>(tseitin);
+    auto ts_map = std::get<1>(tseitin);
+    problem.print_dimacs(std::cout);
     for (const auto &x : ts_map) {
-        cout << (x.second + 1) << " : " << x.first->to_string() << endl;
+        std::cout << (x.second + 1) << " : " << x.first->to_string() << std::endl;
     }
 
     pvar_set vars;
     wff->get_variables(vars);
-    cout << "There are " << vars.size() << " variables" << endl;
+    std::cout << "There are " << vars.size() << " variables" << std::endl;
     auto prover = wff->get_adv_truth_prover(tb);
-    cout << prover.first << endl;
+    std::cout << prover.first << std::endl;
 
     CreativeProofEngineImpl< Sentence > engine(tb);
     prover.second(engine);
     if (engine.get_proof_labels().size() > 0) {
-        //cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << endl;
-        cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << endl;
-        cout << "proof length: " << engine.get_proof_labels().size() << endl;
+        //std::cout << "adv truth proof: " << tb.print_proof(engine.get_proof_labels()) << std::endl;
+        std::cout << "stack top: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
+        std::cout << "proof length: " << engine.get_proof_labels().size() << std::endl;
         //UncompressedProof proof = { engine.get_proof_labels() };
     }
 

@@ -12,8 +12,6 @@
 #include "parsing/unif.h"
 #include "utils/utils.h"
 
-using namespace std;
-
 class Reactor {
 public:
     Reactor(LibraryToolbox &tb, size_t hyps_num) :
@@ -23,7 +21,7 @@ public:
         for (size_t i = 0; i < hyps_num; i++) {
             LabTok type;
             SymTok type_sym = tb.get_turnstile_alias();
-            tie(type, ignore) = tb.new_temp_var(type_sym);
+            std::tie(type, std::ignore) = tb.new_temp_var(type_sym);
             this->hypotheses.push_back(type);
         }
     }
@@ -59,8 +57,8 @@ public:
 
     bool process_assertion(const Assertion &ass) {
         ParsingTree< SymTok, LabTok > thesis;
-        vector< ParsingTree< SymTok, LabTok > > hyps;
-        tie(hyps, thesis) = tb.refresh_assertion(ass);
+        std::vector< ParsingTree< SymTok, LabTok > > hyps;
+        std::tie(hyps, thesis) = tb.refresh_assertion(ass);
         assert(stack.size() >= hyps.size());
         for (size_t i = 0; i < hyps.size(); i++) {
             this->unificator.add_parsing_trees(this->stack[this->stack.size()-hyps.size()+i], hyps[i]);
@@ -88,8 +86,8 @@ public:
         return substitute(this->stack.at(0), this->is_var, this->subst);
     }
 
-    vector< ParsingTree< SymTok, LabTok > > get_hypotheses() {
-        vector< ParsingTree< SymTok, LabTok > > ret;
+    std::vector< ParsingTree< SymTok, LabTok > > get_hypotheses() {
+        std::vector< ParsingTree< SymTok, LabTok > > ret;
         for (const auto &hyp_lab : this->hypotheses) {
             SubstMap< SymTok, LabTok >::iterator it = subst.find(hyp_lab);
             if (it != subst.end()) {
@@ -108,9 +106,9 @@ private:
     LibraryToolbox &tb;
     const std::function< bool(LabTok) > &is_var;
     BilateralUnificator< SymTok, LabTok > unificator;
-    vector< ParsingTree< SymTok, LabTok > > stack;
+    std::vector< ParsingTree< SymTok, LabTok > > stack;
     //map< size_t, LabTok > hypotheses;
-    vector< LabTok > hypotheses;
+    std::vector< LabTok > hypotheses;
     SubstMap< SymTok, LabTok > subst;
 };
 
@@ -189,29 +187,29 @@ void find_generalizable_theorems() {
         }
 
         if (!generalizables.empty()) {
-            cout << "GENERALIZABLE THEOREM (" << tb.resolve_label(ass.get_thesis()) << ")" << endl;
-            cout << "Theorem: " << tb.print_sentence(reactor.get_theorem()) << endl;
+            std::cout << "GENERALIZABLE THEOREM (" << tb.resolve_label(ass.get_thesis()) << ")" << std::endl;
+            std::cout << "Theorem: " << tb.print_sentence(reactor.get_theorem()) << std::endl;
             if (ass.get_ess_hyps().size() != 0) {
-                cout << "with hypotheses:" << endl;
+                std::cout << "with hypotheses:" << std::endl;
                 for (const auto &hyp : reactor.get_hypotheses()) {
-                    cout << " * " << tb.print_sentence(hyp) << endl;
+                    std::cout << " * " << tb.print_sentence(hyp) << std::endl;
                 }
             }
-            cout << "Substitution map for generalizable variables:" << endl;
+            std::cout << "Substitution map for generalizable variables:" << std::endl;
             for (const auto &x : generalizables) {
                 ParsingTree< SymTok, LabTok > pt;
                 pt.label = x.first;
-                cout << " * " << tb.print_sentence(pt) << ": " << tb.print_sentence(x.second) << endl;
+                std::cout << " * " << tb.print_sentence(pt) << ": " << tb.print_sentence(x.second) << std::endl;
             }
             if (!not_generalizables.empty()) {
-                cout << "Substitution map for other variables:" << endl;
+                std::cout << "Substitution map for other variables:" << std::endl;
                 for (const auto &x : not_generalizables) {
                     ParsingTree< SymTok, LabTok > pt;
                     pt.label = x.first;
-                    cout << " * " << tb.print_sentence(pt) << ": " << tb.print_sentence(x.second) << endl;
+                    std::cout << " * " << tb.print_sentence(pt) << ": " << tb.print_sentence(x.second) << std::endl;
                 }
             }
-            cout << endl;
+            std::cout << std::endl;
         }
 
         tb.release_temp_var_frame();

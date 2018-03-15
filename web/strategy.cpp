@@ -4,7 +4,6 @@
 #include "provers/wffblock.h"
 #include "provers/wffsat.h"
 
-using namespace std;
 using namespace nlohmann;
 
 StepStrategy::~StepStrategy() {
@@ -60,11 +59,11 @@ struct UnificationStrategyResult : public StepStrategyResult, public enable_crea
 
     nlohmann::json get_web_json() const {
         json ret = json::object();
-        LabTok label = get<0>(this->data);
+        LabTok label = std::get<0>(this->data);
         ret["type"] = "unification";
         ret["label"] = label;
-        ret["permutation"] = get<1>(this->data);
-        ret["subst_map"] = get<2>(this->data);
+        ret["permutation"] = std::get<1>(this->data);
+        ret["subst_map"] = std::get<2>(this->data);
         auto ass = this->toolbox.get_assertion(label);
         if (ass.is_valid()) {
             ret["number"] = ass.get_number();
@@ -77,15 +76,15 @@ struct UnificationStrategyResult : public StepStrategyResult, public enable_crea
     nlohmann::json get_dump_json() const {
         json ret = json::object();
         ret["type"] = "unification";
-        ret["label"] = get<0>(this->data);
-        ret["permutation"] = get<1>(this->data);
-        ret["subst_map"] = get<2>(this->data);
+        ret["label"] = std::get<0>(this->data);
+        ret["permutation"] = std::get<1>(this->data);
+        ret["subst_map"] = std::get<2>(this->data);
         return ret;
     }
 
     bool prove(CheckpointedProofEngine &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
         RegisteredProverInstanceData inst_data(this->data);
-        vector< Prover< CheckpointedProofEngine > > hyps_provers;
+        std::vector< Prover< CheckpointedProofEngine > > hyps_provers;
         for (const auto &child : children) {
             hyps_provers.push_back([child](CheckpointedProofEngine &engine2) {
                 (void) engine2;
@@ -128,26 +127,26 @@ void UnificationStrategy::operator()(Yielder &yield) {
     result->success = false;
     for (const auto &match : res) {
         // Check that the substitution map does not violate any antidist constraint
-        const auto &ass = this->toolbox.get_assertion(get<0>(match));
+        const auto &ass = this->toolbox.get_assertion(std::get<0>(match));
         assert(ass.is_valid());
         const auto &ass_dists = ass.get_dists();
-        const set< pair< SymTok, SymTok > > antidists;
+        const std::set< std::pair< SymTok, SymTok > > antidists;
         const auto &tb = this->toolbox;
-        const auto &subst_map = get<2>(match);
+        const auto &subst_map = std::get<2>(match);
         for (auto it1 = subst_map.begin(); it1 != subst_map.end(); it1++) {
             for (auto it2 = subst_map.begin(); it2 != it1; it2++) {
                 const auto &var1 = it1->first;
                 const auto &var2 = it2->first;
                 const auto &subst1 = it1->second;
                 const auto &subst2 = it2->second;
-                if (ass_dists.find(minmax(var1, var2)) != ass_dists.end()) {
-                    set< SymTok > vars1;
-                    set< SymTok > vars2;
+                if (ass_dists.find(std::minmax(var1, var2)) != ass_dists.end()) {
+                    std::set< SymTok > vars1;
+                    std::set< SymTok > vars2;
                     collect_variables(subst1, tb.get_standard_is_var_sym(), vars1);
                     collect_variables(subst2, tb.get_standard_is_var_sym(), vars2);
                     for (const auto &lab1 : vars1) {
                         for (const auto &lab2 : vars2) {
-                            if (lab1 == lab2 || antidists.find(minmax(lab1, lab2)) != antidists.end()) {
+                            if (lab1 == lab2 || antidists.find(std::minmax(lab1, lab2)) != antidists.end()) {
                                 goto not_valid;
                             }
                         }
@@ -183,7 +182,7 @@ struct WffStrategyResult : public StepStrategyResult, public enable_create< WffS
     }
 
     bool prove(CheckpointedProofEngine &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
-        vector< Prover< CheckpointedProofEngine > > hyps_provers;
+        std::vector< Prover< CheckpointedProofEngine > > hyps_provers;
         for (const auto &child : children) {
             hyps_provers.push_back([child](CheckpointedProofEngine &engine2) {
                 (void) engine2;
@@ -193,7 +192,7 @@ struct WffStrategyResult : public StepStrategyResult, public enable_create< WffS
         auto prover2 = this->prover;
         auto wff2 = this->wff;
         for (int i = (int) children.size()-1; i >= 0; i--) {
-            auto wff_imp = dynamic_pointer_cast< const Imp >(wff2);
+            auto wff_imp = std::dynamic_pointer_cast< const Imp >(wff2);
             assert(wff_imp);
             prover2 = imp_mp_prover(wff_imp, hyps_provers[i], prover2, this->toolbox);
             wff2 = wff_imp->get_b();

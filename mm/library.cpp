@@ -11,13 +11,11 @@
 #include "old/unification.h"
 #include "toolbox.h"
 
-using namespace std;
-
 LibraryImpl::LibraryImpl()
 {
 }
 
-SymTok LibraryImpl::create_symbol(string s)
+SymTok LibraryImpl::create_symbol(std::string s)
 {
     assert(is_valid_symbol(s));
     SymTok res = this->syms.create(s);
@@ -27,14 +25,14 @@ SymTok LibraryImpl::create_symbol(string s)
     return res;
 }
 
-SymTok LibraryImpl::create_or_get_symbol(string s)
+SymTok LibraryImpl::create_or_get_symbol(std::string s)
 {
     assert(is_valid_symbol(s));
     SymTok res = this->syms.get_or_create(s);
     return res;
 }
 
-LabTok LibraryImpl::create_label(string s)
+LabTok LibraryImpl::create_label(std::string s)
 {
     assert(is_valid_label(s));
     auto res = this->labels.create(s);
@@ -48,22 +46,22 @@ LabTok LibraryImpl::create_label(string s)
     return res;
 }
 
-SymTok LibraryImpl::get_symbol(string s) const
+SymTok LibraryImpl::get_symbol(std::string s) const
 {
     return this->syms.get(s);
 }
 
-LabTok LibraryImpl::get_label(string s) const
+LabTok LibraryImpl::get_label(std::string s) const
 {
     return this->labels.get(s);
 }
 
-string LibraryImpl::resolve_symbol(SymTok tok) const
+std::string LibraryImpl::resolve_symbol(SymTok tok) const
 {
     return this->syms.resolve(tok);
 }
 
-string LibraryImpl::resolve_label(LabTok tok) const
+std::string LibraryImpl::resolve_label(LabTok tok) const
 {
     return this->labels.resolve(tok);
 }
@@ -83,7 +81,7 @@ const std::unordered_map< SymTok, std::string > &LibraryImpl::get_symbols() cons
     return this->syms.get_cache();
 }
 
-const std::unordered_map<LabTok, string> &LibraryImpl::get_labels() const
+const std::unordered_map<LabTok, std::string> &LibraryImpl::get_labels() const
 {
     return this->labels.get_cache();
 }
@@ -145,7 +143,7 @@ void LibraryImpl::set_constant(SymTok c, bool is_const)
     } else {
         this->vars.insert(c);
     }*/
-    this->consts.resize(max(this->consts.size(), static_cast< size_t > (c)+1));
+    this->consts.resize(std::max(this->consts.size(), static_cast< size_t > (c)+1));
     this->consts[c] = is_const;
 }
 
@@ -179,15 +177,15 @@ Assertion::Assertion(bool theorem, bool _has_proof,
                      const std::set<std::pair<SymTok, SymTok> > &dists,
                      const std::set<std::pair<SymTok, SymTok> > &opt_dists,
                      const std::vector<LabTok> &float_hyps, const std::vector<LabTok> &ess_hyps, const std::set<LabTok> &opt_hyps,
-                     LabTok thesis, LabTok number, const string &comment) :
+                     LabTok thesis, LabTok number, const std::string &comment) :
     valid(true), theorem(theorem), mand_dists(dists), opt_dists(opt_dists),
     float_hyps(float_hyps), ess_hyps(ess_hyps), opt_hyps(opt_hyps), thesis(thesis), number(number), proof(nullptr),
     comment(comment), modif_disc(false), usage_disc(false), _has_proof(_has_proof)
 {
-    if (this->comment.find("(Proof modification is discouraged.)") != string::npos) {
+    if (this->comment.find("(Proof modification is discouraged.)") != std::string::npos) {
         this->modif_disc = true;
     }
-    if (this->comment.find("(New usage is discouraged.)") != string::npos) {
+    if (this->comment.find("(New usage is discouraged.)") != std::string::npos) {
         this->usage_disc = true;
     }
 }
@@ -238,7 +236,7 @@ const ParsingAddendumImpl &LibraryImpl::get_parsing_addendum() const
 
 class AssertionGenerator {
 public:
-    AssertionGenerator(const vector< Assertion > &ref) :
+    AssertionGenerator(const std::vector< Assertion > &ref) :
         it(ref.begin()), ref(ref) {
     }
     const Assertion *operator()() {
@@ -253,11 +251,11 @@ public:
     }
 
 private:
-    vector< Assertion >::const_iterator it;
-    const vector< Assertion > &ref;
+    std::vector< Assertion >::const_iterator it;
+    const std::vector< Assertion > &ref;
 };
 
-function<const Assertion *()> LibraryImpl::list_assertions() const {
+std::function<const Assertion *()> LibraryImpl::list_assertions() const {
     return AssertionGenerator(this->assertions);
 }
 
@@ -290,16 +288,16 @@ Library::~Library()
 {
 }
 
-string fix_htmlcss_for_qt(string s)
+std::string fix_htmlcss_for_qt(std::string s)
 {
-    string tmp(s);
+    std::string tmp(s);
     tmp = tmp + "\n\n";
     // Qt does not recognize HTML comments in the stylesheet
-    tmp = regex_replace(tmp, regex("<!--"), "");
-    tmp = regex_replace(tmp, regex("-->"), "");
+    tmp = regex_replace(tmp, std::regex("<!--"), "");
+    tmp = regex_replace(tmp, std::regex("-->"), "");
     // Qt uses the system font (not the one provided by the CSS), so it must use the real font name
-    tmp = regex_replace(tmp, regex("XITSMath-Regular"), "XITS Math");
+    tmp = regex_replace(tmp, std::regex("XITSMath-Regular"), "XITS Math");
     // Qt does not recognize the LINK tags and stops rendering altogether
-    tmp = regex_replace(tmp, regex("<LINK [^>]*>"), "");
+    tmp = regex_replace(tmp, std::regex("<LINK [^>]*>"), "");
     return tmp;
 }

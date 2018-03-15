@@ -9,9 +9,7 @@
 #include "reader.h"
 #include "mm/proof.h"
 
-using namespace std;
-
-ostream &operator<<(ostream &os, const SentencePrinter &sp)
+std::ostream &operator<<(std::ostream &os, const SentencePrinter &sp)
 {
     bool first = true;
     if (sp.style == SentencePrinter::STYLE_ALTHTML) {
@@ -37,7 +35,7 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
         if (first) {
             first = false;
         } else {
-            os << string(" ");
+            os << std::string(" ");
         }
         if (sp.style == SentencePrinter::STYLE_PLAIN) {
             os << sp.tb.resolve_symbol(tok);
@@ -51,7 +49,7 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
             os << sp.tb.get_addendum().get_latexdef(tok);
         } else if (sp.style == SentencePrinter::STYLE_ANSI_COLORS_SET_MM) {
             if (sp.tb.get_standard_is_var_sym()(tok)) {
-                string type_str = sp.tb.resolve_symbol(sp.tb.get_var_sym_to_type_sym(tok));
+                std::string type_str = sp.tb.resolve_symbol(sp.tb.get_var_sym_to_type_sym(tok));
                 if (type_str == "set") {
                     os << "\033[91m";
                 } else if (type_str == "class") {
@@ -72,7 +70,7 @@ ostream &operator<<(ostream &os, const SentencePrinter &sp)
     return os;
 }
 
-ostream &operator<<(ostream &os, const ProofPrinter &sp)
+std::ostream &operator<<(std::ostream &os, const ProofPrinter &sp)
 {
     auto labels = sp.labels;
     if (sp.uncomp_proof) {
@@ -87,7 +85,7 @@ ostream &operator<<(ostream &os, const ProofPrinter &sp)
             if (first) {
                 first = false;
             } else {
-                os << string(" ");
+                os << std::string(" ");
             }
             os << sp.tb.resolve_label(label);
         }
@@ -105,11 +103,11 @@ ostream &operator<<(ostream &os, const ProofPrinter &sp)
     return os;
 }
 
-LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, string turnstile, shared_ptr<ToolboxCache> cache) :
+LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, std::string turnstile, std::shared_ptr<ToolboxCache> cache) :
     cache(cache),
     lib(lib),
     turnstile(lib.get_symbol(turnstile)), turnstile_alias(lib.get_parsing_addendum().get_syntax().at(this->turnstile)),
-    temp_generator(make_unique< TempGenerator >(lib))
+    temp_generator(std::make_unique< TempGenerator >(lib))
     //type_labels(lib.get_final_stack_frame().types), type_labels_set(lib.get_final_stack_frame().types_set)
 {
     assert(this->lib.is_immutable());
@@ -181,7 +179,7 @@ void LibraryToolbox::compute_vars()
     this->sentence_vars.emplace_back();
     for (size_t i = 1; i < this->get_parsed_sents2().size(); i++) {
         const auto &pt = this->get_parsed_sents2()[i];
-        set< LabTok > vars;
+        std::set< LabTok > vars;
         collect_variables2(pt, this->get_standard_is_var(), vars);
         this->sentence_vars.push_back(vars);
     }
@@ -192,7 +190,7 @@ void LibraryToolbox::compute_vars()
             continue;
         }
         const auto &thesis_vars = this->sentence_vars[ass.get_thesis()];
-        set< LabTok > hyps_vars;
+        std::set< LabTok > hyps_vars;
         for (const auto hyp_tok : ass.get_ess_hyps()) {
             const auto &hyp_vars = this->sentence_vars[hyp_tok];
             hyps_vars.insert(hyp_vars.begin(), hyp_vars.end());
@@ -283,12 +281,12 @@ std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok>
 
     // Substitute and return
     ParsingTree< SymTok, LabTok > thesis_new_pt = ::substitute(thesis_pt, is_var, subst);
-    vector< ParsingTree< SymTok, LabTok > > hyps_new_pts;
+    std::vector< ParsingTree< SymTok, LabTok > > hyps_new_pts;
     for (const auto hyp : ass.get_ess_hyps()) {
         const ParsingTree< SymTok, LabTok > &hyp_pt = this->get_parsed_sents().at(hyp);
         hyps_new_pts.push_back(::substitute(hyp_pt, is_var, subst));
     }
-    return make_pair(hyps_new_pts, thesis_new_pt);
+    return std::make_pair(hyps_new_pts, thesis_new_pt);
 }
 
 std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTok> > LibraryToolbox::refresh_assertion2(const Assertion &ass)
@@ -308,12 +306,12 @@ std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTo
 
     // Substitute and return
     ParsingTree2< SymTok, LabTok > thesis_new_pt = ::substitute2_simple(thesis_pt, is_var, subst);
-    vector< ParsingTree2< SymTok, LabTok > > hyps_new_pts;
+    std::vector< ParsingTree2< SymTok, LabTok > > hyps_new_pts;
     for (const auto hyp : ass.get_ess_hyps()) {
         const ParsingTree2< SymTok, LabTok > &hyp_pt = this->get_parsed_sents2().at(hyp);
         hyps_new_pts.push_back(::substitute2_simple(hyp_pt, is_var, subst));
     }
-    return make_pair(hyps_new_pts, thesis_new_pt);
+    return std::make_pair(hyps_new_pts, thesis_new_pt);
 }
 
 ParsingTree<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree(const ParsingTree<SymTok, LabTok> &pt)
@@ -351,7 +349,7 @@ SubstMap<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map(const std::s
         SymTok type_sym = this->get_sentence(var).at(0);
         SymTok new_sym;
         LabTok new_lab;
-        tie(new_lab, new_sym) = this->new_temp_var(type_sym);
+        std::tie(new_lab, new_sym) = this->new_temp_var(type_sym);
         ParsingTree< SymTok, LabTok > new_pt;
         new_pt.label = new_lab;
         new_pt.type = type_sym;
@@ -366,7 +364,7 @@ SimpleSubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map2(cons
     for (const auto var : vars) {
         SymTok type_sym = this->get_sentence(var).at(0);
         LabTok new_lab;
-        tie(new_lab, ignore) = this->new_temp_var(type_sym);
+        std::tie(new_lab, std::ignore) = this->new_temp_var(type_sym);
         subst[var] = new_lab;
     }
     return subst;
@@ -377,7 +375,7 @@ SubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_full_subst_map2(const
     return subst_to_subst2(this->build_refreshing_subst_map(vars));
 }
 
-SymTok LibraryToolbox::get_symbol(string s) const
+SymTok LibraryToolbox::get_symbol(std::string s) const
 {
     auto res = this->lib.get_symbol(s);
     if (res != 0) {
@@ -386,7 +384,7 @@ SymTok LibraryToolbox::get_symbol(string s) const
     return this->temp_generator->get_symbol(s);
 }
 
-LabTok LibraryToolbox::get_label(string s) const
+LabTok LibraryToolbox::get_label(std::string s) const
 {
     auto res = this->lib.get_label(s);
     if (res != 0) {
@@ -395,7 +393,7 @@ LabTok LibraryToolbox::get_label(string s) const
     return this->temp_generator->get_label(s);
 }
 
-string LibraryToolbox::resolve_symbol(SymTok tok) const
+std::string LibraryToolbox::resolve_symbol(SymTok tok) const
 {
     auto res = this->lib.resolve_symbol(tok);
     if (res != "") {
@@ -404,7 +402,7 @@ string LibraryToolbox::resolve_symbol(SymTok tok) const
     return this->temp_generator->resolve_symbol(tok);
 }
 
-string LibraryToolbox::resolve_label(LabTok tok) const
+std::string LibraryToolbox::resolve_label(LabTok tok) const
 {
     auto res = this->lib.resolve_label(tok);
     if (res != "") {
@@ -468,10 +466,10 @@ const ParsingAddendumImpl &LibraryToolbox::get_parsing_addendum() const
     return this->lib.get_parsing_addendum();
 }
 
-std::vector<SymTok> LibraryToolbox::read_sentence(const string &in) const
+std::vector<SymTok> LibraryToolbox::read_sentence(const std::string &in) const
 {
     auto toks = tokenize(in);
-    vector< SymTok > res;
+    std::vector< SymTok > res;
     for (auto &tok : toks) {
         auto tok_num = this->get_symbol(tok);
         assert_or_throw< MMPPException >(tok_num != 0, "not a symbol");
@@ -514,12 +512,12 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
 {
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
 
-    vector< SymTok > sent;
+    std::vector< SymTok > sent;
     for (auto &hyp : hypotheses) {
-        copy(hyp.begin(), hyp.end(), back_inserter(sent));
+        std::copy(hyp.begin(), hyp.end(), back_inserter(sent));
         sent.push_back(0);
     }
-    copy(thesis.begin(), thesis.end(), back_inserter(sent));
+    std::copy(thesis.begin(), thesis.end(), back_inserter(sent));
 
     auto assertions_gen = this->list_assertions();
     while (true) {
@@ -537,15 +535,15 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
         // We have to generate all the hypotheses' permutations; fortunately usually hypotheses are not many
         // TODO Is there a better algorithm?
         // The i-th specified hypothesis is matched with the perm[i]-th assertion hypothesis
-        vector< size_t > perm;
+        std::vector< size_t > perm;
         for (size_t i = 0; i < hypotheses.size(); i++) {
             perm.push_back(i);
         }
         do {
-            vector< SymTok > templ;
+            std::vector< SymTok > templ;
             for (size_t i = 0; i < hypotheses.size(); i++) {
                 auto &hyp = this->get_sentence(ass.get_ess_hyps()[perm[i]]);
-                copy(hyp.begin(), hyp.end(), back_inserter(templ));
+                std::copy(hyp.begin(), hyp.end(), back_inserter(templ));
                 templ.push_back(0);
             }
             auto &th = this->get_sentence(ass.get_thesis());
@@ -561,7 +559,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
                         Sentence type_sent;
                         type_sent.push_back(float_hyp_sent.at(0));
                         auto &type_main_sent = unification.at(float_hyp_sent.at(1));
-                        copy(type_main_sent.begin(), type_main_sent.end(), back_inserter(type_sent));
+                        std::copy(type_main_sent.begin(), type_main_sent.end(), back_inserter(type_sent));
                         CreativeProofEngineImpl< Sentence > engine(*this);
                         if (!this->type_proving_helper(type_sent, engine)) {
                             wrong_unification = true;
@@ -580,7 +578,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
             if (!up_to_hyps_perms) {
                 break;
             }
-        } while (next_permutation(perm.begin(), perm.end()));
+        } while (std::next_permutation(perm.begin(), perm.end()));
     }
 
     return ret;
@@ -591,7 +589,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
 
     // Parse inputs
-    vector< ParsingTree< SymTok, LabTok > > pt_hyps;
+    std::vector< ParsingTree< SymTok, LabTok > > pt_hyps;
     for (auto &hyp : hypotheses) {
         auto pt = this->parse_sentence(hyp.begin()+1, hyp.end(), this->turnstile_alias);
         if (pt.label == LabTok{}) {
@@ -630,7 +628,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
         // We have to generate all the hypotheses' permutations; fortunately usually hypotheses are not many
         // TODO Is there a better algorithm?
         // The i-th specified hypothesis is matched with the perm[i]-th assertion hypothesis
-        vector< size_t > perm;
+        std::vector< size_t > perm;
         for (size_t i = 0; i < hypotheses.size(); i++) {
             perm.push_back(i);
         }
@@ -668,7 +666,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
             if (!up_to_hyps_perms) {
                 break;
             }
-        } while (next_permutation(perm.begin(), perm.end()));
+        } while (std::next_permutation(perm.begin(), perm.end()));
     }
 
     return ret;
@@ -724,15 +722,15 @@ LabTok LibraryToolbox::get_imp_label() const
     return this->get_label("wi");
 }
 
-void LibraryToolbox::dump_proof_exception(const ProofException<Sentence> &e, ostream &out) const
+void LibraryToolbox::dump_proof_exception(const ProofException<Sentence> &e, std::ostream &out) const
 {
-    out << "Applying " << this->resolve_label(e.get_error().label) << " the proof executor signalled an error..." << endl;
-    out << "The reason was " << e.get_reason() << endl;
-    out << "On stack there was: " << this->print_sentence(e.get_error().on_stack) << endl;
-    out << "Has to match with: " << this->print_sentence(e.get_error().to_subst) << endl;
-    out << "Substitution map:" << endl;
+    out << "Applying " << this->resolve_label(e.get_error().label) << " the proof executor signalled an error..." << std::endl;
+    out << "The reason was " << e.get_reason() << std::endl;
+    out << "On stack there was: " << this->print_sentence(e.get_error().on_stack) << std::endl;
+    out << "Has to match with: " << this->print_sentence(e.get_error().to_subst) << std::endl;
+    out << "Substitution map:" << std::endl;
     for (const auto &it : e.get_error().subst_map) {
-        out << this->resolve_symbol(it.first) << ": " << this->print_sentence(it.second) << endl;
+        out << this->resolve_symbol(it.first) << ": " << this->print_sentence(it.second) << std::endl;
     }
 }
 
@@ -864,7 +862,7 @@ void LibraryToolbox::compute_derivations()
     // begin with the turnstile
     for (auto &type_lab : this->get_final_stack_frame().types) {
         auto &type_sent = this->get_sentence(type_lab);
-        this->derivations[type_sent.at(0)].push_back(make_pair(type_lab, vector<SymTok>({type_sent.at(1)})));
+        this->derivations[type_sent.at(0)].push_back(std::make_pair(type_lab, std::vector<SymTok>({type_sent.at(1)})));
     }
     // FIXME Take it from the configuration
     auto assertions_gen = this->list_assertions();
@@ -887,7 +885,7 @@ void LibraryToolbox::compute_derivations()
         if (sent.at(0) == this->turnstile) {
             continue;
         }
-        set< SymTok > symbols;
+        std::set< SymTok > symbols;
         bool duplicate = false;
         for (const auto &tok : sent) {
             if (this->is_constant(tok)) {
@@ -902,13 +900,13 @@ void LibraryToolbox::compute_derivations()
         if (duplicate) {
             continue;
         }
-        vector< SymTok > sent2;
+        std::vector< SymTok > sent2;
         for (size_t i = 1; i < sent.size(); i++) {
             const auto &tok = sent[i];
             // Variables are replaced with their types, which act as variables of the context-free grammar
             sent2.push_back(this->is_constant(tok) ? tok : this->get_sentence(this->get_var_sym_to_lab(tok)).at(0));
         }
-        this->derivations[sent.at(0)].push_back(make_pair(ass.get_thesis(), sent2));
+        this->derivations[sent.at(0)].push_back(std::make_pair(ass.get_thesis(), sent2));
     }
 }
 
@@ -921,7 +919,7 @@ const std::pair<SymTok, Sentence> &LibraryToolbox::get_derivation_rule(LabTok la
     }
 }
 
-RegisteredProver LibraryToolbox::register_prover(const std::vector<string> &templ_hyps, const string &templ_thesis)
+RegisteredProver LibraryToolbox::register_prover(const std::vector<std::string> &templ_hyps, const std::string &templ_thesis)
 {
     size_t index = LibraryToolbox::registered_provers().size();
     auto &rps = LibraryToolbox::registered_provers();
@@ -940,11 +938,11 @@ void LibraryToolbox::compute_registered_provers()
 
 void LibraryToolbox::compute_parser_initialization()
 {
-    std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](ostream &os, SymTok sym)->ostream& { return os << this->resolve_symbol(sym); };
-    std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](ostream &os, LabTok lab)->ostream& { return os << this->resolve_label(lab); };
+    std::function< std::ostream&(std::ostream&, SymTok) > sym_printer = [&](std::ostream &os, SymTok sym)->std::ostream& { return os << this->resolve_symbol(sym); };
+    std::function< std::ostream&(std::ostream&, LabTok) > lab_printer = [&](std::ostream &os, LabTok lab)->std::ostream& { return os << this->resolve_label(lab); };
     const auto &ders = this->get_derivations();
-    string ders_digest = hash_object(ders);
-    this->parser = make_unique< LRParser< SymTok, LabTok > >(ders, sym_printer, lab_printer);
+    std::string ders_digest = hash_object(ders);
+    this->parser = std::make_unique< LRParser< SymTok, LabTok > >(ders, sym_printer, lab_printer);
     bool loaded = false;
     if (this->cache != nullptr) {
         if (this->cache->load()) {
@@ -1056,16 +1054,16 @@ void LibraryToolbox::compute_registered_prover(size_t index, bool exception_on_f
             if (exception_on_failure) {
                 throw MMPPException("Could not find the template assertion");
             } else {
-                cerr << "Could not find a template assertion for:" << endl;
+                std::cerr << "Could not find a template assertion for:" << std::endl;
                 for (const auto &hyp : data.templ_hyps) {
-                    cerr << " * " << hyp << endl;
+                    std::cerr << " * " << hyp << std::endl;
                 }
-                cerr << " => " << data.templ_thesis << endl;
+                std::cerr << " => " << data.templ_thesis << std::endl;
                 return;
             }
         }
-        //cerr << "Resolving registered prover with label " << this->resolve_label(get<0>(unification[0])) << endl;
-        inst_data = RegisteredProverInstanceData(unification[0], this->resolve_label(get<0>(unification[0])));
+        //cerr << "Resolving registered prover with label " << this->resolve_label(std::get<0>(unification[0])) << endl;
+        inst_data = RegisteredProverInstanceData(unification[0], this->resolve_label(std::get<0>(unification[0])));
     }
 }
 
@@ -1074,7 +1072,7 @@ std::pair<LabTok, SymTok> LibraryToolbox::new_temp_var(SymTok type_sym) const
     return this->temp_generator->new_temp_var(type_sym);
 }
 
-LabTok LibraryToolbox::new_temp_label(string name) const
+LabTok LibraryToolbox::new_temp_label(std::string name) const
 {
     return this->temp_generator->new_temp_label(name);
 }
@@ -1089,9 +1087,9 @@ void LibraryToolbox::release_temp_var_frame() const
     return this->temp_generator->release_temp_var_frame();
 }
 
-string SentencePrinter::to_string() const
+std::string SentencePrinter::to_string() const
 {
-    ostringstream buf;
+    std::ostringstream buf;
     buf << *this;
     return buf.str();
 }
@@ -1125,11 +1123,11 @@ bool FileToolboxCache::store() {
     return true;
 }
 
-string FileToolboxCache::get_digest() {
+std::string FileToolboxCache::get_digest() {
     return this->digest;
 }
 
-void FileToolboxCache::set_digest(string digest) {
+void FileToolboxCache::set_digest(std::string digest) {
     this->digest = digest;
 }
 
@@ -1141,9 +1139,9 @@ void FileToolboxCache::set_lr_parser_data(const LRParser< SymTok, LabTok >::Cach
     this->lr_parser_data = cached_data;
 }
 
-string ProofPrinter::to_string() const
+std::string ProofPrinter::to_string() const
 {
-    ostringstream buf;
+    std::ostringstream buf;
     buf << *this;
     return buf.str();
 }

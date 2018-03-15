@@ -10,8 +10,6 @@
 #include "platform.h"
 #include "test/test_env.h"
 
-using namespace std;
-
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),

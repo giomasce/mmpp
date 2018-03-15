@@ -13,10 +13,8 @@
 #include "mm/reader.h"
 #include "mm/proof.h"
 
-using namespace std;
-
 const boost::filesystem::path test_basename = platform_get_resources_base() / "metamath-test";
-const string tests_filenames = R"tests(
+const std::string tests_filenames = R"tests(
 fail anatomy-bad1.mm "Simple incorrect 'anatomy' test "
 fail anatomy-bad2.mm "Simple incorrect 'anatomy' test "
 fail anatomy-bad3.mm "Simple incorrect 'anatomy' test "
@@ -43,39 +41,39 @@ pass lofset.mm
 pass set(lof).mm
 )tests";
 
-static vector< pair < string, bool > > get_tests() {
-    istringstream iss(tests_filenames);
-    vector< pair< string, bool > > tests;
-    string line;
-    while (getline(iss, line)) {
-        string success, filename;
-        istringstream iss2(line);
+static std::vector< std::pair < std::string, bool > > get_tests() {
+    std::istringstream iss(tests_filenames);
+    std::vector< std::pair< std::string, bool > > tests;
+    std::string line;
+    while (std::getline(iss, line)) {
+        std::string success, filename;
+        std::istringstream iss2(line);
         iss2 >> success >> filename;
         if (filename == "") {
             continue;
         }
-        tests.push_back(make_pair(filename, success == "pass"));
+        tests.push_back(std::make_pair(filename, success == "pass"));
     }
     return tests;
 }
 
-bool test_verification_one(string filename, bool advanced_tests) {
+bool test_verification_one(std::string filename, bool advanced_tests) {
     bool success = true;
     try {
-        cout << "Memory usage when starting: " << size_to_string(platform_get_current_used_ram()) << endl;
+        std::cout << "Memory usage when starting: " << size_to_string(platform_get_current_used_ram()) << std::endl;
         FileTokenizer ft(test_basename / filename);
         Reader p(ft, true, true);
-        cout << "Reading library and executing all proofs..." << endl;
+        std::cout << "Reading library and executing all proofs..." << std::endl;
         p.run();
         LibraryImpl lib = p.get_library();
-        cout << "Library has " << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << endl;
+        std::cout << "Library has " << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << std::endl;
 
         /*LabTok failing = 287;
-        cout << "Checking proof of " << lib.resolve_label(failing) << endl;
+        std::cout << "Checking proof of " << lib.resolve_label(failing) << std::endl;
         lib.get_assertion(failing).get_proof_executor(lib)->execute();*/
 
         if (advanced_tests) {
-            cout << "Compressing all proofs and executing again..." << endl;
+            std::cout << "Compressing all proofs and executing again..." << std::endl;
             for (auto &ass : lib.get_assertions()) {
                 if (ass.is_valid() && ass.is_theorem()) {
                     CompressedProof compressed = ass.get_proof_operator(lib)->compress();
@@ -83,7 +81,7 @@ bool test_verification_one(string filename, bool advanced_tests) {
                 }
             }
 
-            cout << "Decompressing all proofs and executing again..." << endl;
+            std::cout << "Decompressing all proofs and executing again..." << std::endl;
             for (auto &ass : lib.get_assertions()) {
                 if (ass.is_valid() && ass.is_theorem()) {
                     UncompressedProof uncompressed = ass.get_proof_operator(lib)->uncompress();
@@ -91,7 +89,7 @@ bool test_verification_one(string filename, bool advanced_tests) {
                 }
             }
 
-            cout << "Compressing and decompressing all proofs and executing again..." << endl;
+            std::cout << "Compressing and decompressing all proofs and executing again..." << std::endl;
             for (auto &ass : lib.get_assertions()) {
                 if (ass.is_valid() && ass.is_theorem()) {
                     CompressedProof compressed = ass.get_proof_operator(lib)->compress();
@@ -100,7 +98,7 @@ bool test_verification_one(string filename, bool advanced_tests) {
                 }
             }
 
-            cout << "Decompressing and compressing all proofs and executing again..." << endl;
+            std::cout << "Decompressing and compressing all proofs and executing again..." << std::endl;
             for (auto &ass : lib.get_assertions()) {
                 if (ass.is_valid() && ass.is_theorem()) {
                     UncompressedProof uncompressed = ass.get_proof_operator(lib)->uncompress();
@@ -109,16 +107,16 @@ bool test_verification_one(string filename, bool advanced_tests) {
                 }
             }
         } else {
-            cout << "Skipping compression and decompression test" << endl;
+            std::cout << "Skipping compression and decompression test" << std::endl;
         }
 
-        cout << "Finished. Memory usage: " << size_to_string(platform_get_current_used_ram()) << endl;
+        std::cout << "Finished. Memory usage: " << size_to_string(platform_get_current_used_ram()) << std::endl;
     } catch (const MMPPException &e) {
-        cout << "An exception with message '" << e.get_reason() << "' was thrown!" << endl;
-        e.print_stacktrace(cout);
+        std::cout << "An exception with message '" << e.get_reason() << "' was thrown!" << std::endl;
+        e.print_stacktrace(std::cout);
         success = false;
     } catch (const ProofException< Sentence > &e) {
-        cout << "An exception with message '" << e.get_reason() << "' was thrown!" << endl;
+        std::cout << "An exception with message '" << e.get_reason() << "' was thrown!" << std::endl;
         success = false;
     }
 
@@ -131,9 +129,9 @@ void test_all_verifications() {
     //tests = {};
     int problems = 0;
     for (auto test_pair : tests) {
-        string filename = test_pair.first;
+        std::string filename = test_pair.first;
         bool expect_success = test_pair.second;
-        cout << "Testing file " << filename << " from " << test_basename << ", which is expected to " << (expect_success ? "pass" : "fail" ) << "..." << endl;
+        std::cout << "Testing file " << filename << " from " << test_basename << ", which is expected to " << (expect_success ? "pass" : "fail" ) << "..." << std::endl;
 
         // Useful for debugging
         /*if (filename == "demo0.mm") {
@@ -149,21 +147,21 @@ void test_all_verifications() {
         bool success = test_verification_one(filename, expect_success);
         if (success) {
             if (expect_success) {
-                cout << "Good, it worked!" << endl;
+                std::cout << "Good, it worked!" << std::endl;
             } else {
-                cout << "Bad, it should have failed!" << endl;
+                std::cout << "Bad, it should have failed!" << std::endl;
                 problems++;
             }
         } else {
             if (expect_success) {
-                cout << "Bad, this was NOT expected!" << endl;
+                std::cout << "Bad, this was NOT expected!" << std::endl;
                 problems++;
             } else {
-                cout << "Good, this was expected!" << endl;
+                std::cout << "Good, this was expected!" << std::endl;
             }
         }
 
-        cout << "-------" << endl << endl;
+        std::cout << "-------" << std::endl << std::endl;
     }
-    cout << "Found " << problems << " problems" << endl;
+    std::cout << "Found " << problems << " problems" << std::endl;
 }

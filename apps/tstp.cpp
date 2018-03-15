@@ -9,10 +9,8 @@
 #include "parsing/lr.h"
 #include "parsing/earley.h"
 
-using namespace std;
-
-const string ID_LETTERS = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890_$'.";
-const string SPACE_LETTERS = " \t\n\r";
+const std::string ID_LETTERS = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890_$'.";
+const std::string SPACE_LETTERS = " \t\n\r";
 
 enum class TSTPTokenType {
     CHAR,
@@ -34,7 +32,7 @@ enum class TSTPTokenType {
     LINE,
 };
 
-ostream &operator<<(ostream &stream, const TSTPTokenType &tt);
+std::ostream &operator<<(std::ostream &stream, const TSTPTokenType &tt);
 
 struct TSTPToken {
     TSTPTokenType type;
@@ -52,7 +50,7 @@ struct TSTPToken {
     }
 };
 
-ostream &operator<<(ostream &stream, const TSTPToken &tok);
+std::ostream &operator<<(std::ostream &stream, const TSTPToken &tok);
 TSTPToken char_tok(char c) { return TSTPToken(TSTPTokenType::CHAR, c); }
 TSTPToken sym_tok(TSTPTokenType type) { return TSTPToken(type); }
 
@@ -124,14 +122,14 @@ enum TSTPRule {
     RULE_FOF_WITH_DERIV_AND_ANNOT_IS_LINE,
 };
 
-ostream &operator<<(ostream &stream, const TSTPRule &rule);
+std::ostream &operator<<(std::ostream &stream, const TSTPRule &rule);
 
-void make_rule(std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, vector<TSTPToken> > > > &ders, TSTPTokenType type, TSTPRule rule, vector< TSTPToken > tokens) {
-    ders[type].push_back(make_pair(rule, tokens));
+void make_rule(std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, std::vector<TSTPToken> > > > &ders, TSTPTokenType type, TSTPRule rule, std::vector< TSTPToken > tokens) {
+    ders[type].push_back(std::make_pair(rule, tokens));
 }
 
-std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, vector<TSTPToken> > > > create_derivations() {
-    std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, vector<TSTPToken> > > > ders;
+std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, std::vector<TSTPToken> > > > create_derivations() {
+    std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, std::vector<TSTPToken> > > > ders;
     for (char c : ID_LETTERS) {
         make_rule(ders, TSTPTokenType::LETTER, static_cast< TSTPRule >(RULE_CHAR_IS_LETTER+c), {char_tok(c)});
     }
@@ -198,15 +196,15 @@ std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, vector<TSTPToken> 
     return ders;
 }
 
-ostream &operator<<(ostream &stream, const TSTPTokenType &tt) {
+std::ostream &operator<<(std::ostream &stream, const TSTPTokenType &tt) {
     return stream << static_cast< int >(tt);
 }
 
-ostream &operator<<(ostream &stream, const TSTPRule &rule) {
+std::ostream &operator<<(std::ostream &stream, const TSTPRule &rule) {
     return stream << static_cast< int >(rule);
 }
 
-ostream &operator<<(ostream &stream, const TSTPToken &tok) {
+std::ostream &operator<<(std::ostream &stream, const TSTPToken &tok) {
     return stream << "[" << tok.type << "," << tok.content << "]";
 }
 
@@ -219,9 +217,9 @@ hash<TSTPToken>::result_type hash<TSTPToken>::operator()(const hash<TSTPToken>::
 }
 }
 
-vector< TSTPToken > trivial_lexer(string s) {
-    vector < TSTPToken > ret;
-    set< char > id_letters_set;
+std::vector< TSTPToken > trivial_lexer(std::string s) {
+    std::vector < TSTPToken > ret;
+    std::set< char > id_letters_set;
     for (char c : ID_LETTERS) {
         id_letters_set.insert(c);
     }
@@ -253,11 +251,11 @@ int parse_tstp_main(int argc, char *argv[]) {
     //EarleyParser< TSTPToken, TSTPRule > parser(ders);
     parser.initialize();
 
-    string line;
-    while (getline(cin, line)) {
+    std::string line;
+    while (std::getline(std::cin, line)) {
         auto lexes = trivial_lexer(line);
         auto pt = parser.parse(lexes.begin(), lexes.end(), TSTPToken(TSTPTokenType::LINE));
-        cout << "Parsed as " << pt.label << endl;
+        std::cout << "Parsed as " << pt.label << std::endl;
     }
 
     return 0;

@@ -6,7 +6,6 @@
 #include "strategy.h"
 #include "mm/proof.h"
 
-using namespace std;
 using namespace nlohmann;
 
 //#define LOG_STEP_OPS
@@ -17,7 +16,7 @@ using namespace nlohmann;
 
 void Step::clean_listeners()
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     this->listeners.remove_if([](const auto &x) { return x.expired(); });
 }
 
@@ -57,7 +56,7 @@ void Step::after_being_orphaned(size_t child_idx) {
 
 void Step::after_new_sentence(const Sentence &old_sent) {
     (void) old_sent;
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     this->restart_search();
     auto strong_parent = this->parent.lock();
     if (strong_parent) {
@@ -68,7 +67,7 @@ void Step::after_new_sentence(const Sentence &old_sent) {
                 (void) yield;
                 strong_parent->restart_search();
             };
-            auto shared_body = make_shared< decltype(body) >(body);
+            auto shared_body = std::make_shared< decltype(body) >(body);
             workset->add_coroutine(make_auto_coroutine(shared_body));
         }
     }
@@ -76,7 +75,7 @@ void Step::after_new_sentence(const Sentence &old_sent) {
 
 void Step::restart_search()
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     auto workset = this->get_workset().lock();
     if (!workset) {
         return;
@@ -88,23 +87,23 @@ void Step::restart_search()
     this->active_strategies.clear();
     this->winning_strategy = nullptr;
 
-    vector< Sentence > hyps;
+    std::vector< Sentence > hyps;
     for (const auto &child : this->get_children()) {
         hyps.push_back(child.lock()->get_sentence());
     }
 
     auto strategies = create_strategies(this->weak_from_this(), this->get_sentence(), hyps, workset->get_toolbox());
     for (const auto &strat : strategies) {
-        auto coro = make_shared< Coroutine >(strat);
+        auto coro = std::make_shared< Coroutine >(strat);
         workset->add_coroutine(coro);
-        this->active_strategies.push_back(make_pair(strat, coro));
+        this->active_strategies.push_back(std::make_pair(strat, coro));
     }
     this->maybe_notify_update();
 }
 
 void Step::report_result(std::shared_ptr<StepStrategy> strategy, std::shared_ptr<StepStrategyResult> result)
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     auto it = find_if(this->active_strategies.begin(), this->active_strategies.end(), [&strategy](const auto &x) { return x.first == strategy; });
     if (it == this->active_strategies.end()) {
         return;
@@ -123,8 +122,8 @@ void Step::report_result(std::shared_ptr<StepStrategy> strategy, std::shared_ptr
 
 bool Step::reaches_by_parents(const Step &to)
 {
-    vector< unique_lock< recursive_mutex > > locks;
-    vector< shared_ptr< Step > > parents;
+    std::vector< std::unique_lock< std::recursive_mutex > > locks;
+    std::vector< std::shared_ptr< Step > > parents;
     locks.emplace_back(this->global_mutex);
     parents.push_back(this->shared_from_this());
     assert(parents.back());
@@ -143,39 +142,39 @@ bool Step::reaches_by_parents(const Step &to)
 
 size_t Step::get_id()
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     //return this->token.get_id();
     return this->id;
 }
 
 const std::vector<SafeWeakPtr<Step> > &Step::get_children()
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     return this->children;
 }
 
 const Sentence &Step::get_sentence()
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     return this->sentence;
 }
 
 const ParsingTree<SymTok, LabTok> &Step::get_parsing_tree()
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     return this->parsing_tree;
 }
 
 std::weak_ptr<Workset> Step::get_workset()
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     //return this->token.get_main();
     return this->workset;
 }
 
 void Step::set_sentence(const Sentence &sentence)
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     auto strong_this = this->shared_from_this();
     assert(strong_this != nullptr);
     Sentence old_sentence = this->sentence;
@@ -208,7 +207,7 @@ std::shared_ptr<Step> Step::get_parent() const
 
 std::shared_ptr< Step > Step::destroy()
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     // Take a strong reference to this and return it, so that the object is not deallocated while this method is still running
     auto strong_this = this->shared_from_this();
     auto strong_parent = this->get_parent();
@@ -228,13 +227,13 @@ bool Step::orphan()
     // We assume that a global lock is held by the Workset, so here we can lock both
     // this and the parent without fear of deadlocks; we still need to lock both,
     // because answer_api1() has already released the Workset's lock
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     auto strong_this = this->shared_from_this();
     auto strong_parent = this->get_parent();
     if (strong_parent == nullptr) {
         return false;
     }
-    unique_lock< recursive_mutex > parent_lock(strong_parent->global_mutex);
+    std::unique_lock< std::recursive_mutex > parent_lock(strong_parent->global_mutex);
     auto &pchildren = strong_parent->children;
     auto it = find_if(pchildren.begin(), pchildren.end(), [this](const SafeWeakPtr< Step > &s)->bool { return s.lock().get() == this; });
     assert(it != pchildren.end());
@@ -262,7 +261,7 @@ bool Step::orphan()
 
     // Actual orphaning
 #ifdef LOG_STEP_OPS
-    cerr << "Orphaning step " << this->get_id() << " from step " << strong_parent->get_id() << endl;
+    std::cerr << "Orphaning step " << this->get_id() << " from step " << strong_parent->get_id() << std::endl;
 #endif
     this->parent = std::weak_ptr< Step >();
     pchildren.erase(it);
@@ -289,13 +288,13 @@ bool Step::orphan()
 bool Step::reparent(std::shared_ptr<Step> parent, size_t idx)
 {
     // See comments in orphan() about locking
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     auto strong_this = this->shared_from_this();
     assert(strong_this != nullptr);
     if (!this->parent.expired()) {
         return false;
     }
-    unique_lock< recursive_mutex > parent_lock(parent->global_mutex);
+    std::unique_lock< std::recursive_mutex > parent_lock(parent->global_mutex);
     auto &pchildren = parent->children;
     if (idx > pchildren.size()) {
         return false;
@@ -328,7 +327,7 @@ bool Step::reparent(std::shared_ptr<Step> parent, size_t idx)
     this->parent = parent;
     pchildren.insert(pchildren.begin() + idx, strong_this);
 #ifdef LOG_STEP_OPS
-    cerr << "Reparenting step " << this->get_id() << " under step " << parent->get_id() << endl;
+    std::cerr << "Reparenting step " << this->get_id() << " under step " << parent->get_id() << std::endl;
 #endif
 
     // Call after listeners
@@ -352,7 +351,7 @@ bool Step::reparent(std::shared_ptr<Step> parent, size_t idx)
 
 nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end)
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     assert_or_throw< SendError >(path_begin != path_end, 404);
     if (*path_begin == "get") {
         path_begin++;
@@ -367,9 +366,9 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         assert_or_throw< SendError >(path_begin == path_end, 404);
         assert_or_throw< SendError >(cb.get_method() == "POST", 405);
         throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
-            unique_lock< recursive_mutex > lock(self->global_mutex);
-            string sent_str = safe_at(post_data, "sentence").value;
-            vector< string> toks;
+            std::unique_lock< std::recursive_mutex > lock(self->global_mutex);
+            std::string sent_str = safe_at(post_data, "sentence").value;
+            std::vector< std::string> toks;
             boost::split(toks, sent_str, boost::is_any_of(" "));
             Sentence sent;
             for (const auto &x : toks) {
@@ -385,10 +384,10 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         assert_or_throw< SendError >(path_begin == path_end, 404);
         assert_or_throw< SendError >(cb.get_method() == "POST", 405);
         throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
-            unique_lock< recursive_mutex > lock(self->global_mutex);
+            std::unique_lock< std::recursive_mutex > lock(self->global_mutex);
             size_t parent_id = safe_stoi(safe_at(post_data, "parent").value);
             size_t idx = safe_stoi(safe_at(post_data, "index").value);
-            shared_ptr< Step > parent_step;
+            std::shared_ptr< Step > parent_step;
             auto strong_workset = self->get_workset().lock();
             assert_or_throw< SendError >(static_cast< bool >(strong_workset), 404);
             parent_step = safe_at(*strong_workset, parent_id);
@@ -403,7 +402,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         assert_or_throw< SendError >(cb.get_method() == "POST", 405);
         throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
             (void) post_data;
-            unique_lock< recursive_mutex > lock(self->global_mutex);
+            std::unique_lock< std::recursive_mutex > lock(self->global_mutex);
             bool res = self->orphan();
             json ret = json::object();
             ret["success"] = res;
@@ -415,7 +414,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         assert_or_throw< SendError >(cb.get_method() == "POST", 405);
         throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
             (void) post_data;
-            unique_lock< recursive_mutex > lock(self->global_mutex);
+            std::unique_lock< std::recursive_mutex > lock(self->global_mutex);
             auto res = self->destroy();
             json ret = json::object();
             ret["success"] = static_cast< bool >(res);
@@ -427,7 +426,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         assert_or_throw< SendError >(cb.get_method() == "POST", 405);
         throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
             (void) post_data;
-            unique_lock< recursive_mutex > lock(self->global_mutex);
+            std::unique_lock< std::recursive_mutex > lock(self->global_mutex);
             auto strong_workset = self->get_workset().lock();
             assert_or_throw< SendError >(static_cast< bool >(strong_workset), 404);
             const LibraryToolbox &toolbox = strong_workset->get_toolbox();
@@ -439,7 +438,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
                 return ret;
             }
 
-            ostringstream buf;
+            std::ostringstream buf;
             const auto &thesis = engine.get_stack().back();
             const auto &hyps = engine.get_new_hypotheses();
             std::vector< LabTok > float_hyps;
@@ -447,7 +446,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             std::set< SymTok > vars;
             collect_variables(thesis, toolbox.get_standard_is_var_sym(), vars);
             for (const auto &hyp : hyps) {
-                buf << toolbox.resolve_label(hyp.first) << " $e " << toolbox.print_sentence(hyp.second) << " $." << endl;
+                buf << toolbox.resolve_label(hyp.first) << " $e " << toolbox.print_sentence(hyp.second) << " $." << std::endl;
                 collect_variables(hyp.second, toolbox.get_standard_is_var_sym(), vars);
                 ess_hyps.push_back(hyp.first);
             }
@@ -455,8 +454,8 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
                 float_hyps.push_back(toolbox.get_var_sym_to_lab(var));
             }
             // Sorting floating hypotheses by their label shoud give the expected order in the Assertion
-            sort(float_hyps.begin(), float_hyps.end());
-            buf << "thesis $p " << toolbox.print_sentence(thesis) << " $=" << endl;
+            std::sort(float_hyps.begin(), float_hyps.end());
+            buf << "thesis $p " << toolbox.print_sentence(thesis) << " $=" << std::endl;
             UncompressedProof uncomp_proof(engine.get_proof_labels());
             Assertion dummy_ass(float_hyps, ess_hyps);
             auto uncomp_op = uncomp_proof.get_operator(toolbox, dummy_ass);
@@ -464,8 +463,8 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
                 uncomp_op->set_new_hypothesis(hyp.first, hyp.second);
             }
             auto comp_proof = uncomp_op->compress(ProofOperator::CS_BACKREFS_ON_IDENTICAL_SENTENCE);
-            buf << toolbox.print_proof(comp_proof) << endl;
-            buf << "$." << endl;
+            buf << toolbox.print_proof(comp_proof) << std::endl;
+            buf << "$." << std::endl;
             ret["proof"] = buf.str();
 
             return ret;
@@ -476,7 +475,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
 
 json Step::dump()
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     json ret = json::object();
     ret["sentence"] = this->sentence;
     ret["children"] = json::array();
@@ -491,7 +490,7 @@ json Step::dump()
 
 void Step::load_dump(const json &dump)
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     Sentence new_sent;
     for (SymTok x : dump["sentence"]) {
         new_sent.push_back(x);
@@ -501,13 +500,13 @@ void Step::load_dump(const json &dump)
 
 void Step::add_listener(const std::shared_ptr<StepOperationsListener> &listener)
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     this->listeners.push_back(listener);
 }
 
 void Step::maybe_notify_update()
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     // Push an event to queue if the workset exists
     auto strong_workset = this->get_workset().lock();
     if (!strong_workset) {
@@ -521,34 +520,34 @@ void Step::maybe_notify_update()
 
 bool Step::is_searching()
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     return !this->active_strategies.empty();
 }
 
 std::shared_ptr<const StepStrategyResult> Step::get_result()
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     return this->winning_strategy;
 }
 
 struct StepStrategyCallbackImpl final : public StepStrategyCallback {
-    StepStrategyCallbackImpl(shared_ptr< Step > step, CreativeCheckpointedProofEngine< Sentence > &engine) : step(step), engine(engine) {}
+    StepStrategyCallbackImpl(std::shared_ptr< Step > step, CreativeCheckpointedProofEngine< Sentence > &engine) : step(step), engine(engine) {}
 
     bool prove() {
         return this->step->prove(engine);
     }
 
-    shared_ptr< Step > step;
+    std::shared_ptr< Step > step;
     CreativeCheckpointedProofEngine< Sentence > &engine;
 };
 
 bool Step::prove(CreativeCheckpointedProofEngine<Sentence> &engine)
 {
-    unique_lock< recursive_mutex > lock(this->global_mutex);
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     if (this->winning_strategy) {
-        vector< shared_ptr< StepStrategyCallback > > children_steps;
+        std::vector< std::shared_ptr< StepStrategyCallback > > children_steps;
         for (const auto &x : this->children) {
-            children_steps.push_back(make_shared< StepStrategyCallbackImpl >(x.lock(), engine));
+            children_steps.push_back(std::make_shared< StepStrategyCallbackImpl >(x.lock(), engine));
         }
         return this->winning_strategy->prove(engine, children_steps);
     } else {
@@ -560,7 +559,7 @@ bool Step::prove(CreativeCheckpointedProofEngine<Sentence> &engine)
 Step::Step(size_t id, std::shared_ptr<Workset> workset, bool do_not_search) : id(id), workset(workset), do_not_search(do_not_search)
 {
 #ifdef LOG_STEP_OPS
-    cerr << "Creating step with id " << id << endl;
+    std::cerr << "Creating step with id " << id << std::endl;
 #endif
 }
 
@@ -572,6 +571,6 @@ void Step::init()
 Step::~Step()
 {
 #ifdef LOG_STEP_OPS
-    cerr << "Destroying step with id " << id << endl;
+    std::cerr << "Destroying step with id " << id << std::endl;
 #endif
 }

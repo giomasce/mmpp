@@ -2,8 +2,6 @@
 #include "wff.h"
 #include "mm/ptengine.h"
 
-using namespace std;
-
 //#define LOG_WFF
 
 Wff::~Wff()
@@ -137,7 +135,7 @@ std::tuple<CNFProblem, pvar_map<uint32_t>, std::vector< Prover< CheckpointedProo
 True::True() {
 }
 
-string True::to_string() const {
+std::string True::to_string() const {
     return "T.";
 }
 
@@ -209,7 +207,7 @@ void True::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &gl
 False::False() {
 }
 
-string False::to_string() const {
+std::string False::to_string() const {
     return "F.";
 }
 
@@ -278,17 +276,17 @@ void False::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &g
     cnf[{{false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(False::tseitin1_rp, {{"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
-Var::Var(NameType name, string string_repr) :
+Var::Var(NameType name, std::string string_repr) :
     name(name), string_repr(string_repr) {
 }
 
-static auto var_cons_helper(const string &string_repr, const LibraryToolbox &tb) {
+static auto var_cons_helper(const std::string &string_repr, const LibraryToolbox &tb) {
     auto sent = tb.read_sentence(string_repr);
     auto pt = tb.parse_sentence(sent.begin(), sent.end(), tb.get_turnstile_alias());
     return pt_to_pt2(pt);
 }
 
-Var::Var(const string &string_repr, const LibraryToolbox &tb) :
+Var::Var(const std::string &string_repr, const LibraryToolbox &tb) :
     name(var_cons_helper(string_repr, tb)), string_repr(string_repr) {
 }
 
@@ -296,7 +294,7 @@ Var::Var(const Var::NameType &name, const LibraryToolbox &tb) :
     name(name), string_repr(tb.print_sentence(tb.reconstruct_sentence(pt2_to_pt(name))).to_string()) {
 }
 
-string Var::to_string() const {
+std::string Var::to_string() const {
     return this->string_repr;
 }
 
@@ -400,7 +398,7 @@ Not::Not(pwff a) :
     a(a) {
 }
 
-string Not::to_string() const {
+std::string Not::to_string() const {
     return "-. " + this->a->to_string();
 }
 
@@ -486,7 +484,7 @@ Imp::Imp(pwff a, pwff b) :
     a(a), b(b) {
 }
 
-string Imp::to_string() const {
+std::string Imp::to_string() const {
     return "( " + this->a->to_string() + " -> " + this->b->to_string() + " )";
 }
 
@@ -596,7 +594,7 @@ Biimp::Biimp(pwff a, pwff b) :
     a(a), b(b) {
 }
 
-string Biimp::to_string() const {
+std::string Biimp::to_string() const {
     return "( " + this->a->to_string() + " <-> " + this->b->to_string() + " )";
 }
 
@@ -664,7 +662,7 @@ Xor::Xor(pwff a, pwff b) :
     a(a), b(b) {
 }
 
-string Xor::to_string() const {
+std::string Xor::to_string() const {
     return "( " + this->a->to_string() + " \\/_ " + this->b->to_string() + " )";
 }
 
@@ -728,7 +726,7 @@ Nand::Nand(pwff a, pwff b) :
     a(a), b(b) {
 }
 
-string Nand::to_string() const {
+std::string Nand::to_string() const {
     return "( " + this->a->to_string() + " -/\\ " + this->b->to_string() + " )";
 }
 
@@ -790,7 +788,7 @@ Or::Or(pwff a, pwff b) :
     a(a), b(b) {
 }
 
-string Or::to_string() const {
+std::string Or::to_string() const {
     return "( " + this->a->to_string() + " \\/ " + this->b->to_string() + " )";
 }
 
@@ -852,7 +850,7 @@ And::And(pwff a, pwff b) :
     a(a), b(b) {
 }
 
-string And::to_string() const {
+std::string And::to_string() const {
     return "( " + this->a->to_string() + " /\\ " + this->b->to_string() + " )";
 }
 
@@ -952,7 +950,7 @@ And3::And3(pwff a, pwff b, pwff c) :
 {
 }
 
-string And3::to_string() const
+std::string And3::to_string() const
 {
     return "( " + this->a->to_string() + " /\\ " + this->b->to_string() + " /\\ " + this->c->to_string() + " )";
 }
@@ -1031,7 +1029,7 @@ Or3::Or3(pwff a, pwff b, pwff c) :
 {
 }
 
-string Or3::to_string() const
+std::string Or3::to_string() const
 {
     return "( " + this->a->to_string() + " \\/ " + this->b->to_string() + " \\/ " + this->c->to_string() + " )";
 }
@@ -1175,14 +1173,14 @@ pvar_map<uint32_t> build_tseitin_map(const pvar_set &vars)
 std::pair< CNFProblem, std::vector< Prover< CheckpointedProofEngine > > > build_cnf_problem(const CNForm &cnf, const pvar_map<uint32_t> &var_map)
 {
     CNFProblem ret;
-    vector< Prover< CheckpointedProofEngine > > provers;
+    std::vector< Prover< CheckpointedProofEngine > > provers;
     ret.var_num = var_map.size();
     for (const auto &clause : cnf) {
         ret.clauses.emplace_back();
         provers.push_back(clause.second);
         for (const auto &term : clause.first) {
-            ret.clauses.back().push_back(make_pair(term.first, var_map.at(term.second)));
+            ret.clauses.back().push_back(std::make_pair(term.first, var_map.at(term.second)));
         }
     }
-    return make_pair(ret, provers);
+    return std::make_pair(ret, provers);
 }

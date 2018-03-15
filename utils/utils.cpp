@@ -3,8 +3,6 @@
 
 #include <boost/crc.hpp>
 
-using namespace std;
-
 #if defined(__GNUG__) && defined(EXCEPTIONS_SELF_DEBUG)
 #include <execinfo.h>
 #include <cxxabi.h>
@@ -12,12 +10,12 @@ using namespace std;
 #include <stdlib.h>
 
 // Taken from https://stupefydeveloper.blogspot.it/2008/10/cc-call-stack.html and partially adapted
-std::vector<string> dump_stacktrace(size_t depth) {
+std::vector<std::string> dump_stacktrace(size_t depth) {
     using namespace std;
     using namespace abi;
 
-    vector< string > ret;
-    vector< void* > trace(depth);
+    std::vector< std::string > ret;
+    std::vector< void* > trace(depth);
     Dl_info dlinfo;
     int status;
     const char *symname;
@@ -36,7 +34,7 @@ std::vector<string> dump_stacktrace(size_t depth) {
             symname = demangled;
         }
 
-        ostringstream oss;
+        std::ostringstream oss;
         oss << "address: 0x" << trace[i] << ", object: " << dlinfo.dli_fname << ", function: " << symname;
         ret.push_back(oss.str());
 
@@ -47,7 +45,7 @@ std::vector<string> dump_stacktrace(size_t depth) {
     return ret;
 }
 
-std::vector<string> dump_stacktrace() {
+std::vector<std::string> dump_stacktrace() {
     for (size_t depth = 10; ; depth *= 2) {
         auto ret = dump_stacktrace(depth);
         if (ret.size() < depth) {
@@ -59,7 +57,7 @@ std::vector<string> dump_stacktrace() {
 #endif
 
 // Partly taken from http://programanddesign.com/cpp/human-readable-file-size-in-c/
-string size_to_string(uint64_t size) {
+std::string size_to_string(uint64_t size) {
     std::ostringstream stream;
     int i = 0;
     const char* units[] = {"B", "kiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};
@@ -71,7 +69,7 @@ string size_to_string(uint64_t size) {
     return stream.str();
 }
 
-MMPPException::MMPPException(const string &reason) : reason(reason), stacktrace(dump_stacktrace()) {
+MMPPException::MMPPException(const std::string &reason) : reason(reason), stacktrace(dump_stacktrace()) {
     if (mmpp_abort) {
         std::cerr << "Exception with message: " << reason << std::endl;
         this->print_stacktrace(std::cerr);
@@ -79,15 +77,15 @@ MMPPException::MMPPException(const string &reason) : reason(reason), stacktrace(
     }
 }
 
-const string &MMPPException::get_reason() const {
+const std::string &MMPPException::get_reason() const {
     return this->reason;
 }
 
-const std::vector<string> &MMPPException::get_stacktrace() const {
+const std::vector<std::string> &MMPPException::get_stacktrace() const {
     return this->stacktrace;
 }
 
-void MMPPException::print_stacktrace(ostream &st) const {
+void MMPPException::print_stacktrace(std::ostream &st) const {
     using namespace std;
     st << "Stack trace:" << endl;
     for (auto &frame : this->stacktrace) {
@@ -97,11 +95,11 @@ void MMPPException::print_stacktrace(ostream &st) const {
     st.flush();
 }
 
-bool starts_with(string a, string b) {
+bool starts_with(std::string a, std::string b) {
     if (b.size() > a.size()) {
         return false;
     }
-    return equal(b.begin(), b.end(), a.begin());
+    return std::equal(b.begin(), b.end(), a.begin());
 }
 
 Tic tic() {
@@ -113,15 +111,15 @@ Tic tic() {
 void toc(const Tic &t, int reps) {
     auto end = std::chrono::steady_clock::now();
     auto usecs = std::chrono::duration_cast< std::chrono::microseconds >(end - t.begin).count();
-    cout << "It took " << usecs << " microseconds to repeat " << reps << " times, which is " << (usecs / reps) << " microsecond per execution." << endl;
+    std::cout << "It took " << usecs << " microseconds to repeat " << reps << " times, which is " << (usecs / reps) << " microsecond per execution." << std::endl;
 }
 
-map< string, function< int(int, char*[]) > > &get_main_functions() {
-    static auto ret = make_unique< map< string, function< int(int, char*[]) > > >();
+std::map< std::string, std::function< int(int, char*[]) > > &get_main_functions() {
+    static auto ret = std::make_unique< std::map< std::string, std::function< int(int, char*[]) > > >();
     return *ret;
 }
 
-void register_main_function(const string &name, const function< int(int, char*[]) > &main_function) {
+void register_main_function(const std::string &name, const std::function< int(int, char*[]) > &main_function) {
     get_main_functions().insert(make_pair(name, main_function));
 }
 
@@ -141,7 +139,7 @@ private:
 };
 
 TextProgressBar::TextProgressBar(size_t length, double total) : last_len(0), total(total), length(length) {
-    cout << fixed << setprecision(0);
+    std::cout << std::fixed << std::setprecision(0);
 }
 
 void TextProgressBar::set_total(double total)
@@ -170,18 +168,18 @@ void TextProgressBar::report(double current, bool force) {
         return;
     }
     this->last_len = cur_len;
-    cout << "\033[2K\r";
-    cout << "|";
+    std::cout << "\033[2K\r";
+    std::cout << "|";
     size_t i = 0;
     for (; i < cur_len; i++) {
-        cout << "#";
+        std::cout << "#";
     }
     for (; i < this->length; i++) {
-        cout << "-";
+        std::cout << "-";
     }
-    cout << "|";
-    cout << " " << current << " / " << this->total;
-    cout.flush();
+    std::cout << "|";
+    std::cout << " " << current << " / " << this->total;
+    std::cout.flush();
 }
 
 void TextProgressBar::report(double current)
@@ -192,7 +190,7 @@ void TextProgressBar::report(double current)
 void TextProgressBar::finished()
 {
     this->report(this->total, true);
-    cout << defaultfloat << endl;
+    std::cout << std::defaultfloat << std::endl;
 }
 
 Reportable::~Reportable() {
@@ -207,17 +205,17 @@ public:
 NullBuffer cnull_buffer;
 std::ostream cnull(&cnull_buffer);
 
-HashSink::HashSink() : hasher(make_shared< HasherCRC32 >())
+HashSink::HashSink() : hasher(std::make_shared< HasherCRC32 >())
 {
 }
 
-streamsize HashSink::write(const char *s, streamsize n)
+std::streamsize HashSink::write(const char *s, std::streamsize n)
 {
     this->hasher->update(s, n);
     return n;
 }
 
-string HashSink::get_digest()
+std::string HashSink::get_digest()
 {
     return this->hasher->get_digest();
 }

@@ -1,12 +1,9 @@
 
 #include "tokenizer.h"
 
-using namespace std;
-using namespace boost::filesystem;
+std::vector< std::string > tokenize(const std::string &in) {
 
-vector< string > tokenize(const string &in) {
-
-  vector< string > toks;
+  std::vector< std::string > toks;
   bool white = true;
   size_t begin = 0;
   for (size_t i = 0; i <= in.size(); i++) {
@@ -34,13 +31,13 @@ vector< string > tokenize(const string &in) {
 {
 }*/
 
-FileTokenizer::FileTokenizer(const path &filename, Reportable *reportable) :
+FileTokenizer::FileTokenizer(const boost::filesystem::path &filename, Reportable *reportable) :
     fin(filename), base_path(filename.parent_path()), cascade(nullptr), white(true), reportable(reportable)
 {
     this->set_file_size();
 }
 
-FileTokenizer::FileTokenizer(string filename, path base_path) :
+FileTokenizer::FileTokenizer(std::string filename, boost::filesystem::path base_path) :
     fin(filename), base_path(base_path), cascade(nullptr), white(true), reportable(nullptr)
 {
     this->set_file_size();
@@ -53,9 +50,9 @@ void FileTokenizer::set_file_size()
     if (pos < 0) {
         return;
     }
-    this->fin.seekg(0, ios_base::end);
+    this->fin.seekg(0, std::ios_base::end);
     this->filesize = this->fin.tellg();
-    this->fin.seekg(pos, ios_base::beg);
+    this->fin.seekg(pos, std::ios_base::beg);
     if (this->reportable != nullptr && this->filesize > 0) {
         this->reportable->set_total((double) this->filesize);
     }
@@ -72,18 +69,18 @@ char FileTokenizer::get_char()
     return c;
 }
 
-std::pair<bool, string> FileTokenizer::finalize_token(bool comment) {
+std::pair<bool, std::string> FileTokenizer::finalize_token(bool comment) {
     if (this->white) {
-        return make_pair(comment, "");
+        return std::make_pair(comment, "");
     } else {
-        string res = string(this->buf.begin(), this->buf.end());
+        std::string res = std::string(this->buf.begin(), this->buf.end());
         this->buf.clear();
         this->white = true;
-        return make_pair(comment, res);
+        return std::make_pair(comment, res);
     }
 }
 
-std::pair<bool, string> FileTokenizer::next()
+std::pair<bool, std::string> FileTokenizer::next()
 {
     while (true) {
         if (this->cascade != nullptr) {
@@ -112,7 +109,7 @@ std::pair<bool, string> FileTokenizer::next()
                 // Here the comment begin
                 bool found_dollar = false;
                 bool comment = c == '(';
-                vector< char > content;
+                std::vector< char > content;
                 while (true) {
                     c = this->get_char();
                     if (this->fin.eof()) {
@@ -127,11 +124,11 @@ std::pair<bool, string> FileTokenizer::next()
                                 if (content.empty()) {
                                     break;
                                 } else {
-                                    return make_pair(true, string(content.begin(), content.end()));
+                                    return std::make_pair(true, std::string(content.begin(), content.end()));
                                 }
                             } else {
-                                string filename = trimmed(string(content.begin(), content.end()));
-                                string actual_filename = (this->base_path / filename).string();
+                                std::string filename = trimmed(std::string(content.begin(), content.end()));
+                                std::string actual_filename = (this->base_path / filename).string();
                                 this->cascade = new FileTokenizer(actual_filename, this->base_path);
                                 break;
                             }

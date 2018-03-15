@@ -7,8 +7,6 @@
 #include <tuple>
 #include <cmath>
 
-using namespace std;
-
 Minisat::Lit to_minisat_literal(const std::pair<bool, uint32_t> &lit)
 {
     return Minisat::mkLit(lit.second, !lit.first);
@@ -16,7 +14,7 @@ Minisat::Lit to_minisat_literal(const std::pair<bool, uint32_t> &lit)
 
 std::pair<bool, uint32_t> from_minisat_literal(const Minisat::Lit &lit)
 {
-    return make_pair(!Minisat::sign(lit), Minisat::var(lit));
+    return std::make_pair(!Minisat::sign(lit), Minisat::var(lit));
 }
 
 int32_t to_number_literal(const Literal &lit)
@@ -26,17 +24,17 @@ int32_t to_number_literal(const Literal &lit)
 
 Literal from_number_literal(int32_t lit)
 {
-    return make_pair(lit > 0, abs(lit) - 1);
+    return std::make_pair(lit > 0, abs(lit) - 1);
 }
 
-void CNFProblem::print_dimacs(ostream &stream) const
+void CNFProblem::print_dimacs(std::ostream &stream) const
 {
-    stream << "p cnf " << this->var_num << " " << this->clauses.size() << endl;
+    stream << "p cnf " << this->var_num << " " << this->clauses.size() << std::endl;
     for (const auto &clause : clauses) {
         for (const auto &lit : clause) {
             stream << to_number_literal(lit) << " ";
         }
-        stream << "0" << endl;
+        stream << "0" << std::endl;
     }
 }
 
@@ -60,7 +58,7 @@ void CNFProblem::feed_to_minisat(Minisat::Solver &solver) const
 
 std::tuple<bool, std::vector<std::pair<Literal, const std::vector<Literal> *> >, std::function< void() > > CNFProblem::do_unit_propagation(const std::vector<Literal> &orig_clause) const
 {
-    map< Literal, size_t > ret_map;
+    std::map< Literal, size_t > ret_map;
     std::vector<std::pair<Literal, const std::vector<Literal> *> > ret;
     std::vector< std::function< void() > > ret_provers;
     auto callback = this->callback;
@@ -68,7 +66,7 @@ std::tuple<bool, std::vector<std::pair<Literal, const std::vector<Literal> *> >,
         const auto &lit = orig_clause[lit_idx];
         auto neg_lit = invert_literal(lit);
         bool res;
-        tie(ignore, res) = ret_map.insert(make_pair(neg_lit, ret.size()));
+        std::tie(std::ignore, res) = ret_map.insert(std::make_pair(neg_lit, ret.size()));
         if (res) {
             ret.push_back(make_pair(neg_lit, nullptr));
             ret_provers.push_back([callback,lit_idx,orig_clause]() {
@@ -92,7 +90,7 @@ std::tuple<bool, std::vector<std::pair<Literal, const std::vector<Literal> *> >,
             Literal unsolved;
             Literal neg_unsolved;
             size_t unsolved_idx = 0;
-            vector< function< void() > > used_provers;
+            std::vector< std::function< void() > > used_provers;
             for (size_t lit_idx = 0; lit_idx < clause.size(); lit_idx++) {
                 const auto &lit = clause[lit_idx];
                 if (ret_map.find(lit) != ret_map.end()) {
@@ -132,9 +130,9 @@ std::tuple<bool, std::vector<std::pair<Literal, const std::vector<Literal> *> >,
             }
             // We found exactly one unsolved literal (or perhaps anyone if noone is solved), so it must be true
             bool res;
-            tie(ignore, res) = ret_map.insert(make_pair(unsolved, ret.size()));
+            std::tie(std::ignore, res) = ret_map.insert(std::make_pair(unsolved, ret.size()));
             if (res) {
-                ret.push_back(make_pair(unsolved, &clause));
+                ret.push_back(std::make_pair(unsolved, &clause));
                 assert(used_provers.size() + 1 == clause.size());
                 ret_provers.push_back([callback,clause_cb,orig_clause,used_provers,clause,unsolved_idx]() {
                     clause_cb(orig_clause);
@@ -178,7 +176,7 @@ std::pair<bool, std::function<void ()> > CNFProblem::solve()
     this->feed_to_minisat(solver);
     bool res = solver.solve();
     if (res) {
-        return make_pair(true, [](){});
+        return std::make_pair(true, [](){});
     }
     // For some reason, even when the problem is UNSAT, the solver does not push the empty clause at the end
     solver.refutation.push_back({true, {}});
@@ -196,7 +194,7 @@ std::pair<bool, std::function<void ()> > CNFProblem::solve()
         }
         //cout << endl;
         auto propagation = this->do_unit_propagation(clause);
-        assert(!get<0>(propagation));
+        assert(!std::get<0>(propagation));
         /*cout << "Unit propagation trace:" << endl;
         for (const auto &lit : get<1>(propagation)) {
             cout << " * " << to_number_literal(lit.first);
@@ -210,21 +208,21 @@ std::pair<bool, std::function<void ()> > CNFProblem::solve()
         }*/
         // The refutation worked, so that we can add the new clause
         this->clauses.push_back(clause);
-        const auto &prover = get<2>(propagation);
+        const auto &prover = std::get<2>(propagation);
         this->callbacks.push_back([prover,callback,clause](const auto &context) {
             prover();
             callback->prove_imp_intr(clause, context);
         });
         if (ref.second.empty()) {
             // We have finally proved the empty clause, so we can return
-            return make_pair(false, prover);
+            return std::make_pair(false, prover);
         }
     }
     assert(!"Should never arrive here");
     return {};
 }
 
-void print_clause(ostream &stream, const Clause &clause)
+void print_clause(std::ostream &stream, const Clause &clause)
 {
     bool first = true;
     for (const auto &lit : clause) {
@@ -239,45 +237,45 @@ void print_clause(ostream &stream, const Clause &clause)
 
 void CNFCallbackTest::prove_clause(size_t idx, const Clause &context)
 {
-    cout << "Putting on stack: NOT (";
-    print_clause(cout, context);
-    cout << ") -> (";
-    print_clause(cout, this->orig_clauses.at(idx));
-    cout << "), by hypothesis" << endl;
+    std::cout << "Putting on stack: NOT (";
+    print_clause(std::cout, context);
+    std::cout << ") -> (";
+    print_clause(std::cout, this->orig_clauses.at(idx));
+    std::cout << "), by hypothesis" << std::endl;
 }
 
 void CNFCallbackTest::prove_not_or_elim(size_t idx, const Clause &context)
 {
-    cout << "Putting on stack: NOT (";
-    print_clause(cout, context);
-    cout << ") -> " << to_number_literal(invert_literal(context[idx])) << ", by not or elimination" << endl;
+    std::cout << "Putting on stack: NOT (";
+    print_clause(std::cout, context);
+    std::cout << ") -> " << to_number_literal(invert_literal(context[idx])) << ", by not or elimination" << std::endl;
 }
 
 void CNFCallbackTest::prove_imp_intr(const Clause &clause, const Clause &context)
 {
-    cout << "Popping 1 thing from the stack and proving: NOT (";
-    print_clause(cout, context);
-    cout << ") -> (";
-    print_clause(cout, clause);
-    cout << "), by implication introduction" << endl;
+    std::cout << "Popping 1 thing from the stack and proving: NOT (";
+    print_clause(std::cout, context);
+    std::cout << ") -> (";
+    print_clause(std::cout, clause);
+    std::cout << "), by implication introduction" << std::endl;
 }
 
 void CNFCallbackTest::prove_unit_res(const Clause &clause, size_t unsolved_idx, const Clause &context)
 {
-    cout << "Popping " << clause.size() << " things from the stack and proving: NOT (";
-    print_clause(cout, context);
-    cout << ") -> " << to_number_literal(clause[unsolved_idx]) << " by unit resolution" << endl;
+    std::cout << "Popping " << clause.size() << " things from the stack and proving: NOT (";
+    print_clause(std::cout, context);
+    std::cout << ") -> " << to_number_literal(clause[unsolved_idx]) << " by unit resolution" << std::endl;
 }
 
 void CNFCallbackTest::prove_absurdum(const Literal &lit, const Clause &context)
 {
     (void) lit;
-    cout << "Popping 2 things from the stack and proving: (";
-    print_clause(cout, context);
-    cout << ") by absurdum" << endl;
+    std::cout << "Popping 2 things from the stack and proving: (";
+    print_clause(std::cout, context);
+    std::cout << ") by absurdum" << std::endl;
 }
 
 Literal invert_literal(const Literal &lit)
 {
-    return make_pair(!lit.first, lit.second);
+    return std::make_pair(!lit.first, lit.second);
 }
