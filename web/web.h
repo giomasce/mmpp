@@ -58,7 +58,7 @@ template< typename Container >
 const typename Container::mapped_type &safe_at(const Container &cont, const typename Container::key_type &key) {
     try {
         return cont.at(key);
-    } catch (std::out_of_range) {
+    } catch (std::out_of_range&) {
         throw SendError(404);
     }
 }
@@ -67,7 +67,7 @@ template< typename Container >
 typename Container::mapped_type safe_at(Container &cont, const typename Container::key_type &key) {
     try {
         return cont.at(key);
-    } catch (std::out_of_range) {
+    } catch (std::out_of_range&) {
         throw SendError(404);
     }
 }

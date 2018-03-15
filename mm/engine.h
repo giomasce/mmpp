@@ -242,7 +242,7 @@ protected:
                 this->process_assertion(child_ass, label);
                 return;
             }
-        } catch (std::out_of_range) {
+        } catch (std::out_of_range&) {
             // We could not find the assertion, so we carry on with the following possibilities
         }
         const auto *sentp = this->get_sentence(label);

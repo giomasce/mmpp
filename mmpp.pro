@@ -16,9 +16,9 @@ CONFIG += c++1z
 
 linux {
     # Compile with gcc
-    QMAKE_CC = gcc
-    QMAKE_CXX = g++
-    QMAKE_LINK = g++
+    QMAKE_CC = gcc-8
+    QMAKE_CXX = g++-8
+    QMAKE_LINK = g++-8
     QMAKE_CFLAGS += -std=c11 -g
     QMAKE_CXXFLAGS += -g -ftemplate-backtrace-limit=0
     QMAKE_LIBS += -ldl -export-dynamic -rdynamic

@@ -170,7 +170,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
     std::string session_cookie;
     try {
         session_cookie = cb.get_cookies().at(cookie_name);
-    } catch (std::out_of_range) {
+    } catch (std::out_of_range&) {
         session_cookie = "";
     }
     std::shared_ptr< Session > session = this->get_session(session_cookie);
@@ -340,7 +340,7 @@ std::shared_ptr< Session > WebEndpoint::get_session(std::string session_id)
     std::unique_lock< std::mutex > lock(this->sessions_mutex);
     try {
         return this->sessions.at(session_id);
-    } catch(std::out_of_range) {
+    } catch(std::out_of_range&) {
         return this->guest_session;
     }
 }
@@ -372,7 +372,7 @@ nlohmann::json Session::answer_api1(HTTPCallback &cb, std::vector< std::string >
             std::shared_ptr< Workset > workset;
             try {
                 workset = this->get_workset(id);
-            } catch (std::out_of_range) {
+            } catch (std::out_of_range&) {
                 throw SendError(404);
             }
             return workset->answer_api1(cb, path_begin, path_end);
@@ -431,9 +431,9 @@ int safe_stoi(const std::string &s)
 {
     try {
         return std::stoi(s);
-    } catch (std::invalid_argument) {
+    } catch (std::invalid_argument&) {
         throw SendError(404);
-    } catch (std::out_of_range) {
+    } catch (std::out_of_range&) {
         throw SendError(404);
     }
 }

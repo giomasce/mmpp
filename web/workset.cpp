@@ -70,7 +70,7 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
             nlohmann::json ret;
             ret["sentence"] = sent;
             return ret;
-        } catch (std::out_of_range) {
+        } catch (std::out_of_range&) {
             throw SendError(404);
         }
     } else if (*path_begin == "get_assertion") {
@@ -83,7 +83,7 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
             nlohmann::json ret;
             ret["assertion"] = jsonize(ass);
             return ret;
-        } catch (std::out_of_range) {
+        } catch (std::out_of_range&) {
             throw SendError(404);
         }
     } else if (*path_begin == "destroy") {
@@ -131,7 +131,7 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
             nlohmann::json ret;
             ret["proof_tree"] = jsonize(proof_tree);
             return ret;
-        } catch (std::out_of_range) {
+        } catch (std::out_of_range&) {
             throw SendError(404);
         }
     } else if (*path_begin == "step") {
@@ -159,7 +159,7 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
                 nlohmann::json dump;
                 try {
                     dump = nlohmann::json::parse(dump_str);
-                } catch (nlohmann::detail::exception) {
+                } catch (nlohmann::detail::exception&) {
                     throw SendError(422);
                 }
                 auto new_step = this->create_steps_from_dump(dump);
@@ -175,7 +175,7 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
         }
         try {
             return jsonize(*this->root_step);
-        } catch (std::out_of_range) {
+        } catch (std::out_of_range&) {
             throw SendError(404);
         }
     }

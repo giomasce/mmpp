@@ -44,7 +44,7 @@ int main_mmpp(int argc, char *argv[]) {
     std::function< int(int, char*[]) > main_func;
     try {
         main_func = get_main_functions().at(subcmd);
-    } catch (std::out_of_range) {
+    } catch (std::out_of_range&) {
         list_subcommands();
         return 1;
     }
@@ -61,11 +61,11 @@ int main(int argc, char *argv[]) {
     std::function< int(int, char*[]) > main_func;
     try {
         main_func = get_main_functions().at(bname);
-    } catch (std::out_of_range) {
+    } catch (std::out_of_range&) {
         // Return a default one
         try {
             main_func = get_main_functions().at(DEFAULT_MAIN_FUNCTION);
-        } catch (std::out_of_range e) {
+        } catch (std::out_of_range &e) {
             list_subcommands();
             return 1;
         }

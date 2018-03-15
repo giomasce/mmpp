@@ -255,7 +255,7 @@ void CompressedProofExecutor< SentType_ >::execute()
         } else {
             try {
                 this->process_saved_step(code - this->ass.get_mand_hyps_num()-this->proof.get_refs().size()-1);
-            } catch (std::out_of_range) {
+            } catch (std::out_of_range&) {
                 throw ProofException< Sentence >("Code too big in compressed proof");
             }
         }
