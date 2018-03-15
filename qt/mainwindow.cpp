@@ -34,7 +34,7 @@ void MainWindow::on_actionOpen_triggered()
     this->update();
 }
 
-void MainWindow::load_proof(string label)
+void MainWindow::load_proof(std::string label)
 {
     LabTok tok = this->ctx->lib->get_label(label);
     const Assertion &ass = this->ctx->lib->get_assertion(tok);

@@ -45,6 +45,10 @@ struct TSTPToken {
         return this->type == other.type && this->content == other.content;
     }
 
+    bool operator!=(const TSTPToken &other) const {
+        return !this->operator==(other);
+    }
+
     bool operator<(const TSTPToken &other) const {
         return (this->type < other.type) || (this->type == other.type && this->content < other.content);
     }

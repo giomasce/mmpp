@@ -277,13 +277,14 @@ public:
         bool res;
         std::tie(res, std::ignore) = helper.do_parsing();
         if (res) {
+            auto parsing_tree = helper.get_parsing_tree();
 #ifdef LR_PARSER_SELF_TEST
             // Check that the returned parsing tree is correct
             auto parsed_sent = reconstruct_sentence(parsing_tree, this->derivations, this->ders_by_lab);
             assert(parsed_sent.size() == static_cast< size_t >(sent_end - sent_begin));
             assert(std::equal(sent_begin, sent_end, parsed_sent.begin()));
 #endif
-            return helper.get_parsing_tree();
+            return parsing_tree;
         } else {
             return {};
         }
