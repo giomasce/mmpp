@@ -134,7 +134,7 @@ public:
             this->pos = 0;
             bytes_avail = this->buffer.size();
         }
-        size_t bytes_num = std::min(max, bytes_avail);
+        size_t bytes_num = (std::min)(max, bytes_avail);
         memcpy(buf, this->buffer.c_str() + this->pos, bytes_num);
         this->pos += bytes_num;
         this->total_pos += bytes_num;

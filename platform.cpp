@@ -287,12 +287,9 @@ uint64_t platform_get_current_used_ram( )
 
 #include <future>
 #include <iostream>
-#include <atomic>
 
 #include <windows.h>
 #include <psapi.h>
-
-using namespace std;
 
 void set_max_ram(uint64_t bytes){
     auto job_handle = CreateJobObjectA(nullptr, nullptr);
@@ -306,13 +303,13 @@ void set_max_ram(uint64_t bytes){
     // FIXME When does the Job get destroyed?
 }
 
-promise< void > exit_promise;
-future< void > exit_future;
-atomic< bool > promise_set = false;
+std::promise< void > exit_promise;
+std::future< void > exit_future;
+bool promise_set = false;
 BOOL ctrl_handler(DWORD type) {
     if (type == CTRL_C_EVENT) {
         if (!promise_set) {
-            cerr << "Ctrl-C received!" << endl;
+            std::cerr << "Ctrl-C received!" << std::endl;
             exit_promise.set_value();
             promise_set = true;
         }
