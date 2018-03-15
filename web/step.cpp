@@ -6,8 +6,6 @@
 #include "strategy.h"
 #include "mm/proof.h"
 
-using namespace nlohmann;
-
 //#define LOG_STEP_OPS
 
 /*Step::Step(BackreferenceToken<Step, Workset> &&token) : token(move(token))
@@ -375,7 +373,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
                 sent.push_back(safe_stoi(x));
             }
             self->set_sentence(sent);
-            json ret = json::object();
+            nlohmann::json ret = nlohmann::json::object();
             ret["success"] = true;
             return ret;
         });
@@ -392,7 +390,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             assert_or_throw< SendError >(static_cast< bool >(strong_workset), 404);
             parent_step = safe_at(*strong_workset, parent_id);
             bool res = self->reparent(parent_step, idx);
-            json ret = json::object();
+            nlohmann::json ret = nlohmann::json::object();
             ret["success"] = res;
             return ret;
         });
@@ -404,7 +402,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             (void) post_data;
             std::unique_lock< std::recursive_mutex > lock(self->global_mutex);
             bool res = self->orphan();
-            json ret = json::object();
+            nlohmann::json ret = nlohmann::json::object();
             ret["success"] = res;
             return ret;
         });
@@ -416,7 +414,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             (void) post_data;
             std::unique_lock< std::recursive_mutex > lock(self->global_mutex);
             auto res = self->destroy();
-            json ret = json::object();
+            nlohmann::json ret = nlohmann::json::object();
             ret["success"] = static_cast< bool >(res);
             return ret;
         });
@@ -432,7 +430,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             const LibraryToolbox &toolbox = strong_workset->get_toolbox();
             CreativeProofEngineImpl< Sentence > engine(toolbox, true);
             bool res = self->prove(engine);
-            json ret = json::object();
+            nlohmann::json ret = nlohmann::json::object();
             ret["success"] = res;
             if (!res) {
                 return ret;
@@ -473,12 +471,12 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
     throw SendError(404);
 }
 
-json Step::dump()
+nlohmann::json Step::dump()
 {
     std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
-    json ret = json::object();
+    nlohmann::json ret = nlohmann::json::object();
     ret["sentence"] = this->sentence;
-    ret["children"] = json::array();
+    ret["children"] = nlohmann::json::array();
     for (const auto &child : this->get_children()) {
         ret["children"].push_back(child.lock()->dump());
     }
@@ -488,7 +486,7 @@ json Step::dump()
     return ret;
 }
 
-void Step::load_dump(const json &dump)
+void Step::load_dump(const nlohmann::json &dump)
 {
     std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     Sentence new_sent;
@@ -512,7 +510,7 @@ void Step::maybe_notify_update()
     if (!strong_workset) {
         return;
     }
-    json ret = json::object();
+    nlohmann::json ret = nlohmann::json::object();
     ret["event"] = "step_updated";
     ret["step_id"] = this->get_id();
     strong_workset->add_to_queue(ret);

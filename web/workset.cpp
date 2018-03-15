@@ -8,9 +8,6 @@
 #include "platform.h"
 #include "jsonize.h"
 
-using namespace std::chrono;
-using namespace nlohmann;
-
 Workset::Workset(std::weak_ptr<Session> session) : thread_manager(std::make_unique< CoroutineThreadManager >(4)) /*, step_backrefs(BackreferenceRegistry< Step, Workset >::create()) */, session(session)
 {
 }
@@ -39,18 +36,18 @@ void Workset::init() {
     //pointer->step_backrefs->set_main(pointer);
 }
 
-json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end)
+nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end)
 {
     std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     assert_or_throw< SendError >(path_begin != path_end, 404);
     if (*path_begin == "load") {
         this->load_library(platform_get_resources_base() / "set.mm", platform_get_resources_base() / "set.mm.cache", "|-");
-        json ret = { { "status", "ok" } };
+        nlohmann::json ret = { { "status", "ok" } };
         return ret;
     } else if (*path_begin == "get_context") {
         path_begin++;
         assert_or_throw< SendError >(path_begin == path_end, 404);
-        json ret;
+        nlohmann::json ret;
         ret["name"] = this->get_name();
         ret["root_step_id"] = this->root_step->get_id();
         if (this->library == nullptr) {
@@ -70,7 +67,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         int tok = safe_stoi(*path_begin);
         try {
             const Sentence &sent = this->library->get_sentence(tok);
-            json ret;
+            nlohmann::json ret;
             ret["sentence"] = sent;
             return ret;
         } catch (std::out_of_range) {
@@ -83,7 +80,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         try {
             const Assertion &ass = this->library->get_assertion(tok);
             assert_or_throw< SendError >(ass.is_valid(), 404);
-            json ret;
+            nlohmann::json ret;
             ret["assertion"] = jsonize(ass);
             return ret;
         } catch (std::out_of_range) {
@@ -96,7 +93,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
         throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
             (void) post_data;
             auto res = self->destroy();
-            json ret = json::object();
+            nlohmann::json ret = nlohmann::json::object();
             ret["success"] = static_cast< bool >(res);
             return ret;
         });
@@ -108,11 +105,11 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             (void) post_data;
             std::unique_lock< std::mutex > queue_lock(this->queue_mutex);
             // Queue automatically returns after some timeout
-            auto timeout = steady_clock::now() + 1s;
+            auto timeout = std::chrono::steady_clock::now() + std::chrono::seconds(1);
             while (this->queue.empty()) {
                 auto reason = this->queue_variable.wait_until(queue_lock, timeout);
                 if (reason == std::cv_status::timeout) {
-                    json ret = json::object();
+                    nlohmann::json ret = nlohmann::json::object();
                     ret["event"] = "nothing";
                     return ret;
                 }
@@ -131,7 +128,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             const auto &executor = ass.get_proof_executor< Sentence >(*this->library, true);
             executor->execute();
             const auto &proof_tree = executor->get_proof_tree();
-            json ret;
+            nlohmann::json ret;
             ret["proof_tree"] = jsonize(proof_tree);
             return ret;
         } catch (std::out_of_range) {
@@ -148,7 +145,7 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
                 (void) post_data;
                 std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
                 auto new_step = this->create_step(false);
-                json ret = json::object();
+                nlohmann::json ret = nlohmann::json::object();
                 ret["id"] = new_step->get_id();
                 return ret;
             });
@@ -159,14 +156,14 @@ json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             throw WaitForPost([this] (const auto &post_data) {
                 std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
                 const auto dump_str = safe_at(post_data, "dump").value;
-                json dump;
+                nlohmann::json dump;
                 try {
-                    dump = json::parse(dump_str);
+                    dump = nlohmann::json::parse(dump_str);
                 } catch (nlohmann::detail::exception) {
                     throw SendError(422);
                 }
                 auto new_step = this->create_steps_from_dump(dump);
-                json ret = json::object();
+                nlohmann::json ret = nlohmann::json::object();
                 ret["id"] = new_step->get_id();
                 return ret;
             });
@@ -228,7 +225,7 @@ void Workset::add_coroutine(std::weak_ptr<Coroutine> coro)
     this->thread_manager->add_coroutine(coro);
 }
 
-void Workset::add_to_queue(json data)
+void Workset::add_to_queue(nlohmann::json data)
 {
     std::unique_lock< std::mutex > lock(this->queue_mutex);
     this->queue.push_back(data);
@@ -258,7 +255,7 @@ bool Workset::destroy_step(size_t id)
     }
 }
 
-std::shared_ptr<Step> Workset::create_steps_from_dump(const json &dump)
+std::shared_ptr<Step> Workset::create_steps_from_dump(const nlohmann::json &dump)
 {
     std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     auto step = this->create_step(false);

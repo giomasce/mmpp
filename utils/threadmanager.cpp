@@ -5,22 +5,18 @@
 #include "utils/utils.h"
 #include "platform.h"
 
-using namespace std;
-using namespace std::chrono;
-using namespace boost::coroutines;
+std::vector< std::shared_ptr< Coroutine > > coroutines;
 
-vector< shared_ptr< Coroutine > > coroutines;
-
-shared_ptr< Coroutine > number_generator(int x, int z=-1) {
+std::shared_ptr< Coroutine > number_generator(int x, int z=-1) {
     auto body = [x,z](Yielder &yield) {
         for (int i = 0; i != z; i++) {
-            acout() << x << " " << i << endl;
+            acout() << x << " " << i << std::endl;
             yield();
-            this_thread::sleep_for(1s);
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     };
-    auto shared_body = make_shared< decltype(body) >(body);
-    auto coro = make_shared< Coroutine >(shared_body);
+    auto shared_body = std::make_shared< decltype(body) >(body);
+    auto coro = std::make_shared< Coroutine >(shared_body);
     coroutines.push_back(coro);
     return coro;
 }
@@ -37,19 +33,19 @@ int thread_test_main(int argc, char *argv[]) {
     (void) argv;
 
     Test test;
-    Coroutine coro(make_shared< decltype(test) >(test));
+    Coroutine coro(std::make_shared< decltype(test) >(test));
 
     CoroutineThreadManager th(2);
     CoroutineThreadManager th2(2);
     th.add_coroutine(number_generator(0, 2));
     th.add_coroutine(number_generator(1));
-    this_thread::sleep_for(5s);
+    std::this_thread::sleep_for(std::chrono::seconds(5));
     th.add_coroutine(number_generator(2));
     th2.add_coroutine(number_generator(3));
     th2.add_coroutine(number_generator(4));
-    this_thread::sleep_for(5s);
+    std::this_thread::sleep_for(std::chrono::seconds(5));
     th.add_coroutine(number_generator(10));
-    this_thread::sleep_for(5s);
+    std::this_thread::sleep_for(std::chrono::seconds(5));
 
     return 0;
 }
@@ -60,7 +56,7 @@ static_block {
 CoroutineThreadManager::CoroutineThreadManager(size_t thread_num) : running(true) {
     for (size_t i = 0; i < thread_num; i++) {
         this->threads.emplace_back([this]() { this->thread_fn(); });
-        set_thread_name(this->threads.back(), string("CTM-") + to_string(i));
+        set_thread_name(this->threads.back(), std::string("CTM-") + std::to_string(i));
     }
 }
 
@@ -152,5 +148,5 @@ bool Coroutine::execute() {
     }
 }
 
-Yielder::Yielder(asymmetric_coroutine< void >::push_type &base_yield) : yield_impl(base_yield) {
+Yielder::Yielder(boost::coroutines::asymmetric_coroutine< void >::push_type &base_yield) : yield_impl(base_yield) {
 }

@@ -3,8 +3,6 @@
 
 #include "jsonize.h"
 
-using namespace nlohmann;
-
 std::string fix_htmlcss_for_web(std::string s)
 {
     std::string tmp(s);
@@ -32,9 +30,9 @@ std::vector< std::string > fix_htmldefs_for_web(const std::vector< std::string >
     }
 }*/
 
-json jsonize(const ExtendedLibraryAddendum &addendum)
+nlohmann::json jsonize(const ExtendedLibraryAddendum &addendum)
 {
-    json ret;
+    nlohmann::json ret;
     ret["htmldefs"] = fix_htmldefs_for_web(addendum.get_htmldefs());
     ret["althtmldefs"] = addendum.get_althtmldefs();
     ret["latexdefs"] = addendum.get_latexdefs();
@@ -53,9 +51,9 @@ json jsonize(const ExtendedLibraryAddendum &addendum)
     return ret;
 }
 
-json jsonize(const Assertion &assertion)
+nlohmann::json jsonize(const Assertion &assertion)
 {
-    json ret;
+    nlohmann::json ret;
     ret["valid"] = assertion.is_valid();
     ret["theorem"] = assertion.is_theorem();
     ret["usage_disc"] = assertion.is_usage_disc();
@@ -71,11 +69,11 @@ json jsonize(const Assertion &assertion)
     return ret;
 }
 
-json jsonize(const ProofTree<Sentence> &proof_tree) {
-    json ret;
+nlohmann::json jsonize(const ProofTree<Sentence> &proof_tree) {
+    nlohmann::json ret;
     ret["label"] = proof_tree.label;
     ret["sentence"] = proof_tree.sentence;
-    ret["children"] = json::array();
+    ret["children"] = nlohmann::json::array();
     for (const auto &child : proof_tree.children) {
         ret["children"].push_back(jsonize(child));
     }
@@ -85,11 +83,11 @@ json jsonize(const ProofTree<Sentence> &proof_tree) {
     return ret;
 }
 
-json jsonize(Step &step)
+nlohmann::json jsonize(Step &step)
 {
-    json ret = json::object();
+    nlohmann::json ret = nlohmann::json::object();
     ret["id"] = step.get_id();
-    ret["children"] = json::array();
+    ret["children"] = nlohmann::json::array();
     for (const auto &child : step.get_children()) {
         ret["children"].push_back(child.lock()->get_id());
     }

@@ -15,8 +15,6 @@
 #include "web.h"
 #include "platform.h"
 
-using namespace nlohmann;
-
 const bool SERVE_STATIC_FILES = true;
 const bool PUBLICLY_SERVE_STATIC_FILES = true;
 
@@ -257,7 +255,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
     // Expose API version
     std::string api_version_url = "/api/version";
     if (url == api_version_url) {
-        json res;
+        nlohmann::json res;
         res["application"] = "mmpp";
         res["min_version"] = 1;
         res["max_version"] = 1;
@@ -287,7 +285,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
         boost::tokenizer< boost::char_separator< char > > tokens(url.begin() + api_url.size(), url.end(), sep);
         const std::vector< std::string > path(tokens.begin(), tokens.end());
         try {
-            json res = session->answer_api1(cb, path.begin(), path.end());
+            nlohmann::json res = session->answer_api1(cb, path.begin(), path.end());
             cb.add_header("Content-Type", "application/json");
             cb.set_status_code(200);
             cb.set_answer(res.dump());
@@ -300,7 +298,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
         } catch (WaitForPost wfp) {
             auto callback = [wfp,&cb] (const auto &post_data) {
                 try {
-                    json res = wfp.get_callback()(post_data);
+                    nlohmann::json res = wfp.get_callback()(post_data);
                     cb.add_header("Content-Type", "application/json");
                     cb.set_status_code(200);
                     cb.set_answer(res.dump());
@@ -351,7 +349,7 @@ Session::Session(bool constant) : constant(constant), new_id(0)
 {
 }
 
-json Session::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end)
+nlohmann::json Session::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end)
 {
     if (path_begin != path_end && *path_begin == "workset") {
         path_begin++;
@@ -361,12 +359,12 @@ json Session::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_it
             path_begin++;
             assert_or_throw< SendError >(path_begin == path_end, 404);
             auto res = this->create_workset();
-            json ret = { { "id", res.first } };
+            nlohmann::json ret = { { "id", res.first } };
             return ret;
         } else if (*path_begin == "list") {
             path_begin++;
             assert_or_throw< SendError >(path_begin == path_end, 404);
-            json ret = { { "worksets", this->json_list_worksets() } };
+            nlohmann::json ret = { { "worksets", this->json_list_worksets() } };
             return ret;
         } else {
             size_t id = safe_stoi(*path_begin);
@@ -416,12 +414,12 @@ std::shared_ptr<Workset> Session::get_workset(size_t id)
     return this->worksets.at(id);
 }
 
-json Session::json_list_worksets()
+nlohmann::json Session::json_list_worksets()
 {
     std::unique_lock< std::mutex > lock(this->worksets_mutex);
-    json ret;
+    nlohmann::json ret;
     for (size_t i = 0; i < this->worksets.size(); i++) {
-        json tmp;
+        nlohmann::json tmp;
         tmp["id"] = i;
         tmp["name"] = this->worksets.at(i)->get_name();
         ret.push_back(tmp);

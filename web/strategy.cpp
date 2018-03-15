@@ -4,8 +4,6 @@
 #include "provers/wffblock.h"
 #include "provers/wffsat.h"
 
-using namespace nlohmann;
-
 StepStrategy::~StepStrategy() {
 }
 
@@ -58,7 +56,7 @@ struct UnificationStrategyResult : public StepStrategyResult, public enable_crea
     }
 
     nlohmann::json get_web_json() const {
-        json ret = json::object();
+        nlohmann::json ret = nlohmann::json::object();
         LabTok label = std::get<0>(this->data);
         ret["type"] = "unification";
         ret["label"] = label;
@@ -74,7 +72,7 @@ struct UnificationStrategyResult : public StepStrategyResult, public enable_crea
     }
 
     nlohmann::json get_dump_json() const {
-        json ret = json::object();
+        nlohmann::json ret = nlohmann::json::object();
         ret["type"] = "unification";
         ret["label"] = std::get<0>(this->data);
         ret["permutation"] = std::get<1>(this->data);
@@ -170,13 +168,13 @@ struct WffStrategyResult : public StepStrategyResult, public enable_create< WffS
     }
 
     nlohmann::json get_web_json() const {
-        json ret;
+        nlohmann::json ret;
         ret["type"] = "wff";
         return ret;
     }
 
     nlohmann::json get_dump_json() const {
-        json ret;
+        nlohmann::json ret;
         ret["type"] = "wff";
         return ret;
     }
