@@ -9,11 +9,9 @@
 #include "platform.h"
 #include "test/test_env.h"
 
-using namespace z3;
-
-pwff parse_expr(expr e, const LibraryToolbox &tb) {
+pwff parse_expr(z3::expr e, const LibraryToolbox &tb) {
     assert(e.is_app());
-    func_decl decl = e.decl();
+    z3::func_decl decl = e.decl();
     Z3_decl_kind kind = decl.decl_kind();
     pwff ret;
     switch (kind) {
@@ -63,7 +61,7 @@ pwff parse_expr(expr e, const LibraryToolbox &tb) {
     }
 }
 
-expr extract_thesis(expr proof) {
+z3::expr extract_thesis(z3::expr proof) {
     return proof.arg(proof.num_args()-1);
 }
 
@@ -154,7 +152,7 @@ RegisteredProver orsild_rp = LibraryToolbox::register_prover({"|- ( ph -> -. ( p
 RegisteredProver orsird_rp = LibraryToolbox::register_prover({"|- ( ph -> -. ( ps \\/ ch ) )"}, "|- ( ph -> -. ch )");
 
 struct Z3Adapter {
-    solver &s;
+    z3::solver &s;
     const LibraryToolbox &tb;
 
     std::vector< pwff > hyps;
@@ -164,9 +162,9 @@ struct Z3Adapter {
     pwff and_hyps;
     pwff abs;
 
-    Z3Adapter(solver &s, const LibraryToolbox &tb) : s(s), tb(tb) {}
+    Z3Adapter(z3::solver &s, const LibraryToolbox &tb) : s(s), tb(tb) {}
 
-    void add_formula(expr e, bool hyp) {
+    void add_formula(z3::expr e, bool hyp) {
         if (hyp) {
             this->s.add(e);
         } else {
@@ -201,9 +199,9 @@ struct Z3Adapter {
         return this->abs;
     }
 
-    Prover< CreativeCheckpointedProofEngine< Sentence > > convert_proof(expr e, int depth = 0) {
+    Prover< CreativeCheckpointedProofEngine< Sentence > > convert_proof(z3::expr e, int depth = 0) {
         if (e.is_app()) {
-            func_decl decl = e.decl();
+            z3::func_decl decl = e.decl();
             auto num_args = e.num_args();
             auto arity = decl.arity();
 #ifdef NDEBUG
@@ -311,14 +309,14 @@ struct Z3Adapter {
                     cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;
                     cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;*/
                     // Recognize the monotonic operation
-                    expr thesis = e.arg(num_args-1);
+                    z3::expr thesis = e.arg(num_args-1);
                     switch (thesis.decl().decl_kind()) {
                     /*case Z3_OP_EQ:
                         break;*/
                     case Z3_OP_IFF: {
                         assert(thesis.num_args() == 2);
-                        expr th_left = thesis.arg(0);
-                        expr th_right = thesis.arg(1);
+                        z3::expr th_left = thesis.arg(0);
+                        z3::expr th_right = thesis.arg(1);
                         assert(th_left.decl().decl_kind() == th_right.decl().decl_kind());
                         assert(th_left.num_args() == th_right.num_args());
                         switch (th_left.decl().decl_kind()) {
@@ -396,7 +394,7 @@ struct Z3Adapter {
                     cout << "TH: " << parse_expr(e.arg(num_args-1))->to_string() << endl;*/
 
                     size_t elims_num = num_args - 2;
-                    expr or_expr = extract_thesis(e.arg(0));
+                    z3::expr or_expr = extract_thesis(e.arg(0));
                     assert(or_expr.decl().decl_kind() == Z3_OP_OR);
                     size_t clauses_num = or_expr.num_args();
 #ifdef NDEBUG
@@ -487,12 +485,12 @@ struct Z3Adapter {
                     //cout << endl << "EXPR: " << e.arg(2);
                     /*cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;;
                     cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;*/
-                    expr not_expr = extract_thesis(e.arg(0));
+                    z3::expr not_expr = extract_thesis(e.arg(0));
                     assert(not_expr.decl().decl_kind() == Z3_OP_NOT);
                     assert(not_expr.num_args() == 1);
-                    expr or_expr = not_expr.arg(0);
+                    z3::expr or_expr = not_expr.arg(0);
                     assert(or_expr.decl().decl_kind() == Z3_OP_OR);
-                    expr not_target_expr = e.arg(1);
+                    z3::expr not_target_expr = e.arg(1);
                     assert(not_target_expr.decl().decl_kind() == Z3_OP_NOT);
                     assert(not_target_expr.num_args() == 1);
                     pwff target_wff = parse_expr(not_target_expr.arg(0), tb);
@@ -577,28 +575,28 @@ int test_z3_main(int argc, char *argv[])
     auto &tb = data.tb;
 
     for (int i = 0; i < 3; i++) {
-        set_param("proof", true);
-        context c;
+        z3::set_param("proof", true);
+        z3::context c;
 
-        solver s(c);
+        z3::solver s(c);
         auto adapter = Z3Adapter(s, tb);
 
         if (i == 0) {
-            expr ph = c.bool_const("ph");
-            expr ps = c.bool_const("ps");
+            z3::expr ph = c.bool_const("ph");
+            z3::expr ps = c.bool_const("ps");
             adapter.add_formula(((!(ph && ps)) == (!ph || !ps)), false);
         }
 
         if (i == 1) {
-            expr ph = c.bool_const("ph");
-            expr ps = c.bool_const("ps");
+            z3::expr ph = c.bool_const("ph");
+            z3::expr ps = c.bool_const("ps");
             adapter.add_formula((ph || ps ) == (ps || ph), false);
         }
 
         if (i == 2) {
-            expr ph = c.bool_const("ph");
-            expr ps = c.bool_const("ps");
-            expr ch = c.bool_const("ch");
+            z3::expr ph = c.bool_const("ph");
+            z3::expr ps = c.bool_const("ps");
+            z3::expr ch = c.bool_const("ch");
             adapter.add_formula(implies(ph, implies(ps, ch)), true);
             adapter.add_formula(implies(!ph, implies(!ps, ch)), true);
             adapter.add_formula(implies(ph == ps, ch), false);
@@ -609,9 +607,9 @@ int test_z3_main(int argc, char *argv[])
         prove_and_print(adapter.target, tb);
 
         switch (adapter.s.check()) {
-        case unsat:   std::cout << "valid\n"; break;
-        case sat:     std::cout << "not valid\n"; break;
-        case unknown: std::cout << "unknown\n"; break;
+        case z3::unsat:   std::cout << "valid\n"; break;
+        case z3::sat:     std::cout << "not valid\n"; break;
+        case z3::unknown: std::cout << "unknown\n"; break;
         }
 
         CreativeProofEngineImpl< Sentence > engine(tb, true);
@@ -645,12 +643,12 @@ int test_z3_2_main(int argc, char *argv[])
     (void) argv;
 
     try {
-        set_param("proof", true);
-        context c;
+        z3::set_param("proof", true);
+        z3::context c;
         Z3_set_ast_print_mode(c, Z3_PRINT_LOW_LEVEL);
 
-        solver s(c);
-        params param(c);
+        z3::solver s(c);
+        z3::params param(c);
         param.set("mbqi", true);
         s.set(param);
 
@@ -679,9 +677,9 @@ int test_z3_2_main(int argc, char *argv[])
         std::cout << "Solver:" << std::endl << s << std::endl;
 
         switch (s.check()) {
-        case unsat:   std::cout << "UNSAT\n"; break;
-        case sat:     std::cout << "SAT\n"; break;
-        case unknown: std::cout << "UNKNOWN\n"; break;
+        case z3::unsat:   std::cout << "UNSAT\n"; break;
+        case z3::sat:     std::cout << "SAT\n"; break;
+        case z3::unknown: std::cout << "UNKNOWN\n"; break;
         }
 
         auto proof = s.proof();

@@ -11,8 +11,6 @@
 
 // Taken from https://stupefydeveloper.blogspot.it/2008/10/cc-call-stack.html and partially adapted
 std::vector<std::string> dump_stacktrace(size_t depth) {
-    using namespace std;
-    using namespace abi;
 
     std::vector< std::string > ret;
     std::vector< void* > trace(depth);
@@ -29,7 +27,7 @@ std::vector<std::string> dump_stacktrace(size_t depth) {
 
         symname = dlinfo.dli_sname;
 
-        demangled = __cxa_demangle(symname, nullptr, 0, &status);
+        demangled = abi::__cxa_demangle(symname, nullptr, 0, &status);
         if (status == 0 && demangled) {
             symname = demangled;
         }
@@ -86,12 +84,11 @@ const std::vector<std::string> &MMPPException::get_stacktrace() const {
 }
 
 void MMPPException::print_stacktrace(std::ostream &st) const {
-    using namespace std;
-    st << "Stack trace:" << endl;
+    st << "Stack trace:" << std::endl;
     for (auto &frame : this->stacktrace) {
-        st << "  * " << frame << endl;
+        st << "  * " << frame << std::endl;
     }
-    st << "End of stack trace" << endl;
+    st << "End of stack trace" << std::endl;
     st.flush();
 }
 
