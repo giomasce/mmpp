@@ -509,7 +509,7 @@ ProofPrinter LibraryToolbox::print_proof(const UncompressedProof &proof, bool on
 }
 
 #ifdef TOOLBOX_SELF_TEST
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > unify_assertion_internal_old(const LibraryToolbox *self, const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms)
+static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > unify_assertion_internal_old(const LibraryToolbox *self, const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms)
 {
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
 
@@ -586,24 +586,8 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
 }
 #endif
 
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > unify_assertion_internal(const LibraryToolbox *self, const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms)
-{
+static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > unify_assertion_internal(const LibraryToolbox *self, const std::vector< std::pair< SymTok, ParsingTree<SymTok, LabTok > > > &pt_hyps, const std::pair< SymTok, ParsingTree< SymTok, LabTok > > &pt_thesis, bool just_first, bool up_to_hyps_perms) {
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
-
-    // Parse inputs
-    std::vector< ParsingTree< SymTok, LabTok > > pt_hyps;
-    for (auto &hyp : hypotheses) {
-        auto pt = self->parse_sentence(hyp.begin()+1, hyp.end(), self->get_turnstile_alias());
-        if (pt.label == LabTok{}) {
-            return {};
-        }
-        pt_hyps.push_back(pt);
-    }
-    ParsingTree< SymTok, LabTok > pt_thesis = self->parse_sentence(thesis.begin()+1, thesis.end(), self->get_turnstile_alias());
-    if (pt_thesis.label == LabTok{}) {
-        return {};
-    }
-
     auto assertions_gen = self->list_assertions();
     const auto &is_var = self->get_standard_is_var();
     while (true) {
@@ -615,15 +599,15 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
         if (ass.is_usage_disc()) {
             continue;
         }
-        if (ass.get_ess_hyps().size() != hypotheses.size()) {
+        if (ass.get_ess_hyps().size() != pt_hyps.size()) {
             continue;
         }
-        if (thesis[0] != self->get_sentence(ass.get_thesis())[0]) {
+        if (pt_thesis.first != self->get_sentence(ass.get_thesis())[0]) {
             continue;
         }
         UnilateralUnificator< SymTok, LabTok > unif(is_var);
         auto &templ_pt = self->get_parsed_sents().at(ass.get_thesis());
-        unif.add_parsing_trees(templ_pt, pt_thesis);
+        unif.add_parsing_trees(templ_pt, pt_thesis.second);
         if (!unif.is_unifiable()) {
             continue;
         }
@@ -631,19 +615,19 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
         // TODO Is there a better algorithm?
         // The i-th specified hypothesis is matched with the perm[i]-th assertion hypothesis
         std::vector< size_t > perm;
-        for (size_t i = 0; i < hypotheses.size(); i++) {
+        for (size_t i = 0; i < pt_hyps.size(); i++) {
             perm.push_back(i);
         }
         do {
             UnilateralUnificator< SymTok, LabTok > unif2 = unif;
             bool res = true;
-            for (size_t i = 0; i < hypotheses.size(); i++) {
-                res = (hypotheses[i][0] == self->get_sentence(ass.get_ess_hyps()[perm[i]])[0]);
+            for (size_t i = 0; i < pt_hyps.size(); i++) {
+                res = (pt_hyps[i].first == self->get_sentence(ass.get_ess_hyps()[perm[i]])[0]);
                 if (!res) {
                     break;
                 }
                 auto &templ_pt = self->get_parsed_sents().at(ass.get_ess_hyps()[perm[i]]);
-                unif2.add_parsing_trees(templ_pt, pt_hyps[i]);
+                unif2.add_parsing_trees(templ_pt, pt_hyps[i].second);
                 res = unif2.is_unifiable();
                 if (!res) {
                     break;
@@ -674,6 +658,25 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
     return ret;
 }
 
+static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > unify_assertion_internal(const LibraryToolbox *self, const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms)
+{
+    // Parse inputs
+    std::vector< std::pair< SymTok, ParsingTree< SymTok, LabTok > > > pt_hyps;
+    for (auto &hyp : hypotheses) {
+        auto pt = self->parse_sentence(hyp.begin()+1, hyp.end(), self->get_turnstile_alias());
+        if (pt.label == LabTok{}) {
+            return {};
+        }
+        pt_hyps.push_back(std::make_pair(hyp[0], pt));
+    }
+    auto pt_thesis = std::make_pair(thesis[0], self->parse_sentence(thesis.begin()+1, thesis.end(), self->get_turnstile_alias()));
+    if (pt_thesis.second.label == LabTok{}) {
+        return {};
+    }
+
+    return unify_assertion_internal(self, pt_hyps, pt_thesis, just_first, up_to_hyps_perms);
+}
+
 std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms) const
 {
     auto ret2 = unify_assertion_internal(this, hypotheses, thesis, just_first, up_to_hyps_perms);
@@ -682,6 +685,11 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
     assert(ret == ret2);
 #endif
     return ret2;
+}
+
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion(const std::vector<std::pair<SymTok, ParsingTree<SymTok, LabTok> > > &hypotheses, const std::pair<SymTok, ParsingTree<SymTok, LabTok> > &thesis, bool just_first, bool up_to_hyps_perms) const
+{
+    return unify_assertion_internal(this, hypotheses, thesis, just_first, up_to_hyps_perms);
 }
 
 const std::function<bool (LabTok)> &LibraryToolbox::get_standard_is_var() const {
