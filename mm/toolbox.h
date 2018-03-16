@@ -202,6 +202,7 @@ private:
             }
         }
     }
+public:
     template< typename Engine = ProofEngine, typename std::enable_if< std::is_base_of< ProofEngine, Engine >::value >::type* = nullptr >
     bool type_proving_helper(const std::vector< SymTok > &type_sent, Engine &engine, const std::unordered_map< SymTok, Prover< Engine > > &var_provers = {}) const
     {
@@ -232,14 +233,6 @@ private:
     // Assertion unification
 public:
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > > unify_assertion(const std::vector< Sentence > &hypotheses, const Sentence &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
-private:
-    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > > unify_assertion_uncached(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
-    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > > unify_assertion_uncached2(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
-    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > > unify_assertion_cached(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first=true);
-    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > > unify_assertion_cached(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first=true) const;
-    std::unordered_map< std::tuple< std::vector< Sentence >, Sentence >,
-                        std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > >,
-                        boost::hash< std::tuple< std::vector< Sentence >, Sentence > > > unification_cache;
 
     // Reading and printing
 public:

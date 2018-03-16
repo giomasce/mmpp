@@ -508,7 +508,8 @@ ProofPrinter LibraryToolbox::print_proof(const UncompressedProof &proof, bool on
     return ProofPrinter({ {}, {}, &proof, *this, only_assertions });
 }
 
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion_uncached(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms) const
+#ifdef TOOLBOX_SELF_TEST
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > unify_assertion_internal_old(const LibraryToolbox *self, const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms)
 {
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
 
@@ -519,7 +520,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
     }
     std::copy(thesis.begin(), thesis.end(), back_inserter(sent));
 
-    auto assertions_gen = this->list_assertions();
+    auto assertions_gen = self->list_assertions();
     while (true) {
         const Assertion *ass2 = assertions_gen();
         if (ass2 == nullptr) {
@@ -542,31 +543,31 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
         do {
             std::vector< SymTok > templ;
             for (size_t i = 0; i < hypotheses.size(); i++) {
-                auto &hyp = this->get_sentence(ass.get_ess_hyps()[perm[i]]);
+                auto &hyp = self->get_sentence(ass.get_ess_hyps()[perm[i]]);
                 std::copy(hyp.begin(), hyp.end(), back_inserter(templ));
                 templ.push_back(0);
             }
-            auto &th = this->get_sentence(ass.get_thesis());
+            auto &th = self->get_sentence(ass.get_thesis());
             copy(th.begin(), th.end(), back_inserter(templ));
-            auto unifications = unify_old(sent, templ, *this);
+            auto unifications = unify_old(sent, templ, *self);
             if (!unifications.empty()) {
                 for (auto &unification : unifications) {
                     // Here we have to check that substitutions are of the corresponding type
                     // TODO - Here we immediately drop the type information, which probably mean that later we have to compute it again
                     bool wrong_unification = false;
                     for (auto &float_hyp : ass.get_float_hyps()) {
-                        const Sentence &float_hyp_sent = this->get_sentence(float_hyp);
+                        const Sentence &float_hyp_sent = self->get_sentence(float_hyp);
                         Sentence type_sent;
                         type_sent.push_back(float_hyp_sent.at(0));
                         auto &type_main_sent = unification.at(float_hyp_sent.at(1));
                         std::copy(type_main_sent.begin(), type_main_sent.end(), back_inserter(type_sent));
-                        CreativeProofEngineImpl< Sentence > engine(*this);
-                        if (!this->type_proving_helper(type_sent, engine)) {
+                        CreativeProofEngineImpl< Sentence > engine(*self);
+                        if (!self->type_proving_helper(type_sent, engine)) {
                             wrong_unification = true;
                             break;
                         }
                     }
-                    // If this is the case, then we have found a legitimate unification
+                    // If self is the case, then we have found a legitimate unification
                     if (!wrong_unification) {
                         ret.emplace_back(ass.get_thesis(), perm, unification);
                         if (just_first) {
@@ -583,27 +584,28 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
 
     return ret;
 }
+#endif
 
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion_uncached2(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms) const
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > unify_assertion_internal(const LibraryToolbox *self, const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms)
 {
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
 
     // Parse inputs
     std::vector< ParsingTree< SymTok, LabTok > > pt_hyps;
     for (auto &hyp : hypotheses) {
-        auto pt = this->parse_sentence(hyp.begin()+1, hyp.end(), this->turnstile_alias);
+        auto pt = self->parse_sentence(hyp.begin()+1, hyp.end(), self->get_turnstile_alias());
         if (pt.label == LabTok{}) {
             return {};
         }
         pt_hyps.push_back(pt);
     }
-    ParsingTree< SymTok, LabTok > pt_thesis = this->parse_sentence(thesis.begin()+1, thesis.end(), this->turnstile_alias);
+    ParsingTree< SymTok, LabTok > pt_thesis = self->parse_sentence(thesis.begin()+1, thesis.end(), self->get_turnstile_alias());
     if (pt_thesis.label == LabTok{}) {
         return {};
     }
 
-    auto assertions_gen = this->list_assertions();
-    const auto &is_var = this->get_standard_is_var();
+    auto assertions_gen = self->list_assertions();
+    const auto &is_var = self->get_standard_is_var();
     while (true) {
         const Assertion *ass2 = assertions_gen();
         if (ass2 == nullptr) {
@@ -616,11 +618,11 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
         if (ass.get_ess_hyps().size() != hypotheses.size()) {
             continue;
         }
-        if (thesis[0] != this->get_sentence(ass.get_thesis())[0]) {
+        if (thesis[0] != self->get_sentence(ass.get_thesis())[0]) {
             continue;
         }
         UnilateralUnificator< SymTok, LabTok > unif(is_var);
-        auto &templ_pt = this->get_parsed_sents().at(ass.get_thesis());
+        auto &templ_pt = self->get_parsed_sents().at(ass.get_thesis());
         unif.add_parsing_trees(templ_pt, pt_thesis);
         if (!unif.is_unifiable()) {
             continue;
@@ -636,11 +638,11 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
             UnilateralUnificator< SymTok, LabTok > unif2 = unif;
             bool res = true;
             for (size_t i = 0; i < hypotheses.size(); i++) {
-                res = (hypotheses[i][0] == this->get_sentence(ass.get_ess_hyps()[perm[i]])[0]);
+                res = (hypotheses[i][0] == self->get_sentence(ass.get_ess_hyps()[perm[i]])[0]);
                 if (!res) {
                     break;
                 }
-                auto &templ_pt = this->get_parsed_sents().at(ass.get_ess_hyps()[perm[i]]);
+                auto &templ_pt = self->get_parsed_sents().at(ass.get_ess_hyps()[perm[i]]);
                 unif2.add_parsing_trees(templ_pt, pt_hyps[i]);
                 res = unif2.is_unifiable();
                 if (!res) {
@@ -657,7 +659,7 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
             }
             std::unordered_map< SymTok, std::vector< SymTok > > subst2;
             for (auto &s : subst) {
-                subst2.insert(make_pair(this->get_sentence(s.first).at(1), this->reconstruct_sentence(s.second)));
+                subst2.insert(make_pair(self->get_sentence(s.first).at(1), self->reconstruct_sentence(s.second)));
             }
             ret.emplace_back(ass.get_thesis(), perm, subst2);
             if (just_first) {
@@ -672,30 +674,14 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
     return ret;
 }
 
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion_cached(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first)
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms) const
 {
-    // Cache is used only when requesting just the first result
-    if (!just_first) {
-        return this->unify_assertion_uncached(hypotheses, thesis, just_first);
-    }
-    auto idx = make_tuple(hypotheses, thesis);
-    if (this->unification_cache.find(idx) == this->unification_cache.end()) {
-        this->unification_cache[idx] = this->unify_assertion_uncached(hypotheses, thesis, just_first);
-    }
-    return this->unification_cache.at(idx);
-}
-
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion_cached(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first) const
-{
-    // Cache is used only when requesting just the first result
-    if (!just_first) {
-        return this->unify_assertion_uncached(hypotheses, thesis, just_first);
-    }
-    auto idx = make_tuple(hypotheses, thesis);
-    if (this->unification_cache.find(idx) == this->unification_cache.end()) {
-        return this->unify_assertion_uncached(hypotheses, thesis, just_first);
-    }
-    return this->unification_cache.at(idx);
+    auto ret2 = unify_assertion_internal(this, hypotheses, thesis, just_first, up_to_hyps_perms);
+#ifdef TOOLBOX_SELF_TEST
+    auto ret = unify_assertion_internal_old(this, hypotheses, thesis, just_first, up_to_hyps_perms);
+    assert(ret == ret2);
+#endif
+    return ret2;
 }
 
 const std::function<bool (LabTok)> &LibraryToolbox::get_standard_is_var() const {
@@ -732,16 +718,6 @@ void LibraryToolbox::dump_proof_exception(const ProofException<Sentence> &e, std
     for (const auto &it : e.get_error().subst_map) {
         out << this->resolve_symbol(it.first) << ": " << this->print_sentence(it.second) << std::endl;
     }
-}
-
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms) const
-{
-    auto ret2 = this->unify_assertion_uncached2(hypotheses, thesis, just_first, up_to_hyps_perms);
-#ifdef TOOLBOX_SELF_TEST
-    auto ret = this->unify_assertion_uncached(hypotheses, thesis, just_first, up_to_hyps_perms);
-    assert(ret == ret2);
-#endif
-    return ret2;
 }
 
 void LibraryToolbox::compute_everything()
