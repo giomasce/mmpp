@@ -136,6 +136,7 @@ public:
     const ExtendedLibrary &get_library() const;
     const std::function<bool (LabTok)> &get_standard_is_var() const;
     const std::function<bool (SymTok)> &get_standard_is_var_sym() const;
+    const std::function< std::pair< SymTok, std::vector< SymTok > >(LabTok) > &get_validation_rule() const;
     SymTok get_turnstile() const;
     SymTok get_turnstile_alias() const;
     LabTok get_imp_label() const;
@@ -143,6 +144,8 @@ private:
     const ExtendedLibrary &lib;
     std::function< bool(LabTok) > standard_is_var;
     std::function< bool(SymTok) > standard_is_var_sym;
+    std::function< std::pair< SymTok, std::vector< SymTok > >(LabTok) > validation_rule;
+
     SymTok turnstile;
     SymTok turnstile_alias;
 

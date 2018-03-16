@@ -20,6 +20,31 @@ struct ParsingTree {
     bool operator!=(const ParsingTree< SymType, LabType > &other) const {
         return !this->operator==(other);
     }
+
+    bool validate(const std::function< std::pair< SymType, std::vector< SymType > >(LabType) > &get_rule) const {
+        if (this->label == LabType{}) {
+            return false;
+        }
+        if (this->type == SymType{}) {
+            return false;
+        }
+        auto model = get_rule(this->label);
+        if (this->type != model.first) {
+            return false;
+        }
+        if (this->children.size() != model.second.size()) {
+            return false;
+        }
+        for (size_t i = 0; i < model.second.size(); i++) {
+            if (this->children[i].type != model.second[i]) {
+                return false;
+            }
+            if (!this->children[i].validate(get_rule)) {
+                return false;
+            }
+        }
+        return true;
+    }
 };
 
 template< typename SymType, typename LabType >

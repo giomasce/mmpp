@@ -117,6 +117,8 @@ int subst_search_main(int argc, char *argv[]) {
                     pt_thesis.children.push_back(pt_left);
                     pt_thesis.children.push_back(pt_right);
 
+                    assert(pt_thesis.validate(tb.get_validation_rule()));
+                    assert(pt_hyp.validate(tb.get_validation_rule()));
                     std::cout << "   Inference form: searching for " << tb.print_sentence(pt_thesis) << " with hypothesis " << tb.print_sentence(pt_hyp) << std::endl;
                     auto res = tb.unify_assertion({std::make_pair(tb.get_turnstile(), pt_hyp)}, std::make_pair(tb.get_turnstile(), pt_thesis));
                     if (!res.empty()) {
@@ -131,6 +133,7 @@ int subst_search_main(int argc, char *argv[]) {
                     pt_thm.label = imp_lab;
                     pt_thm.children.push_back(pt_hyp);
                     pt_thm.children.push_back(pt_thesis);
+                    assert(pt_thm.validate(tb.get_validation_rule()));
                     std::cout << "   Inference form: searching for " << tb.print_sentence(pt_thm) << std::endl;
                     res = tb.unify_assertion({}, std::make_pair(tb.get_turnstile(), pt_thm));
                     if (!res.empty()) {
@@ -154,6 +157,8 @@ int subst_search_main(int argc, char *argv[]) {
                     pt_thesisd.label = imp_lab;
                     pt_thesisd.children.push_back(pt_ph);
                     pt_thesisd.children.push_back(pt_thesis);
+                    assert(pt_hypd.validate(tb.get_validation_rule()));
+                    assert(pt_thesisd.validate(tb.get_validation_rule()));
                     std::cout << "   Deduction form: searching for " << tb.print_sentence(pt_thesisd) << " with hypothesis " << tb.print_sentence(pt_hypd) << std::endl;
                     res = tb.unify_assertion({std::make_pair(tb.get_turnstile(), pt_hypd)}, std::make_pair(tb.get_turnstile(), pt_thesisd));
                     if (!res.empty()) {

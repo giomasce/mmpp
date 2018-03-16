@@ -128,6 +128,16 @@ LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, std::string turnstile
         }
         return !this->lib.is_constant(x);
     };
+    this->validation_rule = [this](LabTok x) {
+        auto rule = this->get_derivation_rule(x);
+        std::vector< SymTok > fixed_rule;
+        for (const auto r : rule.second) {
+            if (this->get_derivations().find(r) != this->get_derivations().end()) {
+                fixed_rule.push_back(r);
+            }
+        }
+        return std::make_pair(rule.first, fixed_rule);
+    };
     this->compute_everything();
 }
 
@@ -699,6 +709,11 @@ const std::function<bool (LabTok)> &LibraryToolbox::get_standard_is_var() const 
 const std::function<bool (SymTok)> &LibraryToolbox::get_standard_is_var_sym() const
 {
     return this->standard_is_var_sym;
+}
+
+const std::function<std::pair<SymTok, std::vector<SymTok> > (LabTok)> &LibraryToolbox::get_validation_rule() const
+{
+    return this->validation_rule;
 }
 
 SymTok LibraryToolbox::get_turnstile() const
