@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
         // Return a default one
         try {
             main_func = get_main_functions().at(DEFAULT_MAIN_FUNCTION);
-        } catch (std::out_of_range &e) {
+        } catch (std::out_of_range&) {
             list_subcommands();
             return 1;
         }
