@@ -207,8 +207,11 @@ equals(USE_MICROHTTPD, "true") {
         web/httpd_microhttpd.cpp
     HEADERS += \
         web/httpd_microhttpd.h
-    !win32 {
+    linux {
         PKGCONFIG += libmicrohttpd
+    }
+    macx {
+        QMAKE_LIBS += -lmicrohttpd
     }
     win32 {
         QMAKE_LIBS += -llibmicrohttpd
