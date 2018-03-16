@@ -13,6 +13,9 @@ int subst_search_main(int argc, char *argv[]) {
 
     auto &ders = tb.get_derivations();
 
+    LabTok imp_lab = tb.get_label("wi");
+    LabTok ph_lab = tb.get_label("wph");
+
     std::map< SymTok, std::pair< LabTok, LabTok > > equalities = {
         { tb.get_symbol("wff"), { tb.get_label("wb"), tb.get_label("biid") } },
         { tb.get_symbol("class"), { tb.get_label("wceq"), tb.get_label("eqid") } },
@@ -75,7 +78,9 @@ int subst_search_main(int argc, char *argv[]) {
             for (unsigned i = 0; i < rule.size(); i++) {
                 auto it = equalities.find(rule[i]);
                 if (it != equalities.end()) {
-                    std::cout << " * Search for a substitution for " << tb.resolve_symbol(it->first) << " in position " << i << std::endl;
+                    bool found = false;
+                    bool found_strong = false;
+                    std::cout << " * Search for a substitution rule for " << tb.resolve_symbol(it->first) << " in position " << i << std::endl;
                     tb.new_temp_var_frame();
                     ParsingTree< SymTok, LabTok > pt_hyp;
                     pt_hyp.label = it->second.first;
@@ -111,13 +116,62 @@ int subst_search_main(int argc, char *argv[]) {
                     pt_thesis.type = tb.get_turnstile_alias();
                     pt_thesis.children.push_back(pt_left);
                     pt_thesis.children.push_back(pt_right);
-                    std::cout << "   Searching for " << tb.print_sentence(pt_thesis) << " with hypothesis " << tb.print_sentence(pt_hyp) << std::endl;
+
+                    std::cout << "   Inference form: searching for " << tb.print_sentence(pt_thesis) << " with hypothesis " << tb.print_sentence(pt_hyp) << std::endl;
                     auto res = tb.unify_assertion({std::make_pair(tb.get_turnstile(), pt_hyp)}, std::make_pair(tb.get_turnstile(), pt_thesis));
                     if (!res.empty()) {
-                        std::cout << "   Found match " << tb.resolve_label(std::get<0>(res[0])) << std::endl;
+                        std::cout << "     Found match " << tb.resolve_label(std::get<0>(res[0])) << std::endl;
+                        found = true;
                     } else {
-                        std::cout << "   Found no match..." << std::endl;
+                        std::cout << "     Found NO match..." << std::endl;
                     }
+
+                    ParsingTree< SymTok, LabTok > pt_thm;
+                    pt_thm.type = tb.get_turnstile_alias();
+                    pt_thm.label = imp_lab;
+                    pt_thm.children.push_back(pt_hyp);
+                    pt_thm.children.push_back(pt_thesis);
+                    std::cout << "   Inference form: searching for " << tb.print_sentence(pt_thm) << std::endl;
+                    res = tb.unify_assertion({}, std::make_pair(tb.get_turnstile(), pt_thm));
+                    if (!res.empty()) {
+                        std::cout << "     Found match " << tb.resolve_label(std::get<0>(res[0])) << std::endl;
+                        found = true;
+                        found_strong = true;
+                    } else {
+                        std::cout << "     Found NO match..." << std::endl;
+                    }
+
+                    ParsingTree< SymTok, LabTok > pt_ph;
+                    pt_ph.type = tb.get_turnstile_alias();
+                    pt_ph.label = ph_lab;
+                    ParsingTree< SymTok, LabTok > pt_hypd;
+                    pt_hypd.type = tb.get_turnstile_alias();
+                    pt_hypd.label = imp_lab;
+                    pt_hypd.children.push_back(pt_ph);
+                    pt_hypd.children.push_back(pt_hyp);
+                    ParsingTree< SymTok, LabTok > pt_thesisd;
+                    pt_thesisd.type = tb.get_turnstile_alias();
+                    pt_thesisd.label = imp_lab;
+                    pt_thesisd.children.push_back(pt_ph);
+                    pt_thesisd.children.push_back(pt_thesis);
+                    std::cout << "   Deduction form: searching for " << tb.print_sentence(pt_thesisd) << " with hypothesis " << tb.print_sentence(pt_hypd) << std::endl;
+                    res = tb.unify_assertion({std::make_pair(tb.get_turnstile(), pt_hypd)}, std::make_pair(tb.get_turnstile(), pt_thesisd));
+                    if (!res.empty()) {
+                        std::cout << "     Found match " << tb.resolve_label(std::get<0>(res[0])) << std::endl;
+                        found = true;
+                        found_strong = true;
+                    } else {
+                        std::cout << "     Found NO match..." << std::endl;
+                    }
+
+                    if (!found) {
+                        std::cout << "   NO RULE FOUND" << std::endl;
+                    } else if (!found_strong) {
+                        std::cout << "   ONLY WEAK RULES WERE FOUND" << std::endl;
+                    } else {
+                        std::cout << "   Found strong rules!" << std::endl;
+                    }
+
                     tb.release_temp_var_frame();
                 }
             }
