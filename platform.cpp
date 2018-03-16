@@ -87,14 +87,12 @@ void platform_webmmpp_main_loop(const std::function<void()> &new_session_callbac
 }
 
 bool platform_open_browser(std::string browser_url) {
-    //system(("setsid xdg-open " + browser_url+ "&").c_str());
-    system(("setsid chromium " + browser_url + "&").c_str());
+    system(("setsid xdg-open " + browser_url+ "&").c_str());
     return true;
 }
 
-// FIXME
 boost::filesystem::path platform_get_resources_base() {
-    return boost::filesystem::path(__FILE__).parent_path() / "resources";
+    return boost::filesystem::path(PROJ_DIR) / "resources";
 }
 
 // Here we depend a lot on implementation details of C++ threads
@@ -237,10 +235,8 @@ bool platform_open_browser(std::string browser_url) {
     return true;
 }
 
-// FIXME
 boost::filesystem::path platform_get_resources_base() {
-    //return boost::filesystem::path("./resources");
-    return boost::filesystem::path(__FILE__).parent_path() / "resources";
+    return boost::filesystem::path(PROJ_DIR) / "resources";
 }
 
 // Here we depend a lot on implementation details of C++ threads
@@ -340,9 +336,8 @@ bool platform_open_browser(std::string browser_url) {
     return true;
 }
 
-// FIXME
 boost::filesystem::path platform_get_resources_base() {
-    return boost::filesystem::path(__FILE__).parent_path() / "resources";
+    return boost::filesystem::path(PROJ_DIR) / "resources";
 }
 
 // From https://stackoverflow.com/a/64166 and MSDN docs

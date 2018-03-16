@@ -14,6 +14,8 @@ CONFIG += link_pkgconfig
 
 CONFIG += c++1z
 
+DEFINES += "PROJ_DIR=\"\\\"$$PWD\\\"\""
+
 linux {
     # Compile with gcc
     QMAKE_CC = gcc
@@ -46,7 +48,7 @@ macx {
 }
 
 win32 {
-    QMAKE_CXXFLAGS += /std:c++17 /I c:\Boost\include\boost-1_66 /I c:\libs /FC /wd4250 /wd4200 -DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE
+    QMAKE_CXXFLAGS += /std:c++17 /I c:\Boost\include\boost-1_66 /I c:\libs /wd4250 /wd4200 -DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE
     QMAKE_LFLAGS += /STACK:8388608
     QMAKE_LIBS += /LIBPATH:c:\Boost\lib /LIBPATH:c:\libs
     CONFIG += console
@@ -62,9 +64,9 @@ win32 {
 #QMAKE_CXXFLAGS += -march=native
 
 # Disable these to have faster code; enable them to spot bugs
-#QMAKE_CXXFLAGS += -DLR_PARSER_SELF_TEST
-#QMAKE_CXXFLAGS += -DUNIFICATOR_SELF_TEST
-#QMAKE_CXXFLAGS += -DTOOLBOX_SELF_TEST
+#DEFINES += LR_PARSER_SELF_TEST
+#DEFINES += UNIFICATOR_SELF_TEST
+#DEFINES += TOOLBOX_SELF_TEST
 
 # Experiments with undefined behavior checking
 #QMAKE_CFLAGS += -fsanitize=undefined -fno-sanitize-recover=all
