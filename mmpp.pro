@@ -54,26 +54,27 @@ win32 {
     CONFIG += console
 }
 
-# Trick from https://stackoverflow.com/a/21335126/807307
-#QMAKE_CXXFLAGS_RELEASE -= -O1
-#QMAKE_CXXFLAGS_RELEASE -= -O2
-#QMAKE_CXXFLAGS_RELEASE *= -O3
-
-# Compile to native instruction set
-#QMAKE_CFLAGS += -march=native
-#QMAKE_CXXFLAGS += -march=native
-
 # Disable these to have faster code; enable them to spot bugs
 #DEFINES += LR_PARSER_SELF_TEST
 #DEFINES += UNIFICATOR_SELF_TEST
 #DEFINES += TOOLBOX_SELF_TEST
 
-# Experiments with undefined behavior checking
+# Trick from https://stackoverflow.com/a/21335126/807307
+#QMAKE_CXXFLAGS_RELEASE -= -O1
+#QMAKE_CXXFLAGS_RELEASE -= -O2
+#QMAKE_CXXFLAGS_RELEASE *= -O3
+
+# Tricks that (in theory) boost execution speed (for GCC and LLVM)
+#QMAKE_CFLAGS += -march=native -mtune=native -flto
+#QMAKE_CXXFLAGS += -march=native -mtune=native -flto
+#QMAKE_LFLAGS += -march=native -mtune=native -flto
+
+# Undefined behavior checking (for GCC and LLVM)
 #QMAKE_CFLAGS += -fsanitize=undefined -fno-sanitize-recover=all
 #QMAKE_CXXFLAGS += -fsanitize=undefined -fno-sanitize-recover=all
 #QMAKE_LIBS += -fsanitize=undefined -fno-sanitize-recover=all
 
-# Experiments with address checking
+# Address checking (for GCC and LLVM)
 #QMAKE_CFLAGS += -fsanitize=address -fno-sanitize-recover=all -fsanitize-address-use-after-scope
 #QMAKE_CXXFLAGS += -fsanitize=address -fno-sanitize-recover=all -fsanitize-address-use-after-scope
 #QMAKE_LIBS += -fsanitize=address -fno-sanitize-recover=all -fsanitize-address-use-after-scope
