@@ -87,25 +87,78 @@ For doing nearly anything with `mmpp` you will need a `set.mm` theory file to wo
 
 There are many different subcommands that you can execute when you run `mmpp`. If you run `mmpp` without any subcommand or with the subcommand `help`, it will list all the available subcomamnds. Most of them are actually experimental or do nothing useful. Here I present only those that can be at least something helpful to a casual user. Some subcommands might not be available if you disabled its dependencies in `mmpp.pro` before building.
 
-## Webmmpp
+## Web MMPP (`webmmpp`)
 
-TODO
+This subcommand is currently the main development target inside `mmpp`: it aims to be a proving environment, similar in its philosophy to `mmj2`, but more powerful and eye candy (it is not, so far). It requires libmicrohttpd and the JavaScript files obtained by transpiling the TypeScript sources. When started, the program spawns a local webserver and opens a browser, which is then used as user interface (it communicates with `mmpp` via AJAX requests). All the heavy computations are still done in the `mmpp` process, but the JavaScript code handles all the frontend interface. See below for more information on how to use the interface.
 
-## Unificator
+## Unificator (`unificator`)
 
-TODO
+A simple tool to search for propositions in the theory that unify to a given one. On each line you have to write the hypotheses and the thesis you want to search for, separated by the character "$". The program will reply with all the knowm propositions that unify to what you asked. For example:
 
-## Generalizable theorems
+    |- ph $ |- ( ph -> ps ) $ |- ps
+    Found 1 matching assertions:
+     * ax-mp: & |- ph & |- ( ph -> ps ) => |- ps
+    |- ( A = B -> A = B )
+    Found 1 matching assertions:
+     * id: => |- ( ph -> ph )
+    |- 1 = 2
+    Found 0 matching assertions:
 
-TODO
+## Generalizable theorems (`generalizable_theorems`)
 
-## Substitution rules searcher
+Search and list all theorems in the theory for which the proof actually proves a more general fact. Thus such theorems could be made more general for virtually no price. There are many resons for which a more specific form can be more desirable in some cases, so not all of them are to be considered bugs. However, it might be interesting to look for instances in which the excessive specificity is actually not wanted.
 
-TODO
+## Substitution rules searcher (`subst_search`)
 
-## Resolver
+In `set.mm` it is expected that you can substitute a subformula for another formula, provided that they are equal. In order to implement this operation automatically, you need to know, for each syntax builder and each Metamath variable appearing in it, an inference rule that allows to bring an equality (or biimplication) outside of the syntax builder. Unfortunately the database is not complete, meaning that some of these inference rules are not proved. This program searchs automatically for them. Each possible substitution rule is searched in its three "distinguished" formats: as an actual inference rule (which is the weaker format), as an implication theorem and as a deduction rule. This command takes no arguments.
 
-TODO
+## Resolver (`resolver`)
+
+This is mostly useful when debugging `mmpp`: internally all Metamath symbols and labels are represented as numbers. During debugging it is often useful to understand which symbol or label corresponds to a certain number: the resolver tool is able to answer this type of queries (provided it works on the same theory file is the program being debugged, since otherwise the numbers change). You can pass on the command line any number of strings or numbers: for each of them the program will print the corresponding number or string, interpreting the input both as a symbol and as a label (while the Metmath specifications require that no symbol is equal to any label, internally in `mmpp` they use two independent numberings, so the same number can represent both a symbol and a label).
+
+# The Web MMPP interface
+
+In the Web interface you can create a number of worksets, each of which is independent from the others and makes you able to work on proving a single theorem. The upper row of buttons in the interface lets you create a workset or access one already existing. The second row of buttons gives access to the various functionalities of the interface: you can load the `set.mm` database (without that, the workset is almost completely useless), destroy the workset (currently not implemented) or access the proof navigator or the proof editor.
+
+The proof navigator just exposes an interface similar to those in the Metamath Proof Explorer site: you can type a label and ask to print its proof. If you click on the labels appearing in the proof, you will be redirected to their proof in turn. For the moment it does not do much more.
+
+The proof editor is where the actual fun begins. You can edit a proof by creating a tree of steps, where each node logically follow from its children. As in `mmj2`, a node can be proved from its children by unification from a previously proved theorem or from an axiom. However, differently from `mmj2`, more complicated strategies can be implemented, which are then resolved to possibly many steps when the proof is generated. Each time a node or one of its chilren is modified, all the available proving strategies are launched in background on them: as soon as a strategy manages to find a proof, the node is marked as proved.
+
+## Editing the tree
+
+You can create empty nodes at the top level with the button "Create node". Each node as a number of small buttons on its left; in their order:
+
+ * The first button toggles the visibility of the children of the current node.
+
+ * The second button toggles the visibility of the edit field.
+
+ * The third button shows the children of the current node and hides in turn their children. This is helpful if you want to concentrate on a single step.
+
+ * The fourth button create a new, empty children.
+
+ * The fifth button destroys the node and all its children.
+
+ * The sixth and seventh buttons move the node up and down among its siblings.
+
+ * The eighth button permits to reparent a step as a child of any other step (not descending from it). First you press it (it is marked by the letter "R", as in "reparent"); all the "R" buttons becomes "H" (as in "here"), and you can choose any of it: the first step you clicked will be orphaned and reparented under the second one. You can cancel the operation by doing any other operation, or by clicking the "H" on the same node where you clicked the "R".
+
+The last two buttons are not related to tree editing:
+
+ * The "P" button generates a proof for the step; all the unproved children are considered hypotheses. The resulting proof is formatted in the Metamath language and written in the text area at the bottom of the page. You can copy and paste it wherever you want.
+
+ * The "D" button generates a dump of the step and all its children. Currently this is the only way to save a proof when closing `mmpp`. Given the current stability of the program, or more precisely the lack thereof, it is advisable to do this frequently and copy the dump somewhere more stable, so you do not lose your work. You can also dump all the steps in the workset with the button "Dump whole tree". To restore a dump, copy it in the textarea at the bottom and click the button "Create node from dump". This is also the only current way to duplicate a subtree, which often comes in handy.
+
+The content of a step can be edited by writing in the text field that appears when clicking the second button. During editing, the pretty printed version of the step is rendered on the right of the buttons. Also, the proof status is written in the rectangle with yellow background: if a proof is found for the node, then it writes the name of the proving strategy and possibly other data; if not, the work "searching" is written if some strategy is still searching for a proof, and "failed" if all of them have failed.
+
+## Avaiable strategies
+
+There are currently two available strategies:
+
+ * `Unif`: This is the usual simple unification step, the basis of the Metamath language. The label will indicate the label of the user theorem (or axiom), and if you move the mouse over it a baloon will appear detailing the used substitution map.
+
+ * `Wff`: The name is a bit of a misnomer, because of course this strategy is not able to prove general wffs. However, it is able to prove steps which follows from their children by purely propositional reasoning. The generated proof is, in general, much longer than the equivalent proof written by a human being; however, having this strategy at hands frees said human being from having to think too much about those that are usually considered technical details, enabling them to spend their mental resources on deeper thoughts.
+
+Internally there are two different algorithms implementing the `Wff` strategy: in any case, the formula to be proved is broken on its atoms (its minimal subformulae that are only joined by logic operations), so that it can be treated as a propositional formula. Then, the first (and oldest) algorithm evaluates it assigning every possible combination of the values true and false to its atoms. If all of such evaluations return true, then a proof can be devised for the original formula; such proof always has exponential length in the number of atoms. The second algorithm, which is the default at the moment, converts the formula to a Conjunctive Normal Form using Tseitin's algorithm and then uses a generic CNF solver (minisat, here) to find a proof (technically a refutation of its negation). The length of the generated proof depends by the ability of the CNF solver to find a short refutation: in general it cannot be expected to be less than exponential, but for many something better can be hoped.
 
 # License
 
