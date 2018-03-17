@@ -150,7 +150,7 @@ The last two buttons are not related to tree editing:
 
 The content of a step can be edited by writing in the text field that appears when clicking the second button. During editing, the pretty printed version of the step is rendered on the right of the buttons. Also, the proof status is written in the rectangle with yellow background: if a proof is found for the node, then it writes the name of the proving strategy and possibly other data; if not, the work "searching" is written if some strategy is still searching for a proof, and "failed" if all of them have failed.
 
-## Avaiable strategies
+## Available strategies
 
 There are currently two available strategies:
 
@@ -159,6 +159,14 @@ There are currently two available strategies:
  * `Wff`: The name is a bit of a misnomer, because of course this strategy is not able to prove general wffs. However, it is able to prove steps which follows from their children by purely propositional reasoning. The generated proof is, in general, much longer than the equivalent proof written by a human being; however, having this strategy at hands frees said human being from having to think too much about those that are usually considered technical details, enabling them to spend their mental resources on deeper thoughts.
 
 Internally there are two different algorithms implementing the `Wff` strategy: in any case, the formula to be proved is broken on its atoms (its minimal subformulae that are only joined by logic operations), so that it can be treated as a propositional formula. Then, the first (and oldest) algorithm evaluates it assigning every possible combination of the values true and false to its atoms. If all of such evaluations return true, then a proof can be devised for the original formula; such proof always has exponential length in the number of atoms. The second algorithm, which is the default at the moment, converts the formula to a Conjunctive Normal Form using Tseitin's algorithm and then uses a generic CNF solver (minisat, here) to find a proof (technically a refutation of its negation). The length of the generated proof depends by the ability of the CNF solver to find a short refutation: in general it cannot be expected to be less than exponential, but for many something better can be hoped.
+
+More strategies can definitely be implemented to further simplify the proof editor's job. Although general theorem provers are notoriously difficult to write (at least if you want to know the answer before the Earth is swallowed by the Sun), there are many repetitive tasks in writing Metamath proofs, which are often much more easier then general theorems. By implementing more strategies, I believe that we will be able to write proofs much quickier.
+
+# How to contributed
+
+However you want. Use GitHub pull requests, send me emails, patches, opinions, whatever. There are a lot of things to do, and even beside I see `mmpp` as an experiment playground. The nice thing of Metamath proof is that you can experiment with them without risk: if the final proof is validated by a good checker (not necessarily `mmpp`), it is good, irrelevant of how funny is the code that generated it.
+
+There are not specific conding conventions. The only thing I ask you is to try to keep internal interfaces as clean and consistent as possible. If you find some inconsistency, please fix it, instead of writing one even worse. As a final suggestion, I use Qt Creator for working on C++ code. It looks nice and clean to me and it is multiplatform. If you use it, you can directly import the project in `mmpp.pro` and have virtually nothing to configure.
 
 # License
 
