@@ -6,12 +6,12 @@
 #include "mm/toolbox.h"
 #include "mm/reader.h"
 #include "htmldelegate.h"
-#include "test/test_env.h"
+#include "test/setmm.h"
 
 struct Context {
     const ExtendedLibrary *lib = NULL;
     LibraryToolbox *tb = NULL;
-    TestEnvironment *te = NULL;
+    SetMm *te = NULL;
 
     ~Context();
 

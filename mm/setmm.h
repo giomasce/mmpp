@@ -9,20 +9,20 @@
  * as references in TestEnvironment, while being at the same time able to do the
  * (somewhat) complex construction procedure they need. I wonder if there is some better way.
  */
-struct TestEnvironmentInner {
-    TestEnvironmentInner(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename);
-    ~TestEnvironmentInner();
+struct SetMmImpl {
+    SetMmImpl(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename);
+    ~SetMmImpl();
 
     LibraryImpl *lib;
     LibraryToolbox *tb;
 };
 
-struct TestEnvironment {
-    TestEnvironment(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename);
+struct SetMm {
+    SetMm(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename);
 
-    TestEnvironmentInner inner;
+    SetMmImpl inner;
     LibraryImpl &lib;
     LibraryToolbox &tb;
 };
 
-const TestEnvironment &get_set_mm();
+const SetMm &get_set_mm();

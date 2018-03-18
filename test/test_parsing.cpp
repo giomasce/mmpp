@@ -3,7 +3,7 @@
 
 #include "test/test_parsing.h"
 
-#include "test/test_env.h"
+#include "mm/setmm.h"
 #include "parsing/earley.h"
 #include "parsing/lr.h"
 

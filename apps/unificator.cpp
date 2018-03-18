@@ -6,7 +6,7 @@
 #include "utils/utils.h"
 #include "mm/toolbox.h"
 #include "platform.h"
-#include "test/test_env.h"
+#include "mm/setmm.h"
 
 void unification_loop() {
     auto &data = get_set_mm();

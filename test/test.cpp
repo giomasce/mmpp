@@ -15,7 +15,7 @@
 #include "utils/utils.h"
 #include "platform.h"
 #include "parsing/unif.h"
-#include "test/test_env.h"
+#include "mm/setmm.h"
 #include "test/test_parsing.h"
 #include "test/test_minor.h"
 #include "provers/wffsat.h"

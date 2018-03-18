@@ -5,7 +5,7 @@
 
 #include <boost/functional/hash.hpp>
 
-#include "test/test_env.h"
+#include "mm/setmm.h"
 #include "mm/toolbox.h"
 #include "mm/proof.h"
 #include "parsing/unif.h"

@@ -8,7 +8,7 @@
 #include "qt/prooftreemodel.h"
 
 #include "platform.h"
-#include "test/test_env.h"
+#include "test/setmm.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -78,7 +78,7 @@ Context::~Context()
 Context *Context::create_from_filename(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename)
 {
     Context *ctx = new Context();
-    ctx->te = new TestEnvironment(filename, cache_filename);
+    ctx->te = new SetMm(filename, cache_filename);
     ctx->lib = &ctx->te->lib;
     ctx->tb = &ctx->te->tb;
     return ctx;

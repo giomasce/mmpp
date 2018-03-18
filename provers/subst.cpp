@@ -1,6 +1,6 @@
 #include "subst.h"
 
-#include "test/test_env.h"
+#include "mm/setmm.h"
 #include "utils/utils.h"
 
 int subst_search_main(int argc, char *argv[]) {

@@ -7,7 +7,7 @@
 #include "mm/reader.h"
 #include "utils/utils.h"
 #include "platform.h"
-#include "test/test_env.h"
+#include "mm/setmm.h"
 
 pwff parse_expr(z3::expr e, const LibraryToolbox &tb) {
     assert(e.is_app());

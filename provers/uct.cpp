@@ -2,7 +2,7 @@
 #include "uct.h"
 
 #include "utils/utils.h"
-#include "test/test_env.h"
+#include "mm/setmm.h"
 #include "platform.h"
 #include "mm/proof.h"
 

@@ -1,11 +1,11 @@
 
-#include "test/test_env.h"
+#include "setmm.h"
 
 #include "mm/reader.h"
 #include "platform.h"
 #include "utils/utils.h"
 
-TestEnvironmentInner::TestEnvironmentInner(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename)
+SetMmImpl::SetMmImpl(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename)
 {
     std::cout << "Reading database from file " << filename << " using cache in file " << cache_filename << std::endl;
     TextProgressBar tpb;
@@ -21,18 +21,18 @@ TestEnvironmentInner::TestEnvironmentInner(const boost::filesystem::path &filena
     std::cout << "The library has " << this->lib->get_symbols_num() << " symbols and " << this->lib->get_labels_num() << " labels" << std::endl << std::endl;
 }
 
-TestEnvironmentInner::~TestEnvironmentInner() {
+SetMmImpl::~SetMmImpl() {
     delete this->lib;
     delete this->tb;
 }
 
-TestEnvironment::TestEnvironment(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename) :
+SetMm::SetMm(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename) :
     inner(filename, cache_filename), lib(*inner.lib), tb(*inner.tb)
 {
 }
 
-const TestEnvironment &get_set_mm() {
+const SetMm &get_set_mm() {
     //std::cout << "Base resource directory is: " << platform_get_resources_base() << std::endl;
-    static TestEnvironment data(platform_get_resources_base() / "set.mm", platform_get_resources_base() / "set.mm.cache");
+    static SetMm data(platform_get_resources_base() / "set.mm", platform_get_resources_base() / "set.mm.cache");
     return data;
 }

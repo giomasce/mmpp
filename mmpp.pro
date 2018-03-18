@@ -95,7 +95,6 @@ SOURCES += \
     mm/reader.cpp \
     apps/unificator.cpp \
     temp.cpp \
-    test/test_env.cpp \
     apps/generalizable_theorems.cpp \
     test/test_parsing.cpp \
     test/test_minor.cpp \
@@ -118,7 +117,8 @@ SOURCES += \
     provers/wffsat.cpp \
     apps/resolver.cpp \
     provers/subst.cpp \
-    apps/verify.cpp
+    apps/verify.cpp \
+    mm/setmm.cpp
 
 HEADERS += \
     pch.h \
@@ -137,7 +137,6 @@ HEADERS += \
     web/jsonize.h \
     mm/reader.h \
     libs/serialize_tuple.h \
-    test/test_env.h \
     test/test_parsing.h \
     test/test_minor.h \
     utils/vectormap.h \
@@ -172,7 +171,8 @@ HEADERS += \
     provers/sat.h \
     provers/wffblock.h \
     provers/wffsat.h \
-    provers/subst.h
+    provers/subst.h \
+    mm/setmm.h
 
 DISTFILES += \
     README.md \
