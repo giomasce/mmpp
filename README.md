@@ -23,9 +23,9 @@ is expected to be supported better than the other platforms.
 
 Beside the standard C++17 library, the code depends on the Boost
 collection of libraries. If you use `webmmpp` you will also need
-libmicrohttpd and the TypeScript to JavaScript transpiler. If you use
-the proving routines depending on Z3, you will also need libz3. In any
-case, you need qmake to generate the build script.
+libmicrohttpd and the TypeScript to JavaScript transpiler `tsc`. If
+you use the proving routines depending on Z3, you will also need
+libz3. In any case, you need `qmake` to generate the build script.
 
 You can customize the build by editing the file `mmpp.pro`. At this
 point it is not possible to install `mmpp`: you need to run it from
@@ -34,12 +34,15 @@ the source code checkout.
 ### Linux
 
 First you need to install the dependencies. On Debian-based systems
-this is usually as hard as giving the command
+this is usually as hard as giving this command to a terminal:
 
     sudo apt-get install git build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev node-typescript
 
-Then you create a new direcory for the build and run qmake and then
-make there:
+Other Linux distributions will require some similar command, depending
+on the distribution package manager.
+
+Then you create a new direcory for the build and run `qmake` and then
+`make` there:
 
     git clone https://github.com/giomasce/mmpp.git
     cd mmpp
@@ -58,29 +61,31 @@ files:
 
 ### macOS
 
-This is a bit more difficult. Unfortunately I am not a very good Mac
-user, so there might be a better way to do all of this. Feel free to
-suggest improvements and consider that all of this was done on macOS
-Sierra.
+Installing all the dependencies is a bit more complicated here. This
+process was tested on a pristine macOS High Sierra system.
 
-First you have to install the Apple C++ compiler. It happened by magic
-on my computer: I wrote g++ in a console, and the operating system
-proposed me to install the compiler, and I said yes. For all the other
-dependencies, I resorted to [Homebrew](https://brew.sh), which you
-have to install following the instructions on their website. Then you
-have again a nice environment where you can install things by just
-writing their name. Open a terminal and give this command:
+First you have to install the Apple command line developer tools. The
+operating system automatically proposes you to do that if you try to
+use the compiler: if you open a terminal and give the command `gcc`, a
+dialog will open proposing you to install the command line developers
+tools. You just need to click "Install" and follow the dialogs. You do
+not need to install the whole XCode.
+
+For all the other dependencies, I used [Homebrew](https://brew.sh):
+you simply need to go to their website and copy and paste the
+installation command in a terminal, then follow the instructions. With
+`brew` installed, things are nearly as simple as with `apt-get`:
 
     brew install z3 libmicrohttpd qt boost typescript
 
-Probably in order not to screw up the system, the qt package does not
-install binaries in any default path. If you want to use qmake
-directly, you need to add it manually to your terminal path:
+There is only a small catch: the `qt` package does not install
+binaries in any default path. If you want to use `qmake` directly, you
+need to add it manually to your terminal path:
 
     echo 'export PATH="/usr/local/opt/qt/bin:$PATH"' >> $HOME/.bash_profile
 
-Then you need to close and reopen the terminal and you can use the
-same commands as Linux:
+Then you need to close and reopen the terminal (to use the new path)
+and you can use the same commands as Linux:
 
     git clone https://github.com/giomasce/mmpp.git
     cd mmpp
@@ -89,9 +94,11 @@ same commands as Linux:
     qmake ..
     make
 
-And to compile the JavaScript files:
+The executable will be in `mmpp.app/Contents/MacOS/mmpp`.
 
-    cd ..
+To compile the JavaScript files:
+
+    cd ..  # Return to the source code root
     tsc -p resources/static/ts
 
 ### Windows
