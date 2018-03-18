@@ -448,7 +448,7 @@ writing Metamath proofs, which are often much more easier then general
 theorems. By implementing more strategies, I believe that we will be
 able to write proofs much quickier.
 
-# How to contributed
+# How to contribute
 
 However you want. Use GitHub pull requests, send me emails, patches,
 opinions, whatever. There are a lot of things to do, and even beside I
