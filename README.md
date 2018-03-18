@@ -103,70 +103,132 @@ To compile the JavaScript files:
 
 ### Windows
 
-Here is where things become really complicated! I have really no idea
-of how Windows developers manage to retain their sanity! It is
-actually so much complicated that I do not remember anymore what I
-actually did, so I will just write the basic steps and hope you will
-manage to find your way. As usual, patches are welcome! (and sorry for
-the little rants, but I really spent a lot of time on this...)
+This is unfortunately more complicated! I find installing things on
+Windows really unfriendly, and there is no shortcut like Homebrew on
+macOS: you really need a lot of time, manual downloads and clicks. And
+at times it is even complicated to understand which are the right
+clicks. This is how I managed to get `mmpp` to compile on Windows 8 on
+64 bits (I had also tried Windows 7, but could not get around an error
+when installing C++ runtime components; newer Windows version are
+unmapped territory!).
 
-I used Windows 8. Before I tried a few different copies of Windows 7,
-but they all failed when installing Microsoft C++ runtime components
-needed to run Qt Creator. So, not only Microsoft does not deliver
-standard runtime components for one of the most mainstream languages
-around, but it even fails at providing a working installer for its own
-operating system!
+First you have to download [Visual Studio
+2017](http://www.visualstudio.com/) and run the installer. Previous
+versions will not probably work, because `mmpp` makes use of C++17
+features. In the Visual Studio Installer program you need to install
+the following components: "Desktop development with C++", with at
+least the optional components "VC++ 2017 v141 toolset" and "Windows 10
+SDK"; and "Node.js development". At the end of this long process you
+will have to restart the computer.
 
-First you have to install Microsoft C++ compiler. I installed Visual
-Studio 2017 from Microsoft's website, executing the installer a lot of
-times to find the components that I actually needed. Then I installed
-Qt Creator from Qt's website, again having a few rounds to find the
-right components. By the way, one could also try with MinGW, but I do
-not think it would make anything easier. Maybe even more
-difficult. Also, in theory you do not really need Qt Creator (you just
-need to install the Qt components to have qmake), but in practice
-having it spares you from having to hand craft the correct execution
-path to be able to call qmake and the C++ compiler in the same
-terminal.
+Then you have to download the [Qt
+environment](https://www.qt.io/download). Go to the website, choose
+the open source version and click your way through until you run the
+installer. Again select the open source version by not providing any
+account detail and install (together with Qt Creator, which is
+mandatory) "MSVC 2017 64-bit" for the most recent Qt version available
+(5.10.1 at the time of writing). However, avoid the preview versions,
+which might be unstable.
 
-Then you need to install the dependencies. For libmicrohttpd and libz3
-this is comparatively easy: you just go to the website, download the
-binary package that some gentle soul has made you available and you
-copy its content in `c:\libs` (the path is hardcoded in `mmpp.pro`:
-you can change it if you want; unfortunately I do not know of a
-standard location for header and libraries on Windows). But then you
-have to install Boost, and there the real pain begins: you need to
-follow the instructions on the website and hope it will work. Install
-the library in `c:\boost` (or, again, fix the path hardcoded in
-`mmpp.pro`).
+Going forth, you need to install
+[Git](https://git-scm.com/downloads). Well, technically speaking this
+is not really required, but it is comparatively easy and it has some
+advantages. As usual go to the website and execute the installer; you
+will be asked some strange questions about some behaviour of Git: you
+can always leave the default setting. You finally have all the
+development tools installed, congratulations! But the path is still
+long: we have to install library dependencies.
 
-Finally, you need to install the TypeScript transpiler. You can
-install the Node package manager from the Visual Studio installer,
-then open a console and use:
+Let us begin with
+[libmicrohttpd](https://www.gnu.org/software/libmicrohttpd/). Go to
+the website and download the binary Windows release, which in the form
+of a ZIP file. Extract the content of the archive and then copy the
+content of the directory `x86_64/VS2017/Release-static` in `c:/libs`
+(you will probably need to create the target directory first). Such
+directory is hardcoded in `mmpp.pro`, so if you want to choose another
+directory you have to update the file. Unfortunately I do not know of
+a standard library directory for Windows. So now `c:/libs` should
+contain `libmicrohttpd.lib` (the static library) and `microhttpd.h`
+(the header file).
 
-    npm install typescript
+Then there is [Z3](https://github.com/Z3Prover/z3/releases). Download
+the most recent version for Windows x64. Extract the content of the
+subdirectories `bin` and `include` directly in `c:/libs` (i.e., so
+that `c:/libs` directly contains `libz3.lib`, `z3.h` and the other
+files, not the directories `bin` and `include`).
 
-Ok, you are finally at the point where you can actually compile
-`mmpp`.
+Finally, you need to install
+[Boost](http://www.boost.org/users/download/), which is quite possibly
+the most difficult and time-consuming step. Go to the website and
+download the package, in ZIP or 7z format (Windows integrated
+extractor is terribly slow; consider installing
+[7z](https://www.7-zip.org/) and using it to unarchive Boost). Bad
+news is that this time you have to build from the sources. There are
+some prebuilt packages for Windows, but unfortunately none targets
+MSVC 2017, so they are not usable in our case. Compiling Boost for
+Windows is not completely trivial: I hope these instructions work for
+you; if they do not, please check out the [upstream
+documentation](http://www.boost.org/doc/libs/1_66_0/more/getting_started/windows.html).
 
-TODO
+Once you have unpacked the Boost distribution, using the Windows
+starter screen open "x86 Native Tools Command Prompt for VS 2017",
+which is basically the usual cmd shell with the right path to use
+Visual Studio tools (including the C++ compiler). Go to the directory
+where you have unpacked Boost and give these commands:
+
+    bootstrap
+    b2           # This will take a lot of time
+    b2 install   # This will take less time, but still something
+
+The last command will cause Boost headers and binaries to be installed
+in `c:/Boost`. This path is again hardcoded in `mmpp.pro`.
+
+Ok, we are finally at the point where we can compile `mmpp`. Open Qt
+Creator from the Windows starter screen and click "New project". Then
+select "Import project" and "Git clone". Insert
+"https://github.com/giomasce/mmpp.git" as repository and then wait for
+the clone to finish. If all the installation above went correctly, Qt
+Creator will automatically propose to configure the project with the
+"Desktop Qt MSVC2017 64 bit" kit, which you can accept. If it does not
+propore any kit, then probably you have to check that you installed
+all the development tools appropriately. Once the project is
+configured, you can build it via the "Build" menu. By default Qt
+Creator will build in "Debug" mode, which, as the name says, is useful
+for debugging, but it is rather slow. I suggest you to move to
+"Release" mode, except for when you really need to debug the program.
+
+Even after having compiled `mmpp`, if you try to run it it will abort
+with an error saying that `libz3.dll` is not available. In order to
+make it available, you need to copy `libz3.dll`, `msvcp110.dll`,
+`msvcr110.dll` and `vcomp110.dll` from the Z3 archive (or from
+`c:/libs`) to the directory where the executable `mmpp` is situated.
+
+To compile the JavaScript files, you need to open another (or use the
+same as before) terminal with VS2017 development tools and go to the
+directory where you checked out the repository content (by default
+this will be "mmpp" in your Documents directory), then give the
+command:
+
+    tsc -p resources/static/ts
 
 # Preparing theory data
 
 For doing nearly anything with `mmpp` you will need a `set.mm` theory
 file to work with. While some parts of `mmpp` support generic Metamath
 files, most of it is designed to work with `set.mm`. Actually, many
-algorithms actually require some specific theorems that are not (yet)
-available in the standard `set.mm`, so I suggest to use my personal
-fork, which you can find in https://github.com/giomasce/set.mm, in the
-`develop` branch. You have to download it and put it in the
-`resources` directory, retaining the name `set.mm`. The first run of
-`mmpp` will take some time to generate the cache for the LR parser and
-save it in the file `set.mm.cache`. Each subsequent run will reuse the
-same cache file, so the startup time will be much quicker (unless you
-modify `set.mm` in a way that invalidates the cache: in such case
-`mmpp` will automatically detect the need of rebuilding the cache, and
-this will take some time again).
+algorithms require some specific theorems that are not (yet) available
+in the standard `set.mm`, so I suggest to use my personal fork, which
+you can find
+[here](https://raw.githubusercontent.com/giomasce/set.mm/develop/set.mm).
+
+You have to put the downloaded file in the `resources` directory,
+retaining the name `set.mm`. The first run of `mmpp` will take some
+time to generate the cache for the LR parser and save it in the file
+`set.mm.cache`. Each subsequent run will reuse the same cache file, so
+the startup time will be much quicker (unless you modify `set.mm` in a
+way that invalidates the cache: in such case `mmpp` will automatically
+detect the need of rebuilding the cache, and this will take some time
+again).
 
 # Running `mmpp`
 
