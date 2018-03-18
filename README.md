@@ -208,6 +208,16 @@ you asked. For example:
     |- 1 = 2
     Found 0 matching assertions:
 
+## Verifier (`verify` and `verify_adv`)
+
+Check that a Metamath theory file is correct. You have to specify the
+filename on the command line. If you use `verify`, than a simple
+correctness check will be ran. If you use `verify_adv`, then `mmpp`
+will not only check the correctness of the database, but will also
+test the proof compressions and decompression algorithms. This last
+test is mostly to test `mmpp` algorithms, than to check whether your
+files are correct.
+
 ## Generalizable theorems (`generalizable_theorems`)
 
 Search and list all theorems in the theory for which the proof
