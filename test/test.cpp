@@ -17,7 +17,6 @@
 #include "parsing/unif.h"
 #include "test/test_env.h"
 #include "test/test_parsing.h"
-#include "test/test_verification.h"
 #include "test/test_minor.h"
 #include "provers/wffsat.h"
 
@@ -425,40 +424,4 @@ int test_setmm(int argc, char *argv[]) {
 }
 static_block {
     register_main_function("test_setmm", test_setmm);
-}
-
-int test_one_main(int argc, char *argv[]) {
-    if (argc != 2) {
-        std::cerr << "Provide file name as argument, please" << std::endl;
-        return 1;
-    }
-    std::string filename(argv[1]);
-    return test_verification_one(filename, true) ? 0 : 1;
-}
-static_block {
-    register_main_function("verify_one", test_one_main);
-}
-
-int test_simple_one_main(int argc, char *argv[]) {
-    if (argc != 2) {
-        std::cerr << "Provide file name as argument, please" << std::endl;
-        return 1;
-    }
-    std::string filename(argv[1]);
-    return test_verification_one(filename, false) ? 0 : 1;
-}
-static_block {
-    register_main_function("simple_verify_one", test_simple_one_main);
-}
-
-int test_all_main(int argc, char *argv[]) {
-    (void) argc;
-    (void) argv;
-
-    test_all_verifications();
-
-    return 0;
-}
-static_block {
-    register_main_function("verify_all", test_all_main);
 }

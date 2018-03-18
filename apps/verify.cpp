@@ -6,12 +6,72 @@
 
 #include <boost/filesystem.hpp>
 
-#include "test/test_verification.h"
-
 #include "platform.h"
 #include "utils/utils.h"
 #include "mm/reader.h"
 #include "mm/proof.h"
+
+bool verify_database(boost::filesystem::path filename, bool advanced_tests) {
+    bool success = true;
+    try {
+        std::cout << "Memory usage when starting: " << size_to_string(platform_get_current_used_ram()) << std::endl;
+        FileTokenizer ft(filename);
+        Reader p(ft, true, true);
+        std::cout << "Reading library and executing all proofs..." << std::endl;
+        p.run();
+        LibraryImpl lib = p.get_library();
+        std::cout << "Library has " << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << std::endl;
+        std::cout << "Memory usage after loading: " << size_to_string(platform_get_current_used_ram()) << std::endl;
+
+        if (advanced_tests) {
+            std::cout << "Compressing all proofs and executing again..." << std::endl;
+            for (auto &ass : lib.get_assertions()) {
+                if (ass.is_valid() && ass.is_theorem()) {
+                    CompressedProof compressed = ass.get_proof_operator(lib)->compress();
+                    compressed.get_executor< Sentence >(lib, ass)->execute();
+                }
+            }
+
+            std::cout << "Decompressing all proofs and executing again..." << std::endl;
+            for (auto &ass : lib.get_assertions()) {
+                if (ass.is_valid() && ass.is_theorem()) {
+                    UncompressedProof uncompressed = ass.get_proof_operator(lib)->uncompress();
+                    uncompressed.get_executor< Sentence >(lib, ass)->execute();
+                }
+            }
+
+            std::cout << "Compressing and decompressing all proofs and executing again..." << std::endl;
+            for (auto &ass : lib.get_assertions()) {
+                if (ass.is_valid() && ass.is_theorem()) {
+                    CompressedProof compressed = ass.get_proof_operator(lib)->compress();
+                    UncompressedProof uncompressed = compressed.get_operator(lib, ass)->uncompress();
+                    uncompressed.get_executor< Sentence >(lib, ass)->execute();
+                }
+            }
+
+            std::cout << "Decompressing and compressing all proofs and executing again..." << std::endl;
+            for (auto &ass : lib.get_assertions()) {
+                if (ass.is_valid() && ass.is_theorem()) {
+                    UncompressedProof uncompressed = ass.get_proof_operator(lib)->uncompress();
+                    CompressedProof compressed = uncompressed.get_operator(lib, ass)->compress();
+                    compressed.get_executor< Sentence >(lib, ass)->execute();
+                }
+            }
+        } else {
+            std::cout << "Skipping advanced tests" << std::endl;
+        }
+
+    } catch (const MMPPException &e) {
+        std::cout << "An exception with message '" << e.get_reason() << "' was thrown!" << std::endl;
+        e.print_stacktrace(std::cout);
+        success = false;
+    } catch (const ProofException< Sentence > &e) {
+        std::cout << "An exception with message '" << e.get_reason() << "' was thrown!" << std::endl;
+        success = false;
+    }
+
+    return success;
+}
 
 const boost::filesystem::path test_basename = platform_get_resources_base() / "metamath-test";
 const std::string tests_filenames = R"tests(
@@ -57,94 +117,15 @@ static std::vector< std::pair < std::string, bool > > get_tests() {
     return tests;
 }
 
-bool test_verification_one(std::string filename, bool advanced_tests) {
-    bool success = true;
-    try {
-        std::cout << "Memory usage when starting: " << size_to_string(platform_get_current_used_ram()) << std::endl;
-        FileTokenizer ft(test_basename / filename);
-        Reader p(ft, true, true);
-        std::cout << "Reading library and executing all proofs..." << std::endl;
-        p.run();
-        LibraryImpl lib = p.get_library();
-        std::cout << "Library has " << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << std::endl;
-
-        /*LabTok failing = 287;
-        std::cout << "Checking proof of " << lib.resolve_label(failing) << std::endl;
-        lib.get_assertion(failing).get_proof_executor(lib)->execute();*/
-
-        if (advanced_tests) {
-            std::cout << "Compressing all proofs and executing again..." << std::endl;
-            for (auto &ass : lib.get_assertions()) {
-                if (ass.is_valid() && ass.is_theorem()) {
-                    CompressedProof compressed = ass.get_proof_operator(lib)->compress();
-                    compressed.get_executor< Sentence >(lib, ass)->execute();
-                }
-            }
-
-            std::cout << "Decompressing all proofs and executing again..." << std::endl;
-            for (auto &ass : lib.get_assertions()) {
-                if (ass.is_valid() && ass.is_theorem()) {
-                    UncompressedProof uncompressed = ass.get_proof_operator(lib)->uncompress();
-                    uncompressed.get_executor< Sentence >(lib, ass)->execute();
-                }
-            }
-
-            std::cout << "Compressing and decompressing all proofs and executing again..." << std::endl;
-            for (auto &ass : lib.get_assertions()) {
-                if (ass.is_valid() && ass.is_theorem()) {
-                    CompressedProof compressed = ass.get_proof_operator(lib)->compress();
-                    UncompressedProof uncompressed = compressed.get_operator(lib, ass)->uncompress();
-                    uncompressed.get_executor< Sentence >(lib, ass)->execute();
-                }
-            }
-
-            std::cout << "Decompressing and compressing all proofs and executing again..." << std::endl;
-            for (auto &ass : lib.get_assertions()) {
-                if (ass.is_valid() && ass.is_theorem()) {
-                    UncompressedProof uncompressed = ass.get_proof_operator(lib)->uncompress();
-                    CompressedProof compressed = uncompressed.get_operator(lib, ass)->compress();
-                    compressed.get_executor< Sentence >(lib, ass)->execute();
-                }
-            }
-        } else {
-            std::cout << "Skipping compression and decompression test" << std::endl;
-        }
-
-        std::cout << "Finished. Memory usage: " << size_to_string(platform_get_current_used_ram()) << std::endl;
-    } catch (const MMPPException &e) {
-        std::cout << "An exception with message '" << e.get_reason() << "' was thrown!" << std::endl;
-        e.print_stacktrace(std::cout);
-        success = false;
-    } catch (const ProofException< Sentence > &e) {
-        std::cout << "An exception with message '" << e.get_reason() << "' was thrown!" << std::endl;
-        success = false;
-    }
-
-    return success;
-}
-
 void test_all_verifications() {
     auto tests = get_tests();
-    // Comment or uncomment the following line to disable or enable tests with metamath-test
-    //tests = {};
     int problems = 0;
     for (auto test_pair : tests) {
         std::string filename = test_pair.first;
         bool expect_success = test_pair.second;
         std::cout << "Testing file " << filename << " from " << test_basename << ", which is expected to " << (expect_success ? "pass" : "fail" ) << "..." << std::endl;
 
-        // Useful for debugging
-        /*if (filename == "demo0.mm") {
-            mmpp_abort = true;
-        } else {
-            continue;
-            mmpp_abort = false;
-        }*/
-        /*if (filename == "nf.mm") {
-            break;
-        }*/
-
-        bool success = test_verification_one(filename, expect_success);
+        bool success = verify_database(test_basename / filename, expect_success);
         if (success) {
             if (expect_success) {
                 std::cout << "Good, it worked!" << std::endl;
@@ -165,3 +146,40 @@ void test_all_verifications() {
     }
     std::cout << "Found " << problems << " problems" << std::endl;
 }
+
+int test_one_main(int argc, char *argv[]) {
+    if (argc != 2) {
+        std::cerr << "Provide file name as argument, please" << std::endl;
+        return 1;
+    }
+    std::string filename(argv[1]);
+    return verify_database(filename, true) ? 0 : 1;
+}
+static_block {
+    register_main_function("verify_adv", test_one_main);
+}
+
+int test_simple_one_main(int argc, char *argv[]) {
+    if (argc != 2) {
+        std::cerr << "Provide file name as argument, please" << std::endl;
+        return 1;
+    }
+    std::string filename(argv[1]);
+    return verify_database(filename, false) ? 0 : 1;
+}
+static_block {
+    register_main_function("verify", test_simple_one_main);
+}
+
+int test_all_main(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    test_all_verifications();
+
+    return 0;
+}
+static_block {
+    register_main_function("verify_all", test_all_main);
+}
+

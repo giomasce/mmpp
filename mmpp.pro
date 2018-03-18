@@ -98,7 +98,6 @@ SOURCES += \
     test/test_env.cpp \
     apps/generalizable_theorems.cpp \
     test/test_parsing.cpp \
-    test/test_verification.cpp \
     test/test_minor.cpp \
     web/step.cpp \
     utils/threadmanager.cpp \
@@ -118,7 +117,8 @@ SOURCES += \
     apps/tstp.cpp \
     provers/wffsat.cpp \
     apps/resolver.cpp \
-    provers/subst.cpp
+    provers/subst.cpp \
+    apps/verify.cpp
 
 HEADERS += \
     pch.h \
@@ -139,7 +139,6 @@ HEADERS += \
     libs/serialize_tuple.h \
     test/test_env.h \
     test/test_parsing.h \
-    test/test_verification.h \
     test/test_minor.h \
     utils/vectormap.h \
     parsing/parser.h \
@@ -176,8 +175,7 @@ HEADERS += \
     provers/subst.h
 
 DISTFILES += \
-    README \
-    tests.txt \
+    README.md \
     resources/tests.txt
 
 !equals(USE_QT, "true") {
