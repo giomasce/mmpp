@@ -117,6 +117,7 @@ private:
     ParsingTree< SymTok, LabTok > parsing_tree;
 
     unsigned current_priority;
+    std::shared_ptr< StepStrategyData > current_data;
     std::list< std::pair< std::shared_ptr< StepStrategy >, std::shared_ptr< Coroutine > > > active_strategies;
     std::shared_ptr< const StepStrategyResult > winning_strategy;
 };

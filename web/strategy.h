@@ -8,6 +8,11 @@
 #include "mm/toolbox.h"
 #include "mm/engine.h"
 
+struct StepStrategyData {
+    Sentence thesis;
+    std::vector< Sentence > hypotheses;
+};
+
 class StepStrategyCallback {
 public:
     virtual bool prove() = 0;
@@ -34,12 +39,11 @@ public:
     virtual void operator()(Yielder &yield) = 0;
 
 protected:
-    StepStrategy(std::weak_ptr< StrategyManager > manager, const Sentence &thesis, const std::vector< Sentence > &hypotheses, const LibraryToolbox &toolbox);
+    StepStrategy(std::weak_ptr< StrategyManager > manager, std::shared_ptr< const StepStrategyData > data, const LibraryToolbox &toolbox);
     void maybe_report_result(std::shared_ptr<StepStrategy> strategy, std::shared_ptr< StepStrategyResult > result);
 
     std::weak_ptr< StrategyManager > manager;
-    Sentence thesis;
-    std::vector< Sentence > hypotheses;
+    std::shared_ptr< const StepStrategyData > data;
     const LibraryToolbox &toolbox;
 };
 
@@ -63,7 +67,7 @@ public:
         SUBSTRATEGY_WFF,
         SUBSTRATEGY_WFFSAT,
     };
-    WffStrategy(std::weak_ptr< StrategyManager > manager, const Sentence &thesis, const std::vector< Sentence > &hypotheses, const LibraryToolbox &toolbox, SubStrategy substrategy);
+    WffStrategy(std::weak_ptr< StrategyManager > manager, std::shared_ptr< const StepStrategyData > data, const LibraryToolbox &toolbox, SubStrategy substrategy);
     void operator()(Yielder &yield);
 private:
     SubStrategy substrategy;
@@ -79,4 +83,4 @@ std::vector< std::shared_ptr< StepStrategy > > create_strategies(Args&&... args)
     };
 }*/
 
-std::vector< std::shared_ptr< StepStrategy > > create_strategies(unsigned priority, std::weak_ptr< StrategyManager > manager, const Sentence &thesis, const std::vector< Sentence > &hypotheses, const LibraryToolbox &toolbox);
+std::vector< std::shared_ptr< StepStrategy > > create_strategies(unsigned priority, std::weak_ptr< StrategyManager > manager, std::shared_ptr< const StepStrategyData > data, const LibraryToolbox &toolbox);

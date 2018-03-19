@@ -7,8 +7,8 @@
 StepStrategy::~StepStrategy() {
 }
 
-StepStrategy::StepStrategy(std::weak_ptr<StrategyManager> manager, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox)
-    : manager(manager), thesis(thesis), hypotheses(hypotheses), toolbox(toolbox) {
+StepStrategy::StepStrategy(std::weak_ptr<StrategyManager> manager, std::shared_ptr<const StepStrategyData> data, const LibraryToolbox &toolbox)
+    : manager(manager), data(data), toolbox(toolbox) {
 }
 
 void StepStrategy::maybe_report_result(std::shared_ptr< StepStrategy > strategy, std::shared_ptr<StepStrategyResult> result) {
@@ -106,10 +106,10 @@ void UnificationStrategy::operator()(Yielder &yield) {
     });
 
     bool can_go = true;
-    if (this->thesis.size() == 0) {
+    if (this->data->thesis.size() == 0) {
         can_go = false;
     }
-    for (const auto &hyp : this->hypotheses) {
+    for (const auto &hyp : this->data->hypotheses) {
         if (hyp.size() == 0) {
             can_go = false;
         }
@@ -121,7 +121,7 @@ void UnificationStrategy::operator()(Yielder &yield) {
 
     yield();
 
-    auto res = this->toolbox.unify_assertion(this->hypotheses, this->thesis, false);
+    auto res = this->toolbox.unify_assertion(this->data->hypotheses, this->data->thesis, false);
     result->success = false;
     for (const auto &match : res) {
         // Check that the substitution map does not violate any antidist constraint
@@ -204,8 +204,8 @@ struct WffStrategyResult : public StepStrategyResult, public enable_create< WffS
     const LibraryToolbox &toolbox;
 };
 
-WffStrategy::WffStrategy(std::weak_ptr<StrategyManager> manager, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox, WffStrategy::SubStrategy substrategy) :
-    StepStrategy(manager, thesis, hypotheses, toolbox), substrategy(substrategy)
+WffStrategy::WffStrategy(std::weak_ptr<StrategyManager> manager, std::shared_ptr<const StepStrategyData> data, const LibraryToolbox &toolbox, WffStrategy::SubStrategy substrategy) :
+    StepStrategy(manager, data, toolbox), substrategy(substrategy)
 {
 }
 
@@ -218,16 +218,16 @@ void WffStrategy::operator()(Yielder &yield)
     });
 
     result->success = false;
-    if (this->thesis.size() == 0) {
+    if (this->data->thesis.size() == 0) {
         return;
     }
-    ParsingTree< SymTok, LabTok > thesis_pt = this->toolbox.parse_sentence(this->thesis.begin()+1, this->thesis.end(), this->toolbox.get_turnstile_alias());
+    ParsingTree< SymTok, LabTok > thesis_pt = this->toolbox.parse_sentence(this->data->thesis.begin()+1, this->data->thesis.end(), this->toolbox.get_turnstile_alias());
     if (thesis_pt.label == LabTok{}) {
         return;
     }
     auto wff = wff_from_pt(thesis_pt, this->toolbox);
     //vector< ParsingTree< SymTok, LabTok > > hyps_pt;
-    for (const auto &hyp : this->hypotheses) {
+    for (const auto &hyp : this->data->hypotheses) {
         if (hyp.size() == 0) {
             return;
         }
@@ -255,18 +255,18 @@ void WffStrategy::operator()(Yielder &yield)
     }
 }
 
-std::vector<std::shared_ptr<StepStrategy> > create_strategies(unsigned priority, std::weak_ptr<StrategyManager> manager, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox)
+std::vector<std::shared_ptr<StepStrategy> > create_strategies(unsigned priority, std::weak_ptr<StrategyManager> manager, std::shared_ptr<const StepStrategyData> data, const LibraryToolbox &toolbox)
 {
     switch (priority) {
     case 0:
         return {
-            //FailingStrategy::create(manager, thesis, hypotheses, toolbox),
-            UnificationStrategy::create(manager, thesis, hypotheses, toolbox),
+            //FailingStrategy::create(manager, data, toolbox),
+            UnificationStrategy::create(manager, data, toolbox),
         };
     case 1:
         return {
-            //WffStrategy::create(manager, thesis, hypotheses, toolbox, WffStrategy::SUBSTRATEGY_WFF),
-            WffStrategy::create(manager, thesis, hypotheses, toolbox, WffStrategy::SUBSTRATEGY_WFFSAT),
+            //WffStrategy::create(manager, data, toolbox, WffStrategy::SUBSTRATEGY_WFF),
+            WffStrategy::create(manager, data, toolbox, WffStrategy::SUBSTRATEGY_WFFSAT),
         };
     default:
         return {};

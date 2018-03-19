@@ -79,6 +79,13 @@ void Step::restart_search()
     }
 
     this->current_priority = 0;
+    this->current_data = std::make_shared< StepStrategyData >();
+    this->current_data->thesis = this->get_sentence();
+    this->current_data->hypotheses = {};
+    for (const auto &child : this->get_children()) {
+        this->current_data->hypotheses.push_back(child.lock()->get_sentence());
+    }
+
     this->active_strategies.clear();
     this->winning_strategy = nullptr;
 
@@ -93,13 +100,8 @@ void Step::launch_strategies()
         return;
     }
 
-    std::vector< Sentence > hyps;
-    for (const auto &child : this->get_children()) {
-        hyps.push_back(child.lock()->get_sentence());
-    }
-
     // Strategies of a certain priority are launched only after all strategies with lower priority have failed
-    auto strategies = create_strategies(this->current_priority, this->weak_from_this(), this->get_sentence(), hyps, workset->get_toolbox());
+    auto strategies = create_strategies(this->current_priority, this->weak_from_this(), this->current_data, workset->get_toolbox());
     for (const auto &strat : strategies) {
         auto coro = std::make_shared< Coroutine >(strat);
         // Add a small timeout the first time, so that the computation is not begun if the step is modified immediately
