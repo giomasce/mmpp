@@ -27,6 +27,7 @@ public:
     std::shared_ptr< Workset > destroy();
 
     void add_coroutine(std::weak_ptr<Coroutine> coro);
+    void add_timed_coroutine(std::weak_ptr<Coroutine> coro, std::chrono::system_clock::duration wait_time);
     void add_to_queue(nlohmann::json data);
     //std::shared_ptr< BackreferenceRegistry< Step, Workset > > get_step_backrefs() const;
     std::shared_ptr< Step > get_step(size_t id);

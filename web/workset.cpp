@@ -225,6 +225,11 @@ void Workset::add_coroutine(std::weak_ptr<Coroutine> coro)
     this->thread_manager->add_coroutine(coro);
 }
 
+void Workset::add_timed_coroutine(std::weak_ptr<Coroutine> coro, std::chrono::system_clock::duration wait_time)
+{
+    this->thread_manager->add_timed_coroutine(coro, wait_time);
+}
+
 void Workset::add_to_queue(nlohmann::json data)
 {
     std::unique_lock< std::mutex > lock(this->queue_mutex);

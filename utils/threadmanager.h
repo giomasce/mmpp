@@ -8,6 +8,7 @@
 #include <vector>
 #include <list>
 #include <atomic>
+#include <queue>
 
 #define BOOST_COROUTINE_NO_DEPRECATION_WARNING
 #define BOOST_COROUTINES_NO_DEPRECATION_WARNING
@@ -77,6 +78,8 @@ std::shared_ptr< Coroutine > make_auto_coroutine(std::shared_ptr< T > body) {
     return coro;
 }
 
+struct CTMComp;
+
 class CoroutineThreadManager {
 public:
     struct CoroutineRuntimeData {
@@ -87,17 +90,23 @@ public:
         std::chrono::steady_clock::duration budget;
     };
 
+    struct CTMComp {
+        bool operator()(const std::pair< std::chrono::system_clock::time_point, CoroutineThreadManager::CoroutineRuntimeData > &x, const std::pair< std::chrono::system_clock::time_point, CoroutineThreadManager::CoroutineRuntimeData > &y) const;
+    };
+
     const std::chrono::steady_clock::duration BUDGET_QUANTUM = std::chrono::milliseconds(100);
 
     CoroutineThreadManager(size_t thread_num);
     ~CoroutineThreadManager();
     void add_coroutine(std::weak_ptr<Coroutine> coro);
+    void add_timed_coroutine(std::weak_ptr<Coroutine> coro, std::chrono::system_clock::duration wait_time);
     void stop();
     void join();
 
 private:
     void thread_fn();
-    void enqueue_coroutine(CoroutineRuntimeData &coro);
+    void timed_fn();
+    void enqueue_coroutine(CoroutineRuntimeData &&coro);
     bool dequeue_coroutine(CoroutineRuntimeData &coro);
 
     std::atomic< bool > running;
@@ -105,4 +114,9 @@ private:
     std::condition_variable can_go;
     std::list< CoroutineRuntimeData > coros;
     std::vector< std::thread > threads;
+
+    std::mutex timed_mutex;
+    std::condition_variable timed_cond;
+    std::priority_queue< std::pair< std::chrono::system_clock::time_point, CoroutineRuntimeData >, std::vector< std::pair< std::chrono::system_clock::time_point, CoroutineRuntimeData > >, CTMComp > timed_coros;
+    std::unique_ptr< std::thread > timed_thread;
 };

@@ -58,6 +58,8 @@ CoroutineThreadManager::CoroutineThreadManager(size_t thread_num) : running(true
         this->threads.emplace_back([this]() { this->thread_fn(); });
         set_thread_name(this->threads.back(), std::string("CTM-") + std::to_string(i));
     }
+    this->timed_thread = std::make_unique< std::thread >([this]() { this->timed_fn(); });
+    set_thread_name(*this->timed_thread, "CTM-timed");
 }
 
 CoroutineThreadManager::~CoroutineThreadManager() {
@@ -67,12 +69,22 @@ CoroutineThreadManager::~CoroutineThreadManager() {
 void CoroutineThreadManager::add_coroutine(std::weak_ptr<Coroutine> coro) {
     CoroutineRuntimeData coro_rd;
     coro_rd.coroutine = coro;
-    this->enqueue_coroutine(coro_rd);
+    this->enqueue_coroutine(std::move(coro_rd));
+}
+
+void CoroutineThreadManager::add_timed_coroutine(std::weak_ptr<Coroutine> coro, std::chrono::system_clock::duration wait_time)
+{
+    CoroutineRuntimeData coro_rd;
+    coro_rd.coroutine = coro;
+    std::unique_lock< std::mutex > lock(this->timed_mutex);
+    this->timed_coros.push(std::make_pair(std::chrono::system_clock::now() + wait_time, coro_rd));
+    this->timed_cond.notify_one();
 }
 
 void CoroutineThreadManager::stop() {
     this->running = false;
     this->can_go.notify_all();
+    this->timed_cond.notify_all();
     this->join();
 }
 
@@ -81,6 +93,9 @@ void CoroutineThreadManager::join() {
         if (t.joinable()) {
             t.join();
         }
+    }
+    if (this->timed_thread->joinable()) {
+        this->timed_thread->join();
     }
 }
 
@@ -104,16 +119,40 @@ void CoroutineThreadManager::thread_fn() {
                 tmp.budget -= running_time;
             }
             if (reenqueue) {
-                this->enqueue_coroutine(tmp);
+                this->enqueue_coroutine(std::move(tmp));
             }
         }
     }
 }
 
-void CoroutineThreadManager::enqueue_coroutine(CoroutineThreadManager::CoroutineRuntimeData &coro) {
+void CoroutineThreadManager::timed_fn()
+{
+    std::unique_lock< std::mutex > lock(this->timed_mutex);
+    while (this->running) {
+        while (this->timed_coros.empty()) {
+            this->timed_cond.wait(lock);
+            if (!this->running) {
+                return;
+            }
+        }
+        auto now = std::chrono::system_clock::now();
+        auto &top = this->timed_coros.top();
+        if (top.first <= now) {
+            auto data = top.second;
+            this->enqueue_coroutine(std::move(data));
+            this->timed_coros.pop();
+        } else {
+            this->timed_cond.wait_until(lock, top.first);
+            if (!this->running) {
+                return;
+            }
+        }
+    }
+}
+
+void CoroutineThreadManager::enqueue_coroutine(CoroutineThreadManager::CoroutineRuntimeData &&coro) {
     std::unique_lock< std::mutex > lock(this->obj_mutex);
-    this->coros.emplace_back();
-    std::swap(coro, this->coros.back());
+    this->coros.push_back(std::move(coro));
     this->can_go.notify_one();
 }
 
@@ -149,4 +188,8 @@ bool Coroutine::execute() {
 }
 
 Yielder::Yielder(boost::coroutines::asymmetric_coroutine< void >::push_type &base_yield) : yield_impl(base_yield) {
+}
+
+bool CoroutineThreadManager::CTMComp::operator()(const std::pair<std::chrono::system_clock::time_point, CoroutineThreadManager::CoroutineRuntimeData> &x, const std::pair<std::chrono::system_clock::time_point, CoroutineThreadManager::CoroutineRuntimeData> &y) const {
+    return x.first > y.first;
 }

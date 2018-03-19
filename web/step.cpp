@@ -93,7 +93,8 @@ void Step::restart_search()
     auto strategies = create_strategies(this->weak_from_this(), this->get_sentence(), hyps, workset->get_toolbox());
     for (const auto &strat : strategies) {
         auto coro = std::make_shared< Coroutine >(strat);
-        workset->add_coroutine(coro);
+        // Add a small timeout, so that the computation is not begun if the step is modified immediately
+        workset->add_timed_coroutine(coro, std::chrono::seconds(1));
         this->active_strategies.push_back(std::make_pair(strat, coro));
     }
     this->maybe_notify_update();
