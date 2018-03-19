@@ -8,7 +8,16 @@
 #include "platform.h"
 #include "jsonize.h"
 
-Workset::Workset(std::weak_ptr<Session> session) : thread_manager(std::make_unique< CoroutineThreadManager >(4)) /*, step_backrefs(BackreferenceRegistry< Step, Workset >::create()) */, session(session)
+static unsigned safe_hardware_concurrency() noexcept {
+    auto system = std::thread::hardware_concurrency();
+    if (system > 0) {
+        return system;
+    } else {
+        return 1;
+    }
+}
+
+Workset::Workset(std::weak_ptr<Session> session) : thread_manager(std::make_unique< CoroutineThreadManager >(safe_hardware_concurrency())) /*, step_backrefs(BackreferenceRegistry< Step, Workset >::create()) */, session(session)
 {
 }
 
