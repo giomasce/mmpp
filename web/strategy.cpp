@@ -255,12 +255,20 @@ void WffStrategy::operator()(Yielder &yield)
     }
 }
 
-std::vector<std::shared_ptr<StepStrategy> > create_strategies(std::weak_ptr<StrategyManager> manager, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox)
+std::vector<std::shared_ptr<StepStrategy> > create_strategies(unsigned priority, std::weak_ptr<StrategyManager> manager, const Sentence &thesis, const std::vector<Sentence> &hypotheses, const LibraryToolbox &toolbox)
 {
-    return {
-        //FailingStrategy::create(manager, thesis, hypotheses, toolbox),
-        UnificationStrategy::create(manager, thesis, hypotheses, toolbox),
-        //WffStrategy::create(manager, thesis, hypotheses, toolbox, WffStrategy::SUBSTRATEGY_WFF),
-        WffStrategy::create(manager, thesis, hypotheses, toolbox, WffStrategy::SUBSTRATEGY_WFFSAT),
-    };
+    switch (priority) {
+    case 0:
+        return {
+            //FailingStrategy::create(manager, thesis, hypotheses, toolbox),
+            UnificationStrategy::create(manager, thesis, hypotheses, toolbox),
+        };
+    case 1:
+        return {
+            //WffStrategy::create(manager, thesis, hypotheses, toolbox, WffStrategy::SUBSTRATEGY_WFF),
+            WffStrategy::create(manager, thesis, hypotheses, toolbox, WffStrategy::SUBSTRATEGY_WFFSAT),
+        };
+    default:
+        return {};
+    }
 }

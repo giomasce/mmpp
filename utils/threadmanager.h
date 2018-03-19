@@ -64,6 +64,10 @@ private:
     boost::coroutines::asymmetric_coroutine< void >::pull_type coro_impl;
 };
 
+/*
+ * An auto coroutine has a shared pointer to itself, so it is not automatically
+ * canceled when the creator drops its shared pointer.
+ */
 template< typename T >
 std::shared_ptr< Coroutine > make_auto_coroutine(std::shared_ptr< T > body) {
     auto coro = std::make_shared< Coroutine >();

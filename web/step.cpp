@@ -74,27 +74,40 @@ void Step::after_new_sentence(const Sentence &old_sent) {
 void Step::restart_search()
 {
     std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
-    auto workset = this->get_workset().lock();
-    if (!workset) {
-        return;
-    }
     if (this->do_not_search) {
         return;
     }
 
+    this->current_priority = 0;
     this->active_strategies.clear();
     this->winning_strategy = nullptr;
+
+    this->launch_strategies();
+}
+
+void Step::launch_strategies()
+{
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
+    auto workset = this->get_workset().lock();
+    if (!workset) {
+        return;
+    }
 
     std::vector< Sentence > hyps;
     for (const auto &child : this->get_children()) {
         hyps.push_back(child.lock()->get_sentence());
     }
 
-    auto strategies = create_strategies(this->weak_from_this(), this->get_sentence(), hyps, workset->get_toolbox());
+    // Strategies of a certain priority are launched only after all strategies with lower priority have failed
+    auto strategies = create_strategies(this->current_priority, this->weak_from_this(), this->get_sentence(), hyps, workset->get_toolbox());
     for (const auto &strat : strategies) {
         auto coro = std::make_shared< Coroutine >(strat);
-        // Add a small timeout, so that the computation is not begun if the step is modified immediately
-        workset->add_timed_coroutine(coro, std::chrono::seconds(1));
+        // Add a small timeout the first time, so that the computation is not begun if the step is modified immediately
+        if (this->current_priority == 0) {
+            workset->add_timed_coroutine(coro, std::chrono::milliseconds(200));
+        } else {
+            workset->add_coroutine(coro);
+        }
         this->active_strategies.push_back(std::make_pair(strat, coro));
     }
     this->maybe_notify_update();
@@ -114,7 +127,8 @@ void Step::report_result(std::shared_ptr<StepStrategy> strategy, std::shared_ptr
     } else {
         this->active_strategies.erase(it);
         if (this->active_strategies.empty()) {
-            this->maybe_notify_update();
+            this->current_priority++;
+            this->launch_strategies();
         }
     }
 }

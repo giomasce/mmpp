@@ -100,6 +100,7 @@ private:
     void after_being_orphaned(size_t child_idx);
     void after_new_sentence(const Sentence &old_sent);
     void restart_search();
+    void launch_strategies();
 
     bool reaches_by_parents(const Step &to);
 
@@ -115,6 +116,7 @@ private:
     Sentence sentence;
     ParsingTree< SymTok, LabTok > parsing_tree;
 
+    unsigned current_priority;
     std::list< std::pair< std::shared_ptr< StepStrategy >, std::shared_ptr< Coroutine > > > active_strategies;
     std::shared_ptr< const StepStrategyResult > winning_strategy;
 };
