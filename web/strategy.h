@@ -11,6 +11,8 @@
 struct StepStrategyData {
     Sentence thesis;
     std::vector< Sentence > hypotheses;
+    ParsingTree< SymTok, LabTok > pt_thesis;
+    std::vector< ParsingTree< SymTok, LabTok > > pt_hypotheses;
 };
 
 class StepStrategyCallback {

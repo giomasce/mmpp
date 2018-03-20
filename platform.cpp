@@ -164,7 +164,7 @@ void set_max_ram(uint64_t bytes) {
     setrlimit(RLIMIT_RSS, &limit);
 }
 
-std::vector< int > signals = { SIGTERM, SIGHUP, SIGUSR1 };
+std::vector< int > signals = { SIGTERM, SIGUSR1 };
 sigset_t create_sigset() {
     sigset_t sigset;
     int res = sigemptyset(&sigset);
@@ -216,10 +216,6 @@ void platform_webmmpp_main_loop(const std::function<void()> &new_session_callbac
         switch (signo) {
         case SIGTERM:
             std::cerr << "SIGTERM received!" << std::endl;
-            running = false;
-            break;
-        case SIGHUP:
-            std::cerr << "SIGHUP received!" << std::endl;
             running = false;
             break;
         case SIGUSR1:

@@ -101,27 +101,21 @@ struct UnificationStrategyResult : public StepStrategyResult, public enable_crea
 void UnificationStrategy::operator()(Yielder &yield) {
     auto result = UnificationStrategyResult::create(this->toolbox);
 
+    result->success = false;
+
     Finally f1([this,result]() {
         this->maybe_report_result(this->shared_from_this(), result);
     });
 
-    bool can_go = true;
-    if (this->data->thesis.size() == 0) {
-        can_go = false;
-    }
-    for (const auto &hyp : this->data->hypotheses) {
-        if (hyp.size() == 0) {
-            can_go = false;
-        }
-    }
-    if (!can_go) {
-        result->success = false;
-        return;
-    }
-
     yield();
 
-    auto res = this->toolbox.unify_assertion(this->data->hypotheses, this->data->thesis, false);
+    auto pt_th = std::make_pair(this->data->thesis[0], this->data->pt_thesis);
+    std::vector< std::pair< SymTok, ParsingTree< SymTok, LabTok > > > pt_hyps;
+    for (size_t i = 0; i < this->data->pt_hypotheses.size(); i++) {
+        pt_hyps.push_back(std::make_pair(this->data->hypotheses[i][0], this->data->pt_hypotheses[i]));
+    }
+
+    auto res = this->toolbox.unify_assertion(pt_hyps, pt_th, false);
     result->success = false;
     for (const auto &match : res) {
         // Check that the substitution map does not violate any antidist constraint
@@ -218,29 +212,11 @@ void WffStrategy::operator()(Yielder &yield)
     });
 
     result->success = false;
-    if (this->data->thesis.size() == 0) {
-        return;
-    }
-    ParsingTree< SymTok, LabTok > thesis_pt = this->toolbox.parse_sentence(this->data->thesis.begin()+1, this->data->thesis.end(), this->toolbox.get_turnstile_alias());
-    if (thesis_pt.label == LabTok{}) {
-        return;
-    }
-    auto wff = wff_from_pt(thesis_pt, this->toolbox);
-    //vector< ParsingTree< SymTok, LabTok > > hyps_pt;
-    for (const auto &hyp : this->data->hypotheses) {
-        if (hyp.size() == 0) {
-            return;
-        }
-        ParsingTree< SymTok, LabTok > hyp_pt = this->toolbox.parse_sentence(hyp.begin()+1, hyp.end(), this->toolbox.get_turnstile_alias());
-        if (hyp_pt.label == LabTok{}) {
-            return;
-        }
-        //hyps_pt.push_back(hyp_pt);
-        wff = Imp::create(wff_from_pt(hyp_pt, this->toolbox), wff);
+    auto wff = wff_from_pt(this->data->pt_thesis, this->toolbox);
+    for (const auto &pt_hyp : this->data->pt_hypotheses) {
+        wff = Imp::create(wff_from_pt(pt_hyp, this->toolbox), wff);
         yield();
     }
-
-    yield();
 
     result->wff = wff;
     switch (this->substrategy) {

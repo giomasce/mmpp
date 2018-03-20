@@ -79,15 +79,26 @@ void Step::restart_search()
     }
 
     this->current_priority = 0;
-    this->current_data = std::make_shared< StepStrategyData >();
-    this->current_data->thesis = this->get_sentence();
-    this->current_data->hypotheses = {};
-    for (const auto &child : this->get_children()) {
-        this->current_data->hypotheses.push_back(child.lock()->get_sentence());
-    }
-
     this->active_strategies.clear();
     this->winning_strategy = nullptr;
+
+    // If any of this step or of its children does not parse, then do not call any strategy
+    this->current_data = std::make_shared< StepStrategyData >();
+    this->current_data->thesis = this->get_sentence();
+    this->current_data->pt_thesis = this->get_parsing_tree();
+    if (this->current_data->pt_thesis.label == LabTok{}) {
+        return;
+    }
+    this->current_data->hypotheses = {};
+    this->current_data->pt_hypotheses = {};
+    for (const auto &child : this->get_children()) {
+        auto strong_child = child.lock();
+        this->current_data->hypotheses.push_back(strong_child->get_sentence());
+        this->current_data->pt_hypotheses.push_back(strong_child->get_parsing_tree());
+        if (this->current_data->pt_hypotheses.back().label == LabTok{}) {
+            return;
+        }
+    }
 
     this->launch_strategies();
 }
@@ -168,16 +179,22 @@ const std::vector<SafeWeakPtr<Step> > &Step::get_children()
     return this->children;
 }
 
-const Sentence &Step::get_sentence()
+const Sentence Step::get_sentence()
 {
     std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     return this->sentence;
 }
 
-const ParsingTree<SymTok, LabTok> &Step::get_parsing_tree()
+const ParsingTree<SymTok, LabTok> Step::get_parsing_tree()
 {
     std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     return this->parsing_tree;
+}
+
+bool Step::get_did_not_parse()
+{
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
+    return this->parsing_tree.label != LabTok{};
 }
 
 std::weak_ptr<Workset> Step::get_workset()
@@ -204,6 +221,7 @@ void Step::set_sentence(const Sentence &sentence)
         }
     } else {
         this->parsing_tree = {};
+        this->parsing_tree.label = {};
     }
     this->clean_listeners();
     this->after_new_sentence(old_sentence);
@@ -571,7 +589,7 @@ bool Step::prove(CreativeCheckpointedProofEngine<Sentence> &engine)
     }
 }
 
-Step::Step(size_t id, std::shared_ptr<Workset> workset, bool do_not_search) : id(id), workset(workset), do_not_search(do_not_search)
+Step::Step(size_t id, std::shared_ptr<Workset> workset, bool do_not_search) : id(id), workset(workset), do_not_search(do_not_search), parsing_tree{}
 {
 #ifdef LOG_STEP_OPS
     std::cerr << "Creating step with id " << id << std::endl;

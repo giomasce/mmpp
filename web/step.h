@@ -64,8 +64,9 @@ public:
     ~Step();
     size_t get_id();
     const std::vector<SafeWeakPtr<Step> > &get_children();
-    const Sentence &get_sentence();
-    const ParsingTree< SymTok, LabTok > &get_parsing_tree();
+    const Sentence get_sentence();
+    const ParsingTree<SymTok, LabTok> get_parsing_tree();
+    bool get_did_not_parse();
     std::weak_ptr<Workset> get_workset();
     void set_sentence(const Sentence &sentence);
     std::shared_ptr<Step> get_parent() const;
