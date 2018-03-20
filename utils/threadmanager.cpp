@@ -55,11 +55,15 @@ static_block {
 
 CoroutineThreadManager::CoroutineThreadManager(size_t thread_num) : running(true) {
     for (size_t i = 0; i < thread_num; i++) {
-        this->threads.emplace_back([this]() { this->thread_fn(); });
-        set_thread_name(this->threads.back(), std::string("CTM-") + std::to_string(i));
+        this->threads.emplace_back([this,i]() {
+            set_thread_name(std::string("CTM-") + std::to_string(i));
+            this->thread_fn();
+        });
     }
-    this->timed_thread = std::make_unique< std::thread >([this]() { this->timed_fn(); });
-    set_thread_name(*this->timed_thread, "CTM-timed");
+    this->timed_thread = std::make_unique< std::thread >([this]() {
+        set_thread_name("CTM-timed");
+        this->timed_fn();
+    });
 }
 
 CoroutineThreadManager::~CoroutineThreadManager() {

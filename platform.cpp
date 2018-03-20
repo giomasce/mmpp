@@ -96,8 +96,8 @@ boost::filesystem::path platform_get_resources_base() {
 }
 
 // Here we depend a lot on implementation details of C++ threads
-void set_thread_name(std::thread &t, const std::string &name) {
-    pthread_t handle = t.native_handle();
+void set_thread_name(const std::string &name) {
+    pthread_t handle = pthread_self();
     pthread_setname_np(handle, name.c_str());
 }
 
@@ -236,11 +236,8 @@ boost::filesystem::path platform_get_resources_base() {
 }
 
 // Here we depend a lot on implementation details of C++ threads
-void set_thread_name(std::thread &t, const std::string &name) {
-    (void) t;
-    (void) name;
-    /* Apparently in macOS pthread_setname_np() can only be used 
-       to change the name of the calling thread. */
+void set_thread_name(const std::string &name) {
+    pthread_setname_np(name.c_str());
 }
 
 void set_current_thread_low_priority() {
@@ -350,8 +347,7 @@ uint64_t platform_get_current_used_ram() {
 }
 
 // It does not seem to be meaningful on Windows machines
-void set_thread_name(std::thread &t, const std::string &name) {
-    (void) t;
+void set_thread_name(const std::string &name) {
     (void) name;
 }
 
