@@ -3,6 +3,7 @@
 #include "provers/wff.h"
 #include "provers/wffblock.h"
 #include "provers/wffsat.h"
+#include "provers/uct.h"
 
 StepStrategy::~StepStrategy() {
 }
@@ -100,7 +101,6 @@ struct UnificationStrategyResult : public StepStrategyResult, public enable_crea
 
 void UnificationStrategy::operator()(Yielder &yield) {
     auto result = UnificationStrategyResult::create(this->toolbox);
-
     result->success = false;
 
     Finally f1([this,result]() {
@@ -206,12 +206,12 @@ WffStrategy::WffStrategy(std::weak_ptr<StrategyManager> manager, std::shared_ptr
 void WffStrategy::operator()(Yielder &yield)
 {
     auto result = WffStrategyResult::create(this->toolbox);
+    result->success = false;
 
     Finally f1([this,result]() {
         this->maybe_report_result(this->shared_from_this(), result);
     });
 
-    result->success = false;
     auto wff = wff_from_pt(this->data->pt_thesis, this->toolbox);
     for (const auto &pt_hyp : this->data->pt_hypotheses) {
         wff = Imp::create(wff_from_pt(pt_hyp, this->toolbox), wff);
@@ -231,6 +231,64 @@ void WffStrategy::operator()(Yielder &yield)
     }
 }
 
+struct UctStrategyResult : public StepStrategyResult, public enable_create< UctStrategyResult > {
+    UctStrategyResult() {}
+
+    bool get_success() const {
+        return this->success;
+    }
+
+    nlohmann::json get_web_json() const {
+        nlohmann::json ret;
+        ret["type"] = "uct";
+        return ret;
+    }
+
+    nlohmann::json get_dump_json() const {
+        nlohmann::json ret;
+        ret["type"] = "uct";
+        return ret;
+    }
+
+    bool prove(CheckpointedProofEngine &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
+        this->prover->set_children_callbacks(vector_map(children.begin(), children.end(),
+                                                        [](auto x) -> std::function< void() > { return [x]() { x->prove(); }; }));
+        this->prover->replay_proof(engine);
+        return true;
+    }
+
+    bool success;
+    std::shared_ptr< UCTProver > prover;
+};
+
+void UctStrategy::operator()(Yielder &yield)
+{
+    auto result = UctStrategyResult::create();
+    result->success = false;
+
+    Finally f1([this,result]() {
+        this->maybe_report_result(this->shared_from_this(), result);
+    });
+
+    auto thesis = pt_to_pt2(this->data->pt_thesis);
+    auto hyps = vector_map(this->data->pt_hypotheses.begin(), this->data->pt_hypotheses.end(),
+                           [](const auto &x) { return pt_to_pt2(x); });
+    result->prover = UCTProver::create(this->toolbox, thesis, hyps);
+
+    yield();
+
+    for (unsigned i = 0; i < 100000; i++) {
+        auto res = result->prover->visit();
+        if (res == PROVED) {
+            result->success = true;
+            return;
+        } else if (res == DEAD) {
+            return;
+        }
+        yield();
+    }
+}
+
 std::vector<std::shared_ptr<StepStrategy> > create_strategies(unsigned priority, std::weak_ptr<StrategyManager> manager, std::shared_ptr<const StepStrategyData> data, const LibraryToolbox &toolbox)
 {
     switch (priority) {
@@ -244,7 +302,11 @@ std::vector<std::shared_ptr<StepStrategy> > create_strategies(unsigned priority,
             //WffStrategy::create(manager, data, toolbox, WffStrategy::SUBSTRATEGY_WFF),
             WffStrategy::create(manager, data, toolbox, WffStrategy::SUBSTRATEGY_WFFSAT),
         };
+    case 2:
+        return {
+            UctStrategy::create(manager, data, toolbox),
+        };
     default:
         return {};
     }
-}
+};

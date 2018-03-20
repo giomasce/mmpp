@@ -266,3 +266,10 @@ typename std::vector< T >::reference enlarge_and_set(std::vector< T > &v, typena
 }
 
 extern std::ostream cnull;
+
+template< typename UnaryOperation, typename InputIt >
+auto vector_map(InputIt from, InputIt to, UnaryOperation op) -> std::vector< decltype(op(*from)) > {
+    std::vector< decltype(op(*from)) > ret;
+    std::transform(from, to, std::back_inserter(ret), op);
+    return ret;
+}

@@ -75,6 +75,13 @@ private:
     SubStrategy substrategy;
 };
 
+class UctStrategy : public StepStrategy, public enable_create< UctStrategy > {
+    using StepStrategy::StepStrategy;
+
+public:
+    void operator()(Yielder &yield);
+};
+
 /*template< typename... Args >
 std::vector< std::shared_ptr< StepStrategy > > create_strategies(Args&&... args)
 {

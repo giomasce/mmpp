@@ -56,7 +56,7 @@ const std::vector<ParsingTree2<SymTok, LabTok> > &UCTProver::get_hypotheses() co
     return this->hypotheses;
 }
 
-LibraryToolbox &UCTProver::get_toolbox() const {
+const LibraryToolbox &UCTProver::get_toolbox() const {
     return this->tb;
 }
 
@@ -69,12 +69,12 @@ const std::set<std::pair<LabTok, LabTok> > &UCTProver::get_antidists() const
     return this->antidists;
 }
 
-void UCTProver::replay_proof(CreativeCheckpointedProofEngine<Sentence> &engine) const
+void UCTProver::replay_proof(CheckpointedProofEngine &engine) const
 {
     this->root->replay_proof(engine);
 }
 
-UCTProver::UCTProver(LibraryToolbox &tb, const ParsingTree2<SymTok, LabTok> &thesis, const std::vector<ParsingTree2<SymTok, LabTok> > &hypotheses) : tb(tb), thesis(thesis), hypotheses(hypotheses), rand(2204) {
+UCTProver::UCTProver(const LibraryToolbox &tb, const ParsingTree2<SymTok, LabTok> &thesis, const std::vector<ParsingTree2<SymTok, LabTok> > &hypotheses) : tb(tb), thesis(thesis), hypotheses(hypotheses), rand(2204) {
 #ifdef LOG_UCT
     //visit_log() << this << ": Constructing UCTProver" << endl;
 #endif
@@ -121,6 +121,16 @@ const std::unordered_map<LabTok, std::vector<LabTok> > &UCTProver::get_root_usef
 const std::unordered_map<LabTok, std::vector<LabTok> > &UCTProver::get_imp_con_useful_asses() const
 {
     return this->imp_con_useful_asses;
+}
+
+void UCTProver::set_children_callbacks(std::vector<std::function<void ()> > &&children_callbacks)
+{
+    this->children_callbacks = std::move(children_callbacks);
+}
+
+std::function<void ()> UCTProver::get_children_callback(size_t idx) const
+{
+    return this->children_callbacks.at(idx);
 }
 
 static std::unordered_map< LabTok, std::vector< LabTok > > filter_assertions(const UCTProver &uct, const std::unordered_map< LabTok, std::vector< LabTok > > &asses) {
@@ -173,6 +183,7 @@ VisitResult SentenceNode::visit()
             visit_log() << "Proved with an hypothesis!" << std::endl;
 #endif
             this->exhausted = true;
+            this->hyp_num = it - hyps.begin();
             return PROVED;
         } else {
 #ifdef LOG_UCT
@@ -267,16 +278,15 @@ const ParsingTree2<SymTok, LabTok> &SentenceNode::get_sentence()
     return this->sentence;
 }
 
-void SentenceNode::replay_proof(CreativeCheckpointedProofEngine<Sentence> &engine) const
+void SentenceNode::replay_proof(CheckpointedProofEngine &engine) const
 {
     assert(this->exhausted);
     assert(this->children.size() <= 1);
     if (this->children.size() == 1) {
         this->children[0]->replay_proof(engine);
     } else {
-        const auto &tb = this->uct.lock()->get_toolbox();
-        auto sent = tb.reconstruct_sentence(pt2_to_pt(this->sentence), tb.get_turnstile());
-        engine.process_new_hypothesis(sent);
+        auto strong_uct = this->uct.lock();
+        strong_uct->get_children_callback(this->hyp_num)();
     }
 }
 
@@ -415,7 +425,7 @@ std::weak_ptr<SentenceNode> StepNode::get_parent() const
     return this->parent;
 }
 
-void StepNode::replay_proof(CreativeCheckpointedProofEngine<Sentence> &engine) const
+void StepNode::replay_proof(CheckpointedProofEngine &engine) const
 {
     assert(this->exhausted);
     const auto &tb = this->uct.lock()->get_toolbox();

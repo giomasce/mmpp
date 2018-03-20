@@ -245,7 +245,6 @@ void set_current_thread_low_priority() {
     int policy;
     sched_param sched;
     pthread_getschedparam(handle, &policy, &sched);
-    // The meaning of these parameters is somewhat complicated; see sched(7)
     policy = SCHED_OTHER;
     sched.sched_priority = 0; //sched_get_priority_min();
 }

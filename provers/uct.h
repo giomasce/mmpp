@@ -29,16 +29,18 @@ class UCTProver : public enable_create< UCTProver > {
 public:
     VisitResult visit();
     const std::vector< ParsingTree2< SymTok, LabTok > > &get_hypotheses() const;
-    LibraryToolbox &get_toolbox() const;
+    const LibraryToolbox &get_toolbox() const;
     std::ranlux48 &get_rand();
     const std::set<std::pair<LabTok, LabTok> > &get_antidists() const;
-    void replay_proof(CreativeCheckpointedProofEngine< Sentence > &engine) const;
+    void replay_proof(CheckpointedProofEngine &engine) const;
     bool is_assertion_useful(const Assertion &ass) const;
     const std::unordered_map< LabTok, std::vector< LabTok > > &get_root_useful_asses() const;
     const std::unordered_map< LabTok, std::vector< LabTok > > &get_imp_con_useful_asses() const;
+    void set_children_callbacks(std::vector< std::function< void() > > &&children_callbacks);
+    std::function< void() > get_children_callback(size_t idx) const;
 
 protected:
-    UCTProver(LibraryToolbox &tb, const ParsingTree2< SymTok, LabTok > &thesis, const std::vector< ParsingTree2< SymTok, LabTok > > &hypotheses);
+    UCTProver(const LibraryToolbox &tb, const ParsingTree2< SymTok, LabTok > &thesis, const std::vector< ParsingTree2< SymTok, LabTok > > &hypotheses);
     ~UCTProver();
     void init();
 
@@ -47,12 +49,13 @@ private:
 
     std::shared_ptr< SentenceNode > root;
     std::set< std::pair< LabTok, LabTok > > antidists;
-    LibraryToolbox &tb;
+    const LibraryToolbox &tb;
     ParsingTree2< SymTok, LabTok > thesis;
     std::vector< ParsingTree2< SymTok, LabTok > > hypotheses;
     std::unordered_map< LabTok, std::vector< LabTok > > root_useful_asses;
     std::unordered_map< LabTok, std::vector< LabTok > > imp_con_useful_asses;
     std::ranlux48 rand;
+    std::vector< std::function< void() > > children_callbacks;
 };
 
 class SentenceNode : public enable_create< SentenceNode > {
@@ -62,7 +65,7 @@ public:
     uint32_t get_visit_num();
     std::weak_ptr< StepNode > get_parent();
     const ParsingTree2< SymTok, LabTok > &get_sentence();
-    void replay_proof(CreativeCheckpointedProofEngine<Sentence> &engine) const;
+    void replay_proof(CheckpointedProofEngine &engine) const;
 
 protected:
     SentenceNode(std::weak_ptr< UCTProver > uct, std::weak_ptr< StepNode > parent, const ParsingTree2< SymTok, LabTok > &sentence);
@@ -78,6 +81,7 @@ private:
     ParsingTree2< SymTok, LabTok > sentence;
     uint32_t visit_num = 0;
     bool exhausted = false;
+    size_t hyp_num = 0;
     float value = 0.0;
     float total_children_value = 0.0;
     boost::range::joined_range< const std::vector< LabTok >, const std::vector< LabTok > > ass_range;
@@ -90,7 +94,7 @@ public:
     float get_value() const;
     uint32_t get_visit_num() const;
     std::weak_ptr< SentenceNode > get_parent() const;
-    void replay_proof(CreativeCheckpointedProofEngine< Sentence > &engine) const;
+    void replay_proof(CheckpointedProofEngine &engine) const;
 
 protected:
     StepNode(std::weak_ptr< UCTProver > uct, std::weak_ptr< SentenceNode > parent, LabTok label, const SubstMap2< SymTok, LabTok > &const_subst_map);

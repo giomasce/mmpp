@@ -274,7 +274,7 @@ const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_imp_
 }
 
 // FIXME Deduplicate with refresh_parsing_tree()
-std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok> > LibraryToolbox::refresh_assertion(const Assertion &ass)
+std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok> > LibraryToolbox::refresh_assertion(const Assertion &ass) const
 {
     // Collect all variables
     std::set< LabTok > var_labs;
@@ -299,7 +299,7 @@ std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok>
     return std::make_pair(hyps_new_pts, thesis_new_pt);
 }
 
-std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTok> > LibraryToolbox::refresh_assertion2(const Assertion &ass)
+std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTok> > LibraryToolbox::refresh_assertion2(const Assertion &ass) const
 {
     // Collect all variables
     std::set< LabTok > var_labs;
@@ -324,7 +324,7 @@ std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTo
     return std::make_pair(hyps_new_pts, thesis_new_pt);
 }
 
-ParsingTree<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree(const ParsingTree<SymTok, LabTok> &pt)
+ParsingTree<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree(const ParsingTree<SymTok, LabTok> &pt) const
 {
     // Collect all variables
     std::set< LabTok > var_labs;
@@ -338,7 +338,7 @@ ParsingTree<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree(const ParsingTr
     return ::substitute(pt, is_var, subst);
 }
 
-ParsingTree2<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree2(const ParsingTree2<SymTok, LabTok> &pt)
+ParsingTree2<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree2(const ParsingTree2<SymTok, LabTok> &pt) const
 {
     // Collect all variables
     std::set< LabTok > var_labs;
@@ -352,7 +352,7 @@ ParsingTree2<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree2(const Parsing
     return ::substitute2_simple(pt, is_var, subst);
 }
 
-SubstMap<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map(const std::set<LabTok> &vars)
+SubstMap<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map(const std::set<LabTok> &vars) const
 {
     SubstMap< SymTok, LabTok > subst;
     for (const auto var : vars) {
@@ -368,7 +368,7 @@ SubstMap<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map(const std::s
     return subst;
 }
 
-SimpleSubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map2(const std::set<LabTok> &vars)
+SimpleSubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map2(const std::set<LabTok> &vars) const
 {
     SimpleSubstMap2< SymTok, LabTok > subst;
     for (const auto var : vars) {
@@ -380,7 +380,7 @@ SimpleSubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map2(cons
     return subst;
 }
 
-SubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_full_subst_map2(const std::set<LabTok> &vars)
+SubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_full_subst_map2(const std::set<LabTok> &vars) const
 {
     return subst_to_subst2(this->build_refreshing_subst_map(vars));
 }

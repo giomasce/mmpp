@@ -441,13 +441,13 @@ private:
 
     // Replace variables with fresh new ones
 public:
-    std::pair< std::vector< ParsingTree< SymTok, LabTok > >, ParsingTree< SymTok, LabTok > > refresh_assertion(const Assertion &ass);
-    std::pair< std::vector< ParsingTree2< SymTok, LabTok > >, ParsingTree2< SymTok, LabTok > > refresh_assertion2(const Assertion &ass);
-    ParsingTree< SymTok, LabTok > refresh_parsing_tree(const ParsingTree< SymTok, LabTok > &pt);
-    ParsingTree2<SymTok, LabTok> refresh_parsing_tree2(const ParsingTree2< SymTok, LabTok > &pt);
-    SubstMap< SymTok, LabTok > build_refreshing_subst_map(const std::set< LabTok > &vars);
-    SimpleSubstMap2< SymTok, LabTok > build_refreshing_subst_map2(const std::set< LabTok > &vars);
-    SubstMap2< SymTok, LabTok > build_refreshing_full_subst_map2(const std::set< LabTok > &vars);
+    std::pair< std::vector< ParsingTree< SymTok, LabTok > >, ParsingTree< SymTok, LabTok > > refresh_assertion(const Assertion &ass) const;
+    std::pair< std::vector< ParsingTree2< SymTok, LabTok > >, ParsingTree2< SymTok, LabTok > > refresh_assertion2(const Assertion &ass) const;
+    ParsingTree< SymTok, LabTok > refresh_parsing_tree(const ParsingTree< SymTok, LabTok > &pt) const;
+    ParsingTree2<SymTok, LabTok> refresh_parsing_tree2(const ParsingTree2< SymTok, LabTok > &pt) const;
+    SubstMap< SymTok, LabTok > build_refreshing_subst_map(const std::set< LabTok > &vars) const;
+    SimpleSubstMap2< SymTok, LabTok > build_refreshing_subst_map2(const std::set< LabTok > &vars) const;
+    SubstMap2< SymTok, LabTok > build_refreshing_full_subst_map2(const std::set< LabTok > &vars) const;
 
     // Misc
 public:
