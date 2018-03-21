@@ -87,7 +87,11 @@ void platform_webmmpp_main_loop(const std::function<void()> &new_session_callbac
 }
 
 bool platform_open_browser(std::string browser_url) {
-    system(("setsid xdg-open " + browser_url+ "&").c_str());
+    const char *browser = std::getenv("BROWSER");
+    if (!browser) {
+        browser = "xdg-open";
+    }
+    system((std::string("setsid ") + browser + " " + browser_url + "&").c_str());
     return true;
 }
 
