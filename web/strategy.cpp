@@ -241,6 +241,7 @@ struct UctStrategyResult : public StepStrategyResult, public enable_create< UctS
     nlohmann::json get_web_json() const {
         nlohmann::json ret;
         ret["type"] = "uct";
+        ret["visits_num"] = this->visits_num;
         return ret;
     }
 
@@ -259,6 +260,7 @@ struct UctStrategyResult : public StepStrategyResult, public enable_create< UctS
 
     bool success;
     std::shared_ptr< UCTProver > prover;
+    unsigned visits_num;
 };
 
 void UctStrategy::operator()(Yielder &yield)
@@ -274,11 +276,13 @@ void UctStrategy::operator()(Yielder &yield)
     auto hyps = vector_map(this->data->pt_hypotheses.begin(), this->data->pt_hypotheses.end(),
                            [](const auto &x) { return pt_to_pt2(x); });
     result->prover = UCTProver::create(this->toolbox, thesis, hyps);
+    result->visits_num = 0;
 
     yield();
 
     for (unsigned i = 0; i < 100000; i++) {
         auto res = result->prover->visit();
+        result->visits_num++;
         if (res == PROVED) {
             result->success = true;
             return;
