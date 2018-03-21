@@ -87,6 +87,7 @@ void Step::restart_search()
     this->current_data->thesis = this->get_sentence();
     this->current_data->pt_thesis = this->get_parsing_tree();
     if (this->current_data->pt_thesis.label == LabTok{}) {
+        this->maybe_notify_update();
         return;
     }
     this->current_data->hypotheses = {};
@@ -96,9 +97,13 @@ void Step::restart_search()
         this->current_data->hypotheses.push_back(strong_child->get_sentence());
         this->current_data->pt_hypotheses.push_back(strong_child->get_parsing_tree());
         if (this->current_data->pt_hypotheses.back().label == LabTok{}) {
+            this->maybe_notify_update();
             return;
         }
     }
+#ifdef LOG_STEP_OPS
+    std::cerr << "Restarting search for step with id " << this->id << std::endl;
+#endif
 
     this->launch_strategies();
 }
@@ -110,6 +115,9 @@ void Step::launch_strategies()
     if (!workset) {
         return;
     }
+#ifdef LOG_STEP_OPS
+    std::cerr << "Launching strategies with priority " << this->current_priority << " for step with id " << this->id << std::endl;
+#endif
 
     // Strategies of a certain priority are launched only after all strategies with lower priority have failed
     auto strategies = create_strategies(this->current_priority, this->weak_from_this(), this->current_data, workset->get_toolbox());
@@ -134,10 +142,16 @@ void Step::report_result(std::shared_ptr<StepStrategy> strategy, std::shared_ptr
         return;
     }
     if (result->get_success()) {
+#ifdef LOG_STEP_OPS
+    std::cerr << "Strategy reported success for step with id " << this->id << std::endl;
+#endif
         this->active_strategies.clear();
         this->winning_strategy = result;
         this->maybe_notify_update();
     } else {
+#ifdef LOG_STEP_OPS
+    std::cerr << "Strategy reported failure for step with id " << this->id << std::endl;
+#endif
         this->active_strategies.erase(it);
         if (this->active_strategies.empty()) {
             this->current_priority++;
@@ -207,6 +221,9 @@ std::weak_ptr<Workset> Step::get_workset()
 void Step::set_sentence(const Sentence &sentence)
 {
     std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
+#ifdef LOG_STEP_OPS
+    std::cerr << "Setting sentence to step with id " << this->id << std::endl;
+#endif
     auto strong_this = this->shared_from_this();
     assert(strong_this != nullptr);
     Sentence old_sentence = this->sentence;
