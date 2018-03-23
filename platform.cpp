@@ -13,7 +13,7 @@
 #include <sys/syscall.h>
 #include <iostream>
 
-void set_max_ram(uint64_t bytes) {
+void platform_set_max_ram(uint64_t bytes) {
     struct rlimit64 limit;
     limit.rlim_cur = bytes;
     limit.rlim_max = bytes;
@@ -100,12 +100,12 @@ boost::filesystem::path platform_get_resources_base() {
 }
 
 // Here we depend a lot on implementation details of C++ threads
-void set_thread_name(const std::string &name) {
+void platform_set_current_thread_name(const std::string &name) {
     pthread_t handle = pthread_self();
     pthread_setname_np(handle, name.c_str());
 }
 
-void set_current_thread_low_priority() {
+void platform_set_current_thread_low_priority() {
     pthread_t handle = pthread_self();
     int policy;
     sched_param sched;
@@ -161,7 +161,7 @@ uint64_t platform_get_current_used_ram( )
 #include <mach/mach.h>
 #include <iostream>
 
-void set_max_ram(uint64_t bytes) {
+void platform_set_max_ram(uint64_t bytes) {
     struct rlimit limit;
     limit.rlim_cur = bytes;
     limit.rlim_max = bytes;
@@ -240,11 +240,11 @@ boost::filesystem::path platform_get_resources_base() {
 }
 
 // Here we depend a lot on implementation details of C++ threads
-void set_thread_name(const std::string &name) {
+void platform_set_current_thread_name(const std::string &name) {
     pthread_setname_np(name.c_str());
 }
 
-void set_current_thread_low_priority() {
+void platform_set_current_thread_low_priority() {
     pthread_t handle = pthread_self();
     int policy;
     sched_param sched;
@@ -289,7 +289,7 @@ uint64_t platform_get_current_used_ram( )
 #include <windows.h>
 #include <psapi.h>
 
-void set_max_ram(uint64_t bytes){
+void platform_set_max_ram(uint64_t bytes){
     auto job_handle = CreateJobObjectA(nullptr, nullptr);
     AssignProcessToJobObject(job_handle, GetCurrentProcess());
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION ext_limit_info;
@@ -356,11 +356,11 @@ uint64_t platform_get_current_used_ram() {
 }
 
 // It does not seem to be meaningful on Windows machines
-void set_thread_name(const std::string &name) {
+void platform_set_current_thread_name(const std::string &name) {
     (void) name;
 }
 
-void set_current_thread_low_priority() {
+void platform_set_current_thread_low_priority() {
     SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
 }
 

@@ -56,12 +56,12 @@ static_block {
 CoroutineThreadManager::CoroutineThreadManager(size_t thread_num) : running(true), running_coros(0) {
     for (size_t i = 0; i < thread_num; i++) {
         this->threads.emplace_back([this,i]() {
-            set_thread_name(std::string("CTM-") + std::to_string(i));
+            platform_set_current_thread_name(std::string("CTM-") + std::to_string(i));
             this->thread_fn();
         });
     }
     this->timed_thread = std::make_unique< std::thread >([this]() {
-        set_thread_name("CTM-timed");
+        platform_set_current_thread_name("CTM-timed");
         this->timed_fn();
     });
 }
@@ -111,7 +111,7 @@ std::tuple<unsigned, size_t, size_t> CoroutineThreadManager::get_stats()
 }
 
 void CoroutineThreadManager::thread_fn() {
-    set_current_thread_low_priority();
+    platform_set_current_thread_low_priority();
     while (this->running) {
         CoroutineRuntimeData tmp;
         if (dequeue_coroutine(tmp)) {

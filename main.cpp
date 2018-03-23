@@ -55,7 +55,7 @@ static_block {
 }
 
 int main(int argc, char *argv[]) {
-    set_max_ram(4 * 1024 * 1024 * 1024LL);
+    platform_set_max_ram(4 * 1024 * 1024 * 1024LL);
     boost::filesystem::path exec_path(argv[0]);
     std::string bname = exec_path.filename().string();
     std::function< int(int, char*[]) > main_func;
