@@ -57,7 +57,16 @@ private:
         return boost::coroutines::asymmetric_coroutine< void >::pull_type([body](boost::coroutines::asymmetric_coroutine< void >::push_type &yield_impl) mutable {
             Yielder yield(yield_impl);
             yield();
-            (*body)(yield);
+            try {
+                (*body)(yield);
+            } catch(const boost::coroutines::detail::forced_unwind&) {
+                // Rethow internal coroutine exceptions, as per their specifications
+                throw;
+            } catch (const std::exception &e) {
+                std::cerr << "Coroutine threw exception " << e.what() << std::endl;
+            } catch (...) {
+                std::cerr << "Coroutine threw unknown exception" << std::endl;
+            }
         });
     }
 
@@ -73,7 +82,7 @@ std::shared_ptr< Coroutine > make_auto_coroutine(std::shared_ptr< T > body) {
     auto coro = std::make_shared< Coroutine >();
     auto new_body = [coro,body](Yielder &yield) mutable {
         Finally f([&coro]() {
-           coro = NULL;
+           coro = nullptr;
         });
         (*body)(yield);
     };

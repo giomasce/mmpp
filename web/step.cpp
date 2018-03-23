@@ -79,7 +79,14 @@ void Step::restart_search()
     }
 
     this->current_priority = 0;
-    this->active_strategies.clear();
+    /* We cannot just use active_strategies.clear(), because this could trigger coroutine destructors,
+     * then would re-enter report_result() and reach here again. So we just swap its content with
+     * a local list, which is then cleared. This way all code re-entering report_result() will
+     * find an empty active_strategies and exit immediately.
+     */
+    std::list< std::pair< std::shared_ptr< StepStrategy >, std::shared_ptr< Coroutine > > > old_strategies;
+    this->active_strategies.swap(old_strategies);
+    old_strategies.clear();
     this->winning_strategy = nullptr;
 
     // If any of this step or of its children does not parse, then do not call any strategy

@@ -280,7 +280,7 @@ void UctStrategy::operator()(Yielder &yield)
 
     yield();
 
-    for (unsigned i = 0; i < 100000; i++) {
+    for (unsigned i = 0; i < 10000; i++) {
         auto res = result->prover->visit();
         result->visits_num++;
         if (res == PROVED) {
