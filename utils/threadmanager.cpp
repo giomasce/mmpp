@@ -176,12 +176,6 @@ bool CoroutineThreadManager::dequeue_coroutine(CoroutineThreadManager::Coroutine
     return true;
 }
 
-/*Coroutine::Coroutine(Coroutine &&other) : coro_impl(std::move(other.coro_impl)) {}
-
-void Coroutine::operator=(Coroutine &&other) {
-    this->coro_impl.swap(other.coro_impl);
-}*/
-
 bool Coroutine::execute() {
     if (this->coro_impl) {
         this->coro_impl();

@@ -30,12 +30,8 @@ private:
 class Coroutine {
 public:
     Coroutine() : coro_impl() {}
-    //template< typename T >
-    //Coroutine(T &&body) : coro_impl(make_coroutine(std::move(body))) {}
     template< typename T >
     Coroutine(std::shared_ptr< T > body) : coro_impl(make_coroutine(body)) {}
-    //Coroutine(Coroutine &&other);
-    //void operator=(Coroutine &&other);
     bool execute();
     template< typename T >
     void set_body(std::shared_ptr< T > body) {
@@ -43,14 +39,6 @@ public:
     }
 
 private:
-    /*template< typename T >
-    static boost::coroutines::asymmetric_coroutine< void >::pull_type make_coroutine(T &&body) {
-        return boost::coroutines::asymmetric_coroutine< void >::pull_type([body{std::move(body)}](boost::coroutines::asymmetric_coroutine< void >::push_type &yield_impl) mutable {
-            Yield yield(yield_impl);
-            yield();
-            body(yield);
-        });
-    }*/
 
     template< typename T >
     static boost::coroutines::asymmetric_coroutine< void >::pull_type make_coroutine(std::shared_ptr< T > body) {
