@@ -629,7 +629,7 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
             perm.push_back(i);
         }
         do {
-            UnilateralUnificator< SymTok, LabTok > unif2 = unif;
+            auto unif2 = unif;
             bool res = true;
             for (size_t i = 0; i < pt_hyps.size(); i++) {
                 res = (pt_hyps[i].first == self->get_sentence(ass.get_ess_hyps()[perm[i]])[0]);
