@@ -211,6 +211,11 @@ command:
 
     tsc -p resources/static/ts
 
+If you are stuck with an old version of Internet Explorer, you might
+be unable to see anything in `webmmpp`, because on insufficient
+JavaScript compatibility. In that case it is advisable to install a
+more modern browser, like Firefox or Chrome.
+
 # Preparing theory data
 
 For doing nearly anything with `mmpp` you will need a `set.mm` theory
