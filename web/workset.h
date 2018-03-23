@@ -42,6 +42,7 @@ protected:
 
 private:
     std::shared_ptr< Step > create_step(bool do_no_search);
+    nlohmann::json get_stats();
 
     std::unique_ptr< ExtendedLibrary > library;
     std::unique_ptr< LibraryToolbox > toolbox;

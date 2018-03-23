@@ -59,6 +59,7 @@ export class Workset {
   styles : Map< RenderingStyles, Renderer >;
   root_step : Step;
   receiving_events : boolean = false;
+  receiving_stats : boolean = false;
   event_listeners : WorksetEventListener[];
   addendum;
 
@@ -118,13 +119,41 @@ export class Workset {
   }
 
   start_receiving_events() : void {
-    let self = this;
     this.receiving_events = true;
     this.receive_event();
   }
 
   stop_receiving_events() : void {
     this.receiving_events = false;
+  }
+
+  process_stats(stats : object) : void {
+    $(`#workset_stats`).html("Used RAM: " + stats["current_used_ram"] + "; peak RAM: " + stats["peak_used_ram"] +
+      "; processing queue: " + stats["running_coros"] + "/" + stats["queued_coros"] + "/" + stats["queued_timed_coros"]);
+  }
+
+  receive_stats() : void {
+    let self = this;
+    this.do_api_request(`get_stats`, {}).then(function (stats : object) : void {
+      self.process_stats(stats);
+    }).catch(function (reason) : void {
+      console.log("receive_stats() failed because of " + reason);
+    }).then(function () : void {
+      setTimeout(function () : void {
+        if (self.receiving_stats) {
+          self.receive_stats();
+        }
+      }, 1000);
+    });
+  }
+
+  start_receiving_stats() : void {
+    this.receiving_stats = true;
+    this.receive_stats();
+  }
+
+  stop_receiving_stats() : void {
+    this.receiving_stats = false;
   }
 
   create_step(parent : Step, idx : number) : Promise<Step> {

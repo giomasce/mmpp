@@ -29,6 +29,18 @@ std::shared_ptr<Step> Workset::create_step(bool do_no_search)
     return new_step;
 }
 
+nlohmann::json Workset::get_stats()
+{
+    nlohmann::json ret = nlohmann::json::object();
+    ret["current_used_ram"] = size_to_string(platform_get_current_used_ram());
+    ret["peak_used_ram"] = size_to_string(platform_get_peak_used_ram());
+    auto ctm_stats = this->thread_manager->get_stats();
+    ret["running_coros"] = std::get<0>(ctm_stats);
+    ret["queued_coros"] = std::get<1>(ctm_stats);
+    ret["queued_timed_coros"] = std::get<2>(ctm_stats);
+    return ret;
+}
+
 template< typename TokType >
 std::vector< std::string > map_to_vect(const std::unordered_map< TokType, std::string > &m) {
     std::vector< std::string > ret;
@@ -50,9 +62,19 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
     std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     assert_or_throw< SendError >(path_begin != path_end, 404);
     if (*path_begin == "load") {
+        path_begin++;
+        assert_or_throw< SendError >(path_begin == path_end, 404);
         this->load_library(platform_get_resources_base() / "set.mm", platform_get_resources_base() / "set.mm.cache", "|-");
         nlohmann::json ret = { { "status", "ok" } };
         return ret;
+    } else if (*path_begin == "get_stats") {
+        path_begin++;
+        assert_or_throw< SendError >(path_begin == path_end, 404);
+        assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+        throw WaitForPost([this] (const auto &post_data) {
+            (void) post_data;
+            return this->get_stats();
+        });
     } else if (*path_begin == "get_context") {
         path_begin++;
         assert_or_throw< SendError >(path_begin == path_end, 404);

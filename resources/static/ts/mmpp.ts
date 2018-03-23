@@ -38,12 +38,14 @@ function workset_loaded(new_workset : Workset) {
   reload_workset_list();
   if (current_workset !== null) {
     current_workset.stop_receiving_events();
+    current_workset.stop_receiving_stats();
   }
   current_workset = new_workset;
   current_renderer = current_workset.get_default_renderer();
   $("#workset").html(Mustache.render(WORKSET_TEMPL, {}));
   update_workset_globals();
   current_workset.start_receiving_events();
+  current_workset.start_receiving_stats();
   load_proof_editor();
 }
 
@@ -223,6 +225,7 @@ const WORKSET_LIST_TEMPL = `
 
 const WORKSET_TEMPL = `
   <div id="workset_status"></div>
+  <div id="workset_stats"></div>
   <div id="commands">
     <button onclick="mmpp.ui_load_data()">Load database</button>
     <button onclick="alert('Does not work for the moment...');">Destroy workset</button>

@@ -103,17 +103,19 @@ public:
     void add_timed_coroutine(std::weak_ptr<Coroutine> coro, std::chrono::system_clock::duration wait_time);
     void stop();
     void join();
+    std::tuple<unsigned, size_t, size_t> get_stats();
 
 private:
     void thread_fn();
     void timed_fn();
-    void enqueue_coroutine(CoroutineRuntimeData &&coro);
+    void enqueue_coroutine(CoroutineRuntimeData &&coro, bool reenqueueing);
     bool dequeue_coroutine(CoroutineRuntimeData &coro);
 
     std::atomic< bool > running;
     std::mutex obj_mutex;
     std::condition_variable can_go;
     std::list< CoroutineRuntimeData > coros;
+    std::atomic< unsigned > running_coros;
     std::vector< std::thread > threads;
 
     std::mutex timed_mutex;

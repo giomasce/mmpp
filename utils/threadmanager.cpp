@@ -53,7 +53,7 @@ static_block {
     register_main_function("thread_test", thread_test_main);
 }
 
-CoroutineThreadManager::CoroutineThreadManager(size_t thread_num) : running(true) {
+CoroutineThreadManager::CoroutineThreadManager(size_t thread_num) : running(true), running_coros(0) {
     for (size_t i = 0; i < thread_num; i++) {
         this->threads.emplace_back([this,i]() {
             set_thread_name(std::string("CTM-") + std::to_string(i));
@@ -73,7 +73,7 @@ CoroutineThreadManager::~CoroutineThreadManager() {
 void CoroutineThreadManager::add_coroutine(std::weak_ptr<Coroutine> coro) {
     CoroutineRuntimeData coro_rd;
     coro_rd.coroutine = coro;
-    this->enqueue_coroutine(std::move(coro_rd));
+    this->enqueue_coroutine(std::move(coro_rd), false);
 }
 
 void CoroutineThreadManager::add_timed_coroutine(std::weak_ptr<Coroutine> coro, std::chrono::system_clock::duration wait_time)
@@ -103,6 +103,13 @@ void CoroutineThreadManager::join() {
     }
 }
 
+std::tuple<unsigned, size_t, size_t> CoroutineThreadManager::get_stats()
+{
+    std::unique_lock< std::mutex > lock1(this->timed_mutex);
+    std::unique_lock< std::mutex > lock2(this->obj_mutex);
+    return std::tuple<unsigned, size_t, size_t>(this->running_coros, this->coros.size(), this->timed_coros.size());
+}
+
 void CoroutineThreadManager::thread_fn() {
     set_current_thread_low_priority();
     while (this->running) {
@@ -110,20 +117,23 @@ void CoroutineThreadManager::thread_fn() {
         if (dequeue_coroutine(tmp)) {
             bool reenqueue = true;
             auto strong_coro = tmp.coroutine.lock();
-            if (strong_coro == nullptr) {
-                continue;
-            }
-            tmp.budget += BUDGET_QUANTUM;
-            while (tmp.budget > std::chrono::seconds(0)) {
-                auto start_time = std::chrono::steady_clock::now();
-                reenqueue = strong_coro->execute();
-                auto stop_time = std::chrono::steady_clock::now();
-                auto running_time = stop_time - start_time;
-                tmp.running_time += running_time;
-                tmp.budget -= running_time;
+            if (strong_coro != nullptr) {
+                tmp.budget += BUDGET_QUANTUM;
+                while (tmp.budget > std::chrono::seconds(0)) {
+                    auto start_time = std::chrono::steady_clock::now();
+                    reenqueue = strong_coro->execute();
+                    auto stop_time = std::chrono::steady_clock::now();
+                    auto running_time = stop_time - start_time;
+                    tmp.running_time += running_time;
+                    tmp.budget -= running_time;
+                }
+            } else {
+                reenqueue = false;
             }
             if (reenqueue) {
-                this->enqueue_coroutine(std::move(tmp));
+                this->enqueue_coroutine(std::move(tmp), true);
+            } else {
+                this->running_coros--;
             }
         }
     }
@@ -143,7 +153,7 @@ void CoroutineThreadManager::timed_fn()
         auto &top = this->timed_coros.top();
         if (top.first <= now) {
             auto data = top.second;
-            this->enqueue_coroutine(std::move(data));
+            this->enqueue_coroutine(std::move(data), false);
             this->timed_coros.pop();
         } else {
             this->timed_cond.wait_until(lock, top.first);
@@ -154,9 +164,12 @@ void CoroutineThreadManager::timed_fn()
     }
 }
 
-void CoroutineThreadManager::enqueue_coroutine(CoroutineThreadManager::CoroutineRuntimeData &&coro) {
+void CoroutineThreadManager::enqueue_coroutine(CoroutineThreadManager::CoroutineRuntimeData &&coro, bool reenqueueing) {
     std::unique_lock< std::mutex > lock(this->obj_mutex);
     this->coros.push_back(std::move(coro));
+    if (reenqueueing) {
+        this->running_coros--;
+    }
     this->can_go.notify_one();
 }
 
@@ -173,6 +186,7 @@ bool CoroutineThreadManager::dequeue_coroutine(CoroutineThreadManager::Coroutine
     }
     std::swap(coro, this->coros.front());
     this->coros.pop_front();
+    this->running_coros++;
     return true;
 }
 
