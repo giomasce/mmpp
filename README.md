@@ -412,7 +412,7 @@ proof, and "failed" if all of them have failed.
 
 ## Available strategies
 
-There are currently two available strategies:
+There are currently three available strategies:
 
  * `Unif`: This is the usual simple unification step, the basis of the
    Metamath language. The label will indicate the label of the user
@@ -428,6 +428,16 @@ There are currently two available strategies:
    think too much about those that are usually considered technical
    details, enabling them to spend their mental resources on deeper
    thoughts.
+
+ * `Uct`: This strategy tries to prove a step by repeatedly visiting
+   and expanding a partial proof tree, in a manner similar to that
+   described by Daniel Whalen in
+   [arXiv:1608.02644](https://arxiv.org/abs/1608.02644). However, the
+   implementation is very incomplete at this point and there is no
+   machine learning, so do not expect much from it; still, it might be
+   able to save typing a couple of easy steps every now and then. The
+   number appearing in the label of a proved step is the number of
+   visits there it took to build a proof.
 
 Internally there are two different algorithms implementing the `Wff`
 strategy: in any case, the formula to be proved is broken on its atoms
