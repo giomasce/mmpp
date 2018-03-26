@@ -4,10 +4,13 @@
 
 #include <boost/format.hpp>
 #include <boost/functional/hash.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "utils/utils.h"
 #include "parsing/lr.h"
 #include "parsing/earley.h"
+#include "mm/setmm.h"
+#include "parsing/unif.h"
 
 const std::string ID_LETTERS = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890_$'.";
 const std::string SPACE_LETTERS = " \t\n\r";
@@ -266,4 +269,91 @@ int parse_tstp_main(int argc, char *argv[]) {
 }
 static_block {
     register_main_function("parse_tstp", parse_tstp_main);
+}
+
+bool recognize(const ParsingTree< SymTok, LabTok > &pt, const std::string &model, const LibraryToolbox &tb, SubstMap< SymTok, LabTok > &subst) {
+    UnilateralUnificator< SymTok, LabTok > unif(tb.get_standard_is_var());
+    auto model_pt = tb.parse_sentence(tb.read_sentence(model));
+    assert(model_pt.label != LabTok{});
+    unif.add_parsing_trees(model_pt, pt);
+    std::set< LabTok > model_vars;
+    collect_variables(model_pt, tb.get_standard_is_var(), model_vars);
+    bool ret;
+    std::tie(ret, subst) = unif.unify();
+    if (ret) {
+        for (const auto var : model_vars) {
+            ParsingTree< SymTok, LabTok > pt_var;
+            pt_var.label = var;
+            pt_var.type = tb.get_var_lab_to_type_sym(var);
+            subst.insert(std::make_pair(var, pt_var));
+        }
+    }
+    return ret;
+}
+
+void convert_to_tstp(const ParsingTree< SymTok, LabTok > &pt, std::ostream &st, const LibraryToolbox &tb) {
+    assert(pt.label != LabTok{});
+    SubstMap< SymTok, LabTok > subst;
+    if (recognize(pt, "wff A = B", tb, subst)) {
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("A"))), st, tb);
+        st << "=";
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("B"))), st, tb);
+    } else if (recognize(pt, "wff -. ph", tb, subst)) {
+        st << "~";
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))), st, tb);
+    } else if (recognize(pt, "wff ( ph -> ps )", tb, subst)) {
+        st << "(";
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))), st, tb);
+        st << "=>";
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))), st, tb);
+        st << ")";
+    } else if (recognize(pt, "wff ( ph /\\ ps )", tb, subst)) {
+        st << "(";
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))), st, tb);
+        st << "&";
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))), st, tb);
+        st << ")";
+    } else if (recognize(pt, "wff ( ph \\/ ps )", tb, subst)) {
+        st << "(";
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))), st, tb);
+        st << "|";
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))), st, tb);
+        st << ")";
+    } else if (recognize(pt, "wff A. x ph", tb, subst)) {
+        st << "![";
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("x"))), st, tb);
+        st << "]:";
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))), st, tb);
+    } else if (recognize(pt, "wff E. x ph", tb, subst)) {
+        st << "?[";
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("x"))), st, tb);
+        st << "]:";
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))), st, tb);
+    } else if (recognize(pt, "class x", tb, subst)) {
+        st << boost::to_upper_copy(tb.resolve_symbol(tb.get_var_lab_to_sym(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("x"))).label)));
+    } else if (recognize(pt, "set x", tb, subst)) {
+        st << boost::to_upper_copy(tb.resolve_symbol(tb.get_var_lab_to_sym(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("x"))).label)));
+    } else {
+        assert(!"Should not arrive here");
+    }
+}
+
+int convert_to_tstp_main(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    auto &data = get_set_mm();
+    //auto &lib = data.lib;
+    auto &tb = data.tb;
+
+    auto pt = tb.parse_sentence(tb.read_sentence("|- A. x ( -. -. a = a -> ( x = y /\\ E. y -. y = z ) )"));
+    //auto pt = tb.parse_sentence(tb.read_sentence("|- A. x ( a = a -> a = a )"));
+    assert(pt.label != LabTok{});
+    convert_to_tstp(pt, std::cout, tb);
+    std::cout << std::endl;
+
+    return 0;
+}
+static_block {
+    register_main_function("convert_to_tstp", convert_to_tstp_main);
 }
