@@ -324,8 +324,9 @@ ParsingTree< SymTok, LabTok > subst_defs(const ParsingTree< SymTok, LabTok > &pt
     auto it = defs.find(pt.label);
     if (it != defs.end()) {
         // In most cases we can use the general procedure, substituting the definition
-        auto &&[label, vars, fresh_vars, def_body] = it->second;
-        (void) label;
+        auto &vars = std::get<1>(it->second);
+        auto &fresh_vars = std::get<2>(it->second);
+        auto &def_body = std::get<3>(it->second);
         assert(vars.size() == pt.children.size());
         SubstMap< SymTok, LabTok > subst_map;
         for (size_t i = 0; i < vars.size(); i++) {
