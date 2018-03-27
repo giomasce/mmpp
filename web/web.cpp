@@ -47,7 +47,13 @@ std::unique_ptr< HTTPD > make_server(int port, WebEndpoint &endpoint, bool open_
 #endif
 }
 
-int webmmpp_main_common(int argc, char *argv[], bool open_server) {
+enum class ServerType {
+    USER,
+    OPEN,
+    DOCKER,
+};
+
+int webmmpp_main_common(int argc, char *argv[], ServerType type) {
     if (!platform_webmmpp_init(argc, argv)) {
         return 1;
     }
@@ -55,14 +61,14 @@ int webmmpp_main_common(int argc, char *argv[], bool open_server) {
     init_random();
 
     int port = 8888;
-    WebEndpoint endpoint(port, open_server);
-    std::unique_ptr< HTTPD > httpd = make_server(port, endpoint, open_server);
+    WebEndpoint endpoint(port, type == ServerType::OPEN);
+    std::unique_ptr< HTTPD > httpd = make_server(port, endpoint, type == ServerType::OPEN || type == ServerType::DOCKER);
     if (httpd == nullptr) {
         std::cerr << "Could not build an HTTP server, exiting" << std::endl;
         return 1;
     }
 
-    if (open_server) {
+    if (type == ServerType::OPEN) {
         // The session is already available, but it is constant; we need to populate it with some content
         std::shared_ptr< Session > session = endpoint.get_guest_session();
         std::shared_ptr< Workset > workset;
@@ -73,12 +79,17 @@ int webmmpp_main_common(int argc, char *argv[], bool open_server) {
 
     httpd->start();
 
-    if (!open_server) {
+    if (type == ServerType::DOCKER || type == ServerType::USER) {
         // Generate a session and pass it to the browser
         std::string ticket_id = endpoint.create_session_and_ticket();
-        std::string browser_url = "http://127.0.0.1:" + std::to_string(port) + "/ticket/" + ticket_id;
-        platform_open_browser(browser_url);
-        std::cout << "A browser session was spawned; if you cannot see it, go to " << browser_url << std::endl;
+        if (type == ServerType::USER) {
+            std::string browser_url = "http://127.0.0.1:" + std::to_string(port) + "/ticket/" + ticket_id;
+            platform_open_browser(browser_url);
+            std::cout << "A browser session was spawned; if you cannot see it, go to " << browser_url << std::endl;
+        } else {
+            std::string browser_url = "http://DOCKER_ADDRESS:" + std::to_string(port) + "/ticket/" + ticket_id;
+            std::cout << "Open a browser and go to " << browser_url << std::endl;
+        }
     }
 
     auto new_session_callback = [&endpoint,port]() {
@@ -97,17 +108,24 @@ int webmmpp_main_common(int argc, char *argv[], bool open_server) {
 }
 
 int webmmpp_main(int argc, char*argv[]) {
-    return webmmpp_main_common(argc, argv, false);
+    return webmmpp_main_common(argc, argv, ServerType::USER);
 }
 static_block {
     register_main_function("webmmpp", webmmpp_main);
 }
 
 int webmmpp_open_main(int argc, char*argv[]) {
-    return webmmpp_main_common(argc, argv, true);
+    return webmmpp_main_common(argc, argv, ServerType::OPEN);
 }
 static_block {
     register_main_function("webmmpp_open", webmmpp_open_main);
+}
+
+int webmmpp_docker_main(int argc, char*argv[]) {
+    return webmmpp_main_common(argc, argv, ServerType::DOCKER);
+}
+static_block {
+    register_main_function("webmmpp_docker", webmmpp_docker_main);
 }
 
 WebEndpoint::WebEndpoint(int port, bool enable_guest_session) :

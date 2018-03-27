@@ -30,4 +30,4 @@ RUN cd resources && rm -f set.mm && ln -s ../../set.mm/set.mm set.mm
 
 # How to run the application
 EXPOSE 8888
-CMD ./build/mmpp webmmpp
+CMD ./build/mmpp webmmpp_docker
