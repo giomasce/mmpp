@@ -39,7 +39,13 @@ this is usually as hard as giving this command to a terminal:
     sudo apt-get install git build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev node-typescript
 
 Other Linux distributions will require some similar command, depending
-on the distribution package manager.
+on the distribution package manager. You need GCC version at least 6,
+which for Debian and Ubuntu was introduced respectively in stretch and
+in artful. If your distribution is older than that and you cannot or
+do not want to upgrade, then I suggest to either use a virtual machine
+or a container, or to use an external repository; Ubuntu users can
+benefit from [this
+PPA](https://launchpad.net/~jonathonf/+archive/ubuntu/gcc-7.3).
 
 Then you create a new direcory for the build and run `qmake` and then
 `make` there:
