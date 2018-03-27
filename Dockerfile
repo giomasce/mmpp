@@ -8,13 +8,13 @@ ENV QT_SELECT=qt5
 RUN apt-get update && apt-get install -y build-essential pkg-config qt5-qmake wget
 
 # Install C++ application dependencies
-RUN apt-get install -y libz3-dev libmicrohttpd-dev libboost-system-dev libboost-filesystem-dev libboost-serialization-dev
+RUN apt-get update && apt-get install -y libz3-dev libmicrohttpd-dev libboost-all-dev
 
 # Install TypeScript application dependencies
-RUN apt-get install -y node-typescript
+RUN apt-get update && apt-get install -y node-typescript
 
 # Include a copy of set.mm
-RUN mkdir /srv/set.mm && cd /srv/set.mm && wget https://raw.githubusercontent.com/giomasce/set.mm/master/set.mm -O set.mm
+RUN mkdir /srv/set.mm && cd /srv/set.mm && wget https://raw.githubusercontent.com/giomasce/set.mm/develop/set.mm -O set.mm
 
 # Copy repository in the container
 WORKDIR /srv/mmpp
@@ -26,8 +26,8 @@ RUN mkdir build && cd build && qmake .. && make
 # Build the TypeScript application
 # There is currently a bug (tsc invokes "node", but nodejs only provides "nodejs"), so we explicitly call "nodejs"
 RUN nodejs /usr/bin/tsc -p resources/static/ts
-RUN cd resources && rm -f library.mm && ln -s ../../set.mm/set.mm set.mm
+RUN cd resources && rm -f set.mm && ln -s ../../set.mm/set.mm set.mm
 
 # How to run the application
 EXPOSE 8888
-CMD ./build/webmmpp_open
+CMD ./build/mmpp webmmpp
