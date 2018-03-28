@@ -3,10 +3,10 @@
 #include "mm/setmm.h"
 #include "utils/utils.h"
 
-std::map< SymTok, std::pair< LabTok, LabTok > > compute_equalities(const LibraryToolbox &tb) {
+std::map< SymTok, std::tuple< LabTok, LabTok, LabTok > > compute_equalities(const LibraryToolbox &tb) {
     return {
-        { tb.get_symbol("wff"), { tb.get_label("wb"), tb.get_label("biid") } },
-        { tb.get_symbol("class"), { tb.get_label("wceq"), tb.get_label("eqid") } },
+        { tb.get_symbol("wff"), { tb.get_label("wb"), tb.get_label("biid"), tb.get_label("wnf") } },
+        { tb.get_symbol("class"), { tb.get_label("wceq"), tb.get_label("eqid"), tb.get_label("wnfc") } },
         //{ tb.get_symbol("set"), { tb.get_label(""), tb.get_label("") } },
     };
 }
@@ -24,7 +24,8 @@ int subst_search_main(int argc, char *argv[]) {
     LabTok imp_lab = tb.get_label("wi");
     LabTok ph_lab = tb.get_label("wph");
 
-    std::map< SymTok, std::pair< LabTok, LabTok > > equalities = compute_equalities(tb);
+    auto equalities = compute_equalities(tb);
+    SymTok var_type = tb.get_symbol("set");
 
     // Find an equality symbol for each type
     /*for (const auto &der : ders) {
@@ -87,7 +88,7 @@ int subst_search_main(int argc, char *argv[]) {
                     std::cout << " * Search for a substitution rule for " << tb.resolve_symbol(it->first) << " in position " << i << std::endl;
                     tb.new_temp_var_frame();
                     ParsingTree< SymTok, LabTok > pt_hyp;
-                    pt_hyp.label = it->second.first;
+                    pt_hyp.label = std::get<0>(it->second);
                     pt_hyp.type = tb.get_turnstile_alias();
                     ParsingTree< SymTok, LabTok > pt_left;
                     ParsingTree< SymTok, LabTok > pt_right;
@@ -116,7 +117,7 @@ int subst_search_main(int argc, char *argv[]) {
                         }
                     }
                     ParsingTree< SymTok, LabTok > pt_thesis;
-                    pt_thesis.label = equalities[type].first;
+                    pt_thesis.label = std::get<0>(equalities[type]);
                     pt_thesis.type = tb.get_turnstile_alias();
                     pt_thesis.children.push_back(pt_left);
                     pt_thesis.children.push_back(pt_right);
@@ -167,6 +168,9 @@ int subst_search_main(int argc, char *argv[]) {
                     res = tb.unify_assertion({std::make_pair(tb.get_turnstile(), pt_hypd)}, std::make_pair(tb.get_turnstile(), pt_thesisd));
                     if (!res.empty()) {
                         std::cout << "     Found match " << tb.resolve_label(std::get<0>(res[0])) << std::endl;
+                        if (!tb.get_assertion(std::get<0>(res[0])).get_mand_dists().empty()) {
+                            std::cout << "     It has DISTINCT VARIABLES provisions!" << std::endl;
+                        }
                         found = true;
                         found_strong = true;
                     } else {
@@ -182,6 +186,43 @@ int subst_search_main(int argc, char *argv[]) {
                     }
 
                     tb.release_temp_var_frame();
+                } else if (rule[i] == var_type) {
+                    std::cout << " * Search for a not-free rule for " << tb.resolve_symbol(rule[i]) << " in position " << i << std::endl;
+                    tb.new_temp_var_frame();
+                    ParsingTree< SymTok, LabTok > pt_body;
+                    pt_body.label = label;
+                    pt_body.type = type;
+                    ParsingTree< SymTok, LabTok > pt_var;
+                    pt_var.type = var_type;
+                    for (unsigned j = 0; j < rule.size(); j++) {
+                        if (ders.find(rule[j]) != ders.end()) {
+                            ParsingTree< SymTok, LabTok > pt_var2;
+                            auto var = tb.new_temp_var(rule[j]);
+                            pt_var2.label = var.first;
+                            pt_var2.type = rule[j];
+                            pt_body.children.push_back(pt_var2);
+                            if (i == j) {
+                                pt_var.label = var.first;
+                            }
+                        }
+                    }
+                    ParsingTree< SymTok, LabTok > pt_nf;
+                    pt_nf.type = tb.get_turnstile_alias();
+                    pt_nf.label = std::get<2>(equalities.at(type));
+                    pt_nf.children.push_back(pt_var);
+                    pt_nf.children.push_back(pt_body);
+                    assert(pt_nf.validate(tb.get_validation_rule()));
+                    std::cout << "   Searching for " << tb.print_sentence(pt_nf) << std::endl;
+                    auto res = tb.unify_assertion({}, std::make_pair(tb.get_turnstile(), pt_nf));
+                    if (!res.empty()) {
+                        std::cout << "     Found match " << tb.resolve_label(std::get<0>(res[0])) << std::endl;
+                        if (!tb.get_assertion(std::get<0>(res[0])).get_mand_dists().empty()) {
+                            std::cout << "     It has DISTINCT VARIABLES provisions!" << std::endl;
+                        }
+                    } else {
+                        std::cout << "     Found NO match..." << std::endl;
+                    }
+                    tb.release_temp_var_frame();
                 }
             }
         }
@@ -196,7 +237,7 @@ static_block {
 std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok >, ParsingTree< SymTok, LabTok > > > compute_defs(const LibraryToolbox &tb) {
     auto &ders = tb.get_derivations();
 
-    std::map< SymTok, std::pair< LabTok, LabTok > > equalities = compute_equalities(tb);
+    auto equalities = compute_equalities(tb);
 
     std::set< LabTok > primitive_labels = {
         tb.get_label("cv"),     // just an adapter
@@ -248,7 +289,7 @@ std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok
             }
             ParsingTree< SymTok, LabTok > pt_def;
             pt_def.type = tb.get_turnstile_alias();
-            pt_def.label = equalities.at(type).first;
+            pt_def.label = std::get<0>(equalities.at(type));
             pt_def.children.push_back(pt_left);
             pt_def.children.push_back(pt_right);
             assert(pt_def.validate(tb.get_validation_rule()));
