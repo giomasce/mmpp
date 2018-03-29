@@ -13,15 +13,17 @@ nice introductory material.
 ## Building `mmpp`
 
 At the moment the codes support building on Linux, Windows and
-macOS. Most of the code is actually standard C++17, with a few
+macOS. Most of the code is actually standard C++14, with a few
 multiplatform libraries. The few platform specific code is essentially
 concentrated in the file `platform.cpp`. If you want to add support
-for a new platform, you basically have to start from there.
+for a new platform, you basically have to start from there. Eventually
+I could begin using C++17 features, as soon as the advantages appear
+to outweigh the compatibility loss.
 
 That said, all main development happens on Linux, so in general that
 is expected to be supported better than the other platforms.
 
-Beside the standard C++17 library, the code depends on the Boost
+Beside the standard C++ library, the code depends on the Boost
 collection of libraries. If you use `webmmpp` you will also need
 libmicrohttpd and the TypeScript to JavaScript transpiler `tsc`. If
 you use the proving routines depending on Z3, you will also need
@@ -39,9 +41,9 @@ this is usually as hard as giving this command to a terminal:
     sudo apt-get install git build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev node-typescript
 
 Other Linux distributions will require some similar command, depending
-on the distribution package manager. You need GCC version at least 6,
+on the distribution package manager. You need GCC version at least 5,
 which for Debian and Ubuntu was introduced respectively in stretch and
-in artful. If your distribution is older than that and you cannot or
+in xenial. If your distribution is older than that and you cannot or
 do not want to upgrade, then I suggest to either use a virtual machine
 or a container, or to use an external repository; Ubuntu users can
 benefit from [this
@@ -68,7 +70,9 @@ files:
 ### macOS
 
 Installing all the dependencies is a bit more complicated here. This
-process was tested on a pristine macOS High Sierra system.
+process was tested on pristine macOS Sierra and High Sierra systems. I
+have no idea of which level of compatibility to expect for previous
+versions.
 
 First you have to install the Apple command line developer tools. The
 operating system automatically proposes you to do that if you try to
@@ -114,18 +118,18 @@ Windows really unfriendly, and there is no shortcut like Homebrew on
 macOS: you really need a lot of time, manual downloads and clicks. And
 at times it is even complicated to understand which are the right
 clicks. This is how I managed to get `mmpp` to compile on Windows 8 on
-64 bits (I had also tried Windows 7, but could not get around an error
-when installing C++ runtime components; newer Windows version are
-unmapped territory!).
+64 bits with Visual Studio Community 2017. I had also tried Windows 7,
+but could not get around an error when installing C++ runtime
+components. I have not tried any other Windows or Visual Studio
+version.
 
-First you have to download [Visual Studio
-2017](http://www.visualstudio.com/) and run the installer. Previous
-versions will not probably work, because `mmpp` makes use of C++17
-features. In the Visual Studio Installer program you need to install
-the following components: "Desktop development with C++", with at
-least the optional components "VC++ 2017 v141 toolset" and "Windows 10
-SDK"; and "Node.js development". At the end of this long process you
-will have to restart the computer.
+First you have to download [Visual Studio Community
+2017](http://www.visualstudio.com/) and run the installer. In the
+Visual Studio Installer program you need to install the following
+components: "Desktop development with C++", with at least the optional
+components "VC++ 2017 v141 toolset" and "Windows 10 SDK"; and "Node.js
+development". At the end of this long process you will have to restart
+the computer.
 
 Then you have to download the [Qt
 environment](https://www.qt.io/download). Go to the website, choose
