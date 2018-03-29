@@ -1,4 +1,6 @@
 
+#include <boost/filesystem/fstream.hpp>
+
 #include "uct.h"
 
 #include "utils/utils.h"

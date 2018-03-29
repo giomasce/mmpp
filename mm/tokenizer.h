@@ -4,6 +4,7 @@
 #include <utility>
 
 #include <boost/filesystem/path.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 #include "utils/utils.h"
 #include "funds.h"
