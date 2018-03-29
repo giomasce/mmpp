@@ -156,7 +156,7 @@ struct enable_create : public std::enable_shared_from_this< T > {
         return pointer;
     }
 
-#if __GNUC__ < 7
+#if (!(__cpp_lib_enable_shared_from_this >= 201603))
     std::weak_ptr< T > weak_from_this() {
         return this->shared_from_this();
     }
