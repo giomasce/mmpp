@@ -234,23 +234,44 @@ static_block {
     register_main_function("subst_search", subst_search_main);
 }
 
+std::set< LabTok > get_defless_labels(const LibraryToolbox &tb) {
+    /* These rules have no definition, either because they are primitive
+     * notions, or because they are defined in a custom way. */
+    std::set< LabTok > defless_labels = {
+        tb.get_label("cv"),     // class-set adapter
+        tb.get_label("wn"),     // logic negation
+        tb.get_label("wi"),     // logic implication
+        tb.get_label("wal"),    // universal quantification
+
+        /* The class abstraction has no definition in the usual sense: it is
+         * only defined by its membership test in df-clab. */
+        tb.get_label("cab"),
+
+        /* Membership between two sets is a primitive notation; membership
+         * between two classes is defined by df-clel; membership between a
+         * set and a class is again defined by df-clel, but the definition is
+         * circlar: once the class variable is substituted with a class
+         * abstraction, df-clab can be used to solve the membership. */
+        tb.get_label("wcel"),
+    };
+    return defless_labels;
+}
+
 std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok >, ParsingTree< SymTok, LabTok > > > compute_defs(const LibraryToolbox &tb) {
     auto &ders = tb.get_derivations();
 
     auto equalities = compute_equalities(tb);
 
-    std::set< LabTok > primitive_labels = {
-        tb.get_label("cv"),     // just an adapter
-        tb.get_label("wn"),     // logic negation
-        tb.get_label("wi"),     // logic implication
-        tb.get_label("wal"),    // universal quantification
-    };
+    auto defless_labels = get_defless_labels(tb);
 
-    std::map< LabTok, LabTok > special_labels = {
-        //{ tb.get_label("wb"), tb.get_label("dfbi1") },      // logic biimplication
-        { tb.get_label("cab"), tb.get_label("df-clab") },   // class abstraction
-        //{ tb.get_label("wceq"), tb.get_label("dfcleq") },   // class equality
-        { tb.get_label("wcel"), tb.get_label("df-clel") },  // class membership
+    /* These rules can be treated as all the other, but for technical reasons
+     * their actual definition is not in the form we want; however, since our
+     * task here is not evaluate consistency, but apply definitions, once the
+     * technical machinery is set up there are appropriate theorems that we
+     * can take as definitions. */
+    std::map< LabTok, LabTok > hardcoded_labels = {
+        { tb.get_label("wb"), tb.get_label("dfbi1") },      // logic biimplication
+        { tb.get_label("wceq"), tb.get_label("dfcleq") },   // class equality
     };
 
     std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok >, ParsingTree< SymTok, LabTok > > > defs;
@@ -263,10 +284,7 @@ std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok
                 //std::cout << "   Ignoring because it is a variable" << std::endl;
                 continue;
             }
-            if (primitive_labels.find(label) != primitive_labels.end()) {
-                continue;
-            }
-            if (special_labels.find(label) != special_labels.end()) {
+            if (defless_labels.find(label) != defless_labels.end()) {
                 continue;
             }
             //std::cout << "Considering derivation " << tb.resolve_label(label) <<" for type " << tb.resolve_symbol(type) << " with rule " << tb.print_sentence(rule) << std::endl;
@@ -303,11 +321,9 @@ std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok
             while (true) {
                 const Assertion *ass2 = assertions_gen();
                 // Some notations have hardcoded defaults
-                if (label == tb.get_label("wb")) {
-                    ass2 = &tb.get_assertion(tb.get_label("dfbi1"));
-                }
-                if (label == tb.get_label("wceq")) {
-                    ass2 = &tb.get_assertion(tb.get_label("dfcleq"));
+                auto hard_it = hardcoded_labels.find(label);
+                if (hard_it != hardcoded_labels.end()) {
+                    ass2 = &tb.get_assertion(hard_it->second);
                 }
                 if (ass2 == nullptr) {
                     break;
@@ -352,6 +368,7 @@ std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok
                 defs[label] = std::make_tuple(res, vars, fresh_vars, def_body);
             } else {
                 //std::cout << "     Found NO match..." << std::endl;
+                std::cout << "Could not find a definition for " << tb.resolve_label(label) << std::endl;
             }
 
             tb.release_temp_var_frame();
@@ -359,6 +376,59 @@ std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok
     }
 
     return defs;
+}
+
+static void compute_bound_vars_internal(const ParsingTree< SymTok, LabTok > &pt, LabTok var, std::set< std::pair< LabTok, LabTok > > &this_bound_vars, const std::map< LabTok, std::set< std::pair< LabTok, LabTok > > > &bound_vars) {
+    for (const auto &child : pt.children) {
+        compute_bound_vars_internal(child, var, this_bound_vars, bound_vars);
+    }
+}
+
+void compute_bound_vars(const LibraryToolbox &tb) {
+    std::map< LabTok, std::set< std::pair< LabTok, LabTok > > > bound_vars;
+
+    // Insert bound variables data for labels without definition
+    auto defless_labels = get_defless_labels(tb);
+    auto defs = compute_defs(tb);
+    for (const auto label : defless_labels) {
+        bound_vars[label] = {};
+    }
+    std::vector< LabTok > defless_bound = { tb.get_label("wal"), tb.get_label("cab") };
+    for (const auto label : defless_bound) {
+        auto &pt = tb.get_parsed_sents()[label];
+        assert(pt.children.size() == 2);
+        if (pt.children[0].type == tb.get_symbol("set")) {
+            assert(pt.children[0].type == tb.get_symbol("set"));
+            assert(pt.children[1].type == tb.get_symbol("wff"));
+            bound_vars[label].insert(std::make_pair(pt.children[0].label, pt.children[1].label));
+        } else {
+            assert(pt.children[0].type == tb.get_symbol("wff"));
+            assert(pt.children[1].type == tb.get_symbol("set"));
+            bound_vars[label].insert(std::make_pair(pt.children[1].label, pt.children[0].label));
+        }
+    }
+
+    // Then find all other bound variables by induction;
+    //we rely on the fact that definitions in defs are already sorted
+    for (const auto &def : defs) {
+        auto label = std::get<0>(def.second);
+        auto &vars = std::get<1>(def.second);
+        auto &body = std::get<3>(def.second);
+        if (defless_labels.find(label) != defless_labels.end()) {
+            continue;
+        }
+        if (tb.get_sentence_type(label) == FLOATING_HYP) {
+            continue;
+        }
+        for (const auto var : vars) {
+            if (tb.get_var_lab_to_type_sym(var) != tb.get_label("set")) {
+                continue;
+            }
+            /* Now we want to iterate on the body of the definition, searching
+             * for all the instances of any previous bounding syntax constructor. */
+            compute_bound_vars_internal(body, var, bound_vars[var], bound_vars);
+        }
+    }
 }
 
 ParsingTree< SymTok, LabTok > subst_defs(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb, const std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok >, ParsingTree< SymTok, LabTok > > > &defs) {
