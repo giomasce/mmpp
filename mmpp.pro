@@ -12,17 +12,15 @@ CONFIG += link_pkgconfig
 #CONFIG += precompile_header
 #PRECOMPILED_HEADER += pch.h
 
-CONFIG += c++1z
-
 DEFINES += "PROJ_DIR=\"\\\"$$PWD\\\"\""
 
 linux {
     # Compile with gcc
-    QMAKE_CC = gcc
-    QMAKE_CXX = g++
-    QMAKE_LINK = g++
+    #QMAKE_CC = gcc
+    #QMAKE_CXX = g++
+    #QMAKE_LINK = g++
     QMAKE_CFLAGS += -std=c11 -g
-    QMAKE_CXXFLAGS += -g -ftemplate-backtrace-limit=0
+    QMAKE_CXXFLAGS += -std=c++17 -g -ftemplate-backtrace-limit=0
     QMAKE_LIBS += -ldl -export-dynamic -rdynamic
 
     # Compile with clang
@@ -30,16 +28,16 @@ linux {
     #QMAKE_CXX = clang++-7
     #QMAKE_LINK = clang++-7
     #QMAKE_CFLAGS += -std=c11 -g
-    #QMAKE_CXXFLAGS += -g -ftemplate-backtrace-limit=0
+    #QMAKE_CXXFLAGS += -stc=c++17 -g -ftemplate-backtrace-limit=0
     #QMAKE_LIBS += -ldl -rdynamic
 }
 
 macx {
-    QMAKE_CC = clang
-    QMAKE_CXX = clang++
-    QMAKE_LINK = clang++
+    #QMAKE_CC = clang
+    #QMAKE_CXX = clang++
+    #QMAKE_LINK = clang++
     QMAKE_CFLAGS += -std=c11 -g -I/usr/local/include
-    QMAKE_CXXFLAGS += -g -ftemplate-backtrace-limit=0 -I/usr/local/include
+    QMAKE_CXXFLAGS += -std=c++17 -g -ftemplate-backtrace-limit=0 -I/usr/local/include
     QMAKE_LIBS += -ldl -rdynamic -L/usr/local/lib
 }
 
@@ -48,7 +46,7 @@ macx {
 }
 
 win32 {
-    QMAKE_CXXFLAGS += /std:c++17 /I c:\Boost\include\boost-1_66 /I c:\libs /wd4250 /wd4200 -DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE /Zi
+    QMAKE_CXXFLAGS += /std:c++17 /I c:\Boost\include\boost-1_66 /I c:\libs /wd4250 /wd4200 -DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE /Zi /std:c++17
     QMAKE_LFLAGS += /STACK:8388608 /DEBUG:FULL
     QMAKE_LIBS += /LIBPATH:c:\Boost\lib /LIBPATH:c:\libs
     CONFIG += console
