@@ -377,18 +377,49 @@ std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok
     return defs;
 }
 
-static void compute_bound_vars_internal(const ParsingTree< SymTok, LabTok > &pt, LabTok var, std::set< std::pair< LabTok, LabTok > > &this_bound_vars, const std::map< LabTok, std::set< std::pair< LabTok, LabTok > > > &bound_vars) {
+static void compute_bound_vars_internal(const ParsingTree< SymTok, LabTok > &pt, std::set< std::pair< size_t, size_t > > &this_bound_vars,
+                                        const std::vector< LabTok > &vars, const LibraryToolbox &tb,
+                                        const std::map< LabTok, std::set< std::pair< size_t, size_t > > > &bound_vars,
+                                        const std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok >, ParsingTree< SymTok, LabTok > > > &defs) {
+    // Iterate on the children
     for (const auto &child : pt.children) {
-        compute_bound_vars_internal(child, var, this_bound_vars, bound_vars);
+        compute_bound_vars_internal(child, this_bound_vars, vars, tb, bound_vars, defs);
+    }
+
+    // Check if the current syntax constructor introduces bound variables
+    auto it = bound_vars.find(pt.label);
+    if (it != bound_vars.end()) {
+        for (const auto &dep : it->second) {
+            auto var_idx = dep.first;
+            auto term_idx = dep.second;
+            assert(pt.children.at(var_idx).type == tb.get_symbol("set"));
+            auto var_lab = pt.children.at(var_idx).label;
+            auto var_it = std::find(vars.begin(), vars.end(), var_lab);
+            if (var_it == vars.end()) {
+                continue;
+            }
+            size_t var_idx2 = var_it - vars.begin();
+            std::set< LabTok > vars2;
+            collect_variables(pt.children.at(term_idx), tb.get_standard_is_var(), vars2);
+            for (size_t i = 0; i < vars.size(); i++) {
+                if (tb.get_var_lab_to_type_sym(vars[i]) == tb.get_symbol("set")) {
+                    continue;
+                }
+                if (vars2.find(vars[i]) == vars2.end()) {
+                    continue;
+                }
+                this_bound_vars.insert(std::make_pair(var_idx2, i));
+            }
+        }
     }
 }
 
-void compute_bound_vars(const LibraryToolbox &tb) {
-    std::map< LabTok, std::set< std::pair< LabTok, LabTok > > > bound_vars;
+// FIXME This implementation is broken: for example, for df-ral it thinks that x binds to A
+std::map< LabTok, std::set< std::pair< size_t, size_t > > > compute_bound_vars(const LibraryToolbox &tb, const std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok >, ParsingTree< SymTok, LabTok > > > &defs) {
+    std::map< LabTok, std::set< std::pair< size_t, size_t > > > bound_vars;
 
     // Insert bound variables data for labels without definition
     auto defless_labels = get_defless_labels(tb);
-    auto defs = compute_defs(tb);
     for (const auto label : defless_labels) {
         bound_vars[label] = {};
     }
@@ -399,16 +430,16 @@ void compute_bound_vars(const LibraryToolbox &tb) {
         if (pt.children[0].type == tb.get_symbol("set")) {
             assert(pt.children[0].type == tb.get_symbol("set"));
             assert(pt.children[1].type == tb.get_symbol("wff"));
-            bound_vars[label].insert(std::make_pair(pt.children[0].label, pt.children[1].label));
+            bound_vars[label].insert(std::make_pair(0, 1));
         } else {
             assert(pt.children[0].type == tb.get_symbol("wff"));
             assert(pt.children[1].type == tb.get_symbol("set"));
-            bound_vars[label].insert(std::make_pair(pt.children[1].label, pt.children[0].label));
+            bound_vars[label].insert(std::make_pair(1, 0));
         }
     }
 
     // Then find all other bound variables by induction;
-    //we rely on the fact that definitions in defs are already sorted
+    // we rely on the fact that definitions in defs are already sorted
     for (const auto &def : defs) {
         auto label = std::get<0>(def.second);
         auto &vars = std::get<1>(def.second);
@@ -419,15 +450,41 @@ void compute_bound_vars(const LibraryToolbox &tb) {
         if (tb.get_sentence_type(label) == FLOATING_HYP) {
             continue;
         }
-        for (const auto var : vars) {
-            if (tb.get_var_lab_to_type_sym(var) != tb.get_label("set")) {
-                continue;
-            }
-            /* Now we want to iterate on the body of the definition, searching
-             * for all the instances of any previous bounding syntax constructor. */
-            compute_bound_vars_internal(body, var, bound_vars[var], bound_vars);
-        }
+        compute_bound_vars_internal(body, bound_vars[def.first], vars, tb, bound_vars, defs);
     }
+
+    return bound_vars;
+}
+
+int find_bound_vars_main(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    auto &data = get_set_mm();
+    //auto &lib = data.lib;
+    auto &tb = data.tb;
+
+    auto defs = compute_defs(tb);
+    auto bound_vars = compute_bound_vars(tb, defs);
+
+    for (const auto &bv : bound_vars) {
+        auto def_it = defs.find(bv.first);
+        if (def_it == defs.end()) {
+            continue;
+        }
+        const auto &def = def_it->second;
+        const auto &vars = std::get<1>(def);
+        std::cout << "Label " << tb.resolve_label(bv.first) << " has bound variables:";
+        for (const auto &p : bv.second) {
+            std::cout << " (" << tb.resolve_label(vars.at(p.first)) << ", " << tb.resolve_label(vars.at(p.second)) << ")";
+        }
+        std::cout << std::endl;
+    }
+
+    return 0;
+}
+static_block {
+    register_main_function("find_bound_vars", find_bound_vars_main);
 }
 
 ParsingTree< SymTok, LabTok > subst_defs(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb, const std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok >, ParsingTree< SymTok, LabTok > > > &defs) {
