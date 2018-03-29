@@ -4,11 +4,10 @@
 #include "utils/utils.h"
 
 std::map< SymTok, std::tuple< LabTok, LabTok, LabTok > > compute_equalities(const LibraryToolbox &tb) {
-    return {
-        { tb.get_symbol("wff"), { tb.get_label("wb"), tb.get_label("biid"), tb.get_label("wnf") } },
-        { tb.get_symbol("class"), { tb.get_label("wceq"), tb.get_label("eqid"), tb.get_label("wnfc") } },
-        //{ tb.get_symbol("set"), { tb.get_label(""), tb.get_label("") } },
-    };
+    std::map< SymTok, std::tuple< LabTok, LabTok, LabTok > > ret;
+    ret.insert(std::make_pair(tb.get_symbol("wff"), std::make_tuple(tb.get_label("wb"), tb.get_label("biid"), tb.get_label("wnf"))));
+    ret.insert(std::make_pair(tb.get_symbol("class"), std::make_tuple(tb.get_label("wceq"), tb.get_label("eqid"), tb.get_label("wnfc"))));
+    return ret;
 }
 
 int subst_search_main(int argc, char *argv[]) {

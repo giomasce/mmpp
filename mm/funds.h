@@ -13,12 +13,12 @@ typedef uint32_t SymTok;
 typedef uint32_t LabTok;
 typedef uint32_t CodeTok;
 
-static_assert(std::is_integral< SymTok >::value);
-static_assert(std::is_unsigned< SymTok >::value);
-static_assert(std::is_integral< LabTok >::value);
-static_assert(std::is_unsigned< LabTok >::value);
-static_assert(std::is_integral< CodeTok >::value);
-static_assert(std::is_unsigned< CodeTok >::value);
+static_assert(std::is_integral< SymTok >::value, "SymTok must be an integral type");
+static_assert(std::is_unsigned< SymTok >::value, "SymTok must be unsigned");
+static_assert(std::is_integral< LabTok >::value, "LabTok must be an integral type");
+static_assert(std::is_unsigned< LabTok >::value, "LabTok must be unsigned");
+static_assert(std::is_integral< CodeTok >::value, "CodeTok must be an integral type");
+static_assert(std::is_unsigned< CodeTok >::value, "CodeTok must be unsigned");
 
 typedef std::vector< SymTok > Sentence;
 typedef std::vector< LabTok > Procedure;
