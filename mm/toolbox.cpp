@@ -1044,6 +1044,30 @@ const std::vector<std::pair<ParsingTreeMultiIterator< SymTok, LabTok >::Status, 
     return this->parsed_iters.at(label.val());
 }
 
+Generator<std::pair<LabTok, std::reference_wrapper<const ParsingTree<SymTok, LabTok> > > > LibraryToolbox::gen_parsed_sents() const
+{
+    return Generator<std::pair<LabTok, std::reference_wrapper< const ParsingTree<SymTok, LabTok> > > >([this](auto &sink) {
+            for (size_t i = 0; i < this->parsed_sents.size(); i++) {
+                if (i != 0) {
+                    sink(std::make_pair(LabTok(i), std::reference_wrapper< const ParsingTree< SymTok, LabTok > >(this->parsed_sents[i])));
+                }
+            }
+        }
+    );
+}
+
+Generator<std::pair<LabTok, std::reference_wrapper<const ParsingTree2<SymTok, LabTok> > > > LibraryToolbox::gen_parsed_sents2() const
+{
+    return Generator<std::pair<LabTok, std::reference_wrapper< const ParsingTree2<SymTok, LabTok> > > >([this](auto &sink) {
+            for (size_t i = 0; i < this->parsed_sents2.size(); i++) {
+                if (i != 0) {
+                    sink(std::make_pair(LabTok(i), std::reference_wrapper< const ParsingTree2< SymTok, LabTok > >(this->parsed_sents2[i])));
+                }
+            }
+        }
+    );
+}
+
 void LibraryToolbox::compute_registered_prover(size_t index, bool exception_on_failure)
 {
     this->instance_registered_provers.resize(LibraryToolbox::registered_provers().size());
