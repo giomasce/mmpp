@@ -187,7 +187,7 @@ public:
     }
 
 protected:
-    void process_assertion(const Assertion &child_ass, LabTok label = 0)
+    void process_assertion(const Assertion &child_ass, LabTok label = {})
     {
         assert_or_throw< ProofException< SentType_ > >(this->stack.size() >= child_ass.get_mand_hyps_num(), "Stack too small to pop hypotheses");
         const size_t stack_base = this->stack.size() - child_ass.get_mand_hyps_num();
