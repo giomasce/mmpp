@@ -235,8 +235,8 @@ public:
 
     // Assertion unification
 public:
-    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > > unify_assertion(const std::vector< Sentence > &hypotheses, const Sentence &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
-    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > > unify_assertion(const std::vector< std::pair< SymTok, ParsingTree< SymTok, LabTok > > > &hypotheses, const std::pair< SymTok, ParsingTree< SymTok, LabTok > > &thesis, bool just_first=true, bool up_to_hyps_perms=true) const;
+    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > > unify_assertion(const std::vector< Sentence > &hypotheses, const Sentence &thesis, bool just_first=true, bool up_to_hyps_perms=true, const std::set< std::pair< SymTok, SymTok > > &antidists = {}) const;
+    std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, Sentence > > > unify_assertion(const std::vector< std::pair< SymTok, ParsingTree< SymTok, LabTok > > > &hypotheses, const std::pair< SymTok, ParsingTree< SymTok, LabTok > > &thesis, bool just_first=true, bool up_to_hyps_perms=true, const std::set< std::pair< SymTok, SymTok > > &antidists = {}) const;
 
     // Reading and printing
 public:

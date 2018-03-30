@@ -596,7 +596,8 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
 }
 #endif
 
-static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > unify_assertion_internal(const LibraryToolbox *self, const std::vector< std::pair< SymTok, ParsingTree<SymTok, LabTok > > > &pt_hyps, const std::pair< SymTok, ParsingTree< SymTok, LabTok > > &pt_thesis, bool just_first, bool up_to_hyps_perms) {
+static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > unify_assertion_internal(const LibraryToolbox *self, const std::vector< std::pair< SymTok, ParsingTree<SymTok, LabTok > > > &pt_hyps, const std::pair< SymTok, ParsingTree< SymTok, LabTok > > &pt_thesis,
+                                                                                                                             bool just_first, bool up_to_hyps_perms, const std::set< std::pair< SymTok, SymTok > > &antidists) {
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
     auto assertions_gen = self->list_assertions();
     const auto &is_var = self->get_standard_is_var();
@@ -655,6 +656,14 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
             for (auto &s : subst) {
                 subst2.insert(make_pair(self->get_sentence(s.first).at(1), self->reconstruct_sentence(s.second)));
             }
+            VectorMap< SymTok, Sentence > subst3(subst2.begin(), subst2.end());
+            auto dists = propagate_dists< Sentence >(ass, subst3, *self);
+            if (!has_no_diagonal(dists.begin(), dists.end())) {
+                continue;
+            }
+            if (!is_disjoint(dists.begin(), dists.end(), antidists.begin(), antidists.end())) {
+                continue;
+            }
             ret.emplace_back(ass.get_thesis(), perm, subst2);
             if (just_first) {
                 return ret;
@@ -668,7 +677,7 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
     return ret;
 }
 
-static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > unify_assertion_internal(const LibraryToolbox *self, const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms)
+static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > unify_assertion_internal(const LibraryToolbox *self, const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms, const std::set< std::pair< SymTok, SymTok > > &antidists)
 {
     // Parse inputs
     std::vector< std::pair< SymTok, ParsingTree< SymTok, LabTok > > > pt_hyps;
@@ -684,12 +693,12 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
         return {};
     }
 
-    return unify_assertion_internal(self, pt_hyps, pt_thesis, just_first, up_to_hyps_perms);
+    return unify_assertion_internal(self, pt_hyps, pt_thesis, just_first, up_to_hyps_perms, antidists);
 }
 
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms) const
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion(const std::vector<Sentence> &hypotheses, const Sentence &thesis, bool just_first, bool up_to_hyps_perms, const std::set<std::pair<SymTok, SymTok> > &antidists) const
 {
-    auto ret2 = unify_assertion_internal(this, hypotheses, thesis, just_first, up_to_hyps_perms);
+    auto ret2 = unify_assertion_internal(this, hypotheses, thesis, just_first, up_to_hyps_perms, antidists);
 #ifdef TOOLBOX_SELF_TEST
     auto ret = unify_assertion_internal_old(this, hypotheses, thesis, just_first, up_to_hyps_perms);
     assert(ret == ret2);
@@ -697,9 +706,9 @@ std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, S
     return ret2;
 }
 
-std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion(const std::vector<std::pair<SymTok, ParsingTree<SymTok, LabTok> > > &hypotheses, const std::pair<SymTok, ParsingTree<SymTok, LabTok> > &thesis, bool just_first, bool up_to_hyps_perms) const
+std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > LibraryToolbox::unify_assertion(const std::vector<std::pair<SymTok, ParsingTree<SymTok, LabTok> > > &hypotheses, const std::pair<SymTok, ParsingTree<SymTok, LabTok> > &thesis, bool just_first, bool up_to_hyps_perms, const std::set<std::pair<SymTok, SymTok> > &antidists) const
 {
-    return unify_assertion_internal(this, hypotheses, thesis, just_first, up_to_hyps_perms);
+    return unify_assertion_internal(this, hypotheses, thesis, just_first, up_to_hyps_perms, antidists);
 }
 
 const std::function<bool (LabTok)> &LibraryToolbox::get_standard_is_var() const {

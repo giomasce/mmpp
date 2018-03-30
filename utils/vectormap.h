@@ -20,6 +20,13 @@ public:
     VectorMap() {
     }
 
+    template< typename It >
+    VectorMap(It from, It to) {
+        for ( ; from != to; ++from) {
+            this->insert(*from);
+        }
+    }
+
     void reserve(size_t count) {
         return this->container.reserve(count);
     }

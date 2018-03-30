@@ -115,42 +115,11 @@ void UnificationStrategy::operator()(Yielder &yield) {
         pt_hyps.push_back(std::make_pair(this->data->hypotheses[i][0], this->data->pt_hypotheses[i]));
     }
 
-    auto res = this->toolbox.unify_assertion(pt_hyps, pt_th, false);
-    result->success = false;
-    for (const auto &match : res) {
-        // Check that the substitution map does not violate any antidist constraint
-        const auto &ass = this->toolbox.get_assertion(std::get<0>(match));
-        assert(ass.is_valid());
-        const auto &ass_dists = ass.get_dists();
-        const std::set< std::pair< SymTok, SymTok > > antidists;
-        const auto &tb = this->toolbox;
-        const auto &subst_map = std::get<2>(match);
-        for (auto it1 = subst_map.begin(); it1 != subst_map.end(); it1++) {
-            for (auto it2 = subst_map.begin(); it2 != it1; it2++) {
-                const auto &var1 = it1->first;
-                const auto &var2 = it2->first;
-                const auto &subst1 = it1->second;
-                const auto &subst2 = it2->second;
-                if (ass_dists.find(std::minmax(var1, var2)) != ass_dists.end()) {
-                    std::set< SymTok > vars1;
-                    std::set< SymTok > vars2;
-                    collect_variables(subst1, tb.get_standard_is_var_sym(), vars1);
-                    collect_variables(subst2, tb.get_standard_is_var_sym(), vars2);
-                    for (const auto &lab1 : vars1) {
-                        for (const auto &lab2 : vars2) {
-                            if (lab1 == lab2 || antidists.find(std::minmax(lab1, lab2)) != antidists.end()) {
-                                goto not_valid;
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    const std::set< std::pair< SymTok, SymTok > > antidists;
+    auto res = this->toolbox.unify_assertion(pt_hyps, pt_th, true, true, antidists);
+    if (!res.empty()) {
         result->success = true;
-        result->data = match;
-        break;
-        not_valid:
-        continue;
+        result->data = res[0];
     }
 }
 
