@@ -337,7 +337,7 @@ std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok
                 if (tb.get_sentence(ass.get_thesis())[0] != tb.get_turnstile()) {
                     continue;
                 }
-                const auto &pt = tb.get_parsed_sents().at(ass.get_thesis().val());
+                const auto &pt = tb.get_parsed_sent(ass.get_thesis());
                 if (pt.label != pt_def.label) {
                     continue;
                 }
@@ -425,7 +425,7 @@ std::map< LabTok, std::set< std::pair< size_t, size_t > > > compute_bound_vars(c
     }
     std::vector< LabTok > defless_bound = { tb.get_label("wal"), tb.get_label("cab") };
     for (const auto label : defless_bound) {
-        auto &pt = tb.get_parsed_sents()[label.val()];
+        auto &pt = tb.get_parsed_sent(label);
         assert(pt.children.size() == 2);
         if (pt.children[0].type == tb.get_symbol("set")) {
             assert(pt.children[0].type == tb.get_symbol("set"));
@@ -512,7 +512,7 @@ ParsingTree< SymTok, LabTok > subst_defs(const ParsingTree< SymTok, LabTok > &pt
 
         // If the left-hand operand is a class which is not a set, then first we use df-clel, to reduce to the case where it is a set
         if (pt.children.at(0).label != tb.get_label("cv")) {
-            auto pt_clel = tb.get_parsed_sents().at(tb.get_label("df-clel").val());
+            auto pt_clel = tb.get_parsed_sent(tb.get_label("df-clel"));
             SubstMap< SymTok, LabTok > subst_map;
             subst_map[pt_clel.children.at(0).children.at(0).label] = pt.children.at(0);
             subst_map[pt_clel.children.at(0).children.at(1).label] = pt.children.at(1);
@@ -526,7 +526,7 @@ ParsingTree< SymTok, LabTok > subst_defs(const ParsingTree< SymTok, LabTok > &pt
 
         // If we obtained a class abstraction, then we can use df-clab
         if (pt_right.label == tb.get_label(("cab"))) {
-            auto pt_clab = tb.get_parsed_sents().at(tb.get_label("df-clab").val());
+            auto pt_clab = tb.get_parsed_sent(tb.get_label("df-clab"));
             SubstMap< SymTok, LabTok > subst_map;
             subst_map[pt_clab.children.at(0).children.at(0).children.at(0).label] = pt.children.at(0).children.at(0);
             subst_map[pt_clab.children.at(0).children.at(1).children.at(0).label] = pt_right.children.at(0);

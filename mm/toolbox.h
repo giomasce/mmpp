@@ -326,9 +326,9 @@ private:
 
     // Preparsed sentences
 public:
-    const std::vector< ParsingTree< SymTok, LabTok > > &get_parsed_sents() const;
-    const std::vector<ParsingTree2<SymTok, LabTok> > &get_parsed_sents2() const;
-    const std::vector<std::vector<std::pair< ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode< SymTok, LabTok > > > > &get_parsed_iters() const;
+    const ParsingTree< SymTok, LabTok > &get_parsed_sent(LabTok label) const;
+    const ParsingTree2<SymTok, LabTok> &get_parsed_sent2(LabTok label) const;
+    const std::vector<std::pair< ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode< SymTok, LabTok > > > &get_parsed_iter(LabTok label) const;
 private:
     void compute_sentences_parsing();
     std::vector< ParsingTree< SymTok, LabTok > > parsed_sents;

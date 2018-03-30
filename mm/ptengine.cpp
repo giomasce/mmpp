@@ -31,7 +31,7 @@ SymTok ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::sentence_to_type(cons
 
 const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SentType &ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::get_sentence(const LibType &lib, LabTok label)
 {
-    return lib.get_parsed_sents2().at(label.val());
+    return lib.get_parsed_sent2(label);
 }
 
 void ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::check_match(const LibType &lib, LabTok label, const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SentType &stack, const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SentType &templ, const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SubstMapType &subst_map)

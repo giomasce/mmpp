@@ -187,8 +187,8 @@ void LibraryToolbox::reconstruct_sentence_internal(const ParsingTree<SymTok, Lab
 void LibraryToolbox::compute_vars()
 {
     this->sentence_vars.emplace_back();
-    for (size_t i = 1; i < this->get_parsed_sents2().size(); i++) {
-        const auto &pt = this->get_parsed_sents2()[i];
+    for (size_t i = 1; i < this->get_labels_num().val()+1; i++) {
+        const auto &pt = this->get_parsed_sent2(LabTok(i));
         std::set< LabTok > vars;
         collect_variables2(pt, this->get_standard_is_var(), vars);
         this->sentence_vars.push_back(vars);
@@ -235,7 +235,7 @@ void LibraryToolbox::compute_labels_to_theses()
         if (!ass.is_valid() || this->get_sentence(ass.get_thesis()).at(0) != this->get_turnstile()) {
             continue;
         }
-        const auto &pt = this->get_parsed_sents().at(ass.get_thesis().val());
+        const auto &pt = this->get_parsed_sent(ass.get_thesis());
         LabTok root_label = pt.label;
         if (this->get_standard_is_var()(root_label)) {
             root_label = {};
@@ -279,10 +279,10 @@ std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok>
     // Collect all variables
     std::set< LabTok > var_labs;
     const auto &is_var = this->get_standard_is_var();
-    const ParsingTree< SymTok, LabTok > &thesis_pt = this->get_parsed_sents().at(ass.get_thesis().val());
+    const ParsingTree< SymTok, LabTok > &thesis_pt = this->get_parsed_sent(ass.get_thesis());
     collect_variables(thesis_pt, is_var, var_labs);
     for (const auto hyp : ass.get_ess_hyps()) {
-        const ParsingTree< SymTok, LabTok > &hyp_pt = this->get_parsed_sents().at(hyp.val());
+        const ParsingTree< SymTok, LabTok > &hyp_pt = this->get_parsed_sent(hyp);
         collect_variables(hyp_pt, is_var, var_labs);
     }
 
@@ -293,7 +293,7 @@ std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok>
     ParsingTree< SymTok, LabTok > thesis_new_pt = ::substitute(thesis_pt, is_var, subst);
     std::vector< ParsingTree< SymTok, LabTok > > hyps_new_pts;
     for (const auto hyp : ass.get_ess_hyps()) {
-        const ParsingTree< SymTok, LabTok > &hyp_pt = this->get_parsed_sents().at(hyp.val());
+        const ParsingTree< SymTok, LabTok > &hyp_pt = this->get_parsed_sent(hyp);
         hyps_new_pts.push_back(::substitute(hyp_pt, is_var, subst));
     }
     return std::make_pair(hyps_new_pts, thesis_new_pt);
@@ -304,10 +304,10 @@ std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTo
     // Collect all variables
     std::set< LabTok > var_labs;
     const auto &is_var = this->get_standard_is_var();
-    const ParsingTree2< SymTok, LabTok > &thesis_pt = this->get_parsed_sents2().at(ass.get_thesis().val());
+    const ParsingTree2< SymTok, LabTok > &thesis_pt = this->get_parsed_sent2(ass.get_thesis());
     collect_variables2(thesis_pt, is_var, var_labs);
     for (const auto hyp : ass.get_ess_hyps()) {
-        const ParsingTree2< SymTok, LabTok > &hyp_pt = this->get_parsed_sents2().at(hyp.val());
+        const ParsingTree2< SymTok, LabTok > &hyp_pt = this->get_parsed_sent2(hyp);
         collect_variables2(hyp_pt, is_var, var_labs);
     }
 
@@ -318,7 +318,7 @@ std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTo
     ParsingTree2< SymTok, LabTok > thesis_new_pt = ::substitute2_simple(thesis_pt, is_var, subst);
     std::vector< ParsingTree2< SymTok, LabTok > > hyps_new_pts;
     for (const auto hyp : ass.get_ess_hyps()) {
-        const ParsingTree2< SymTok, LabTok > &hyp_pt = this->get_parsed_sents2().at(hyp.val());
+        const ParsingTree2< SymTok, LabTok > &hyp_pt = this->get_parsed_sent2(hyp);
         hyps_new_pts.push_back(::substitute2_simple(hyp_pt, is_var, subst));
     }
     return std::make_pair(hyps_new_pts, thesis_new_pt);
@@ -617,7 +617,7 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
             continue;
         }
         UnilateralUnificator< SymTok, LabTok > unif(is_var);
-        auto &templ_pt = self->get_parsed_sents().at(ass.get_thesis().val());
+        auto &templ_pt = self->get_parsed_sent(ass.get_thesis());
         unif.add_parsing_trees(templ_pt, pt_thesis.second);
         if (!unif.is_unifiable()) {
             continue;
@@ -637,7 +637,7 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
                 if (!res) {
                     break;
                 }
-                auto &templ_pt = self->get_parsed_sents().at(ass.get_ess_hyps()[perm[i]].val());
+                auto &templ_pt = self->get_parsed_sent(ass.get_ess_hyps()[perm[i]]);
                 unif2.add_parsing_trees(templ_pt, pt_hyps[i].second);
                 res = unif2.is_unifiable();
                 if (!res) {
@@ -1029,19 +1029,19 @@ LabTok LibraryToolbox::get_registered_prover_label(const RegisteredProver &prove
     return inst_data.label;
 }
 
-const std::vector<ParsingTree<SymTok, LabTok> > &LibraryToolbox::get_parsed_sents() const
+const ParsingTree<SymTok, LabTok> &LibraryToolbox::get_parsed_sent(LabTok label) const
 {
-    return this->parsed_sents;
+    return this->parsed_sents.at(label.val());
 }
 
-const std::vector<ParsingTree2<SymTok, LabTok> > &LibraryToolbox::get_parsed_sents2() const
+const ParsingTree2<SymTok, LabTok> &LibraryToolbox::get_parsed_sent2(LabTok label) const
 {
-    return this->parsed_sents2;
+    return this->parsed_sents2.at(label.val());
 }
 
-const std::vector<std::vector<std::pair<ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode<SymTok, LabTok> > > > &LibraryToolbox::get_parsed_iters() const
+const std::vector<std::pair<ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode<SymTok, LabTok> > > &LibraryToolbox::get_parsed_iter(LabTok label) const
 {
-    return this->parsed_iters;
+    return this->parsed_iters.at(label.val());
 }
 
 void LibraryToolbox::compute_registered_prover(size_t index, bool exception_on_failure)
