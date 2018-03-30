@@ -38,6 +38,16 @@ static Sentence do_subst(const Sentence &sent, const Map &subst_map, const Libra
     return new_sent;
 }
 
+ProofSentenceTraits<Sentence>::VarType ProofSentenceTraits<Sentence>::sym_to_var(const LibType &lib, SymTok sym) {
+    (void) lib;
+    return sym;
+}
+
+SymTok ProofSentenceTraits<Sentence>::var_to_sym(const LibType &lib, VarType var) {
+    (void) lib;
+    return var;
+}
+
 ProofSentenceTraits<Sentence>::VarType ProofSentenceTraits<Sentence>::floating_to_var(const LibType &lib, LabTok label) {
     return lib.get_sentence(label).at(1);
 }

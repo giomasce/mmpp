@@ -160,10 +160,10 @@ void find_generalizable_theorems() {
 
         SubstMap< SymTok, LabTok > subst2;
         UnilateralUnificator< SymTok, LabTok > unif(tb.get_standard_is_var());
-        unif.add_parsing_trees(reactor.get_theorem(), tb.get_parsed_sents()[ass.get_thesis()]);
+        unif.add_parsing_trees(reactor.get_theorem(), tb.get_parsed_sents()[ass.get_thesis().val()]);
         auto hypotheses = reactor.get_hypotheses();
         for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
-            unif.add_parsing_trees(hypotheses[i], tb.get_parsed_sents()[ass.get_ess_hyps()[i]]);
+            unif.add_parsing_trees(hypotheses[i], tb.get_parsed_sents()[ass.get_ess_hyps()[i].val()]);
         }
         tie(res, subst2) = unif.unify();
         assert(res);

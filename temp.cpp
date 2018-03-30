@@ -64,7 +64,7 @@ int count_root_type_main(int argc, char *argv[]) {
     LabTok imp_label = tb.get_label("wi");
     for (const auto &ass : tb.get_library().get_assertions()) {
         if (ass.is_valid() && tb.get_sentence(ass.get_thesis()).at(0) == tb.get_turnstile()) {
-            const auto &pt = tb.get_parsed_sents().at(ass.get_thesis());
+            const auto &pt = tb.get_parsed_sents().at(ass.get_thesis().val());
             root.process(pt);
             if (pt.label == imp_label) {
                 imp1.process(pt.children[0]);

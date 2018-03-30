@@ -18,11 +18,11 @@ int resolver_main(int argc, char *argv[]) {
         auto arg = argv[i];
         int num = atoi(arg);
         if (num != 0) {
-            std::cout << "Resolving " << arg << " as symbol: " << lib.resolve_symbol(num) << std::endl;
-            std::cout << "Resolving " << arg << " as label: " << lib.resolve_label(num) << std::endl;
+            std::cout << "Resolving " << arg << " as symbol: " << lib.resolve_symbol(SymTok(num)) << std::endl;
+            std::cout << "Resolving " << arg << " as label: " << lib.resolve_label(LabTok(num)) << std::endl;
         } else {
-            std::cout << "Resolving " << arg << " as symbol: " << lib.get_symbol(arg) << std::endl;
-            std::cout << "Resolving " << arg << " as label: " << lib.get_label(arg) << std::endl;
+            std::cout << "Resolving " << arg << " as symbol: " << lib.get_symbol(arg).val() << std::endl;
+            std::cout << "Resolving " << arg << " as label: " << lib.get_label(arg).val() << std::endl;
         }
     }
     return 0;

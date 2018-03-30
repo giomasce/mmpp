@@ -46,7 +46,7 @@ std::vector< std::string > map_to_vect(const std::unordered_map< TokType, std::s
     std::vector< std::string > ret;
     ret.resize(m.size()+1);
     for (auto &i : m) {
-        ret[i.first] = i.second;
+        ret[i.first.val()] = i.second;
     }
     return ret;
 }
@@ -90,16 +90,16 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
         ret["labels"] = map_to_vect(this->library->get_labels());
         const auto &addendum = this->library->get_addendum();
         ret["addendum"] = jsonize(addendum);
-        ret["max_number"] = this->library->get_max_number();
+        ret["max_number"] = this->library->get_max_number().val();
         return ret;
     } else if (*path_begin == "get_sentence") {
         path_begin++;
         assert_or_throw< SendError >(path_begin != path_end, 404);
-        int tok = safe_stoi(*path_begin);
+        auto tok = LabTok(safe_stoi(*path_begin));
         try {
             const Sentence &sent = this->library->get_sentence(tok);
             nlohmann::json ret;
-            ret["sentence"] = sent;
+            ret["sentence"] = tok_to_int_vect(sent);
             return ret;
         } catch (std::out_of_range&) {
             throw SendError(404);
@@ -107,7 +107,7 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
     } else if (*path_begin == "get_assertion") {
         path_begin++;
         assert_or_throw< SendError >(path_begin != path_end, 404);
-        int tok = safe_stoi(*path_begin);
+        auto tok = LabTok(safe_stoi(*path_begin));
         try {
             const Assertion &ass = this->library->get_assertion(tok);
             assert_or_throw< SendError >(ass.is_valid(), 404);
@@ -152,7 +152,7 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
     } else if (*path_begin == "get_proof_tree") {
         path_begin++;
         assert_or_throw< SendError >(path_begin != path_end, 404);
-        int tok = safe_stoi(*path_begin);
+        auto tok = LabTok(safe_stoi(*path_begin));
         try {
             const Assertion &ass = this->library->get_assertion(tok);
             assert_or_throw< SendError >(ass.is_valid(), 404);

@@ -60,10 +60,10 @@ const UncompressedProof CompressedProofOperator::uncompress()
          */
         assert_or_throw< ProofException< Sentence > >(labels.size() < max_decompression_size, "Decompressed proof is too large");
         const CodeTok &code = this->proof.get_codes().at(i);
-        if (code == 0) {
+        if (code == CodeTok{}) {
             saved.emplace_back(labels.begin() + opening_stack.back(), labels.end());
-        } else if (code <= this->ass.get_mand_hyps_num()) {
-            LabTok label = this->ass.get_mand_hyp(code-1);
+        } else if (code.val() <= this->ass.get_mand_hyps_num()) {
+            LabTok label = this->ass.get_mand_hyp(code.val()-1);
             size_t opening = labels.size();
             assert_or_throw< ProofException< Sentence > >(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
             for (size_t j = 0; j < this->get_hyp_num(label); j++) {
@@ -72,8 +72,8 @@ const UncompressedProof CompressedProofOperator::uncompress()
             }
             opening_stack.push_back(opening);
             labels.push_back(label);
-        } else if (code <= this->ass.get_mand_hyps_num() + this->proof.get_refs().size()) {
-            LabTok label = this->proof.get_refs().at(code-this->ass.get_mand_hyps_num()-1);
+        } else if (code.val() <= this->ass.get_mand_hyps_num() + this->proof.get_refs().size()) {
+            LabTok label = this->proof.get_refs().at(code.val()-this->ass.get_mand_hyps_num()-1);
             size_t opening = labels.size();
             assert_or_throw< ProofException< Sentence > >(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
             for (size_t j = 0; j < this->get_hyp_num(label); j++) {
@@ -83,8 +83,8 @@ const UncompressedProof CompressedProofOperator::uncompress()
             opening_stack.push_back(opening);
             labels.push_back(label);
         } else {
-            assert_or_throw< ProofException< Sentence > >(code <= this->ass.get_mand_hyps_num() + this->proof.get_refs().size() + saved.size(), "Code too big in compressed proof");
-            const std::vector< LabTok > &sent = saved.at(code-this->ass.get_mand_hyps_num()-this->proof.get_refs().size()-1);
+            assert_or_throw< ProofException< Sentence > >(code.val() <= this->ass.get_mand_hyps_num() + this->proof.get_refs().size() + saved.size(), "Code too big in compressed proof");
+            const std::vector< LabTok > &sent = saved.at(code.val()-this->ass.get_mand_hyps_num()-this->proof.get_refs().size()-1);
             size_t opening = labels.size();
             opening_stack.push_back(opening);
             std::copy(sent.begin(), sent.end(), back_inserter(labels));
@@ -107,10 +107,10 @@ bool CompressedProofOperator::check_syntax()
     unsigned int zero_count = 0;
     for (auto &code : this->proof.get_codes()) {
         assert(code != INVALID_CODE);
-        if (code == 0) {
+        if (code == CodeTok{}) {
             zero_count++;
         } else {
-            if (code > this->ass.get_mand_hyps_num() + this->proof.get_refs().size() + zero_count) {
+            if (code.val() > this->ass.get_mand_hyps_num() + this->proof.get_refs().size() + zero_count) {
                 return false;
             }
         }
@@ -122,10 +122,10 @@ bool CompressedProofOperator::is_trivial() const
 {
     bool first_ess_found = false;
     for (const auto &code : this->proof.get_codes()) {
-        if (code == 0) {
+        if (code == CodeTok{}) {
             return false;
         }
-        if (code <= this->ass.get_float_hyps().size()) {
+        if (code.val() <= this->ass.get_float_hyps().size()) {
             continue;
         }
         if (first_ess_found) {
@@ -169,7 +169,8 @@ static void compress_unwind_proof_tree_phase1(const ProofTree< Sentence > &tree,
     }
     // If the label is new, record it
     if (label_map.find(tree.label) == label_map.end()) {
-        auto res = label_map.insert(std::make_pair(tree.label, code_idx++));
+        auto res = label_map.insert(std::make_pair(tree.label, code_idx));
+        code_idx = CodeTok(code_idx.val()+1);
         assert(res.second);
         refs.push_back(tree.label);
     }
@@ -198,9 +199,10 @@ static void compress_unwind_proof_tree_phase2(const ProofTree< Sentence > &tree,
     codes.push_back(label_map.at(tree.label));
     // If the sentence is known to be duplicate and has not been saved yet, save it
     if (dupl_sents.find(tree.sentence) != dupl_sents.end() && dupl_sents_map.find(tree.sentence) == dupl_sents_map.end()) {
-        auto res = dupl_sents_map.insert(std::make_pair(tree.sentence, code_idx++));
+        auto res = dupl_sents_map.insert(std::make_pair(tree.sentence, code_idx));
+        code_idx = CodeTok(code_idx.val()+1);
         assert(res.second);
-        codes.push_back(0);
+        codes.push_back(CodeTok(0));
     }
     // Record the sentence as seen; this must be done when closing, for same reason as above
     sents.insert(tree.sentence);
@@ -208,22 +210,25 @@ static void compress_unwind_proof_tree_phase2(const ProofTree< Sentence > &tree,
 
 const CompressedProof UncompressedProofOperator::compress(CompressionStrategy strategy)
 {
-    CodeTok code_idx = 1;
+    CodeTok code_idx(1);
     std::unordered_map< LabTok, CodeTok > label_map;
     std::vector < LabTok > refs;
     std::vector < CodeTok > codes;
     for (auto &label : this->ass.get_float_hyps()) {
-        auto res = label_map.insert(std::make_pair(label, code_idx++));
+        auto res = label_map.insert(std::make_pair(label, code_idx));
+        code_idx = CodeTok(code_idx.val()+1);
         assert(res.second);
     }
     for (auto &label : this->ass.get_ess_hyps()) {
-        auto res = label_map.insert(std::make_pair(label, code_idx++));
+        auto res = label_map.insert(std::make_pair(label, code_idx));
+        code_idx = CodeTok(code_idx.val()+1);
         assert(res.second);
     }
     if (strategy == CS_NO_BACKREFS) {
         for (auto &label : this->proof.get_labels()) {
             if (label_map.find(label) == label_map.end()) {
-                auto res = label_map.insert(std::make_pair(label, code_idx++));
+                auto res = label_map.insert(std::make_pair(label, code_idx));
+                code_idx = CodeTok(code_idx.val()+1);
                 assert(res.second);
                 refs.push_back(label);
             }
@@ -293,17 +298,18 @@ size_t ProofOperator::get_hyp_num(const LabTok label) const {
 CodeTok CompressedDecoder::push_char(char c)
 {
     if (is_mm_whitespace(c)) {
-        return -1;
+        return INVALID_CODE;
     }
     assert_or_throw< MMPPParsingError >('A' <= c && c <= 'Z', "Invalid character in compressed proof");
     if (c == 'Z') {
         assert_or_throw< MMPPParsingError >(this->current == 0, "Invalid character Z in compressed proof");
-        return 0;
+        return CodeTok{};
     } else if ('A' <= c && c <= 'T') {
         uint32_t res = this->current * 20 + (c - 'A' + 1);
         this->current = 0;
-        assert(res != INVALID_CODE);
-        return res;
+        CodeTok res2(res);
+        assert(res2 != INVALID_CODE);
+        return res2;
     } else {
         this->current = this->current * 5 + (c - 'U' + 1);
         return INVALID_CODE;
@@ -313,19 +319,20 @@ CodeTok CompressedDecoder::push_char(char c)
 std::string CompressedEncoder::push_code(CodeTok x)
 {
     assert_or_throw< MMPPParsingError >(x != INVALID_CODE);
-    if (x == 0) {
+    auto xv = x.val();
+    if (xv == 0) {
         return "Z";
     }
     std::vector< char > buf;
-    int div = (x-1) / 20;
-    int rem = (x-1) % 20 + 1;
+    auto div = (xv-1) / 20;
+    auto rem = (xv-1) % 20 + 1;
     buf.push_back('A' + rem - 1);
-    x = div;
-    while (x > 0) {
-        div = (x-1) / 5;
-        rem = (x-1) % 5 + 1;
+    xv = div;
+    while (xv > 0) {
+        div = (xv-1) / 5;
+        rem = (xv-1) % 5 + 1;
         buf.push_back('U' + rem - 1);
-        x = div;
+        xv = div;
     }
     return std::string(buf.rbegin(), buf.rend());
 }

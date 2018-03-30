@@ -84,13 +84,13 @@ void Reader::run () {
             this->toks.clear();
         } else {
             this->label = this->lib.create_label(token);
-            assert_or_throw< MMPPParsingError >(this->label != 0, "Repeated label detected");
+            assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Repeated label detected");
             //cout << "Found label " << token << endl;
         }
     }
     this->final_frame = this->stack.back();
     this->lib.set_final_stack_frame(this->final_frame);
-    this->lib.set_max_number(this->number-1);
+    this->lib.set_max_number(LabTok(this->number.val()-1));
     this->stack.pop_back();
     assert_or_throw< MMPPParsingError >(this->stack.empty(), "Unmatched open scoping block");
 
@@ -119,7 +119,7 @@ const StackFrame &Reader::get_final_frame() const
 
 void Reader::parse_c()
 {
-    assert_or_throw< MMPPParsingError >(this->label == 0, "Undue label in $c statement");
+    assert_or_throw< MMPPParsingError >(this->label == LabTok{}, "Undue label in $c statement");
     assert_or_throw< MMPPParsingError >(this->stack.size() == 1, "Found $c statement when not in top-level scope");
     for (auto stok : this->toks) {
         SymTok tok = this->lib.create_symbol(stok);
@@ -132,7 +132,7 @@ void Reader::parse_c()
 
 void Reader::parse_v()
 {
-    assert_or_throw< MMPPParsingError >(this->label == 0, "Undue label in $v statement");
+    assert_or_throw< MMPPParsingError >(this->label == LabTok{}, "Undue label in $v statement");
     for (auto stok : this->toks) {
         SymTok tok = this->lib.create_or_get_symbol(stok);
         assert_or_throw< MMPPParsingError >(!this->check_const(tok), "Symbol already bound in $v statement");
@@ -144,12 +144,12 @@ void Reader::parse_v()
 
 void Reader::parse_f()
 {
-    assert_or_throw< MMPPParsingError >(this->label != 0, "Missing label in $f statement");
+    assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Missing label in $f statement");
     assert_or_throw< MMPPParsingError >(this->toks.size() == 2, "Found $f statement with wrong length");
     SymTok const_tok = this->lib.get_symbol(this->toks[0]);
     SymTok var_tok = this->lib.get_symbol(this->toks[1]);
-    assert_or_throw< MMPPParsingError >(const_tok != 0, "First member of a $f statement is not defined");
-    assert_or_throw< MMPPParsingError >(var_tok != 0, "Second member of a $f statement is not defined");
+    assert_or_throw< MMPPParsingError >(const_tok != SymTok{}, "First member of a $f statement is not defined");
+    assert_or_throw< MMPPParsingError >(var_tok != SymTok{}, "Second member of a $f statement is not defined");
     assert_or_throw< MMPPParsingError >(this->check_const(const_tok), "First member of a $f statement is not a constant");
     assert_or_throw< MMPPParsingError >(this->check_var(var_tok), "Second member of a $f statement is not a variable");
     this->lib.add_sentence(this->label, { const_tok, var_tok }, SentenceType::FLOATING_HYP);
@@ -159,12 +159,12 @@ void Reader::parse_f()
 
 void Reader::parse_e()
 {
-    assert_or_throw< MMPPParsingError >(this->label != 0, "Missing label in $e statement");
+    assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Missing label in $e statement");
     assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $e statement");
     std::vector< SymTok > tmp;
     for (auto &stok : this->toks) {
         SymTok tok = this->lib.get_symbol(stok);
-        assert_or_throw< MMPPParsingError >(tok != 0, "Symbol in $e statement is not defined");
+        assert_or_throw< MMPPParsingError >(tok != SymTok{}, "Symbol in $e statement is not defined");
         assert(this->check_const(tok) || this->check_var(tok));
         tmp.push_back(tok);
     }
@@ -175,7 +175,7 @@ void Reader::parse_e()
 
 void Reader::parse_d()
 {
-    assert_or_throw< MMPPParsingError >(this->label == 0, "Undue label in $d statement");
+    assert_or_throw< MMPPParsingError >(this->label == LabTok{}, "Undue label in $d statement");
     for (auto it = this->toks.begin(); it != this->toks.end(); it++) {
         SymTok tok1 = this->lib.get_symbol(*it);
         assert_or_throw< MMPPParsingError >(this->check_var(tok1), "Symbol in $d statement is not a variable");
@@ -291,12 +291,12 @@ std::set< std::pair< SymTok, SymTok > > Reader::collect_opt_dists(std::set< SymT
 void Reader::parse_a()
 {
     // Usual sanity checks and symbol conversion
-    assert_or_throw< MMPPParsingError >(this->label != 0, "Missing label in $a statement");
+    assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Missing label in $a statement");
     assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $a statement");
     std::vector< SymTok > tmp;
     for (auto &stok : this->toks) {
         SymTok tok = this->lib.get_symbol(stok);
-        assert_or_throw< MMPPParsingError >(tok != 0, "Symbol in $a statement is not defined");
+        assert_or_throw< MMPPParsingError >(tok != SymTok{}, "Symbol in $a statement is not defined");
         assert(this->check_const(tok) || this->check_var(tok));
         tmp.push_back(tok);
     }
@@ -311,7 +311,7 @@ void Reader::parse_a()
 
     // Finally build assertion
     Assertion ass(false, false, mand_dists, {}, float_hyps, ess_hyps, {}, this->label, this->number, this->last_comment);
-    this->number++;
+    this->number = LabTok(this->number.val()+1);
     this->last_comment = "";
     this->lib.add_assertion(this->label, ass);
 }
@@ -319,7 +319,7 @@ void Reader::parse_a()
 void Reader::parse_p()
 {
     // Usual sanity checks and symbol conversion
-    assert_or_throw< MMPPParsingError >(this->label != 0, "Missing label in $p statement");
+    assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Missing label in $p statement");
     assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $p statement");
     std::vector< SymTok > tmp;
     std::vector< LabTok > proof_labels;
@@ -335,7 +335,7 @@ void Reader::parse_p()
                 continue;
             }
             SymTok tok = this->lib.get_symbol(stok);
-            assert_or_throw< MMPPParsingError >(tok != 0, "Symbol in $p statement is not defined");
+            assert_or_throw< MMPPParsingError >(tok != SymTok{}, "Symbol in $p statement is not defined");
             assert(this->check_const(tok) || this->check_var(tok));
             tmp.push_back(tok);
         } else {
@@ -358,7 +358,7 @@ void Reader::parse_p()
                     continue;
                 } else {
                     LabTok tok = this->lib.get_label(stok);
-                    assert_or_throw< MMPPParsingError >(tok != 0, "Label in compressed proof in $p statement is not defined");
+                    assert_or_throw< MMPPParsingError >(tok != LabTok{}, "Label in compressed proof in $p statement is not defined");
                     proof_refs.push_back(tok);
                 }
             }
@@ -372,7 +372,7 @@ void Reader::parse_p()
             }
             if (compressed_proof == -1) {
                 LabTok tok = this->lib.get_label(stok);
-                assert_or_throw< MMPPParsingError >(tok != 0, "Symbol in uncompressed proof in $p statement is not defined");
+                assert_or_throw< MMPPParsingError >(tok != LabTok{}, "Symbol in uncompressed proof in $p statement is not defined");
                 proof_labels.push_back(tok);
             }
         }
@@ -397,7 +397,7 @@ void Reader::parse_p()
 
     // Finally build assertion and attach proof
     Assertion ass(true, compressed_proof != 3, mand_dists, opt_dists, float_hyps, ess_hyps, opt_hyps, this->label, this->number, this->last_comment);
-    this->number++;
+    this->number = LabTok(this->number.val()+1);
     this->last_comment = "";
     if (compressed_proof != 3) {
         std::shared_ptr< Proof > proof;
@@ -505,7 +505,7 @@ void Reader::parse_j_code(const std::vector<std::vector<std::pair<bool, std::str
             assert_or_throw< MMPPParsingError >(tokens.size() >= 2, "syntax instruction in $j comment with wrong length");
             assert_or_throw< MMPPParsingError >(tokens.at(1).first, "malformed syntax instruction in $j comment");
             SymTok tok1 = this->lib.get_symbol(tokens.at(1).second);
-            assert_or_throw< MMPPParsingError >(tok1 != 0, "unknown symbol in syntax instruction in $j comment");
+            assert_or_throw< MMPPParsingError >(tok1 != SymTok{}, "unknown symbol in syntax instruction in $j comment");
             SymTok tok2 = tok1;
             if (tokens.size() > 2) {
                 assert_or_throw< MMPPParsingError >(tokens.size() == 4, "syntax instruction in $j comment with wrong length");
@@ -513,7 +513,7 @@ void Reader::parse_j_code(const std::vector<std::vector<std::pair<bool, std::str
                 assert_or_throw< MMPPParsingError >(tokens.at(3).first, "malformed syntax instruction in $j comment");
                 assert_or_throw< MMPPParsingError >(tokens.at(2).second == "as", "malformed syntax instruction in $j comment");
                 tok2 = this->lib.get_symbol(tokens.at(3).second);
-                assert_or_throw< MMPPParsingError >(tok2 != 0, "unknown symbol in syntax instruction in $j comment");
+                assert_or_throw< MMPPParsingError >(tok2 != SymTok{}, "unknown symbol in syntax instruction in $j comment");
             }
             add.syntax[tok1] = tok2;
         } else if (command == "unambiguous") {
@@ -583,16 +583,16 @@ void Reader::parse_t_code(const std::vector< std::vector< std::pair< bool, std::
             assert_or_throw< MMPPParsingError >(tokens.at(2).second == "as", "malformed *def instruction in $t comment");
             std::string value = decode_string(tokens.begin() + 3, tokens.end());
             SymTok tok = this->lib.get_symbol(tokens.at(1).second);
-            assert_or_throw< MMPPParsingError >(tok != 0, "unknown symbol in *def instruction in $t comment");
+            assert_or_throw< MMPPParsingError >(tok != SymTok{}, "unknown symbol in *def instruction in $t comment");
             if (deftype == 1) {
-                add.htmldefs.resize(std::max(add.htmldefs.size(), (size_t) tok+1));
-                add.htmldefs[tok] = value;
+                add.htmldefs.resize(std::max(add.htmldefs.size(), (size_t) tok.val()+1));
+                add.htmldefs[tok.val()] = value;
             } else if (deftype == 2) {
-                add.althtmldefs.resize(std::max(add.althtmldefs.size(), (size_t) tok+1));
-                add.althtmldefs[tok] = value;
+                add.althtmldefs.resize(std::max(add.althtmldefs.size(), (size_t) tok.val()+1));
+                add.althtmldefs[tok.val()] = value;
             } else if (deftype == 3) {
-                add.latexdefs.resize(std::max(add.latexdefs.size(), (size_t) tok+1));
-                add.latexdefs[tok] = value;
+                add.latexdefs.resize(std::max(add.latexdefs.size(), (size_t) tok.val()+1));
+                add.latexdefs[tok.val()] = value;
             }
         }
     }

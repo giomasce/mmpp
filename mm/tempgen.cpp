@@ -3,8 +3,8 @@
 #include <mutex>
 
 TempGenerator::TempGenerator(const Library &lib) : lib(lib),
-    temp_syms(lib.get_symbols_num()+1), temp_labs(lib.get_labels_num()+1),
-    syms_base(lib.get_symbols_num()+1), labs_base(lib.get_labels_num()+1)
+    temp_syms(SymTok(lib.get_symbols_num().val()+1)), temp_labs(LabTok(lib.get_labels_num().val()+1)),
+    syms_base(lib.get_symbols_num().val()+1), labs_base(lib.get_labels_num().val()+1)
 {
     assert(this->lib.is_immutable());
 }
@@ -15,7 +15,7 @@ void TempGenerator::create_temp_var(SymTok type_sym)
     assert(lib.is_constant(type_sym));
     size_t idx = ++this->temp_idx[type_sym];
     std::string sym_name = this->lib.resolve_symbol(type_sym) + std::to_string(idx);
-    assert(this->lib.get_symbol(sym_name) == LabTok{});
+    assert(this->lib.get_symbol(sym_name) == SymTok{});
     std::string lab_name = "temp" + sym_name;
     assert(this->lib.get_label(lab_name) == LabTok{});
     SymTok sym = this->temp_syms.create(sym_name);
@@ -25,10 +25,10 @@ void TempGenerator::create_temp_var(SymTok type_sym)
     // Add the variables to a few structures
     //this->derivations.at(type_sym).push_back(pair< LabTok, vector< SymTok > >(lab, { sym }));
     this->ders_by_label[lab] = std::pair< SymTok, std::vector< SymTok > >(type_sym, { sym });
-    enlarge_and_set(this->var_lab_to_sym, lab - this->labs_base) = sym;
-    enlarge_and_set(this->var_sym_to_lab, sym - this->syms_base) = lab;
-    enlarge_and_set(this->var_lab_to_type_sym, lab - this->labs_base) = type_sym;
-    enlarge_and_set(this->var_sym_to_type_sym, sym - this->syms_base) = type_sym;
+    enlarge_and_set(this->var_lab_to_sym, lab.val() - this->labs_base) = sym;
+    enlarge_and_set(this->var_sym_to_lab, sym.val() - this->syms_base) = lab;
+    enlarge_and_set(this->var_lab_to_type_sym, lab.val() - this->labs_base) = type_sym;
+    enlarge_and_set(this->var_sym_to_type_sym, sym.val() - this->syms_base) = type_sym;
 
     // And insert it to the free list
     this->free_temp_vars[type_sym].push_back(std::make_pair(lab, sym));
@@ -146,28 +146,28 @@ LabTok TempGenerator::get_var_sym_to_lab(SymTok sym)
 {
     std::unique_lock< std::mutex > lock(this->global_mutex);
 
-    return this->var_sym_to_lab.at(sym - this->syms_base);
+    return this->var_sym_to_lab.at(sym.val() - this->syms_base);
 }
 
 SymTok TempGenerator::get_var_lab_to_sym(LabTok lab)
 {
     std::unique_lock< std::mutex > lock(this->global_mutex);
 
-    return this->var_lab_to_sym.at(lab - this->labs_base);
+    return this->var_lab_to_sym.at(lab.val() - this->labs_base);
 }
 
 SymTok TempGenerator::get_var_sym_to_type_sym(SymTok sym)
 {
     std::unique_lock< std::mutex > lock(this->global_mutex);
 
-    return this->var_sym_to_type_sym.at(sym - this->syms_base);
+    return this->var_sym_to_type_sym.at(sym.val() - this->syms_base);
 }
 
 SymTok TempGenerator::get_var_lab_to_type_sym(LabTok lab)
 {
     std::unique_lock< std::mutex > lock(this->global_mutex);
 
-    return this->var_lab_to_type_sym.at(lab - this->labs_base);
+    return this->var_lab_to_type_sym.at(lab.val() - this->labs_base);
 }
 
 const std::pair<SymTok, Sentence> &TempGenerator::get_derivation_rule(LabTok lab)

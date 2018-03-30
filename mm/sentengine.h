@@ -27,6 +27,8 @@ struct ProofSentenceTraits< Sentence > {
         const Sentence &sentence;
     };
 
+    static VarType sym_to_var(const LibType &lib, SymTok sym);
+    static SymTok var_to_sym(const LibType &lib, VarType var);
     static VarType floating_to_var(const LibType &lib, LabTok label);
     static SymTok floating_to_type(const LibType &lib, LabTok label);
     static SymTok sentence_to_type(const LibType &lib, const SentType &sent);

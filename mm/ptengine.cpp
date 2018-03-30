@@ -1,6 +1,14 @@
 
 #include "ptengine.h"
 
+ProofSentenceTraits<ParsingTree2<SymTok, LabTok>>::VarType ProofSentenceTraits<ParsingTree2<SymTok, LabTok>>::sym_to_var(const LibType &lib, SymTok sym) {
+    return lib.get_var_sym_to_lab(sym);
+}
+
+SymTok ProofSentenceTraits<ParsingTree2<SymTok, LabTok>>::var_to_sym(const LibType &lib, VarType var) {
+    return lib.get_var_lab_to_sym(var);
+}
+
 ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::VarType ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::floating_to_var(const LibType &lib, LabTok label)
 {
     /* Sometimes the defining inference for a symbol is repeated more
@@ -23,7 +31,7 @@ SymTok ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::sentence_to_type(cons
 
 const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SentType &ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::get_sentence(const LibType &lib, LabTok label)
 {
-    return lib.get_parsed_sents2().at(label);
+    return lib.get_parsed_sents2().at(label.val());
 }
 
 void ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::check_match(const LibType &lib, LabTok label, const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SentType &stack, const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SentType &templ, const ProofSentenceTraits<ParsingTree2<SymTok, LabTok> >::SubstMapType &subst_map)

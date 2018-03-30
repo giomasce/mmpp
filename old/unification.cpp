@@ -29,7 +29,7 @@ static void unify_old_internal(std::vector<SymTok>::const_iterator sent_cur, std
     } else {
         // Process a new token from the template
         const SymTok &cur_tok = *templ_cur;
-        if (lib.is_constant(cur_tok) || cur_tok == 0) {
+        if (lib.is_constant(cur_tok) || cur_tok == SymTok{}) {
             // Easy case: the token is a constant
             if (sent_cur != sent_end && cur_tok == *sent_cur) {
 #ifdef OLD_UNIFICATION_VERBOSE

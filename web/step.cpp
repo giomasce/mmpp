@@ -429,7 +429,7 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             boost::split(toks, sent_str, boost::is_any_of(" "));
             Sentence sent;
             for (const auto &x : toks) {
-                sent.push_back(safe_stoi(x));
+                sent.push_back(SymTok(safe_stoi(x)));
             }
             self->set_sentence(sent);
             nlohmann::json ret = nlohmann::json::object();

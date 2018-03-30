@@ -244,17 +244,17 @@ void CompressedProofExecutor< SentType_ >::execute()
 {
     //cerr << "Executing proof of " << this->lib.resolve_label(this->ass.get_thesis()) << endl;
     for (auto &code : this->proof.get_codes()) {
-        if (code == 0) {
+        if (code == CodeTok{}) {
             this->save_step();
-        } else if (code <= this->ass.get_mand_hyps_num()) {
-            LabTok label = this->ass.get_mand_hyp(code-1);
+        } else if (code.val() <= this->ass.get_mand_hyps_num()) {
+            LabTok label = this->ass.get_mand_hyp(code.val()-1);
             this->process_label(label);
-        } else if (code <= this->ass.get_mand_hyps_num() + this->proof.get_refs().size()) {
-            LabTok label = this->proof.get_refs().at(code-this->ass.get_mand_hyps_num()-1);
+        } else if (code.val() <= this->ass.get_mand_hyps_num() + this->proof.get_refs().size()) {
+            LabTok label = this->proof.get_refs().at(code.val()-this->ass.get_mand_hyps_num()-1);
             this->process_label(label);
         } else {
             try {
-                this->process_saved_step(code - this->ass.get_mand_hyps_num()-this->proof.get_refs().size()-1);
+                this->process_saved_step(code.val() - this->ass.get_mand_hyps_num()-this->proof.get_refs().size()-1);
             } catch (std::out_of_range&) {
                 throw ProofException< Sentence >("Code too big in compressed proof");
             }

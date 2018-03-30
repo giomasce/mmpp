@@ -7,18 +7,86 @@
 #include <numeric>
 #include <unordered_map>
 
+#include <boost/functional/hash.hpp>
+
+#include "libs/json.h"
+
 #include "utils/utils.h"
 
-typedef uint32_t SymTok;
-typedef uint32_t LabTok;
-typedef uint32_t CodeTok;
+// This definition is inspired to BOOST_STRONG_TYPEDEF, but supports more things
+#define TOK_TYPEDEF(N, T) \
+static_assert(std::is_integral< N >::value, "Must be an integral type"); \
+static_assert(std::is_unsigned< N >::value, "Must be unsigned"); \
+class T { \
+private: \
+    N val_; \
+public: \
+    \
+    /* Some static things */ \
+    static T maxval() { return T((std::numeric_limits< N >::max)()); } \
+    typedef N val_type; \
+    \
+    /* Basic things, as for BOOST_STRONG_TYPEDEF */  \
+    T() : val_() {} \
+    explicit T(const N val) : val_(val) {} \
+    T &operator=(const N &x) { this->val_ = x; return *this; } \
+    T &operator=(const T &x) { this->val_ = x.val_; return *this; } \
+    bool operator==(const T &x) const { return this->val_ == x.val_; } \
+    bool operator!=(const T &x) const { return this->val_ != x.val_; } \
+    bool operator<(const T &x) const { return this->val_ < x.val_; } \
+    bool operator<=(const T &x) const { return this->val_ <= x.val_; } \
+    bool operator>(const T &x) const { return this->val_ > x.val_; } \
+    bool operator>=(const T &x) const { return this->val_ >= x.val_; } \
+    \
+    /* We permit to get the encapsulated value, but through an explicit call */ \
+    N val() const { return this->val_; } \
+    \
+    /* Support boost serialization */ \
+    friend class boost::serialization::access; \
+    template< class Archive > \
+    void serialize(Archive &ar, const unsigned int version) { \
+        (void) version; \
+        ar & this->val_; \
+    } \
+}; \
+\
+/* Support standard library hashing */ \
+namespace std { \
+template<> \
+struct hash< T > { \
+    typedef T argument_type; \
+    typedef std::size_t result_type; \
+    result_type operator()(const argument_type &x) const noexcept { \
+        return hash< N >()(x.val()); \
+    } \
+}; \
+} \
+\
+/* Support boost hashing */ \
+namespace boost { \
+template<> \
+struct hash< T > { \
+    typedef T argument_type; \
+    typedef std::size_t result_type; \
+    result_type operator()(const argument_type &x) const noexcept { \
+        return hash< N >()(x.val()); \
+    } \
+}; \
+} \
+\
+/* Support for (de)serializing to/from JSON */ \
+namespace nlohmann { \
+inline void to_json(nlohmann::json &j, const T &x) { \
+    j = x.val(); \
+} \
+inline void from_json(const nlohmann::json &j, T &x) { \
+    x = { j.get< N >() }; \
+} \
+}
 
-static_assert(std::is_integral< SymTok >::value, "SymTok must be an integral type");
-static_assert(std::is_unsigned< SymTok >::value, "SymTok must be unsigned");
-static_assert(std::is_integral< LabTok >::value, "LabTok must be an integral type");
-static_assert(std::is_unsigned< LabTok >::value, "LabTok must be unsigned");
-static_assert(std::is_integral< CodeTok >::value, "CodeTok must be an integral type");
-static_assert(std::is_unsigned< CodeTok >::value, "CodeTok must be unsigned");
+TOK_TYPEDEF(uint32_t, SymTok)
+TOK_TYPEDEF(uint32_t, LabTok)
+TOK_TYPEDEF(uint32_t, CodeTok)
 
 typedef std::vector< SymTok > Sentence;
 typedef std::vector< LabTok > Procedure;

@@ -19,7 +19,7 @@ SymTok LibraryImpl::create_symbol(std::string s)
 {
     assert(is_valid_symbol(s));
     SymTok res = this->syms.create(s);
-    if (res == 0) {
+    if (res == SymTok{}) {
         throw MMPPException("creating an already existing symbol");
     }
     return res;
@@ -36,13 +36,13 @@ LabTok LibraryImpl::create_label(std::string s)
 {
     assert(is_valid_label(s));
     auto res = this->labels.create(s);
-    if (res == 0) {
+    if (res == LabTok{}) {
         throw MMPPException("creating an already existing label");
     }
     //cerr << "Resizing from " << this->assertions.size() << " to " << res+1 << endl;
-    this->sentences.resize(res+1);
-    this->sentence_types.resize(res+1);
-    this->assertions.resize(res+1);
+    this->sentences.resize(res.val()+1);
+    this->sentence_types.resize(res.val()+1);
+    this->assertions.resize(res.val()+1);
     return res;
 }
 
@@ -88,19 +88,19 @@ const std::unordered_map<LabTok, std::string> &LibraryImpl::get_labels() const
 
 void LibraryImpl::add_sentence(LabTok label, const Sentence &content, SentenceType type) {
     //this->sentences.insert(make_pair(label, content));
-    assert(label < this->sentences.size());
-    this->sentences[label] = content;
-    this->sentence_types[label] = type;
+    assert(label.val() < this->sentences.size());
+    this->sentences[label.val()] = content;
+    this->sentence_types[label.val()] = type;
 }
 
 const Sentence &LibraryImpl::get_sentence(LabTok label) const {
-    return this->sentences.at(label);
+    return this->sentences.at(label.val());
 }
 
 const Sentence *LibraryImpl::get_sentence_ptr(LabTok label) const
 {
-    if (label  < this->sentences.size()) {
-        return &this->sentences[label];
+    if (label.val() < this->sentences.size()) {
+        return &this->sentences[label.val()];
     } else {
         return nullptr;
     }
@@ -108,17 +108,17 @@ const Sentence *LibraryImpl::get_sentence_ptr(LabTok label) const
 
 SentenceType LibraryImpl::get_sentence_type(LabTok label) const
 {
-    return this->sentence_types.at(label);
+    return this->sentence_types.at(label.val());
 }
 
 void LibraryImpl::add_assertion(LabTok label, const Assertion &ass)
 {
-    this->assertions[label] = ass;
+    this->assertions[label.val()] = ass;
 }
 
 const Assertion &LibraryImpl::get_assertion(LabTok label) const
 {
-    return this->assertions.at(label);
+    return this->assertions.at(label.val());
 }
 
 const std::vector<Sentence> &LibraryImpl::get_sentences() const
@@ -138,21 +138,14 @@ const std::vector<Assertion> &LibraryImpl::get_assertions() const
 
 void LibraryImpl::set_constant(SymTok c, bool is_const)
 {
-    /*if (is_const) {
-        this->consts.insert(c);
-    } else {
-        this->vars.insert(c);
-    }*/
-    this->consts.resize(std::max(this->consts.size(), static_cast< size_t > (c)+1));
-    this->consts[c] = is_const;
+    this->consts.resize(std::max(this->consts.size(), static_cast< size_t > (c.val())+1));
+    this->consts[c.val()] = is_const;
 }
 
 bool LibraryImpl::is_constant(SymTok c) const
 {
-    //return this->consts.find(c) != this->consts.end();
-    //return this->vars.find(c) == this->vars.end();
-    if (c < this->consts.size()) {
-        return this->consts[c];
+    if (c.val() < this->consts.size()) {
+        return this->consts[c.val()];
     } else {
         return false;
     }

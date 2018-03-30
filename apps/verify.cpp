@@ -20,7 +20,7 @@ bool verify_database(boost::filesystem::path filename, bool advanced_tests) {
         std::cout << "Reading library and executing all proofs..." << std::endl;
         p.run();
         LibraryImpl lib = p.get_library();
-        std::cout << "Library has " << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << std::endl;
+        std::cout << "Library has " << lib.get_symbols_num().val() << " symbols and " << lib.get_labels_num().val() << " labels" << std::endl;
         std::cout << "Memory usage after loading: " << size_to_string(platform_get_current_used_ram()) << std::endl;
 
         if (advanced_tests) {

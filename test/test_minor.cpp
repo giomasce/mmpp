@@ -19,13 +19,13 @@ void test_small_stuff() {
     for (auto &str : test_enc) {
         std::cout << "Testing " << str << ":";
         for (auto &c : str) {
-            std::cout << " " << c << "->" << cd.push_char(c);
+            std::cout << " " << c << "->" << cd.push_char(c).val();
         }
         std::cout << std::endl;
     }
     CompressedEncoder ce;
     for (auto &val : test_dec) {
-        std::cout << "Testing " << val << ": " << ce.push_code(val) << std::endl;
+        std::cout << "Testing " << val << ": " << ce.push_code(CodeTok(val)) << std::endl;
     }
 
     std::cout << "Finished. Memory usage: " << size_to_string(platform_get_current_used_ram()) << std::endl << std::endl;

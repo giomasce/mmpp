@@ -59,15 +59,15 @@ class LibraryAddendumImpl : public ExtendedLibraryAddendum {
 public:
     virtual const std::string &get_htmldef(SymTok tok) const
     {
-        return this->htmldefs.at(tok);
+        return this->htmldefs.at(tok.val());
     }
     virtual const std::string &get_althtmldef(SymTok tok) const
     {
-        return this->althtmldefs.at(tok);
+        return this->althtmldefs.at(tok.val());
     }
     virtual const std::string &get_latexdef(SymTok tok) const
     {
-        return this->latexdefs.at(tok);
+        return this->latexdefs.at(tok.val());
     }
     const std::vector< std::string > &get_htmldefs() const
     {

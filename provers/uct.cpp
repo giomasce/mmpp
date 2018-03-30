@@ -205,7 +205,7 @@ VisitResult SentenceNode::visit()
         while (this->ass_it != this->ass_range.end()) {
             const Assertion &ass = tb.get_assertion(*this->ass_it);
             this->ass_it++;
-            ParsingTree2< SymTok, LabTok > thesis = tb.get_parsed_sents2()[ass.get_thesis()];
+            ParsingTree2< SymTok, LabTok > thesis = tb.get_parsed_sents2()[ass.get_thesis().val()];
             UnilateralUnificator< SymTok, LabTok > unif(tb.get_standard_is_var());
             unif.add_parsing_trees2(thesis, this->sentence);
             bool unifiable;
@@ -476,12 +476,12 @@ VisitResult StepNode::create_children()
     auto strong_uct = this->uct.lock();
     auto &tb = strong_uct->get_toolbox();
 
-    this->unconst_subst_map = tb.build_refreshing_full_subst_map2(tb.get_assertion_unconst_vars()[this->label]);
+    this->unconst_subst_map = tb.build_refreshing_full_subst_map2(tb.get_assertion_unconst_vars()[this->label.val()]);
     auto full_subst_map = update2(this->const_subst_map, this->unconst_subst_map, true);
     const Assertion &ass = tb.get_assertion(this->label);
     assert(ass.is_valid());
     for (auto hyp_tok : ass.get_ess_hyps()) {
-        auto subst_hyp = substitute2(tb.get_parsed_sents2()[hyp_tok], tb.get_standard_is_var(), full_subst_map);
+        auto subst_hyp = substitute2(tb.get_parsed_sents2()[hyp_tok.val()], tb.get_standard_is_var(), full_subst_map);
         VisitResult res = this->create_child(subst_hyp);
         assert(res != PROVED);
         if (res == DEAD) {
@@ -610,7 +610,7 @@ int uct_main(int argc, char *argv[]) {
             }
             const auto &labels = engine.get_proof_labels();
             for (const auto label : labels) {
-                if (label != 0) {
+                if (label != LabTok{}) {
                     std::cout << " " << tb.resolve_label(label);
                 } else {
                     std::cout << " *";

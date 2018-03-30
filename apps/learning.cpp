@@ -23,7 +23,7 @@ void print_parsing_tree(const ParsingTree< SymTok, LabTok > &pt) {
     if (!first) {
         std::cout << " ";
     }
-    std::cout << pt.children.size() << " " << pt.label;
+    std::cout << pt.children.size() << " " << pt.label.val();
 }
 
 void print_trace(const ProofTree< Sentence > &pt, const LibraryToolbox &tb, const Assertion &ass) {
@@ -39,7 +39,7 @@ void print_trace(const ProofTree< Sentence > &pt, const LibraryToolbox &tb, cons
     if (it == ass.get_ess_hyps().end()) {
         std::cout << "# " << essentials_num << " " << tb.resolve_label(pt.label) << " " << tb.print_sentence(pt.sentence, SentencePrinter::STYLE_PLAIN) << std::endl;
         //std::cout << essentials_num << " " << pt.label << " " << tb.print_sentence(pt.sentence, SentencePrinter::STYLE_NUMBERS) << std::endl;
-        std::cout << essentials_num << " " << pt.label << " ";
+        std::cout << essentials_num << " " << pt.label.val() << " ";
         print_parsing_tree(parsing_tree);
         std::cout << std::endl;
     } else {
@@ -151,7 +151,7 @@ int proofs_stats_main(int argc, char *argv[]) {
         stat.ess_hyp_num = ass.get_ess_hyps().size();
         proof_stat_unwind_tree(exec->get_proof_tree(), ass, stat);
         proofs_stats.push_back(std::make_pair(ass.get_thesis(), stat));
-        tpb.report(ass.get_thesis());
+        tpb.report(ass.get_thesis().val());
     }
     tpb.finished();
 
@@ -258,7 +258,7 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     Sentence target_sent = tb.read_sentence(oss.str());
     auto target_pt1 = tb.parse_sentence(target_sent, tb.get_turnstile_alias());
     auto target_pt = pt_to_pt2(target_pt1);
-    LabTok target_label = 0;
+    LabTok target_label{};
 
     std::vector< const Assertion* > useful_asses;
     for (const auto &ass : lib.get_assertions()) {
@@ -269,7 +269,7 @@ int gen_random_theorems_main(int argc, char *argv[]) {
             if (ass.is_theorem() && ass.has_proof() && ass.get_proof_operator(lib)->is_trivial()) {
                 //std::cout << "Proof for " << lib.resolve_label(ass.get_thesis()) << " is trivial" << std::endl;
             } else {
-                if (ass.get_thesis() != target_label && ass.get_thesis()) {
+                if (ass.get_thesis() != target_label) {
                     useful_asses.push_back(&ass);
                 }
             }

@@ -211,7 +211,7 @@ public:
     {
         SymTok type = type_sent[0];
         auto tree = this->parse_sentence(type_sent.begin()+1, type_sent.end(), type);
-        if (tree.label == 0) {
+        if (tree.label == LabTok{}) {
             return false;
         } else {
             std::unordered_map<LabTok, const Prover< Engine >* > lab_var_provers;

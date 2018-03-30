@@ -40,7 +40,7 @@ std::ostream &operator<<(std::ostream &os, const SentencePrinter &sp)
         if (sp.style == SentencePrinter::STYLE_PLAIN) {
             os << sp.tb.resolve_symbol(tok);
         } else if (sp.style == SentencePrinter::STYLE_NUMBERS) {
-            os << tok;
+            os << tok.val();
         } else if (sp.style == SentencePrinter::STYLE_HTML) {
             os << sp.tb.get_addendum().get_htmldef(tok);
         } else if (sp.style == SentencePrinter::STYLE_ALTHTML) {
@@ -120,7 +120,7 @@ LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, std::string turnstile
         if (x > this->lib.get_labels_num()) {
             return true;
         }
-        return this->get_is_var_by_type().at(x);
+        return this->get_is_var_by_type().at(x.val());
     };
     this->standard_is_var_sym = [this](SymTok x)->bool {
         if (x > this->lib.get_symbols_num()) {
@@ -199,10 +199,10 @@ void LibraryToolbox::compute_vars()
             this->assertion_unconst_vars.emplace_back();
             continue;
         }
-        const auto &thesis_vars = this->sentence_vars[ass.get_thesis()];
+        const auto &thesis_vars = this->sentence_vars[ass.get_thesis().val()];
         std::set< LabTok > hyps_vars;
         for (const auto hyp_tok : ass.get_ess_hyps()) {
-            const auto &hyp_vars = this->sentence_vars[hyp_tok];
+            const auto &hyp_vars = this->sentence_vars[hyp_tok.val()];
             hyps_vars.insert(hyp_vars.begin(), hyp_vars.end());
         }
         this->assertion_const_vars.push_back(thesis_vars);
@@ -230,12 +230,12 @@ const std::vector< std::set< LabTok > > &LibraryToolbox::get_assertion_const_var
 void LibraryToolbox::compute_labels_to_theses()
 {
     LabTok imp_label = this->get_imp_label();
-    bool imp_found = imp_label != 0;
+    bool imp_found = (imp_label != LabTok{});
     for (const Assertion &ass : this->lib.get_assertions()) {
         if (!ass.is_valid() || this->get_sentence(ass.get_thesis()).at(0) != this->get_turnstile()) {
             continue;
         }
-        const auto &pt = this->get_parsed_sents().at(ass.get_thesis());
+        const auto &pt = this->get_parsed_sents().at(ass.get_thesis().val());
         LabTok root_label = pt.label;
         if (this->get_standard_is_var()(root_label)) {
             root_label = {};
@@ -279,10 +279,10 @@ std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok>
     // Collect all variables
     std::set< LabTok > var_labs;
     const auto &is_var = this->get_standard_is_var();
-    const ParsingTree< SymTok, LabTok > &thesis_pt = this->get_parsed_sents().at(ass.get_thesis());
+    const ParsingTree< SymTok, LabTok > &thesis_pt = this->get_parsed_sents().at(ass.get_thesis().val());
     collect_variables(thesis_pt, is_var, var_labs);
     for (const auto hyp : ass.get_ess_hyps()) {
-        const ParsingTree< SymTok, LabTok > &hyp_pt = this->get_parsed_sents().at(hyp);
+        const ParsingTree< SymTok, LabTok > &hyp_pt = this->get_parsed_sents().at(hyp.val());
         collect_variables(hyp_pt, is_var, var_labs);
     }
 
@@ -293,7 +293,7 @@ std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok>
     ParsingTree< SymTok, LabTok > thesis_new_pt = ::substitute(thesis_pt, is_var, subst);
     std::vector< ParsingTree< SymTok, LabTok > > hyps_new_pts;
     for (const auto hyp : ass.get_ess_hyps()) {
-        const ParsingTree< SymTok, LabTok > &hyp_pt = this->get_parsed_sents().at(hyp);
+        const ParsingTree< SymTok, LabTok > &hyp_pt = this->get_parsed_sents().at(hyp.val());
         hyps_new_pts.push_back(::substitute(hyp_pt, is_var, subst));
     }
     return std::make_pair(hyps_new_pts, thesis_new_pt);
@@ -304,10 +304,10 @@ std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTo
     // Collect all variables
     std::set< LabTok > var_labs;
     const auto &is_var = this->get_standard_is_var();
-    const ParsingTree2< SymTok, LabTok > &thesis_pt = this->get_parsed_sents2().at(ass.get_thesis());
+    const ParsingTree2< SymTok, LabTok > &thesis_pt = this->get_parsed_sents2().at(ass.get_thesis().val());
     collect_variables2(thesis_pt, is_var, var_labs);
     for (const auto hyp : ass.get_ess_hyps()) {
-        const ParsingTree2< SymTok, LabTok > &hyp_pt = this->get_parsed_sents2().at(hyp);
+        const ParsingTree2< SymTok, LabTok > &hyp_pt = this->get_parsed_sents2().at(hyp.val());
         collect_variables2(hyp_pt, is_var, var_labs);
     }
 
@@ -318,7 +318,7 @@ std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTo
     ParsingTree2< SymTok, LabTok > thesis_new_pt = ::substitute2_simple(thesis_pt, is_var, subst);
     std::vector< ParsingTree2< SymTok, LabTok > > hyps_new_pts;
     for (const auto hyp : ass.get_ess_hyps()) {
-        const ParsingTree2< SymTok, LabTok > &hyp_pt = this->get_parsed_sents2().at(hyp);
+        const ParsingTree2< SymTok, LabTok > &hyp_pt = this->get_parsed_sents2().at(hyp.val());
         hyps_new_pts.push_back(::substitute2_simple(hyp_pt, is_var, subst));
     }
     return std::make_pair(hyps_new_pts, thesis_new_pt);
@@ -388,7 +388,7 @@ SubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_full_subst_map2(const
 SymTok LibraryToolbox::get_symbol(std::string s) const
 {
     auto res = this->lib.get_symbol(s);
-    if (res != 0) {
+    if (res != SymTok{}) {
         return res;
     }
     return this->temp_generator->get_symbol(s);
@@ -397,7 +397,7 @@ SymTok LibraryToolbox::get_symbol(std::string s) const
 LabTok LibraryToolbox::get_label(std::string s) const
 {
     auto res = this->lib.get_label(s);
-    if (res != 0) {
+    if (res != LabTok{}) {
         return res;
     }
     return this->temp_generator->get_label(s);
@@ -423,12 +423,12 @@ std::string LibraryToolbox::resolve_label(LabTok tok) const
 
 SymTok LibraryToolbox::get_symbols_num() const
 {
-    return this->lib.get_symbols_num() + this->temp_generator->get_symbols_num();
+    return SymTok(this->lib.get_symbols_num().val() + this->temp_generator->get_symbols_num().val());
 }
 
 LabTok LibraryToolbox::get_labels_num() const
 {
-    return this->lib.get_labels_num() + this->temp_generator->get_labels_num();
+    return LabTok(this->lib.get_labels_num().val() + this->temp_generator->get_labels_num().val());
 }
 
 bool LibraryToolbox::is_constant(SymTok c) const
@@ -482,7 +482,7 @@ std::vector<SymTok> LibraryToolbox::read_sentence(const std::string &in) const
     std::vector< SymTok > res;
     for (auto &tok : toks) {
         auto tok_num = this->get_symbol(tok);
-        assert_or_throw< MMPPException >(tok_num != 0, "not a symbol");
+        assert_or_throw< MMPPException >(tok_num != SymTok{}, "not a symbol");
         res.push_back(tok_num);
     }
     return res;
@@ -526,7 +526,7 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
     std::vector< SymTok > sent;
     for (auto &hyp : hypotheses) {
         std::copy(hyp.begin(), hyp.end(), back_inserter(sent));
-        sent.push_back(0);
+        sent.push_back({});
     }
     std::copy(thesis.begin(), thesis.end(), back_inserter(sent));
 
@@ -555,7 +555,7 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
             for (size_t i = 0; i < hypotheses.size(); i++) {
                 auto &hyp = self->get_sentence(ass.get_ess_hyps()[perm[i]]);
                 std::copy(hyp.begin(), hyp.end(), back_inserter(templ));
-                templ.push_back(0);
+                templ.push_back({});
             }
             auto &th = self->get_sentence(ass.get_thesis());
             copy(th.begin(), th.end(), back_inserter(templ));
@@ -617,7 +617,7 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
             continue;
         }
         UnilateralUnificator< SymTok, LabTok > unif(is_var);
-        auto &templ_pt = self->get_parsed_sents().at(ass.get_thesis());
+        auto &templ_pt = self->get_parsed_sents().at(ass.get_thesis().val());
         unif.add_parsing_trees(templ_pt, pt_thesis.second);
         if (!unif.is_unifiable()) {
             continue;
@@ -637,7 +637,7 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
                 if (!res) {
                     break;
                 }
-                auto &templ_pt = self->get_parsed_sents().at(ass.get_ess_hyps()[perm[i]]);
+                auto &templ_pt = self->get_parsed_sents().at(ass.get_ess_hyps()[perm[i]].val());
                 unif2.add_parsing_trees(templ_pt, pt_hyps[i].second);
                 res = unif2.is_unifiable();
                 if (!res) {
@@ -786,17 +786,17 @@ void LibraryToolbox::compute_type_correspondance()
         assert(sent.size() == 2);
         const SymTok type_sym = sent[0];
         const SymTok var_sym = sent[1];
-        enlarge_and_set(this->var_lab_to_sym, var_lab) = var_sym;
-        enlarge_and_set(this->var_sym_to_lab, var_sym) = var_lab;
-        enlarge_and_set(this->var_lab_to_type_sym, var_lab) = type_sym;
-        enlarge_and_set(this->var_sym_to_type_sym, var_sym) = type_sym;
+        enlarge_and_set(this->var_lab_to_sym, var_lab.val()) = var_sym;
+        enlarge_and_set(this->var_sym_to_lab, var_sym.val()) = var_lab;
+        enlarge_and_set(this->var_lab_to_type_sym, var_lab.val()) = type_sym;
+        enlarge_and_set(this->var_sym_to_type_sym, var_sym.val()) = type_sym;
     }
 }
 
 LabTok LibraryToolbox::get_var_sym_to_lab(SymTok sym) const
 {
     if (sym <= this->lib.get_symbols_num()) {
-        return this->var_sym_to_lab.at(sym);
+        return this->var_sym_to_lab.at(sym.val());
     } else {
         return this->temp_generator->get_var_sym_to_lab(sym);
     }
@@ -805,7 +805,7 @@ LabTok LibraryToolbox::get_var_sym_to_lab(SymTok sym) const
 SymTok LibraryToolbox::get_var_lab_to_sym(LabTok lab) const
 {
     if (lab <= this->lib.get_labels_num()) {
-        return this->var_lab_to_sym.at(lab);
+        return this->var_lab_to_sym.at(lab.val());
     } else {
         return this->temp_generator->get_var_lab_to_sym(lab);
     }
@@ -814,7 +814,7 @@ SymTok LibraryToolbox::get_var_lab_to_sym(LabTok lab) const
 SymTok LibraryToolbox::get_var_sym_to_type_sym(SymTok sym) const
 {
     if (sym <= this->lib.get_symbols_num()) {
-        return this->var_sym_to_type_sym.at(sym);
+        return this->var_sym_to_type_sym.at(sym.val());
     } else {
         return this->temp_generator->get_var_sym_to_type_sym(sym);
     }
@@ -823,7 +823,7 @@ SymTok LibraryToolbox::get_var_sym_to_type_sym(SymTok sym) const
 SymTok LibraryToolbox::get_var_lab_to_type_sym(LabTok lab) const
 {
     if (lab <= this->lib.get_labels_num()) {
-        return this->var_lab_to_type_sym.at(lab);
+        return this->var_lab_to_type_sym.at(lab.val());
     } else {
         return this->temp_generator->get_var_lab_to_type_sym(lab);
     }
@@ -832,9 +832,9 @@ SymTok LibraryToolbox::get_var_lab_to_type_sym(LabTok lab) const
 void LibraryToolbox::compute_is_var_by_type()
 {
     const auto &types_set = this->get_final_stack_frame().types_set;
-    this->is_var_by_type.resize(this->lib.get_labels_num());
-    for (LabTok label = 1; label < this->lib.get_labels_num(); label++) {
-        this->is_var_by_type[label] = types_set.find(label) != types_set.end() && !this->is_constant(this->get_sentence(label).at(1));
+    this->is_var_by_type.resize(this->lib.get_labels_num().val());
+    for (LabTok label = LabTok(1); label.val() < this->lib.get_labels_num().val(); label = LabTok(label.val()+1)) {
+        this->is_var_by_type[label.val()] = (types_set.find(label) != types_set.end() && !this->is_constant(this->get_sentence(label).at(1)));
     }
 }
 
@@ -997,21 +997,21 @@ void LibraryToolbox::compute_sentences_parsing()
     /*if (!this->parser_initialization_computed) {
         this->compute_parser_initialization();
     }*/
-    for (LabTok i = 1; i < this->get_labels_num()+1; i++) {
+    for (LabTok i = LabTok(1); i.val() < this->get_labels_num().val()+1; i = LabTok(i.val()+1)) {
         const Sentence &sent = this->get_sentence(i);
         auto pt = this->parse_sentence(sent.begin()+1, sent.end(), this->get_parsing_addendum().get_syntax().at(sent[0]));
-        if (pt.label == 0) {
+        if (pt.label == LabTok{}) {
             throw MMPPException("Failed to parse a sentence in the library");
         }
-        this->parsed_sents.resize(i+1);
-        this->parsed_sents[i] = pt;
-        this->parsed_sents2.resize(i+1);
-        this->parsed_sents2[i] = pt_to_pt2(pt);
-        this->parsed_iters.resize(i+1);
-        ParsingTreeMultiIterator< SymTok, LabTok > it = this->parsed_sents2[i].get_multi_iterator();
+        this->parsed_sents.resize(i.val()+1);
+        this->parsed_sents[i.val()] = pt;
+        this->parsed_sents2.resize(i.val()+1);
+        this->parsed_sents2[i.val()] = pt_to_pt2(pt);
+        this->parsed_iters.resize(i.val()+1);
+        ParsingTreeMultiIterator< SymTok, LabTok > it = this->parsed_sents2[i.val()].get_multi_iterator();
         while (true) {
             auto x = it.next();
-            this->parsed_iters[i].push_back(x);
+            this->parsed_iters[i.val()].push_back(x);
             if (x.first == it.Finished) {
                 break;
             }

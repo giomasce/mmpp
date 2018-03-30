@@ -70,7 +70,7 @@ void test_lr_set() {
         assert(earley_pt.label != 0);
         assert(reconstruct_sentence(earley_pt, derivations, ders_by_lab) == sent2);*/
         auto lr_pt = lr_parser.parse(sent2, lib.get_symbol("wff"));
-        assert(lr_pt.label != 0);
+        assert(lr_pt.label != LabTok{});
         assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent2);
         //assert(earley_pt == lr_pt);
     }

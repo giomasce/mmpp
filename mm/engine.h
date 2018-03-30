@@ -108,7 +108,7 @@ void propagate_dists(const Assertion &ass, const typename ProofSentenceTraits< S
             auto &var2 = it2->first;
             auto &subst1 = it1->second;
             auto &subst2 = it2->second;
-            if (orig_dists.find(std::minmax(var1, var2)) != orig_dists.end()) {
+            if (orig_dists.find(std::minmax(ProofSentenceTraits< SentType_ >::var_to_sym(lib, var1), ProofSentenceTraits< SentType_ >::var_to_sym(lib, var2))) != orig_dists.end()) {
                 for (auto tok1 : ProofSentenceTraits< SentType_ >::get_variable_iterator(lib, subst1)) {
                     if (!ProofSentenceTraits< SentType_ >::is_variable(lib, tok1)) {
                         continue;
@@ -265,11 +265,11 @@ protected:
         this->proof.push_back(label);
     }
 
-    void process_sentence(const SentType &sent, LabTok label = 0)
+    void process_sentence(const SentType &sent, LabTok label = {})
     {
         this->push_stack(sent, {});
         if (this->gen_proof_tree) {
-            this->proof_tree = { sent, label, {}, {}, true, 0 };
+            this->proof_tree = { sent, label, {}, {}, true, {} };
             this->tree_stack.push_back(this->proof_tree);
         }
         this->proof.push_back(label);
