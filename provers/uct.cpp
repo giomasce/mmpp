@@ -7,6 +7,7 @@
 #include "mm/setmm.h"
 #include "platform.h"
 #include "mm/proof.h"
+#include "mm/ptengine.h"
 
 #include <memory>
 #include <iostream>
@@ -349,33 +350,15 @@ SentenceNode::~SentenceNode()
 
 bool SentenceNode::check_subst_map(const SubstMap2<SymTok, LabTok> &subst_map, const Assertion &ass)
 {
-    // Check that the substitution map does not violate any antidist constraint
-    const auto &ass_dists = ass.get_dists();
     auto strong_uct = this->uct.lock();
-    const auto &antidists = strong_uct->get_antidists();
     const auto &tb = strong_uct->get_toolbox();
-    for (auto it1 = subst_map.begin(); it1 != subst_map.end(); it1++) {
-        for (auto it2 = subst_map.begin(); it2 != it1; it2++) {
-            const auto &var1 = it1->first;
-            const auto &var2 = it2->first;
-            const auto lab_var1 = tb.get_var_lab_to_sym(var1);
-            const auto lab_var2 = tb.get_var_lab_to_sym(var2);
-            const auto &subst1 = it1->second;
-            const auto &subst2 = it2->second;
-            if (ass_dists.find(std::minmax(lab_var1, lab_var2)) != ass_dists.end()) {
-                std::set< LabTok > vars1;
-                std::set< LabTok > vars2;
-                collect_variables2(subst1, tb.get_standard_is_var(), vars1);
-                collect_variables2(subst2, tb.get_standard_is_var(), vars2);
-                for (const auto &lab1 : vars1) {
-                    for (const auto &lab2 : vars2) {
-                        if (lab1 == lab2 || antidists.find(std::minmax(lab1, lab2)) != antidists.end()) {
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
+    const auto &antidists = strong_uct->get_antidists();
+    auto dists = propagate_dists< ParsingTree2< SymTok, LabTok > >(ass, subst_map, tb);
+    if (!has_no_diagonal(dists.begin(), dists.end())) {
+        return false;
+    }
+    if (!is_disjoint(dists.begin(), dists.end(), antidists.begin(), antidists.end())) {
+        return false;
     }
     return true;
 }

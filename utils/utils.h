@@ -41,7 +41,7 @@ const size_t DEFAULT_STACK_SIZE = 8*1024*1024;
 std::vector< std::string > dump_stacktrace(size_t depth);
 std::vector< std::string > dump_stacktrace();
 #else
-inline static std::vector< std::string > dump_stacktrace(int depth=0) {
+inline static std::vector< std::string > dump_stacktrace(size_t depth=0) {
     (void) depth;
     return {};
 }
@@ -62,9 +62,9 @@ private:
 };
 
 template< typename Exception, typename... Args >
-inline static void assert_or_throw(bool cond, const Args&... args) {
+inline static void assert_or_throw(bool cond, Args&&... args) {
     if (!cond) {
-        throw Exception(args...);
+        throw Exception(std::forward< Args >(args)...);
     }
 }
 

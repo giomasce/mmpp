@@ -64,6 +64,74 @@ struct ProofTree {
     LabTok number;
 };
 
+template< typename It1, typename It2 >
+bool is_disjoint(It1 from1, It1 to1, It2 from2, It2 to2) {
+    while (true) {
+        if (from1 == to1) {
+            return true;
+        }
+        if (from2 == to2) {
+            return true;
+        }
+        if (*from1 < *from2) {
+            ++from1;
+            continue;
+        }
+        if (*from2 < *from1) {
+            ++from2;
+            continue;
+        }
+        return false;
+    }
+}
+
+template< typename It >
+bool has_no_diagonal(It from, It end) {
+    while (true) {
+        if (from == end) {
+            return true;
+        }
+        if (from->first == from->second) {
+            return false;
+        }
+        ++from;
+    }
+}
+
+template< typename SentType_ >
+void propagate_dists(const Assertion &ass, const typename ProofSentenceTraits< SentType_ >::SubstMapType &subst_map, const typename ProofSentenceTraits< SentType_ >::LibType &lib,
+                     std::set< std::pair< typename ProofSentenceTraits< SentType_ >::VarType, typename ProofSentenceTraits< SentType_ >::VarType > > &dists) {
+    const auto &orig_dists = ass.get_dists();
+    for (auto it1 = subst_map.begin(); it1 != subst_map.end(); it1++) {
+        for (auto it2 = subst_map.begin(); it2 != it1; it2++) {
+            auto &var1 = it1->first;
+            auto &var2 = it2->first;
+            auto &subst1 = it1->second;
+            auto &subst2 = it2->second;
+            if (orig_dists.find(std::minmax(var1, var2)) != orig_dists.end()) {
+                for (auto tok1 : ProofSentenceTraits< SentType_ >::get_variable_iterator(lib, subst1)) {
+                    if (!ProofSentenceTraits< SentType_ >::is_variable(lib, tok1)) {
+                        continue;
+                    }
+                    for (auto tok2 : ProofSentenceTraits< SentType_ >::get_variable_iterator(lib, subst2)) {
+                        if (!ProofSentenceTraits< SentType_ >::is_variable(lib, tok2)) {
+                            continue;
+                        }
+                        dists.insert(std::minmax(tok1, tok2));
+                    }
+                }
+            }
+        }
+    }
+}
+
+template< typename SentType_ >
+decltype(auto) propagate_dists(const Assertion &ass, const typename ProofSentenceTraits< SentType_ >::SubstMapType &subst_map, const typename ProofSentenceTraits< SentType_ >::LibType &lib) {
+    std::set< std::pair< typename ProofSentenceTraits< SentType_ >::VarType, typename ProofSentenceTraits< SentType_ >::VarType > > dists;
+    propagate_dists< SentType_ >(ass, subst_map, lib, dists);
+    return dists;
+}
+
 template< typename SentType_ >
 class ProofEngineBase {
 public:
@@ -164,29 +232,8 @@ protected:
         }
 
         // Keep track of the distinct variables constraints in the substitution map
-        const auto &child_dists = child_ass.get_dists();
-        for (auto it1 = subst_map.begin(); it1 != subst_map.end(); it1++) {
-            for (auto it2 = subst_map.begin(); it2 != it1; it2++) {
-                auto &var1 = it1->first;
-                auto &var2 = it2->first;
-                auto &subst1 = it1->second;
-                auto &subst2 = it2->second;
-                if (child_dists.find(std::minmax(var1, var2)) != child_dists.end()) {
-                    for (auto tok1 : TraitsType::get_variable_iterator(this->lib, subst1)) {
-                        if (!TraitsType::is_variable(this->lib, tok1)) {
-                            continue;
-                        }
-                        for (auto tok2 : TraitsType::get_variable_iterator(this->lib, subst2)) {
-                            if (!TraitsType::is_variable(this->lib, tok2)) {
-                                continue;
-                            }
-                            assert_or_throw< ProofException< SentType_ > >(tok1 != tok2, "Distinct variable constraint violated");
-                            dists.insert(std::minmax(tok1, tok2));
-                        }
-                    }
-                }
-            }
-        }
+        propagate_dists< SentType_ >(child_ass, subst_map, this->lib, dists);
+        assert_or_throw< ProofException< SentType_ > >(has_no_diagonal(dists.begin(), dists.end()), "Distinct variable constraint violated");
 
         // Build the thesis
         LabTok thesis = child_ass.get_thesis();
