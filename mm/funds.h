@@ -76,13 +76,11 @@ struct hash< T > { \
 } \
 \
 /* Support for (de)serializing to/from JSON */ \
-namespace nlohmann { \
 inline void to_json(nlohmann::json &j, const T &x) { \
     j = x.val(); \
 } \
 inline void from_json(const nlohmann::json &j, T &x) { \
     x = { j.get< N >() }; \
-} \
 }
 
 TOK_TYPEDEF(uint32_t, SymTok)
