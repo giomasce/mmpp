@@ -8,8 +8,6 @@
 #include "proof.h"
 #include "utils/utils.h"
 #include "reader.h"
-#include "old/unification.h"
-#include "toolbox.h"
 
 LibraryImpl::LibraryImpl()
 {
@@ -66,12 +64,12 @@ std::string LibraryImpl::resolve_label(LabTok tok) const
     return this->labels.resolve(tok);
 }
 
-SymTok LibraryImpl::get_symbols_num() const
+size_t LibraryImpl::get_symbols_num() const
 {
     return this->syms.size();
 }
 
-LabTok LibraryImpl::get_labels_num() const
+size_t LibraryImpl::get_labels_num() const
 {
     return this->labels.size();
 }
@@ -250,6 +248,17 @@ private:
 
 std::function<const Assertion *()> LibraryImpl::list_assertions() const {
     return AssertionGenerator(this->assertions);
+}
+
+Generator<std::reference_wrapper<const Assertion> > LibraryImpl::gen_assertions() const
+{
+    return Generator< std::reference_wrapper< const Assertion > >([this](auto &sink) {
+        for (const auto &ass : this->assertions) {
+            if (ass.is_valid()) {
+                sink(std::cref(ass));
+            }
+        }
+    });
 }
 
 LabTok LibraryImpl::get_max_number() const

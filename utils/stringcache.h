@@ -54,8 +54,8 @@ public:
         return tok;
     }
 
-    TokType size() const {
-        return TokType(this->dir.size());
+    size_t size() const {
+        return this->dir.size();
     }
 
     const std::unordered_map< TokType, std::string > &get_cache() const {

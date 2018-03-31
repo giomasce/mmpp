@@ -468,13 +468,14 @@ public:
     LabTok get_label(std::string s) const;
     std::string resolve_symbol(SymTok tok) const;
     std::string resolve_label(LabTok tok) const;
-    SymTok get_symbols_num() const;
-    LabTok get_labels_num() const;
+    size_t get_symbols_num() const;
+    size_t get_labels_num() const;
     bool is_constant(SymTok c) const;
     const Sentence &get_sentence(LabTok label) const;
     SentenceType get_sentence_type(LabTok label) const;
     const Assertion &get_assertion(LabTok label) const;
-    std::function< const Assertion*() > list_assertions() const;
+    //std::function< const Assertion*() > list_assertions() const;
+    Generator< std::reference_wrapper< const Assertion > > gen_assertions() const;
     const StackFrame &get_final_stack_frame() const;
     const LibraryAddendum &get_addendum() const;
     const ParsingAddendumImpl &get_parsing_addendum() const;

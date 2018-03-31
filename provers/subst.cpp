@@ -313,19 +313,15 @@ std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok
 
             //std::cout << "   Searching for " << tb.print_sentence(pt_def) << std::endl;
             LabTok res = {};
-            auto assertions_gen = tb.list_assertions();
             std::vector< LabTok > vars;
             std::vector< LabTok > fresh_vars;
             ParsingTree< SymTok, LabTok > def_body;
-            while (true) {
-                const Assertion *ass2 = assertions_gen();
+            for (const Assertion &ass3 : tb.gen_assertions()) {
+                const Assertion *ass2 = &ass3;
                 // Some notations have hardcoded defaults
                 auto hard_it = hardcoded_labels.find(label);
                 if (hard_it != hardcoded_labels.end()) {
                     ass2 = &tb.get_assertion(hard_it->second);
-                }
-                if (ass2 == nullptr) {
-                    break;
                 }
                 const Assertion &ass = *ass2;
                 /*if (ass.is_usage_disc()) {

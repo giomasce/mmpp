@@ -3,8 +3,8 @@
 #include <mutex>
 
 TempGenerator::TempGenerator(const Library &lib) : lib(lib),
-    temp_syms(SymTok(lib.get_symbols_num().val()+1)), temp_labs(LabTok(lib.get_labels_num().val()+1)),
-    syms_base(lib.get_symbols_num().val()+1), labs_base(lib.get_labels_num().val()+1)
+    temp_syms(SymTok(lib.get_symbols_num()+1)), temp_labs(LabTok(lib.get_labels_num()+1)),
+    syms_base(lib.get_symbols_num()+1), labs_base(lib.get_labels_num()+1)
 {
     assert(this->lib.is_immutable());
 }
@@ -121,14 +121,14 @@ std::string TempGenerator::resolve_label(LabTok tok)
     return this->temp_labs.resolve(tok);
 }
 
-SymTok TempGenerator::get_symbols_num()
+size_t TempGenerator::get_symbols_num()
 {
     std::unique_lock< std::mutex > lock(this->global_mutex);
 
     return this->temp_syms.size();
 }
 
-LabTok TempGenerator::get_labels_num()
+size_t TempGenerator::get_labels_num()
 {
     std::unique_lock< std::mutex > lock(this->global_mutex);
 

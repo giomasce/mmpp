@@ -279,13 +279,14 @@ public:
     virtual LabTok get_label(std::string s) const = 0;
     virtual std::string resolve_symbol(SymTok tok) const = 0;
     virtual std::string resolve_label(LabTok tok) const = 0;
-    virtual SymTok get_symbols_num() const = 0;
-    virtual LabTok get_labels_num() const = 0;
+    virtual size_t get_symbols_num() const = 0;
+    virtual size_t get_labels_num() const = 0;
     virtual bool is_constant(SymTok c) const = 0;
     virtual const Sentence &get_sentence(LabTok label) const = 0;
     virtual SentenceType get_sentence_type(LabTok label) const = 0;
     virtual const Assertion &get_assertion(LabTok label) const = 0;
-    virtual std::function< const Assertion*() > list_assertions() const = 0;
+    //virtual std::function< const Assertion*() > list_assertions() const = 0;
+    virtual Generator< std::reference_wrapper< const Assertion > > gen_assertions() const = 0;
     virtual const StackFrame &get_final_stack_frame() const = 0;
     virtual const LibraryAddendum &get_addendum() const = 0;
     virtual const ParsingAddendumImpl &get_parsing_addendum() const = 0;
@@ -313,8 +314,8 @@ public:
     LabTok get_label(std::string s) const;
     std::string resolve_symbol(SymTok tok) const;
     std::string resolve_label(LabTok tok) const;
-    SymTok get_symbols_num() const;
-    LabTok get_labels_num() const;
+    size_t get_symbols_num() const;
+    size_t get_labels_num() const;
     const std::unordered_map< SymTok, std::string > &get_symbols() const;
     const std::unordered_map<LabTok, std::string> &get_labels() const;
     const Sentence &get_sentence(LabTok label) const;
@@ -329,6 +330,7 @@ public:
     const LibraryAddendumImpl &get_addendum() const;
     const ParsingAddendumImpl &get_parsing_addendum() const;
     std::function< const Assertion*() > list_assertions() const;
+    Generator< std::reference_wrapper< const Assertion > > gen_assertions() const;
     virtual LabTok get_max_number() const;
     virtual bool is_immutable() const;
 

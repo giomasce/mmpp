@@ -18,7 +18,7 @@ SetMmImpl::SetMmImpl(const boost::filesystem::path &filename, const boost::files
     std::cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_used_ram()) << std::endl;
     this->tb = new LibraryToolbox(*this->lib, "|-", cache);
     std::cout << "Memory usage after creating the toolbox: " << size_to_string(platform_get_current_used_ram()) << std::endl;
-    std::cout << "The library has " << this->lib->get_symbols_num().val() << " symbols and " << this->lib->get_labels_num().val() << " labels" << std::endl << std::endl;
+    std::cout << "The library has " << this->lib->get_symbols_num() << " symbols and " << this->lib->get_labels_num() << " labels" << std::endl << std::endl;
 }
 
 SetMmImpl::~SetMmImpl() {

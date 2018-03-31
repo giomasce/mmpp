@@ -117,13 +117,13 @@ LibraryToolbox::LibraryToolbox(const ExtendedLibrary &lib, std::string turnstile
             return false;
         }
         return !this->is_constant(this->get_sentence(x).at(1));*/
-        if (x > this->lib.get_labels_num()) {
+        if (x.val() > this->lib.get_labels_num()) {
             return true;
         }
         return this->get_is_var_by_type().at(x.val());
     };
     this->standard_is_var_sym = [this](SymTok x)->bool {
-        if (x > this->lib.get_symbols_num()) {
+        if (x.val() > this->lib.get_symbols_num()) {
             return true;
         }
         return !this->lib.is_constant(x);
@@ -420,14 +420,14 @@ std::string LibraryToolbox::resolve_label(LabTok tok) const
     return this->temp_generator->resolve_label(tok);
 }
 
-SymTok LibraryToolbox::get_symbols_num() const
+size_t LibraryToolbox::get_symbols_num() const
 {
-    return SymTok(this->lib.get_symbols_num().val() + this->temp_generator->get_symbols_num().val());
+    return this->lib.get_symbols_num() + this->temp_generator->get_symbols_num();
 }
 
-LabTok LibraryToolbox::get_labels_num() const
+size_t LibraryToolbox::get_labels_num() const
 {
-    return LabTok(this->lib.get_labels_num().val() + this->temp_generator->get_labels_num().val());
+    return this->lib.get_labels_num() + this->temp_generator->get_labels_num();
 }
 
 bool LibraryToolbox::is_constant(SymTok c) const
@@ -455,9 +455,14 @@ const Assertion &LibraryToolbox::get_assertion(LabTok label) const
     return this->lib.get_assertion(label);
 }
 
-std::function<const Assertion *()> LibraryToolbox::list_assertions() const
+/*std::function<const Assertion *()> LibraryToolbox::list_assertions() const
 {
     return this->lib.list_assertions();
+}*/
+
+Generator<std::reference_wrapper<const Assertion> > LibraryToolbox::gen_assertions() const
+{
+    return this->lib.gen_assertions();
 }
 
 const StackFrame &LibraryToolbox::get_final_stack_frame() const
@@ -529,13 +534,7 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
     }
     std::copy(thesis.begin(), thesis.end(), back_inserter(sent));
 
-    auto assertions_gen = self->list_assertions();
-    while (true) {
-        const Assertion *ass2 = assertions_gen();
-        if (ass2 == nullptr) {
-            break;
-        }
-        const Assertion &ass = *ass2;
+    for (const Assertion &ass : self->gen_assertions()) {
         if (ass.is_usage_disc()) {
             continue;
         }
@@ -598,14 +597,8 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
 static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<SymTok, Sentence> > > unify_assertion_internal(const LibraryToolbox *self, const std::vector< std::pair< SymTok, ParsingTree<SymTok, LabTok > > > &pt_hyps, const std::pair< SymTok, ParsingTree< SymTok, LabTok > > &pt_thesis,
                                                                                                                              bool just_first, bool up_to_hyps_perms, const std::set< std::pair< SymTok, SymTok > > &antidists) {
     std::vector<std::tuple< LabTok, std::vector< size_t >, std::unordered_map<SymTok, std::vector<SymTok> > > > ret;
-    auto assertions_gen = self->list_assertions();
     const auto &is_var = self->get_standard_is_var();
-    while (true) {
-        const Assertion *ass2 = assertions_gen();
-        if (ass2 == nullptr) {
-            break;
-        }
-        const Assertion &ass = *ass2;
+    for (const Assertion &ass : self->gen_assertions()) {
         if (ass.is_usage_disc()) {
             continue;
         }
@@ -742,7 +735,7 @@ LabTok LibraryToolbox::get_imp_label() const
 Generator<SymTok> LibraryToolbox::gen_symbols() const
 {
     return Generator<SymTok>([this](auto &sink) {
-            for (size_t i = 1; i <= this->get_symbols_num().val(); i++) {
+            for (size_t i = 1; i <= this->get_symbols_num(); i++) {
                 sink(SymTok(i));
             }
         }
@@ -752,7 +745,7 @@ Generator<SymTok> LibraryToolbox::gen_symbols() const
 Generator<LabTok> LibraryToolbox::gen_labels() const
 {
     return Generator<LabTok>([this](auto &sink) {
-            for (size_t i = 1; i <= this->get_labels_num().val(); i++) {
+            for (size_t i = 1; i <= this->get_labels_num(); i++) {
                 sink(LabTok(i));
             }
         }
@@ -814,7 +807,7 @@ void LibraryToolbox::compute_type_correspondance()
 
 LabTok LibraryToolbox::get_var_sym_to_lab(SymTok sym) const
 {
-    if (sym <= this->lib.get_symbols_num()) {
+    if (sym.val() <= this->lib.get_symbols_num()) {
         return this->var_sym_to_lab.at(sym.val());
     } else {
         return this->temp_generator->get_var_sym_to_lab(sym);
@@ -823,7 +816,7 @@ LabTok LibraryToolbox::get_var_sym_to_lab(SymTok sym) const
 
 SymTok LibraryToolbox::get_var_lab_to_sym(LabTok lab) const
 {
-    if (lab <= this->lib.get_labels_num()) {
+    if (lab.val() <= this->lib.get_labels_num()) {
         return this->var_lab_to_sym.at(lab.val());
     } else {
         return this->temp_generator->get_var_lab_to_sym(lab);
@@ -832,7 +825,7 @@ SymTok LibraryToolbox::get_var_lab_to_sym(LabTok lab) const
 
 SymTok LibraryToolbox::get_var_sym_to_type_sym(SymTok sym) const
 {
-    if (sym <= this->lib.get_symbols_num()) {
+    if (sym.val() <= this->lib.get_symbols_num()) {
         return this->var_sym_to_type_sym.at(sym.val());
     } else {
         return this->temp_generator->get_var_sym_to_type_sym(sym);
@@ -841,7 +834,7 @@ SymTok LibraryToolbox::get_var_sym_to_type_sym(SymTok sym) const
 
 SymTok LibraryToolbox::get_var_lab_to_type_sym(LabTok lab) const
 {
-    if (lab <= this->lib.get_labels_num()) {
+    if (lab.val() <= this->lib.get_labels_num()) {
         return this->var_lab_to_type_sym.at(lab.val());
     } else {
         return this->temp_generator->get_var_lab_to_type_sym(lab);
@@ -851,7 +844,7 @@ SymTok LibraryToolbox::get_var_lab_to_type_sym(LabTok lab) const
 void LibraryToolbox::compute_is_var_by_type()
 {
     const auto &types_set = this->get_final_stack_frame().types_set;
-    this->is_var_by_type.resize(this->lib.get_labels_num().val());
+    this->is_var_by_type.resize(this->lib.get_labels_num());
     for (LabTok label : this->gen_labels()) {
         this->is_var_by_type[label.val()] = (types_set.find(label) != types_set.end() && !this->is_constant(this->get_sentence(label).at(1)));
     }
@@ -864,13 +857,7 @@ const std::vector<bool> &LibraryToolbox::get_is_var_by_type() const
 
 void LibraryToolbox::compute_assertions_by_type()
 {
-    auto assertions_gen = this->list_assertions();
-    while (true) {
-        const Assertion *ass2 = assertions_gen();
-        if (ass2 == nullptr) {
-            break;
-        }
-        const Assertion &ass = *ass2;
+    for (const Assertion &ass : this->gen_assertions()) {
         const auto &label = ass.get_thesis();
         this->assertions_by_type[this->get_sentence(label).at(0)].push_back(label);
     }
@@ -892,13 +879,7 @@ void LibraryToolbox::compute_derivations()
         this->derivations[type_sent.at(0)].push_back(std::make_pair(type_lab, std::vector<SymTok>({type_sent.at(1)})));
     }
     // FIXME Take it from the configuration
-    auto assertions_gen = this->list_assertions();
-    while (true) {
-        const Assertion *ass2 = assertions_gen();
-        if (ass2 == nullptr) {
-            break;
-        }
-        const Assertion &ass = *ass2;
+    for (const Assertion &ass : this->gen_assertions()) {
         if (ass.get_ess_hyps().size() != 0) {
             continue;
         }
@@ -939,7 +920,7 @@ void LibraryToolbox::compute_derivations()
 
 const std::pair<SymTok, Sentence> &LibraryToolbox::get_derivation_rule(LabTok lab) const
 {
-    if (lab <= this->lib.get_labels_num()) {
+    if (lab.val() <= this->lib.get_labels_num()) {
         return this->ders_by_label.at(lab);
     } else {
         return this->temp_generator->get_derivation_rule(lab);
