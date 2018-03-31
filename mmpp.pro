@@ -48,7 +48,7 @@ macx {
 }
 
 win32 {
-    QMAKE_CXXFLAGS += /I c:\Boost\include\boost-1_66 /I c:\libs /wd4250 /wd4200 -DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE /Zi
+    QMAKE_CXXFLAGS += /I c:\Boost\include\boost-1_66 /I c:\libs /wd4250 /wd4200 -DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE -DNOMINMAX /Zi
     QMAKE_LFLAGS += /STACK:8388608 /DEBUG:FULL
     QMAKE_LIBS += /LIBPATH:c:\Boost\lib /LIBPATH:c:\libs
     CONFIG += console
