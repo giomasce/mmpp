@@ -24,7 +24,7 @@ private: \
 public: \
     \
     /* Some static things */ \
-    static T maxval() { return T((std::numeric_limits< N >::max)()); } \
+    static T maxval() { return T(std::numeric_limits< N >::max()); } \
     typedef N val_type; \
     \
     /* Basic things, as for BOOST_STRONG_TYPEDEF */  \
@@ -91,7 +91,7 @@ typedef std::vector< SymTok > Sentence;
 typedef std::vector< LabTok > Procedure;
 
 // See https://stackoverflow.com/a/27443191
-const CodeTok INVALID_CODE = CodeTok((std::numeric_limits< CodeTok::val_type >::max)());
+const CodeTok INVALID_CODE = CodeTok(std::numeric_limits< CodeTok::val_type >::max());
 
 class MMPPParsingError : public MMPPException {
     using MMPPException::MMPPException;
