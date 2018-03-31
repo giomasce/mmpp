@@ -17,6 +17,7 @@
 #define TOK_TYPEDEF(N, T) \
 static_assert(std::is_integral< N >::value, "Must be an integral type"); \
 static_assert(std::is_unsigned< N >::value, "Must be unsigned"); \
+static_assert(std::numeric_limits< N >::max() <= std::numeric_limits< std::size_t >::max(), "Must fit in a size_t"); \
 class T { \
 private: \
     N val_; \
@@ -92,7 +93,7 @@ typedef std::vector< SymTok > Sentence;
 typedef std::vector< LabTok > Procedure;
 
 // See https://stackoverflow.com/a/27443191
-const CodeTok INVALID_CODE = (std::numeric_limits< CodeTok >::max)();
+const CodeTok INVALID_CODE = CodeTok((std::numeric_limits< CodeTok::val_type >::max)());
 
 class MMPPParsingError : public MMPPException {
     using MMPPException::MMPPException;

@@ -9,12 +9,6 @@
 
 #include <boost/filesystem.hpp>
 
-#define BOOST_COROUTINE_NO_DEPRECATION_WARNING
-#define BOOST_COROUTINES_NO_DEPRECATION_WARNING
-#include <boost/coroutine/all.hpp>
-template< typename T >
-using Generator = typename boost::coroutines::asymmetric_coroutine< T >::pull_type;
-
 class LibraryToolbox;
 
 #include "library.h"
@@ -162,6 +156,11 @@ private:
 private:
     std::vector< LabTok > type_labels;
     std::set< LabTok > type_labels_set;*/
+
+    // Labels and symbols
+public:
+    Generator< SymTok > gen_symbols() const;
+    Generator< LabTok > gen_labels() const;
 
     // Type proving
 public:
@@ -335,8 +334,10 @@ public:
     const ParsingTree< SymTok, LabTok > &get_parsed_sent(LabTok label) const;
     const ParsingTree2<SymTok, LabTok> &get_parsed_sent2(LabTok label) const;
     const std::vector<std::pair< ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode< SymTok, LabTok > > > &get_parsed_iter(LabTok label) const;
-    Generator<std::pair<LabTok, std::reference_wrapper<const ParsingTree<SymTok, LabTok> > > > gen_parsed_sents() const;
-    Generator<std::pair<LabTok, std::reference_wrapper<const ParsingTree2<SymTok, LabTok> > > > gen_parsed_sents2() const;
+    Generator<std::reference_wrapper<const ParsingTree<SymTok, LabTok> > > gen_parsed_sents() const;
+    Generator<std::reference_wrapper<const ParsingTree2<SymTok, LabTok> > > gen_parsed_sents2() const;
+    Generator<std::pair<LabTok, std::reference_wrapper<const ParsingTree<SymTok, LabTok> > > > enum_parsed_sents() const;
+    Generator<std::pair<LabTok, std::reference_wrapper<const ParsingTree2<SymTok, LabTok> > > > enum_parsed_sents2() const;
 private:
     void compute_sentences_parsing();
     std::vector< ParsingTree< SymTok, LabTok > > parsed_sents;

@@ -273,3 +273,9 @@ auto vector_map(InputIt from, InputIt to, UnaryOperation op) -> std::vector< dec
     std::transform(from, to, std::back_inserter(ret), op);
     return ret;
 }
+
+#define BOOST_COROUTINE_NO_DEPRECATION_WARNING
+#define BOOST_COROUTINES_NO_DEPRECATION_WARNING
+#include <boost/coroutine/all.hpp>
+template< typename T >
+using Generator = typename boost::coroutines::asymmetric_coroutine< T >::pull_type;

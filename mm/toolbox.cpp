@@ -187,8 +187,7 @@ void LibraryToolbox::reconstruct_sentence_internal(const ParsingTree<SymTok, Lab
 void LibraryToolbox::compute_vars()
 {
     this->sentence_vars.emplace_back();
-    for (size_t i = 1; i < this->get_labels_num().val()+1; i++) {
-        const auto &pt = this->get_parsed_sent2(LabTok(i));
+    for (const ParsingTree2< SymTok, LabTok > &pt : this->gen_parsed_sents2()) {
         std::set< LabTok > vars;
         collect_variables2(pt, this->get_standard_is_var(), vars);
         this->sentence_vars.push_back(vars);
@@ -740,6 +739,26 @@ LabTok LibraryToolbox::get_imp_label() const
     return this->get_label("wi");
 }
 
+Generator<SymTok> LibraryToolbox::gen_symbols() const
+{
+    return Generator<SymTok>([this](auto &sink) {
+            for (size_t i = 1; i <= this->get_symbols_num().val(); i++) {
+                sink(SymTok(i));
+            }
+        }
+    );
+}
+
+Generator<LabTok> LibraryToolbox::gen_labels() const
+{
+    return Generator<LabTok>([this](auto &sink) {
+            for (size_t i = 1; i <= this->get_labels_num().val(); i++) {
+                sink(LabTok(i));
+            }
+        }
+    );
+}
+
 void LibraryToolbox::dump_proof_exception(const ProofException<Sentence> &e, std::ostream &out) const
 {
     out << "Applying " << this->resolve_label(e.get_error().label) << " the proof executor signalled an error..." << std::endl;
@@ -833,7 +852,7 @@ void LibraryToolbox::compute_is_var_by_type()
 {
     const auto &types_set = this->get_final_stack_frame().types_set;
     this->is_var_by_type.resize(this->lib.get_labels_num().val());
-    for (LabTok label = LabTok(1); label.val() < this->lib.get_labels_num().val(); label = LabTok(label.val()+1)) {
+    for (LabTok label : this->gen_labels()) {
         this->is_var_by_type[label.val()] = (types_set.find(label) != types_set.end() && !this->is_constant(this->get_sentence(label).at(1)));
     }
 }
@@ -997,21 +1016,21 @@ void LibraryToolbox::compute_sentences_parsing()
     /*if (!this->parser_initialization_computed) {
         this->compute_parser_initialization();
     }*/
-    for (LabTok i = LabTok(1); i.val() < this->get_labels_num().val()+1; i = LabTok(i.val()+1)) {
-        const Sentence &sent = this->get_sentence(i);
+    for (LabTok label : this->gen_labels()) {
+        const Sentence &sent = this->get_sentence(label);
         auto pt = this->parse_sentence(sent.begin()+1, sent.end(), this->get_parsing_addendum().get_syntax().at(sent[0]));
         if (pt.label == LabTok{}) {
             throw MMPPException("Failed to parse a sentence in the library");
         }
-        this->parsed_sents.resize(i.val()+1);
-        this->parsed_sents[i.val()] = pt;
-        this->parsed_sents2.resize(i.val()+1);
-        this->parsed_sents2[i.val()] = pt_to_pt2(pt);
-        this->parsed_iters.resize(i.val()+1);
-        ParsingTreeMultiIterator< SymTok, LabTok > it = this->parsed_sents2[i.val()].get_multi_iterator();
+        this->parsed_sents.resize(label.val()+1);
+        this->parsed_sents[label.val()] = pt;
+        this->parsed_sents2.resize(label.val()+1);
+        this->parsed_sents2[label.val()] = pt_to_pt2(pt);
+        this->parsed_iters.resize(label.val()+1);
+        ParsingTreeMultiIterator< SymTok, LabTok > it = this->parsed_sents2[label.val()].get_multi_iterator();
         while (true) {
             auto x = it.next();
-            this->parsed_iters[i.val()].push_back(x);
+            this->parsed_iters[label.val()].push_back(x);
             if (x.first == it.Finished) {
                 break;
             }
@@ -1044,24 +1063,48 @@ const std::vector<std::pair<ParsingTreeMultiIterator< SymTok, LabTok >::Status, 
     return this->parsed_iters.at(label.val());
 }
 
-Generator<std::pair<LabTok, std::reference_wrapper<const ParsingTree<SymTok, LabTok> > > > LibraryToolbox::gen_parsed_sents() const
+Generator<std::reference_wrapper<const ParsingTree<SymTok, LabTok> > > LibraryToolbox::gen_parsed_sents() const
 {
-    return Generator<std::pair<LabTok, std::reference_wrapper< const ParsingTree<SymTok, LabTok> > > >([this](auto &sink) {
+    return Generator<std::reference_wrapper< const ParsingTree<SymTok, LabTok> > >([this](auto &sink) {
             for (size_t i = 0; i < this->parsed_sents.size(); i++) {
                 if (i != 0) {
-                    sink(std::make_pair(LabTok(i), std::reference_wrapper< const ParsingTree< SymTok, LabTok > >(this->parsed_sents[i])));
+                    sink(std::cref(this->parsed_sents[i]));
                 }
             }
         }
     );
 }
 
-Generator<std::pair<LabTok, std::reference_wrapper<const ParsingTree2<SymTok, LabTok> > > > LibraryToolbox::gen_parsed_sents2() const
+Generator<std::reference_wrapper<const ParsingTree2<SymTok, LabTok> > > LibraryToolbox::gen_parsed_sents2() const
+{
+    return Generator<std::reference_wrapper< const ParsingTree2<SymTok, LabTok> > >([this](auto &sink) {
+            for (size_t i = 0; i < this->parsed_sents2.size(); i++) {
+                if (i != 0) {
+                    sink(std::cref(this->parsed_sents2[i]));
+                }
+            }
+        }
+    );
+}
+
+Generator<std::pair<LabTok, std::reference_wrapper<const ParsingTree<SymTok, LabTok> > > > LibraryToolbox::enum_parsed_sents() const
+{
+    return Generator<std::pair<LabTok, std::reference_wrapper< const ParsingTree<SymTok, LabTok> > > >([this](auto &sink) {
+            for (size_t i = 0; i < this->parsed_sents.size(); i++) {
+                if (i != 0) {
+                    sink(std::make_pair(LabTok(i), std::cref(this->parsed_sents[i])));
+                }
+            }
+        }
+    );
+}
+
+Generator<std::pair<LabTok, std::reference_wrapper<const ParsingTree2<SymTok, LabTok> > > > LibraryToolbox::enum_parsed_sents2() const
 {
     return Generator<std::pair<LabTok, std::reference_wrapper< const ParsingTree2<SymTok, LabTok> > > >([this](auto &sink) {
             for (size_t i = 0; i < this->parsed_sents2.size(); i++) {
                 if (i != 0) {
-                    sink(std::make_pair(LabTok(i), std::reference_wrapper< const ParsingTree2< SymTok, LabTok > >(this->parsed_sents2[i])));
+                    sink(std::make_pair(LabTok(i), std::cref(this->parsed_sents2[i])));
                 }
             }
         }
