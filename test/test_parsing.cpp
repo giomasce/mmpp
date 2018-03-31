@@ -4,6 +4,7 @@
 #include "mm/setmm.h"
 #include "parsing/earley.h"
 #include "parsing/lr.h"
+#include "test.h"
 
 typedef ParsingTree<std::string, size_t> t1;
 typedef ParsingTree2<std::string, size_t> t2;

@@ -251,6 +251,10 @@ struct ParsingTree2 {
         return ParsingTreeMultiIterator< SymType, LabType >(this->get_root());
     }
 
+    bool quick_is_valid() const {
+        return this->get_nodes_len() > 0 && this->get_root().get_node().label != LabType{};
+    }
+
     bool operator==(const ParsingTree2< SymType, LabType > &other) const {
         return this->get_nodes_len() == other.get_nodes_len() && std::equal(this->get_nodes(), this->get_nodes() + this->get_nodes_len(), other.get_nodes());
     }

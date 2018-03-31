@@ -24,12 +24,6 @@
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/concepts.hpp>
 
-// See the comment in test_main.cpp
-#if (!(defined(_WIN32)))
-#define BOOST_TEST_DYN_LINK
-#endif
-#include <boost/test/unit_test.hpp>
-
 /* A template struct without specializations: useful for checking variable types
  * (for example when there is automatic type deduction).
  * For example, if you declare

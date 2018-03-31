@@ -19,9 +19,14 @@
 
 #define BOOST_TEST_NO_MAIN
 
+#include "test.h"
 #include "utils/utils.h"
 
+#include "mm/setmm.h"
+
 int test_main(int argc, char *argv[]) {
+    // Load immediately set.mm, so it loading bar does not mix with testing output
+    get_set_mm();
     return boost::unit_test::unit_test_main(&init_unit_test, argc, argv);
 }
 static_block {
@@ -31,7 +36,7 @@ static_block {
 #else
 
 #ifdef COMPILE_TEST
-#include <boost/test/unit_test.hpp>
+#include "test.h"
 #endif
 
 #endif

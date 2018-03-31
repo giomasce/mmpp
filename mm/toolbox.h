@@ -401,7 +401,7 @@ public:
         for (auto &hyp : ass.get_float_hyps()) {
             bool res = this->type_proving_helper(substitute(this->get_sentence(hyp), inst_data.ass_map, this->get_standard_is_var_sym()), engine, types_provers);
             if (!res) {
-                std::cerr << "Applying " << inst_data.label_str << " a floating hypothesis failed..." << std::endl;
+                //std::cerr << "Applying " << inst_data.label_str << " a floating hypothesis failed..." << std::endl;
                 engine.rollback();
                 return false;
             }
@@ -411,7 +411,7 @@ public:
         for (size_t i = 0; i < ass.get_ess_hyps().size(); i++) {
             bool res = hyps_provers[inst_data.perm_inv[i]](engine);
             if (!res) {
-                std::cerr << "Applying " << inst_data.label_str << " an essential hypothesis failed..." << std::endl;
+                //std::cerr << "Applying " << inst_data.label_str << " an essential hypothesis failed..." << std::endl;
                 engine.rollback();
                 return false;
             }

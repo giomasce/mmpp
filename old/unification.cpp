@@ -6,6 +6,9 @@
 #include <iostream>
 #include <cassert>
 
+#include "mm/setmm.h"
+#include "test.h"
+
 //#define OLD_UNIFICATION_VERBOSE
 
 // This algorithm is probably not terribly efficient
@@ -120,4 +123,24 @@ std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > unify_old(const s
         unify_old_internal(sent.begin(), sent.end(), templ.begin(), templ.end(), lib, allow_empty, current_match, matches);
     }
     return matches;
+}
+
+BOOST_AUTO_TEST_CASE(test_old_unification) {
+    auto &data = get_set_mm();
+    auto &lib = data.lib;
+    auto &tb = data.tb;
+    //std::cout << "Generic unification test" << std::endl;
+    std::vector< SymTok > sent = tb.read_sentence("wff ( ph -> ( ps -> ch ) )");
+    std::vector< SymTok > templ = tb.read_sentence("wff ( th -> et )");
+    auto res = unify_old(sent, templ, lib, false);
+    BOOST_TEST(res.size() == 2);
+    /*std::cout << "Matching:         " << tb.print_sentence(sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl << "against template: " << tb.print_sentence(templ, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
+    for (auto &match : res) {
+        std::cout << "  *";
+        for (auto &var: match) {
+            std::cout << " " << tb.print_sentence(Sentence({var.first}), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << " => " << tb.print_sentence(var.second, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << "  ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << "Memory usage after test: " << size_to_string(platform_get_current_used_ram()) << std::endl << std::endl;*/
 }

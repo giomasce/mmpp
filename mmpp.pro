@@ -174,7 +174,8 @@ HEADERS += \
     provers/wffblock.h \
     provers/wffsat.h \
     provers/subst.h \
-    mm/setmm.h
+    mm/setmm.h \
+    test.h
 
 DISTFILES += \
     README.md \

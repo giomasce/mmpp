@@ -165,7 +165,7 @@ public:
   std::vector< pwff > get_children() const;
   void set_library_toolbox(const LibraryToolbox &tb) const override;
   const NameType &get_name() const {
-      assert(this->name.get_root().get_node().label != LabTok{});
+      assert(this->name.quick_is_valid());
       return this->name;
   }
 

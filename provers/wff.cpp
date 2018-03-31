@@ -422,7 +422,7 @@ std::vector<pwff> Var::get_children() const
 
 void Var::set_library_toolbox(const LibraryToolbox &tb) const
 {
-    if (this->name.get_root().get_node().label == LabTok{}) {
+    if (!this->name.quick_is_valid()) {
         this->name = var_cons_helper(string_repr, tb);
     }
 }

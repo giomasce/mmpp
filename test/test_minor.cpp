@@ -3,18 +3,8 @@
 #include <iostream>
 #include <vector>
 
-#include "provers/wff.h"
-#include "mm/reader.h"
-#include "utils/utils.h"
-#include "platform.h"
-
-#include <boost/test/data/monomorphic/generators/xrange.hpp>
-#include <boost/test/data/test_case.hpp>
-#include <boost/test/data/monomorphic.hpp>
-
-std::ostream &operator<<(std::ostream &str, CodeTok tok) {
-    return str << tok.val();
-}
+#include "mm/proof.h"
+#include "test.h"
 
 std::vector< std::string > test_enc = { "A", "B", "T", "UA", "UB", "UT", "VA", "VB", "YT", "UUA", "YYT", "UUUA", "Z" };
 std::vector< int > test_dec = { 1, 2, 20, 21, 22, 40, 41, 42, 120, 121, 620, 621, 0 };
