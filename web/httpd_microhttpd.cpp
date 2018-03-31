@@ -34,7 +34,7 @@ void HTTPD_microhttpd::start()
     this->daemon = MHD_start_daemon (MHD_USE_THREAD_PER_CONNECTION | MHD_USE_POLL, this->port,
                                      &this->accept_wrapper, this,
                                      &this->answer_wrapper, this,
-                                     MHD_OPTION_THREAD_STACK_SIZE, DEFAULT_STACK_SIZE,
+                                     MHD_OPTION_THREAD_STACK_SIZE, (size_t) DEFAULT_STACK_SIZE,
                                      MHD_OPTION_NOTIFY_COMPLETED, &this->cleanup_wrapper, nullptr,
                                      MHD_OPTION_END);
     if (this->daemon == nullptr) {
