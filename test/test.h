@@ -3,13 +3,16 @@
 #include <iostream>
 
 // See the comment in test_main.cpp
+#if (!defined(_WIN32)) || (defined(COMPILE_TEST))
 #if (!(defined(_WIN32)))
 #define BOOST_TEST_DYN_LINK
 #endif
+#define ENABLE_TEST_CODE
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/monomorphic/generators/xrange.hpp>
 #include <boost/test/data/test_case.hpp>
 #include <boost/test/data/monomorphic.hpp>
+#endif
 
 // Some useful printers
 namespace std {

@@ -125,6 +125,7 @@ std::vector<std::unordered_map<SymTok, std::vector<SymTok> > > unify_old(const s
     return matches;
 }
 
+#ifdef ENABLE_TEST_CODE
 BOOST_AUTO_TEST_CASE(test_old_unification) {
     auto &data = get_set_mm();
     auto &lib = data.lib;
@@ -144,3 +145,4 @@ BOOST_AUTO_TEST_CASE(test_old_unification) {
     }
     std::cout << "Memory usage after test: " << size_to_string(platform_get_current_used_ram()) << std::endl << std::endl;*/
 }
+#endif

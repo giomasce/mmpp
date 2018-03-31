@@ -6,6 +6,8 @@
 #include "mm/proof.h"
 #include "test.h"
 
+#ifdef ENABLE_TEST_CODE
+
 std::vector< std::string > test_enc = { "A", "B", "T", "UA", "UB", "UT", "VA", "VB", "YT", "UUA", "YYT", "UUUA", "Z" };
 std::vector< int > test_dec = { 1, 2, 20, 21, 22, 40, 41, 42, 120, 121, 620, 621, 0 };
 
@@ -19,3 +21,4 @@ BOOST_DATA_TEST_CASE(test_compressed_decoder_encoder, boost::unit_test::data::ma
     BOOST_TEST(cd.push_char(enc[enc.size()-1]) == CodeTok(dec));
 }
 
+#endif

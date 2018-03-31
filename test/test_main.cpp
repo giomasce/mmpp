@@ -35,8 +35,6 @@ static_block {
 
 #else
 
-#ifdef COMPILE_TEST
-#include "test.h"
-#endif
+#include "test/test.h"
 
 #endif

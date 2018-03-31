@@ -17,6 +17,8 @@
 #include "provers/wffsat.h"
 #include "test.h"
 
+#ifdef ENABLE_TEST_CODE
+
 BOOST_AUTO_TEST_CASE(test_lr_on_setmm) {
     //std::cout << "LR parsing on set.mm" << std::endl;
     auto &data = get_set_mm();
@@ -87,7 +89,7 @@ BOOST_DATA_TEST_CASE(test_unification, boost::unit_test::data::make(unification_
     auto &str = sample.second;
     Sentence sent = tb.read_sentence(str);
     auto res = tb.unify_assertion({}, sent, false, true);
-    assert(res.empty() != positive);
+    BOOST_TEST(res.empty() != positive);
     /*std::cout << "Trying to unify " << test << std::endl;
     std::cout << "Found " << res.size() << " matching assertions:" << std::endl;
     for (auto &match : res) {
@@ -313,3 +315,5 @@ BOOST_DATA_TEST_CASE(test_wff_from_pt, boost::unit_test::data::make(wff_from_pt_
     auto parsed = wff_from_pt(pt, tb);
     BOOST_TEST(pt2_to_pt(parsed->to_parsing_tree(tb)) == pt);
 }
+
+#endif

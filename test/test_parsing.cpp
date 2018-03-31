@@ -6,6 +6,8 @@
 #include "parsing/lr.h"
 #include "test.h"
 
+#ifdef ENABLE_TEST_CODE
+
 typedef ParsingTree<std::string, size_t> t1;
 typedef ParsingTree2<std::string, size_t> t2;
 typedef ParsingTree<char, size_t> t3;
@@ -112,3 +114,5 @@ BOOST_AUTO_TEST_CASE(test_parsing4) {
     std::vector< char > sent = { 'n', '-', 'n', '-', 'n' };
     test_parsers< char, size_t >(sent, 'S', derivations);
 }
+
+#endif
