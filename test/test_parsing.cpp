@@ -43,7 +43,7 @@ void test_parsers(const std::vector<SymType> &sent, SymType type, const std::uno
     BOOST_TEST(pt2 == pt2_2);
 }
 
-void test_grammar1() {
+BOOST_AUTO_TEST_CASE(test_parsing1) {
     /* Describe the grammar at http://loup-vaillant.fr/tutorials/earley-parsing/recogniser.
      * Only digit up to 4 are used to keep tables small and debugging easy.
      */
@@ -70,7 +70,7 @@ void test_grammar1() {
     test_parsers< std::string, size_t >(sent, "Sum", derivations);
 }
 
-void test_grammar2() {
+BOOST_AUTO_TEST_CASE(test_parsing2) {
     /* Describe the grammar at https://web.cs.dal.ca/~sjackson/lalr1.html.
      */
     std::unordered_map<char, std::vector<std::pair< size_t, std::vector<char> > > > derivations;
@@ -84,7 +84,7 @@ void test_grammar2() {
     test_parsers< char, size_t >(sent, 'S', derivations);
 }
 
-void test_grammar3() {
+BOOST_AUTO_TEST_CASE(test_parsing3) {
     /* Describe the grammar at https://en.wikipedia.org/wiki/LR_parser.
      */
     std::unordered_map<std::string, std::vector<std::pair< size_t, std::vector<std::string> > > > derivations;
@@ -99,7 +99,7 @@ void test_grammar3() {
     test_parsers< std::string, size_t >(sent, "Goal", derivations);
 }
 
-void test_grammar4() {
+BOOST_AUTO_TEST_CASE(test_parsing4) {
     /* Describe the grammar at https://dickgrune.com/Books/PTAPG_1st_Edition/BookBody.pd, page 201.
      */
     std::unordered_map<char, std::vector<std::pair< size_t, std::vector<char> > > > derivations;
@@ -110,11 +110,4 @@ void test_grammar4() {
     derivations['T'].push_back(std::make_pair(5, std::vector< char >({ '(', 'E', ')' })));
     std::vector< char > sent = { 'n', '-', 'n', '-', 'n' };
     test_parsers< char, size_t >(sent, 'S', derivations);
-}
-
-BOOST_AUTO_TEST_CASE(test_parsing) {
-    test_grammar1();
-    test_grammar2();
-    test_grammar3();
-    test_grammar4();
 }
