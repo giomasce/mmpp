@@ -8,6 +8,10 @@
 #include "utils/utils.h"
 #include "platform.h"
 
+std::ostream &operator<<(std::ostream &str, CodeTok tok) {
+    return str << tok.val();
+}
+
 BOOST_AUTO_TEST_CASE(test_compressed_decoder_encoder) {
     CompressedDecoder cd;
     CompressedEncoder ce;
@@ -17,8 +21,8 @@ BOOST_AUTO_TEST_CASE(test_compressed_decoder_encoder) {
     for (size_t i = 0; i < test_enc.size(); i++) {
         BOOST_TEST(ce.push_code(CodeTok(test_dec[i])) == test_enc[i]);
         for (size_t j = 0; j < test_enc[i].size()-1; j++) {
-            BOOST_TEST((bool)(cd.push_char(test_enc[i][j]) == INVALID_CODE));
+            BOOST_TEST(cd.push_char(test_enc[i][j]) == INVALID_CODE);
         }
-        BOOST_TEST((bool)(cd.push_char(test_enc[i][test_enc[i].size()-1]) == CodeTok(test_dec[i])));
+        BOOST_TEST(cd.push_char(test_enc[i][test_enc[i].size()-1]) == CodeTok(test_dec[i]));
     }
 }

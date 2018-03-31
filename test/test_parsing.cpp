@@ -5,6 +5,16 @@
 #include "parsing/earley.h"
 #include "parsing/lr.h"
 
+typedef ParsingTree<std::string, size_t> t1;
+typedef ParsingTree2<std::string, size_t> t2;
+typedef ParsingTree<char, size_t> t3;
+typedef ParsingTree2<char, size_t> t4;
+
+BOOST_TEST_DONT_PRINT_LOG_VALUE(t1);
+BOOST_TEST_DONT_PRINT_LOG_VALUE(t2);
+BOOST_TEST_DONT_PRINT_LOG_VALUE(t3);
+BOOST_TEST_DONT_PRINT_LOG_VALUE(t4);
+
 template< typename SymType, typename LabType >
 void test_parsers(const std::vector<SymType> &sent, SymType type, const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations) {
     const auto ders_by_lab = compute_derivations_by_label(derivations);
@@ -23,14 +33,14 @@ void test_parsers(const std::vector<SymType> &sent, SymType type, const std::uno
     BOOST_TEST(lr_pt.label != LabType{});
     BOOST_TEST(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent);
 
-    BOOST_TEST((bool)(earley_pt == lr_pt));
+    BOOST_TEST(earley_pt == lr_pt);
 
     //std::cout << "PT and PT2" << std::endl;
     ParsingTree2< SymType, LabType > pt2 = pt_to_pt2(lr_pt);
     ParsingTree< SymType, LabType > pt = pt2_to_pt(pt2);
     ParsingTree2< SymType, LabType > pt2_2 = pt_to_pt2(pt);
-    BOOST_TEST((bool)(pt == lr_pt));
-    BOOST_TEST((bool)(pt2 == pt2_2));
+    BOOST_TEST(pt == lr_pt);
+    BOOST_TEST(pt2 == pt2_2);
 }
 
 void test_grammar1() {
