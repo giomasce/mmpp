@@ -1,5 +1,4 @@
 
-
 #define BOOST_TEST_MODULE mmpp
 #define BOOST_TEST_NO_MAIN
 
