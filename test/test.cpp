@@ -196,7 +196,7 @@ BOOST_DATA_TEST_CASE(test_wff_type_prover, boost::unit_test::data::make(wff_data
     CreativeProofEngineImpl< Sentence > engine(tb);
     auto res = wff->get_type_prover(tb)(engine);
     BOOST_TEST(res);
-    BOOST_TEST(engine.get_stack().size() == 1);
+    BOOST_TEST(engine.get_stack().size() == (size_t) 1);
     BOOST_TEST(engine.get_stack().back() == tb.reconstruct_sentence(pt2_to_pt(wff->to_parsing_tree(tb)), tb.get_turnstile_alias()));
 }
 
@@ -214,7 +214,7 @@ BOOST_DATA_TEST_CASE(test_wff_truth_prover, boost::unit_test::data::make(wff_dat
     auto res = wff->get_truth_prover(tb)(engine);
     BOOST_TEST(res == trivially_true);
     if (res) {
-        BOOST_TEST(engine.get_stack().size() == 1);
+        BOOST_TEST(engine.get_stack().size() == (size_t) 1);
         BOOST_TEST(engine.get_stack().back() == tb.reconstruct_sentence(pt2_to_pt(wff->to_parsing_tree(tb)), tb.get_turnstile()));
     }
 }
@@ -233,7 +233,7 @@ BOOST_DATA_TEST_CASE(test_wff_falsity_prover, boost::unit_test::data::make(wff_d
     auto res = wff->get_falsity_prover(tb)(engine);
     BOOST_TEST(res == trivially_false);
     if (res) {
-        BOOST_TEST(engine.get_stack().size() == 1);
+        BOOST_TEST(engine.get_stack().size() == (size_t) 1);
         BOOST_TEST(engine.get_stack().back() == tb.reconstruct_sentence(pt2_to_pt(Not::create(wff)->to_parsing_tree(tb)), tb.get_turnstile()));
     }
 }
@@ -254,7 +254,7 @@ BOOST_DATA_TEST_CASE(test_wff_adv_truth_prover, boost::unit_test::data::make(wff
     auto res2 = res.second(engine);
     BOOST_TEST(res2 == actually_true);
     if (res2) {
-        BOOST_TEST(engine.get_stack().size() == 1);
+        BOOST_TEST(engine.get_stack().size() == (size_t) 1);
         BOOST_TEST(engine.get_stack().back() == tb.reconstruct_sentence(pt2_to_pt(wff->to_parsing_tree(tb)), tb.get_turnstile()));
     }
 }
@@ -275,7 +275,7 @@ BOOST_DATA_TEST_CASE(test_wff_minisat_prover, boost::unit_test::data::make(wff_d
     auto res2 = res.second(engine);
     BOOST_TEST(res2 == actually_true);
     if (res2) {
-        BOOST_TEST(engine.get_stack().size() == 1);
+        BOOST_TEST(engine.get_stack().size() == (size_t) 1);
         BOOST_TEST(engine.get_stack().back() == tb.reconstruct_sentence(pt2_to_pt(wff->to_parsing_tree(tb)), tb.get_turnstile()));
     }
 }

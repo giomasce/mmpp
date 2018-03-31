@@ -110,12 +110,12 @@ public:
 class FileToolboxCache : public ToolboxCache {
 public:
     FileToolboxCache(const boost::filesystem::path &filename);
-    bool load();
-    bool store();
-    std::string get_digest();
-    void set_digest(std::string digest);
-    LRParser< SymTok, LabTok >::CachedData get_lr_parser_data();
-    void set_lr_parser_data(const LRParser< SymTok, LabTok >::CachedData &cached_data);
+    bool load() override;
+    bool store() override;
+    std::string get_digest() override;
+    void set_digest(std::string digest) override;
+    LRParser< SymTok, LabTok >::CachedData get_lr_parser_data() override;
+    void set_lr_parser_data(const LRParser< SymTok, LabTok >::CachedData &cached_data) override;
 
 private:
     boost::filesystem::path filename;
@@ -464,21 +464,21 @@ public:
 
     // Library interface
 public:
-    SymTok get_symbol(std::string s) const;
-    LabTok get_label(std::string s) const;
-    std::string resolve_symbol(SymTok tok) const;
-    std::string resolve_label(LabTok tok) const;
-    size_t get_symbols_num() const;
-    size_t get_labels_num() const;
-    bool is_constant(SymTok c) const;
-    const Sentence &get_sentence(LabTok label) const;
-    SentenceType get_sentence_type(LabTok label) const;
-    const Assertion &get_assertion(LabTok label) const;
+    SymTok get_symbol(std::string s) const override;
+    LabTok get_label(std::string s) const override;
+    std::string resolve_symbol(SymTok tok) const override;
+    std::string resolve_label(LabTok tok) const override;
+    size_t get_symbols_num() const override;
+    size_t get_labels_num() const override;
+    bool is_constant(SymTok c) const override;
+    const Sentence &get_sentence(LabTok label) const override;
+    SentenceType get_sentence_type(LabTok label) const override;
+    const Assertion &get_assertion(LabTok label) const override;
     //std::function< const Assertion*() > list_assertions() const;
-    Generator< std::reference_wrapper< const Assertion > > gen_assertions() const;
-    const StackFrame &get_final_stack_frame() const;
-    const LibraryAddendum &get_addendum() const;
-    const ParsingAddendumImpl &get_parsing_addendum() const;
+    Generator< std::reference_wrapper< const Assertion > > gen_assertions() const override;
+    const StackFrame &get_final_stack_frame() const override;
+    const LibraryAddendum &get_addendum() const override;
+    const ParsingAddendumImpl &get_parsing_addendum() const override;
 };
 
 template< typename Engine, typename std::enable_if< std::is_base_of< ProofEngine, Engine >::value >::type* = nullptr >

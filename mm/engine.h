@@ -428,20 +428,20 @@ public:
 
     LabTok create_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent);
 
-    void process_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent) {
+    void process_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent) override {
         LabTok label = this->create_new_hypothesis(sent);
         this->ProofEngineBase< SentType_ >::process_label(label);
     }
 
-    void checkpoint() {
+    void checkpoint() override {
         this->ProofEngineBase< SentType_ >::checkpoint();
     }
 
-    void commit() {
+    void commit() override {
         this->ProofEngineBase< SentType_ >::commit();
     }
 
-    void rollback() {
+    void rollback() override {
         this->ProofEngineBase< SentType_ >::rollback();
     }
 
@@ -475,7 +475,7 @@ class ProofEngineImpl final : public ProofEngineBase< SentType_ >, virtual publi
 public:
     ProofEngineImpl(const typename ProofEngineBase< SentType_ >::LibType &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType_ >(lib, gen_proof_tree) {}
 
-    void process_label(const LabTok label) {
+    void process_label(const LabTok label) override {
         this->ProofEngineBase< SentType_ >::process_label(label);
     }
 };

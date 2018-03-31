@@ -81,11 +81,11 @@ private:
  */
 class ConvertibleWff : public Wff {
 public:
-    pwff subst(pvar var, bool positive) const;
-    Prover< CheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
-    bool is_true() const;
-    Prover< CheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
-    bool is_false() const;
+    pwff subst(pvar var, bool positive) const override;
+    Prover< CheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const override;
+    bool is_true() const override;
+    Prover< CheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const override;
+    bool is_false() const override;
     //Prover< AbstractCheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
 
 private:
@@ -96,18 +96,18 @@ private:
 class True : public Wff, public enable_create< True > {
     friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
-    std::string to_string() const;
-    pwff imp_not_form() const;
-    pwff subst(pvar var, bool positive) const;
-    void get_variables(pvar_set &vars) const;
-    Prover< CheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
-    bool is_true() const;
-    Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-    Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
-    bool operator==(const Wff &x) const;
-    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
-    std::vector< pwff > get_children() const;
+    std::string to_string() const override;
+    pwff imp_not_form() const override;
+    pwff subst(pvar var, bool positive) const override;
+    void get_variables(pvar_set &vars) const override;
+    Prover< CheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const override;
+    bool is_true() const override;
+    Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+    Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const override;
+    bool operator==(const Wff &x) const override;
+    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const override;
+    std::vector< pwff > get_children() const override;
 
 protected:
     True();
@@ -123,18 +123,18 @@ private:
 class False : public Wff, public enable_create< False > {
     friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
-    std::string to_string() const;
-    pwff imp_not_form() const;
-    pwff subst(pvar var, bool positive) const;
-    void get_variables(pvar_set &vars) const;
-    Prover< CheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
-    bool is_false() const;
-    Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-    Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
-    bool operator==(const Wff &x) const;
-    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
-    std::vector< pwff > get_children() const;
+    std::string to_string() const override;
+    pwff imp_not_form() const override;
+    pwff subst(pvar var, bool positive) const override;
+    void get_variables(pvar_set &vars) const override;
+    Prover< CheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const override;
+    bool is_false() const override;
+    Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+    Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const override;
+    bool operator==(const Wff &x) const override;
+    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const override;
+    std::vector< pwff > get_children() const override;
 
 protected:
     False();
@@ -152,17 +152,17 @@ class Var : public Wff, public enable_create< Var > {
 public:
   typedef ParsingTree2< SymTok, LabTok > NameType;
 
-  std::string to_string() const;
-  pwff imp_not_form() const;
-  pwff subst(pvar var, bool positive) const;
-  void get_variables(pvar_set &vars) const;
-  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-  Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
-  bool operator==(const Wff &x) const;
+  std::string to_string() const override;
+  pwff imp_not_form() const override;
+  pwff subst(pvar var, bool positive) const override;
+  void get_variables(pvar_set &vars) const override;
+  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
+  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+  Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const override;
+  bool operator==(const Wff &x) const override;
   bool operator<(const Var &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
-  std::vector< pwff > get_children() const;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const override;
+  std::vector< pwff > get_children() const override;
   void set_library_toolbox(const LibraryToolbox &tb) const override;
   const NameType &get_name() const {
       assert(this->name.quick_is_valid());
@@ -194,20 +194,20 @@ private:
 class Not : public Wff, public enable_create< Not > {
     friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
-  std::string to_string() const;
-  pwff imp_not_form() const;
-  pwff subst(pvar var, bool positive) const;
-  void get_variables(pvar_set &vars) const;
-  Prover< CheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
-  bool is_true() const;
-  Prover< CheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
-  bool is_false() const;
-  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-  Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
-  bool operator==(const Wff &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
-  std::vector< pwff > get_children() const;
+  std::string to_string() const override;
+  pwff imp_not_form() const override;
+  pwff subst(pvar var, bool positive) const override;
+  void get_variables(pvar_set &vars) const override;
+  Prover< CheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const override;
+  bool is_true() const override;
+  Prover< CheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const override;
+  bool is_false() const override;
+  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
+  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+  Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const override;
+  bool operator==(const Wff &x) const override;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const override;
+  std::vector< pwff > get_children() const override;
   pwff get_a() const {
       return this->a;
   }
@@ -229,20 +229,20 @@ private:
 class Imp : public Wff, public enable_create< Imp > {
     friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
-  std::string to_string() const;
-  pwff imp_not_form() const;
-  pwff subst(pvar var, bool positive) const;
-  void get_variables(pvar_set &vars) const;
-  Prover< CheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const;
-  bool is_true() const;
-  Prover< CheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
-  bool is_false() const;
-  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-  Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const;
-  bool operator==(const Wff &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
-  std::vector< pwff > get_children() const;
+  std::string to_string() const override;
+  pwff imp_not_form() const override;
+  pwff subst(pvar var, bool positive) const override;
+  void get_variables(pvar_set &vars) const override;
+  Prover< CheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const override;
+  bool is_true() const override;
+  Prover< CheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const override;
+  bool is_false() const override;
+  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
+  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+  Prover< CheckpointedProofEngine > get_subst_prover(pvar var, bool positive, const LibraryToolbox &tb) const override;
+  bool operator==(const Wff &x) const override;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const override;
+  std::vector< pwff > get_children() const override;
   pwff get_a() const {
       return this->a;
   }
@@ -273,15 +273,15 @@ private:
 class Biimp : public ConvertibleWff, public enable_create< Biimp > {
     friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
-  std::string to_string() const;
-  pwff imp_not_form() const;
+  std::string to_string() const override;
+  pwff imp_not_form() const override;
   pwff half_imp_not_form() const;
-  void get_variables(pvar_set &vars) const;
-  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-  bool operator==(const Wff &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
-  std::vector< pwff > get_children() const;
+  void get_variables(pvar_set &vars) const override;
+  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
+  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+  bool operator==(const Wff &x) const override;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const override;
+  std::vector< pwff > get_children() const override;
   pwff get_a() const {
       return this->a;
   }
@@ -307,15 +307,15 @@ private:
 class And : public ConvertibleWff, public enable_create< And > {
     friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
-  std::string to_string() const;
-  pwff imp_not_form() const;
+  std::string to_string() const override;
+  pwff imp_not_form() const override;
   pwff half_imp_not_form() const;
-  void get_variables(pvar_set &vars) const;
-  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-  bool operator==(const Wff &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
-  std::vector< pwff > get_children() const;
+  void get_variables(pvar_set &vars) const override;
+  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
+  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+  bool operator==(const Wff &x) const override;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const override;
+  std::vector< pwff > get_children() const override;
   pwff get_a() const {
       return this->a;
   }
@@ -340,15 +340,15 @@ private:
 class Or : public ConvertibleWff, public enable_create< Or > {
     friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
-  std::string to_string() const;
-  pwff imp_not_form() const;
+  std::string to_string() const override;
+  pwff imp_not_form() const override;
   pwff half_imp_not_form() const;
-  void get_variables(pvar_set &vars) const;
-  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-  bool operator==(const Wff &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
-  std::vector< pwff > get_children() const;
+  void get_variables(pvar_set &vars) const override;
+  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
+  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+  bool operator==(const Wff &x) const override;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const override;
+  std::vector< pwff > get_children() const override;
   pwff get_a() const {
       return this->a;
   }
@@ -373,15 +373,15 @@ private:
 class Nand : public ConvertibleWff, public enable_create< Nand > {
     friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
-  std::string to_string() const;
-  pwff imp_not_form() const;
+  std::string to_string() const override;
+  pwff imp_not_form() const override;
   pwff half_imp_not_form() const;
-  void get_variables(pvar_set &vars) const;
-  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-  bool operator==(const Wff &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
-  std::vector< pwff > get_children() const;
+  void get_variables(pvar_set &vars) const override;
+  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
+  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+  bool operator==(const Wff &x) const override;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const override;
+  std::vector< pwff > get_children() const override;
   pwff get_a() const {
       return this->a;
   }
@@ -406,15 +406,15 @@ private:
 class Xor : public ConvertibleWff, public enable_create< Xor > {
     friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
-  std::string to_string() const;
-  pwff imp_not_form() const;
+  std::string to_string() const override;
+  pwff imp_not_form() const override;
   pwff half_imp_not_form() const;
-  void get_variables(pvar_set &vars) const;
-  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-  bool operator==(const Wff &x) const;
-  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
-  std::vector< pwff > get_children() const;
+  void get_variables(pvar_set &vars) const override;
+  Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
+  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+  bool operator==(const Wff &x) const override;
+  void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const override;
+  std::vector< pwff > get_children() const override;
   pwff get_a() const {
       return this->a;
   }
@@ -440,15 +440,15 @@ private:
 class And3 : public ConvertibleWff, public enable_create< And3 > {
     friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
-    std::string to_string() const;
-    pwff imp_not_form() const;
+    std::string to_string() const override;
+    pwff imp_not_form() const override;
     pwff half_imp_not_form() const;
-    void get_variables(pvar_set &vars) const;
-    Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-    bool operator==(const Wff &x) const;
-    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
-    std::vector< pwff > get_children() const;
+    void get_variables(pvar_set &vars) const override;
+    Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+    bool operator==(const Wff &x) const override;
+    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const override;
+    std::vector< pwff > get_children() const override;
     pwff get_a() const {
         return this->a;
     }
@@ -479,15 +479,15 @@ protected:
 class Or3 : public ConvertibleWff, public enable_create< Or3 > {
     friend pwff wff_from_pt(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
-    std::string to_string() const;
-    pwff imp_not_form() const;
+    std::string to_string() const override;
+    pwff imp_not_form() const override;
     pwff half_imp_not_form() const;
-    void get_variables(pvar_set &vars) const;
-    Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const;
-    std::vector< pwff > get_children() const;
-    bool operator==(const Wff &x) const;
+    void get_variables(pvar_set &vars) const override;
+    Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+    void get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const override;
+    std::vector< pwff > get_children() const override;
+    bool operator==(const Wff &x) const override;
     pwff get_a() const {
         return this->a;
     }

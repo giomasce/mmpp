@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(test_old_unification) {
     std::vector< SymTok > sent = tb.read_sentence("wff ( ph -> ( ps -> ch ) )");
     std::vector< SymTok > templ = tb.read_sentence("wff ( th -> et )");
     auto res = unify_old(sent, templ, lib, false);
-    BOOST_TEST(res.size() == 2);
+    BOOST_TEST(res.size() == (size_t) 2);
     /*std::cout << "Matching:         " << tb.print_sentence(sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl << "against template: " << tb.print_sentence(templ, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
     for (auto &match : res) {
         std::cout << "  *";

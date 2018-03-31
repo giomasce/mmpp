@@ -57,75 +57,75 @@ public:
 class LibraryAddendumImpl : public ExtendedLibraryAddendum {
     friend class Reader;
 public:
-    virtual const std::string &get_htmldef(SymTok tok) const
+    virtual const std::string &get_htmldef(SymTok tok) const override
     {
         return this->htmldefs.at(tok.val());
     }
-    virtual const std::string &get_althtmldef(SymTok tok) const
+    virtual const std::string &get_althtmldef(SymTok tok) const override
     {
         return this->althtmldefs.at(tok.val());
     }
-    virtual const std::string &get_latexdef(SymTok tok) const
+    virtual const std::string &get_latexdef(SymTok tok) const override
     {
         return this->latexdefs.at(tok.val());
     }
-    const std::vector< std::string > &get_htmldefs() const
+    const std::vector< std::string > &get_htmldefs() const override
     {
         return this->htmldefs;
     }
-    const std::vector< std::string > &get_althtmldefs() const
+    const std::vector< std::string > &get_althtmldefs() const override
     {
         return this->althtmldefs;
     }
-    const std::vector< std::string > &get_latexdefs() const
+    const std::vector< std::string > &get_latexdefs() const override
     {
         return this->latexdefs;
     }
-    const std::string &get_htmlcss() const
+    const std::string &get_htmlcss() const override
     {
         return this->htmlcss;
     }
-    const std::string &get_htmlfont() const
+    const std::string &get_htmlfont() const override
     {
         return this->htmlfont;
     }
-    const std::string &get_htmltitle() const
+    const std::string &get_htmltitle() const override
     {
         return this->htmltitle;
     }
-    const std::string &get_htmlhome() const
+    const std::string &get_htmlhome() const override
     {
         return this->htmlhome;
     }
-    const std::string &get_htmlbibliography() const
+    const std::string &get_htmlbibliography() const override
     {
         return this->htmlbibliography;
     }
-    const std::string &get_exthtmltitle() const
+    const std::string &get_exthtmltitle() const override
     {
         return this->exthtmltitle;
     }
-    const std::string &get_exthtmlhome() const
+    const std::string &get_exthtmlhome() const override
     {
         return this->exthtmlhome;
     }
-    const std::string &get_exthtmllabel() const
+    const std::string &get_exthtmllabel() const override
     {
         return this->exthtmllabel;
     }
-    const std::string &get_exthtmlbibliography() const
+    const std::string &get_exthtmlbibliography() const override
     {
         return this->exthtmlbibliography;
     }
-    const std::string &get_htmlvarcolor() const
+    const std::string &get_htmlvarcolor() const override
     {
         return this->htmlvarcolor;
     }
-    const std::string &get_htmldir() const
+    const std::string &get_htmldir() const override
     {
         return this->htmldir;
     }
-    const std::string &get_althtmldir() const
+    const std::string &get_althtmldir() const override
     {
         return this->althtmldir;
     }
@@ -155,10 +155,10 @@ class ParsingAddendum {
 class ParsingAddendumImpl : public ParsingAddendum {
     friend class Reader;
 public:
-    const std::map< SymTok, SymTok > &get_syntax() const {
+    const std::map< SymTok, SymTok > &get_syntax() const override {
         return this->syntax;
     }
-    const std::string &get_unambiguous() const {
+    const std::string &get_unambiguous() const override {
         return this->unambiguous;
     }
 private:
@@ -310,29 +310,29 @@ class LibraryImpl final : public ExtendedLibrary
 {
 public:
     LibraryImpl();
-    SymTok get_symbol(std::string s) const;
-    LabTok get_label(std::string s) const;
-    std::string resolve_symbol(SymTok tok) const;
-    std::string resolve_label(LabTok tok) const;
-    size_t get_symbols_num() const;
-    size_t get_labels_num() const;
-    const std::unordered_map< SymTok, std::string > &get_symbols() const;
-    const std::unordered_map<LabTok, std::string> &get_labels() const;
-    const Sentence &get_sentence(LabTok label) const;
-    const Sentence *get_sentence_ptr(LabTok label) const;
-    SentenceType get_sentence_type(LabTok label) const;
-    const Assertion &get_assertion(LabTok label) const;
-    const std::vector< Sentence > &get_sentences() const;
-    const std::vector< SentenceType > &get_sentence_types() const;
-    const std::vector< Assertion > &get_assertions() const;
-    bool is_constant(SymTok c) const;
-    const StackFrame &get_final_stack_frame() const;
-    const LibraryAddendumImpl &get_addendum() const;
-    const ParsingAddendumImpl &get_parsing_addendum() const;
+    SymTok get_symbol(std::string s) const override;
+    LabTok get_label(std::string s) const override;
+    std::string resolve_symbol(SymTok tok) const override;
+    std::string resolve_label(LabTok tok) const override;
+    size_t get_symbols_num() const override;
+    size_t get_labels_num() const override;
+    const std::unordered_map< SymTok, std::string > &get_symbols() const override;
+    const std::unordered_map<LabTok, std::string> &get_labels() const override;
+    const Sentence &get_sentence(LabTok label) const override;
+    const Sentence *get_sentence_ptr(LabTok label) const override;
+    SentenceType get_sentence_type(LabTok label) const override;
+    const Assertion &get_assertion(LabTok label) const override;
+    const std::vector< Sentence > &get_sentences() const override;
+    const std::vector< SentenceType > &get_sentence_types() const override;
+    const std::vector< Assertion > &get_assertions() const override;
+    bool is_constant(SymTok c) const override;
+    const StackFrame &get_final_stack_frame() const override;
+    const LibraryAddendumImpl &get_addendum() const override;
+    const ParsingAddendumImpl &get_parsing_addendum() const override;
     std::function< const Assertion*() > list_assertions() const;
-    Generator< std::reference_wrapper< const Assertion > > gen_assertions() const;
-    virtual LabTok get_max_number() const;
-    virtual bool is_immutable() const;
+    Generator< std::reference_wrapper< const Assertion > > gen_assertions() const override;
+    virtual LabTok get_max_number() const override;
+    virtual bool is_immutable() const override;
 
     SymTok create_symbol(std::string s);
     SymTok create_or_get_symbol(std::string s);

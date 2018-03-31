@@ -657,7 +657,7 @@ BOOST_DATA_TEST_CASE(test_wff_minisat_prover, boost::unit_test::data::xrange(3),
         res = tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(efald_rp, {{"ph", adapter.and_hyps->get_type_prover(tb)}, {"ps", adapter.thesis->get_type_prover(tb)}}, {main_prover})(engine);
     }
     BOOST_TEST(res);
-    BOOST_TEST(engine.get_stack().size() == 1);
+    BOOST_TEST(engine.get_stack().size() == (size_t) 1);
     // TODO Check that the correct sentence was proved!
     /*if (res) {
         std::cout << std::endl << "FINAL PROOF FOUND!" << std::endl;

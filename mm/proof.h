@@ -150,19 +150,19 @@ protected:
 class CompressedProofOperator : public ProofOperator, public CompressedProofExecutor< Sentence > {
 public:
     CompressedProofOperator(const Library &lib, const Assertion &ass, const CompressedProof &proof);
-    const CompressedProof compress(CompressionStrategy strategy=CS_ANY);
-    const UncompressedProof uncompress();
-    bool check_syntax();
-    bool is_trivial() const;
+    const CompressedProof compress(CompressionStrategy strategy=CS_ANY) override;
+    const UncompressedProof uncompress() override;
+    bool check_syntax() override;
+    bool is_trivial() const override;
 };
 
 class UncompressedProofOperator : public ProofOperator, public UncompressedProofExecutor< Sentence > {
 public:
     UncompressedProofOperator(const Library &lib, const Assertion &ass, const UncompressedProof &proof);
-    const CompressedProof compress(CompressionStrategy strategy=CS_ANY);
-    const UncompressedProof uncompress();
-    bool check_syntax();
-    bool is_trivial() const;
+    const CompressedProof compress(CompressionStrategy strategy=CS_ANY) override;
+    const UncompressedProof uncompress() override;
+    bool check_syntax() override;
+    bool is_trivial() const override;
 };
 
 class Proof {
@@ -178,7 +178,7 @@ public:
     CompressedProof(const std::vector< LabTok > &refs, const std::vector< CodeTok > &codes);
     template< typename SentType_ >
     std::shared_ptr< ProofExecutor< SentType_ > > get_executor(const Library &lib, const Assertion &ass, bool gen_proof_tree=false) const;
-    std::shared_ptr< ProofOperator > get_operator(const Library &lib, const Assertion &ass) const;
+    std::shared_ptr< ProofOperator > get_operator(const Library &lib, const Assertion &ass) const override;
     const std::vector< LabTok > &get_refs() const;
     const std::vector< CodeTok > &get_codes() const;
 
@@ -192,7 +192,7 @@ public:
     UncompressedProof(const std::vector< LabTok > &labels);
     template< typename SentType_ >
     std::shared_ptr< ProofExecutor< SentType_ > > get_executor(const Library &lib, const Assertion &ass, bool gen_proof_tree=false) const;
-    std::shared_ptr< ProofOperator > get_operator(const Library &lib, const Assertion &ass) const;
+    std::shared_ptr< ProofOperator > get_operator(const Library &lib, const Assertion &ass) const override;
     const std::vector< LabTok > &get_labels() const;
 
 private:
