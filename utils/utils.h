@@ -24,6 +24,9 @@
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/concepts.hpp>
 
+#define BOOST_TEST_DYN_LINK
+#include <boost/test/unit_test.hpp>
+
 /* A template struct without specializations: useful for checking variable types
  * (for example when there is automatic type deduction).
  * For example, if you declare

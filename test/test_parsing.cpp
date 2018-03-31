@@ -1,8 +1,6 @@
 
 #include <iostream>
 
-#include "test/test_parsing.h"
-
 #include "mm/setmm.h"
 #include "parsing/earley.h"
 #include "parsing/lr.h"
@@ -11,28 +9,28 @@ template< typename SymType, typename LabType >
 void test_parsers(const std::vector<SymType> &sent, SymType type, const std::unordered_map<SymType, std::vector<std::pair<LabType, std::vector<SymType> > > > &derivations) {
     const auto ders_by_lab = compute_derivations_by_label(derivations);
 
-    std::cout << "Earley parser" << std::endl;
+    //std::cout << "Earley parser" << std::endl;
     EarleyParser< SymType, LabType > earley_parser(derivations);
     ParsingTree< SymType, LabType > earley_pt = earley_parser.parse(sent, type);
-    assert(earley_pt.label != 0);
-    assert(reconstruct_sentence(earley_pt, derivations, ders_by_lab) == sent);
+    BOOST_TEST(earley_pt.label != LabType{});
+    BOOST_TEST(reconstruct_sentence(earley_pt, derivations, ders_by_lab) == sent);
 
-    std::cout << "LR parser" << std::endl;
+    //std::cout << "LR parser" << std::endl;
     LRParser< SymType, LabType > lr_parser(derivations);
     lr_parser.initialize();
 
     ParsingTree< SymType, LabType > lr_pt = lr_parser.parse(sent, type);
-    assert(lr_pt.label != 0);
-    assert(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent);
+    BOOST_TEST(lr_pt.label != LabType{});
+    BOOST_TEST(reconstruct_sentence(lr_pt, derivations, ders_by_lab) == sent);
 
-    assert(earley_pt == lr_pt);
+    BOOST_TEST((bool)(earley_pt == lr_pt));
 
-    std::cout << "PT and PT2" << std::endl;
+    //std::cout << "PT and PT2" << std::endl;
     ParsingTree2< SymType, LabType > pt2 = pt_to_pt2(lr_pt);
     ParsingTree< SymType, LabType > pt = pt2_to_pt(pt2);
     ParsingTree2< SymType, LabType > pt2_2 = pt_to_pt2(pt);
-    assert(pt == lr_pt);
-    assert(pt2 == pt2_2);
+    BOOST_TEST((bool)(pt == lr_pt));
+    BOOST_TEST((bool)(pt2 == pt2_2));
 }
 
 void test_grammar1() {
@@ -104,8 +102,7 @@ void test_grammar4() {
     test_parsers< char, size_t >(sent, 'S', derivations);
 }
 
-void test_parsers() {
-    std::cout << "Generic parser test" << std::endl;
+BOOST_AUTO_TEST_CASE(test_parsing) {
     test_grammar1();
     test_grammar2();
     test_grammar3();

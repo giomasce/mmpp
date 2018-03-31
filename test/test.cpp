@@ -16,8 +16,6 @@
 #include "platform.h"
 #include "parsing/unif.h"
 #include "mm/setmm.h"
-#include "test/test_parsing.h"
-#include "test/test_minor.h"
 #include "provers/wffsat.h"
 
 void test_old_unification() {
@@ -401,8 +399,6 @@ void test_wffs_parsing() {
 }
 
 void test() {
-    test_small_stuff();
-    test_parsers();
     test_lr_set();
     test_old_unification();
     test_statement_unification();

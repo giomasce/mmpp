@@ -44,7 +44,7 @@ macx {
 }
 
 !win32 {
-    QMAKE_LIBS += -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread
+    QMAKE_LIBS += -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lboost_unit_test_framework -lpthread
 }
 
 win32 {
@@ -118,7 +118,8 @@ SOURCES += \
     apps/resolver.cpp \
     provers/subst.cpp \
     apps/verify.cpp \
-    mm/setmm.cpp
+    mm/setmm.cpp \
+    test/test_main.cpp
 
 HEADERS += \
     pch.h \
@@ -137,8 +138,6 @@ HEADERS += \
     web/jsonize.h \
     mm/reader.h \
     libs/serialize_tuple.h \
-    test/test_parsing.h \
-    test/test_minor.h \
     utils/vectormap.h \
     parsing/parser.h \
     parsing/earley.h \
