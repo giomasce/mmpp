@@ -8,7 +8,7 @@
 #include "utils/utils.h"
 #include "platform.h"
 #include "mm/setmm.h"
-#include "test.h"
+#include "test/test.h"
 
 //#define VERBOSE_Z3
 

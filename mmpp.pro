@@ -175,7 +175,7 @@ HEADERS += \
     provers/wffsat.h \
     provers/subst.h \
     mm/setmm.h \
-    test.h
+    test/test.h
 
 DISTFILES += \
     README.md \
