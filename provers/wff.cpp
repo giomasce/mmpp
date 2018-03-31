@@ -132,6 +132,13 @@ std::tuple<CNFProblem, pvar_map<uint32_t>, std::vector< Prover< CheckpointedProo
     return make_tuple(problem.first, map, problem.second);
 }
 
+void Wff::set_library_toolbox(const LibraryToolbox &tb) const
+{
+    for (auto child : this->get_children()) {
+        child->set_library_toolbox(tb);
+    }
+}
+
 True::True() {
 }
 
@@ -202,6 +209,11 @@ const RegisteredProver True::tseitin1_rp = LibraryToolbox::register_prover({}, "
 void True::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob_ctx) const
 {
     cnf[{{true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(True::tseitin1_rp, {{"th", glob_ctx.get_type_prover(tb)}}, {});
+}
+
+std::vector<pwff> True::get_children() const
+{
+    return {};
 }
 
 False::False() {
@@ -276,6 +288,15 @@ void False::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &g
     cnf[{{false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(False::tseitin1_rp, {{"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
+std::vector<pwff> False::get_children() const
+{
+    return {};
+}
+
+Var::Var(const std::string &string_repr) : string_repr(string_repr)
+{
+}
+
 Var::Var(NameType name, std::string string_repr) :
     name(name), string_repr(string_repr) {
 }
@@ -322,7 +343,7 @@ void Var::get_variables(pvar_set &vars) const
 
 Prover<CheckpointedProofEngine> Var::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_type_prover(this->name);
+    return tb.build_type_prover(this->get_name());
     /*auto label = tb.get_var_sym_to_lab(tb.get_symbol(this->name));
     return [label](AbstractCheckpointedProofEngine &engine) {
         engine.process_label(label);
@@ -392,6 +413,18 @@ void Var::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glo
     (void) cnf;
     (void) tb;
     (void) glob_ctx;
+}
+
+std::vector<pwff> Var::get_children() const
+{
+    return {};
+}
+
+void Var::set_library_toolbox(const LibraryToolbox &tb) const
+{
+    if (this->name.get_root().get_node().label == LabTok{}) {
+        this->name = var_cons_helper(string_repr, tb);
+    }
 }
 
 Not::Not(pwff a) :
@@ -478,6 +511,11 @@ void Not::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glo
     this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
     cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Not::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
     cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Not::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+}
+
+std::vector<pwff> Not::get_children() const
+{
+    return { this->get_a() };
 }
 
 Imp::Imp(pwff a, pwff b) :
@@ -590,6 +628,11 @@ void Imp::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glo
     cnf[{{false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Imp::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
+std::vector<pwff> Imp::get_children() const
+{
+    return { this->get_a(), this->get_b() };
+}
+
 Biimp::Biimp(pwff a, pwff b) :
     a(a), b(b) {
 }
@@ -658,6 +701,11 @@ void Biimp::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &g
     cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Biimp::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
+std::vector<pwff> Biimp::get_children() const
+{
+    return { this->get_a(), this->get_b() };
+}
+
 Xor::Xor(pwff a, pwff b) :
     a(a), b(b) {
 }
@@ -722,6 +770,11 @@ void Xor::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glo
     cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Xor::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
+std::vector<pwff> Xor::get_children() const
+{
+    return { this->get_a(), this->get_b() };
+}
+
 Nand::Nand(pwff a, pwff b) :
     a(a), b(b) {
 }
@@ -782,6 +835,11 @@ void Nand::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &gl
     cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Nand::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
     cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Nand::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
     cnf[{{true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Nand::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+}
+
+std::vector<pwff> Nand::get_children() const
+{
+    return { this->get_a(), this->get_b() };
 }
 
 Or::Or(pwff a, pwff b) :
@@ -846,6 +904,11 @@ void Or::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glob
     cnf[{{false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
+std::vector<pwff> Or::get_children() const
+{
+    return { this->get_a(), this->get_b() };
+}
+
 And::And(pwff a, pwff b) :
     a(a), b(b) {
 }
@@ -906,6 +969,11 @@ void And::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glo
     cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
     cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
     cnf[{{true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+}
+
+std::vector<pwff> And::get_children() const
+{
+    return { this->get_a(), this->get_b() };
 }
 
 pwff ConvertibleWff::subst(pvar var, bool positive) const
@@ -1024,6 +1092,11 @@ void And3::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &gl
     cnf[{{true, this->get_c()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(And3::tseitin6_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
+std::vector<pwff> And3::get_children() const
+{
+    return { this->get_a(), this->get_b(), this->get_c() };
+}
+
 Or3::Or3(pwff a, pwff b, pwff c) :
     a(a), b(b), c(c)
 {
@@ -1091,6 +1164,11 @@ void Or3::get_tseitin_form(CNForm &cnf, const LibraryToolbox &tb, const Wff &glo
     cnf[{{true, intermediate->get_tseitin_var(tb)}, {true, this->get_c()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
     cnf[{{false, intermediate->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin5_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
     cnf[{{false, this->get_c()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(Or3::tseitin6_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+}
+
+std::vector<pwff> Or3::get_children() const
+{
+    return { this->get_a(), this->get_b(), this->get_c() };
 }
 
 bool Or3::operator==(const Wff &x) const
