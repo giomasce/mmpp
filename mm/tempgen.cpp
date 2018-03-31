@@ -3,7 +3,7 @@
 #include <mutex>
 
 TempGenerator::TempGenerator(const Library &lib) : lib(lib),
-    temp_syms(SymTok(lib.get_symbols_num()+1)), temp_labs(LabTok(lib.get_labels_num()+1)),
+    temp_syms(SymTok((SymTok::val_type) lib.get_symbols_num()+1)), temp_labs(LabTok((LabTok::val_type) lib.get_labels_num()+1)),
     syms_base(lib.get_symbols_num()+1), labs_base(lib.get_labels_num()+1)
 {
     assert(this->lib.is_immutable());

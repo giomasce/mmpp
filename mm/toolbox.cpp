@@ -735,7 +735,7 @@ LabTok LibraryToolbox::get_imp_label() const
 Generator<SymTok> LibraryToolbox::gen_symbols() const
 {
     return Generator<SymTok>([this](auto &sink) {
-            for (size_t i = 1; i <= this->get_symbols_num(); i++) {
+            for (SymTok::val_type i = 1; i <= this->get_symbols_num(); i++) {
                 sink(SymTok(i));
             }
         }
@@ -745,7 +745,7 @@ Generator<SymTok> LibraryToolbox::gen_symbols() const
 Generator<LabTok> LibraryToolbox::gen_labels() const
 {
     return Generator<LabTok>([this](auto &sink) {
-            for (size_t i = 1; i <= this->get_labels_num(); i++) {
+            for (LabTok::val_type i = 1; i <= this->get_labels_num(); i++) {
                 sink(LabTok(i));
             }
         }
@@ -1047,10 +1047,8 @@ const std::vector<std::pair<ParsingTreeMultiIterator< SymTok, LabTok >::Status, 
 Generator<std::reference_wrapper<const ParsingTree<SymTok, LabTok> > > LibraryToolbox::gen_parsed_sents() const
 {
     return Generator<std::reference_wrapper< const ParsingTree<SymTok, LabTok> > >([this](auto &sink) {
-            for (size_t i = 0; i < this->parsed_sents.size(); i++) {
-                if (i != 0) {
-                    sink(std::cref(this->parsed_sents[i]));
-                }
+            for (LabTok::val_type i = 1; i < this->parsed_sents.size(); i++) {
+                sink(std::cref(this->parsed_sents[i]));
             }
         }
     );
@@ -1059,10 +1057,8 @@ Generator<std::reference_wrapper<const ParsingTree<SymTok, LabTok> > > LibraryTo
 Generator<std::reference_wrapper<const ParsingTree2<SymTok, LabTok> > > LibraryToolbox::gen_parsed_sents2() const
 {
     return Generator<std::reference_wrapper< const ParsingTree2<SymTok, LabTok> > >([this](auto &sink) {
-            for (size_t i = 0; i < this->parsed_sents2.size(); i++) {
-                if (i != 0) {
-                    sink(std::cref(this->parsed_sents2[i]));
-                }
+            for (LabTok::val_type i = 1; i < this->parsed_sents2.size(); i++) {
+                sink(std::cref(this->parsed_sents2[i]));
             }
         }
     );
@@ -1071,10 +1067,8 @@ Generator<std::reference_wrapper<const ParsingTree2<SymTok, LabTok> > > LibraryT
 Generator<std::pair<LabTok, std::reference_wrapper<const ParsingTree<SymTok, LabTok> > > > LibraryToolbox::enum_parsed_sents() const
 {
     return Generator<std::pair<LabTok, std::reference_wrapper< const ParsingTree<SymTok, LabTok> > > >([this](auto &sink) {
-            for (size_t i = 0; i < this->parsed_sents.size(); i++) {
-                if (i != 0) {
-                    sink(std::make_pair(LabTok(i), std::cref(this->parsed_sents[i])));
-                }
+            for (LabTok::val_type i = 1; i < this->parsed_sents.size(); i++) {
+                sink(std::make_pair(LabTok(i), std::cref(this->parsed_sents[i])));
             }
         }
     );
@@ -1083,10 +1077,8 @@ Generator<std::pair<LabTok, std::reference_wrapper<const ParsingTree<SymTok, Lab
 Generator<std::pair<LabTok, std::reference_wrapper<const ParsingTree2<SymTok, LabTok> > > > LibraryToolbox::enum_parsed_sents2() const
 {
     return Generator<std::pair<LabTok, std::reference_wrapper< const ParsingTree2<SymTok, LabTok> > > >([this](auto &sink) {
-            for (size_t i = 0; i < this->parsed_sents2.size(); i++) {
-                if (i != 0) {
-                    sink(std::make_pair(LabTok(i), std::cref(this->parsed_sents2[i])));
-                }
+            for (LabTok::val_type i = 1; i < this->parsed_sents2.size(); i++) {
+                sink(std::make_pair(LabTok(i), std::cref(this->parsed_sents2[i])));
             }
         }
     );
