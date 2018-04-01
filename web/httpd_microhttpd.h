@@ -33,6 +33,7 @@ private:
     std::atomic< MHD_Daemon* > daemon;
     HTTPTarget &target;
     bool restrict_to_localhost;
+    std::vector< struct in6_addr > allowed_addrs;
 };
 
 class HTTPCallback_microhttpd : public HTTPCallback {

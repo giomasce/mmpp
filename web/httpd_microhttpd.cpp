@@ -16,6 +16,8 @@
 
 //#define LOG_MICROHTTPD_REQUESTS
 
+std::vector< std::string > local_addrs = { "::1", "::ffff:127.0.0.1" };
+
 static void microhttpd_panic(void *cls, const char *file, unsigned int line, const char *reason) {
     (void) cls;
     std::cout << "Microhttpd panic in " << file << ":" << line << " beacuse of \"" << reason << "\"" << std::endl;
@@ -26,12 +28,21 @@ HTTPD_microhttpd::HTTPD_microhttpd(int port, HTTPTarget &target, bool only_from_
     port(port), daemon(nullptr), target(target), restrict_to_localhost(only_from_localhost)
 {
     MHD_set_panic_func(microhttpd_panic, nullptr);
+    for (const auto &addr_str : local_addrs) {
+        struct in6_addr addr;
+        int ret = inet_pton(AF_INET6, addr_str.c_str(), &addr);
+        assert(ret == 1);
+#ifdef NDEBUG
+        (void) ret;
+#endif
+        this->allowed_addrs.push_back(addr);
+    }
 }
 
 void HTTPD_microhttpd::start()
 {
     std::unique_lock< std::mutex > lock(this->daemon_mutex);
-    this->daemon = MHD_start_daemon (MHD_USE_THREAD_PER_CONNECTION | MHD_USE_POLL, this->port,
+    this->daemon = MHD_start_daemon (MHD_USE_THREAD_PER_CONNECTION | MHD_USE_POLL | MHD_USE_DUAL_STACK, this->port,
                                      &this->accept_wrapper, this,
                                      &this->answer_wrapper, this,
                                      MHD_OPTION_THREAD_STACK_SIZE, (size_t) DEFAULT_STACK_SIZE,
@@ -74,27 +85,25 @@ HTTPD_microhttpd::~HTTPD_microhttpd()
     this->stop();
 }
 
+bool operator==(const struct in6_addr &x, const struct in6_addr &y) {
+    return memcmp(&x, &y, sizeof(in6_addr)) == 0;
+}
+
 int HTTPD_microhttpd::accept_wrapper(void *cls, const sockaddr *addr, socklen_t addrlen)
 {
     auto object = reinterpret_cast< HTTPD_microhttpd* >(cls);
     (void) addrlen;
 
-    // Accept only IPv4
-    if (addr->sa_family != AF_INET) {
-        return MHD_NO;
-    }
+    // We use MHD_USE_DUAL_STACK, so the docs says we are always receiving IPv6 addresses
+    assert(addr->sa_family == AF_INET6);
 
     // If configured so, accept only from localhost
     if (object->restrict_to_localhost) {
-        auto inetaddr = reinterpret_cast< const sockaddr_in* >(addr);
-        struct in_addr localhost;
-        int ret = inet_pton(AF_INET, "127.0.0.1", &localhost);
-        assert(ret == 1);
-#ifdef NDEBUG
-        (void) ret;
-#endif
-        if (memcmp(&inetaddr->sin_addr, &localhost, sizeof(localhost)) == 0) {
-            return MHD_YES;
+        auto inetaddr = reinterpret_cast< const struct sockaddr_in6* >(addr);
+        for (const auto &allowed_addr : object->allowed_addrs) {
+            if (allowed_addr == inetaddr->sin6_addr) {
+                return MHD_YES;
+            }
         }
         return MHD_NO;
     } else {
@@ -174,7 +183,7 @@ int HTTPD_microhttpd::answer_wrapper(void *cls, MHD_Connection *connection, cons
         cb->set_method(method);
         cb->set_version(version);
 #ifdef LOG_MICROHTTPD_REQUESTS
-        acout() << "Request received: " << method << " " << url << " " << version << endl;
+        acout() << "Request received: " << method << " " << url << " " << version << std::endl;
 #endif
         object->target.answer(*cb);
         if (!cb->get_send_response()) {
@@ -193,7 +202,7 @@ int HTTPD_microhttpd::answer_wrapper(void *cls, MHD_Connection *connection, cons
     }
 
 #ifdef LOG_MICROHTTPD_REQUESTS
-    acout() << "Responding " << cb->get_status_code() << " (" << method << " " << url << " " << version << ")" << endl;
+    acout() << "Responding " << cb->get_status_code() << " (" << method << " " << url << " " << version << ")" << std::endl;
 #endif
 
     struct MHD_Response *response;
@@ -390,5 +399,3 @@ int HTTPCallback_microhttpd::post_data_iterator(void *cls, MHD_ValueKind kind, c
     self->get_post_iterator().receive(skey, sfilename, scontent_type, stransfer_encoding, sdata, off);
     return MHD_YES;
 }
-
-
