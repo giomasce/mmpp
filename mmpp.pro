@@ -123,7 +123,7 @@ SOURCES += \
     provers/subst.cpp \
     apps/verify.cpp \
     mm/setmm.cpp \
-    test/test_main.cpp
+    test/test_wff.cpp
 
 HEADERS += \
     pch.h \
