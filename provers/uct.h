@@ -40,7 +40,7 @@ public:
     std::function< void() > get_children_callback(size_t idx) const;
 
 protected:
-    UCTProver(const LibraryToolbox &tb, const ParsingTree2< SymTok, LabTok > &thesis, const std::vector< ParsingTree2< SymTok, LabTok > > &hypotheses);
+    UCTProver(const LibraryToolbox &tb, const ParsingTree2< SymTok, LabTok > &thesis, const std::vector< ParsingTree2< SymTok, LabTok > > &hypotheses, const std::set< std::pair< LabTok, LabTok > > &antidists = {});
     ~UCTProver();
     void init();
 

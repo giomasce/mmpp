@@ -115,8 +115,7 @@ void UnificationStrategy::operator()(Yielder &yield) {
         pt_hyps.push_back(std::make_pair(this->data->hypotheses[i][0], this->data->pt_hypotheses[i]));
     }
 
-    const std::set< std::pair< SymTok, SymTok > > antidists;
-    auto res = this->toolbox.unify_assertion(pt_hyps, pt_th, true, true, antidists);
+    auto res = this->toolbox.unify_assertion(pt_hyps, pt_th, true, true, this->data->antidists);
     if (!res.empty()) {
         result->success = true;
         result->data = res[0];
@@ -244,7 +243,7 @@ void UctStrategy::operator()(Yielder &yield)
     auto thesis = pt_to_pt2(this->data->pt_thesis);
     auto hyps = vector_map(this->data->pt_hypotheses.begin(), this->data->pt_hypotheses.end(),
                            [](const auto &x) { return pt_to_pt2(x); });
-    result->prover = UCTProver::create(this->toolbox, thesis, hyps);
+    result->prover = UCTProver::create(this->toolbox, thesis, hyps, this->data->lab_antidists);
     result->visits_num = 0;
 
     yield();

@@ -210,6 +210,30 @@ export function ui_proof_editor() : void {
   $(`#proof_editor`).css('display', 'block');
 }
 
+export function ui_change_antidists() : void {
+  try {
+    let antidists : [number, number][] = $(`#antidists_text`).val().split(" ").filter(function (x : string) : boolean {
+      return x !== "";
+    }).map(function (x : string) : [number, number] {
+      let vars = x.split(",");
+      let num_vars = current_renderer.parse_from_strings(vars);
+      if (num_vars === null) {
+        throw "invalid symbol";
+      }
+      if (num_vars.length != 2) {
+        throw "not a string of pairs";
+      }
+      if (num_vars[0] === 0 || num_vars[1] === 0) {
+        throw "invalid symbol";
+      }
+      return [num_vars[0], num_vars[1]];
+    });
+    current_workset.set_antidists(antidists).catch(catch_all);
+  } catch (err) {
+    console.log("failed: " + err);
+  }
+}
+
 const WORK_AREA_TEMPL = `
   <div id="workset_list"></div>
   <div id="workset"></div>
@@ -246,6 +270,9 @@ const WORKSET_TEMPL = `
       <button onclick="mmpp.ui_create_node()">Create node</button>
       <button onclick="mmpp.ui_create_node_from_dump()">Create node from dump</button>
       <button onclick="mmpp.ui_dump_root()">Dump whole tree</button>
+    </div>
+    <div>
+      Antidistinct variables: <input type="text" id="antidists_text" oninput="mmpp.ui_change_antidists()"></input>
     </div>
     <div id="proof_editor_area"></div>
   </div>

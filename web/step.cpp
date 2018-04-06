@@ -77,6 +77,11 @@ void Step::restart_search()
     if (this->do_not_search) {
         return;
     }
+    auto workset = this->get_workset().lock();
+    if (!workset) {
+        return;
+    }
+    auto &tb = workset->get_toolbox();
 
     this->current_priority = 0;
     /* We cannot just use active_strategies.clear(), because this could trigger coroutine destructors,
@@ -108,6 +113,13 @@ void Step::restart_search()
             return;
         }
     }
+
+    this->current_data->antidists = workset->get_antidists();
+    for (const auto &pair : this->current_data->antidists) {
+        this->current_data->lab_antidists.insert(std::minmax(tb.get_var_sym_to_lab(pair.first), tb.get_var_sym_to_lab(pair.second)));
+    }
+    assert(this->current_data->antidists.size() == this->current_data->lab_antidists.size());
+
 #ifdef LOG_STEP_OPS
     std::cerr << "Restarting search for step with id " << this->id << std::endl;
 #endif
@@ -424,12 +436,16 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
         assert_or_throw< SendError >(cb.get_method() == "POST", 405);
         throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
             std::unique_lock< std::recursive_mutex > lock(self->global_mutex);
+            auto workset = self->get_workset().lock();
+            if (!workset) {
+                throw SendError(404);
+            }
             std::string sent_str = safe_at(post_data, "sentence").value;
             std::vector< std::string> toks;
             boost::split(toks, sent_str, boost::is_any_of(" "));
             Sentence sent;
             for (const auto &x : toks) {
-                sent.push_back(SymTok(safe_stoi(x)));
+                sent.push_back(workset->safe_symbol(safe_stoi(x)));
             }
             self->set_sentence(sent);
             nlohmann::json ret = nlohmann::json::object();
@@ -498,6 +514,9 @@ nlohmann::json Step::answer_api1(HTTPCallback &cb, std::vector< std::string >::c
             std::ostringstream buf;
             const auto &thesis = engine.get_stack().back();
             const auto &hyps = engine.get_new_hypotheses();
+            for (const auto &dist_pair : engine.get_dists()) {
+                buf << "$d " << toolbox.print_sentence({dist_pair.first}) << " " << toolbox.print_sentence({dist_pair.second}) << " $." << std::endl;
+            }
             std::vector< LabTok > float_hyps;
             std::vector< LabTok > ess_hyps;
             std::set< SymTok > vars;
@@ -610,6 +629,15 @@ bool Step::prove(CreativeCheckpointedProofEngine<Sentence> &engine)
     } else {
         engine.process_new_hypothesis(this->sentence);
         return true;
+    }
+}
+
+void Step::workset_reload()
+{
+    std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
+    this->restart_search();
+    for (const auto &child : this->children) {
+        child.lock()->workset_reload();
     }
 }
 

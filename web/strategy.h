@@ -13,6 +13,8 @@ struct StepStrategyData {
     std::vector< Sentence > hypotheses;
     ParsingTree< SymTok, LabTok > pt_thesis;
     std::vector< ParsingTree< SymTok, LabTok > > pt_hypotheses;
+    std::set< std::pair< SymTok, SymTok > > antidists;
+    std::set< std::pair< LabTok, LabTok > > lab_antidists;
 };
 
 class StepStrategyCallback {

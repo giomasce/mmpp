@@ -1,5 +1,7 @@
 #include "workset.h"
 
+#include <boost/algorithm/string.hpp>
+
 #include "libs/json.h"
 
 #include "mm/reader.h"
@@ -165,6 +167,31 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
         } catch (std::out_of_range&) {
             throw SendError(404);
         }
+    } else if (*path_begin == "set_antidists") {
+        path_begin++;
+        assert_or_throw< SendError >(path_begin == path_end, 404);
+        assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+        throw WaitForPost([this] (const auto &post_data) {
+            std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
+            std::string antidists_str = safe_at(post_data, "antidists").value;
+            std::vector< std::string> pairs;
+            boost::split(pairs, antidists_str, boost::is_any_of(" "));
+            std::set< std::pair< SymTok, SymTok > > antidists;
+            for (const auto &pair_str : pairs) {
+                std::vector< std::string > pair;
+                boost::split(pair, pair_str, boost::is_any_of(","));
+                if (pair.size() != 2) {
+                    throw SendError(404);
+                }
+                auto var1 = this->safe_symbol(safe_stoi(pair[0]));
+                auto var2 = this->safe_symbol(safe_stoi(pair[1]));
+                antidists.insert(std::minmax(var1, var2));
+            }
+            this->set_antidists(antidists);
+            nlohmann::json ret = nlohmann::json::object();
+            ret["success"] = true;
+            return ret;
+        });
     } else if (*path_begin == "step") {
         path_begin++;
         assert_or_throw< SendError >(path_begin != path_end, 404);
@@ -233,8 +260,20 @@ void Workset::set_name(const std::string &name)
     this->name = name;
 }
 
+void Workset::set_antidists(const std::set<std::pair<SymTok, SymTok> > &antidists)
+{
+    this->antidists = antidists;
+    this->get_root_step()->workset_reload();
+}
+
 const LibraryToolbox &Workset::get_toolbox() const {
     return *this->toolbox;
+}
+
+std::set<std::pair<SymTok, SymTok> > Workset::get_antidists()
+{
+    std::unique_lock< std::mutex > lock(this->queue_mutex);
+    return this->antidists;
 }
 
 std::shared_ptr<Step> Workset::get_root_step() const {
@@ -288,6 +327,15 @@ bool Workset::destroy_step(size_t id)
     } else {
         this->steps.erase(id);
         return true;
+    }
+}
+
+SymTok Workset::safe_symbol(SymTok::val_type val)
+{
+    if (val <= this->toolbox->get_symbols_num()) {
+        return SymTok(val);
+    } else {
+        throw SendError(404);
     }
 }
 

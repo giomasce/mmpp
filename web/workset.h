@@ -23,6 +23,7 @@ public:
     const std::string &get_name();
     void set_name(const std::string &name);
     const LibraryToolbox &get_toolbox() const;
+    std::set< std::pair< SymTok, SymTok > > get_antidists();
     std::shared_ptr< Step > get_root_step() const;
     std::shared_ptr< Workset > destroy();
 
@@ -33,6 +34,7 @@ public:
     std::shared_ptr< Step > get_step(size_t id);
     std::shared_ptr< Step > at(size_t id);
     bool destroy_step(size_t id);
+    SymTok safe_symbol(SymTok::val_type val);
 
     std::shared_ptr< Step > create_steps_from_dump(const nlohmann::json &dump);
 
@@ -42,6 +44,7 @@ protected:
 
 private:
     std::shared_ptr< Step > create_step(bool do_no_search);
+    void set_antidists(const std::set< std::pair< SymTok, SymTok > > &antidists);
     nlohmann::json get_stats();
 
     std::unique_ptr< ExtendedLibrary > library;
@@ -54,6 +57,7 @@ private:
     std::unordered_map< size_t, std::shared_ptr< Step > > steps;
     std::shared_ptr< Step > root_step;
     std::weak_ptr< Session > session;
+    std::set< std::pair< SymTok, SymTok > > antidists;
 
     std::mutex queue_mutex;
     std::condition_variable queue_variable;

@@ -83,6 +83,7 @@ public:
     bool found_proof();
     std::shared_ptr< const StepStrategyResult > get_result();
     bool prove(CreativeCheckpointedProofEngine<Sentence> &engine);
+    void workset_reload();
 
 protected:
     //explicit Step(BackreferenceToken< Step, Workset > &&token);

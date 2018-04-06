@@ -73,6 +73,13 @@ export class Workset {
     return jsonAjax(`/api/${API_VERSION}/workset/${this.id}/` + url, data);
   }
 
+  set_antidists(antidists : [number, number][]) : Promise<void> {
+    return this.do_api_request(`set_antidists`, {antidists: antidists.map(function (x : [number, number]) : string {
+      return x.join(",");
+    }).join(" ")}).then(function (x : object) : void {
+    });
+  }
+
   get_renderer(style : RenderingStyles) : Renderer {
     return this.styles.get(style);
   }

@@ -77,7 +77,8 @@ void UCTProver::replay_proof(CheckpointedProofEngine &engine) const
     this->root->replay_proof(engine);
 }
 
-UCTProver::UCTProver(const LibraryToolbox &tb, const ParsingTree2<SymTok, LabTok> &thesis, const std::vector<ParsingTree2<SymTok, LabTok> > &hypotheses) : tb(tb), thesis(thesis), hypotheses(hypotheses), rand(2204) {
+UCTProver::UCTProver(const LibraryToolbox &tb, const ParsingTree2<SymTok, LabTok> &thesis, const std::vector<ParsingTree2<SymTok, LabTok> > &hypotheses, const std::set<std::pair<LabTok, LabTok> > &antidists)
+    : antidists(antidists), tb(tb), thesis(thesis), hypotheses(hypotheses), rand(2204) {
 #ifdef LOG_UCT
     //visit_log() << this << ": Constructing UCTProver" << endl;
 #endif
