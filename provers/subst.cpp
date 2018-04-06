@@ -548,6 +548,12 @@ ParsingTree< SymTok, LabTok > subst_defs(const ParsingTree< SymTok, LabTok > &pt
     }
 }
 
+std::map< std::string, std::pair< std::string, std::string > > bound_data = {
+    { "A. x ph", { {}, { "ph" } } },
+    { "E. x ph", { {}, { "ph" } } },
+    { "[ y / x ] ph", { {}, {} } },
+};
+
 int find_defs_main(int argc, char *argv[]) {
     (void) argc;
     (void) argv;

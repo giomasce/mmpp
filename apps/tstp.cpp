@@ -319,6 +319,12 @@ void convert_to_tstp(const ParsingTree< SymTok, LabTok > &pt, std::ostream &st, 
         st << "|";
         convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))), st, tb);
         st << ")";
+    } else if (recognize(pt, "wff ( ph <-> ps )", tb, subst)) {
+        st << "(";
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))), st, tb);
+        st << "<=>";
+        convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))), st, tb);
+        st << ")";
     } else if (recognize(pt, "wff A. x ph", tb, subst)) {
         st << "![";
         convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("x"))), st, tb);
@@ -346,8 +352,9 @@ int convert_to_tstp_main(int argc, char *argv[]) {
     //auto &lib = data.lib;
     auto &tb = data.tb;
 
-    auto pt = tb.parse_sentence(tb.read_sentence("|- A. x ( -. -. a = a -> ( x = y /\\ E. y -. y = z ) )"));
+    //auto pt = tb.parse_sentence(tb.read_sentence("|- A. x ( -. -. a = a -> ( x = y /\\ E. y -. y = z ) )"));
     //auto pt = tb.parse_sentence(tb.read_sentence("|- A. x ( a = a -> a = a )"));
+    auto pt = tb.parse_sentence(tb.read_sentence("|- ( ( ( y = z -> ( ( x = y -> ph ) /\\ E. x ( x = y /\\ ph ) ) ) /\\ E. y ( y = z /\\ ( ( x = y -> ph ) /\\ E. x ( x = y /\\ ph ) ) ) ) <-> ( ( y = z -> ( ( x = z -> ph ) /\\ E. x ( x = z /\\ ph ) ) ) /\\ E. y ( y = z /\\ ( ( x = z -> ph ) /\\ E. x ( x = z /\\ ph ) ) ) ) )"));
     assert(pt.label != LabTok{});
     convert_to_tstp(pt, std::cout, tb);
     std::cout << std::endl;
