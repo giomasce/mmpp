@@ -64,9 +64,10 @@ win32 {
 #DEFINES += TOOLBOX_SELF_TEST
 
 # Trick from https://stackoverflow.com/a/21335126/807307
-#QMAKE_CXXFLAGS_RELEASE -= -O1
-#QMAKE_CXXFLAGS_RELEASE -= -O2
+QMAKE_CXXFLAGS_RELEASE -= -O1
+QMAKE_CXXFLAGS_RELEASE -= -O2
 #QMAKE_CXXFLAGS_RELEASE *= -O3
+QMAKE_CXXFLAGS_RELEASE *= -Og
 
 # Tricks that (in theory) boost execution speed (for GCC and LLVM)
 #QMAKE_CFLAGS += -march=native -mtune=native -flto
