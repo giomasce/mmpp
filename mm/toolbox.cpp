@@ -452,7 +452,11 @@ SentenceType LibraryToolbox::get_sentence_type(LabTok label) const
 
 const Assertion &LibraryToolbox::get_assertion(LabTok label) const
 {
-    return this->lib.get_assertion(label);
+    const Assertion *ass = this->lib.get_assertion_ptr(label);
+    if (ass != nullptr) {
+        return *ass;
+    }
+    return this->temp_generator->get_assertion(label);
 }
 
 /*std::function<const Assertion *()> LibraryToolbox::list_assertions() const

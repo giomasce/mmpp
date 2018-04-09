@@ -183,7 +183,7 @@ private:
     void type_proving_helper_unwind_tree(const ParsingTree< SymTok, LabTok > &tree, Engine &engine, const std::unordered_map<LabTok, const Prover< Engine >* > &var_provers) const {
         // We need to sort children according to their order as floating hypotheses of this assertion
         // If this is not an assertion, then there are no children
-        const Assertion &ass = this->lib.get_assertion(tree.label);
+        const Assertion &ass = this->get_assertion(tree.label);
         auto it = var_provers.find(tree.label);
         if (ass.is_valid()) {
             assert(it == var_provers.end());

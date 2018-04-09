@@ -119,6 +119,15 @@ const Assertion &LibraryImpl::get_assertion(LabTok label) const
     return this->assertions.at(label.val());
 }
 
+const Assertion *LibraryImpl::get_assertion_ptr(LabTok label) const
+{
+    if (label.val() < this->assertions.size()) {
+        return &this->assertions[label.val()];
+    } else {
+        return nullptr;
+    }
+}
+
 const std::vector<Sentence> &LibraryImpl::get_sentences() const
 {
     return this->sentences;

@@ -25,6 +25,7 @@ public:
     size_t get_symbols_num();
     size_t get_labels_num();
     const Sentence &get_sentence(LabTok label);
+    const Assertion &get_assertion(LabTok label);
 
     // LibraryToolbox-like interface
     LabTok get_var_sym_to_lab(SymTok sym);
@@ -42,6 +43,7 @@ private:
     const Library &lib;
     std::map< SymTok, size_t > temp_idx;
     std::unordered_map< LabTok, Sentence > temp_types;
+    std::unordered_map< LabTok, Assertion > temp_asses;
     StringCache< SymTok > temp_syms;
     StringCache< LabTok > temp_labs;
     std::size_t syms_base;

@@ -21,6 +21,7 @@ void TempGenerator::create_temp_var(SymTok type_sym)
     SymTok sym = this->temp_syms.create(sym_name);
     LabTok lab = this->temp_labs.create(lab_name);
     this->temp_types[lab] = { type_sym, sym };
+    this->temp_asses[lab] = {};
 
     // Add the variables to a few structures
     //this->derivations.at(type_sym).push_back(pair< LabTok, vector< SymTok > >(lab, { sym }));
@@ -140,6 +141,13 @@ const Sentence &TempGenerator::get_sentence(LabTok label)
     std::unique_lock< std::mutex > lock(this->global_mutex);
 
     return this->temp_types.at(label);
+}
+
+const Assertion &TempGenerator::get_assertion(LabTok label)
+{
+    std::unique_lock< std::mutex > lock(this->global_mutex);
+
+    return this->temp_asses.at(label);
 }
 
 LabTok TempGenerator::get_var_sym_to_lab(SymTok sym)
