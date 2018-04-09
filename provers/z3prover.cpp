@@ -604,8 +604,10 @@ struct Z3Adapter {
 RegisteredProver refute_rp = LibraryToolbox::register_prover({"|- ( -. ph -> F. )"}, "|- ph");
 RegisteredProver efald_rp = LibraryToolbox::register_prover({"|- ( ( ph /\\ -. ps ) -> F. )"}, "|- ( ph -> ps )");
 
+std::vector< int > range3 = { 0, 1, 2 };
+
 #ifdef ENABLE_TEST_CODE
-BOOST_DATA_TEST_CASE(test_wff_minisat_prover, boost::unit_test::data::xrange(3), i) {
+BOOST_DATA_TEST_CASE(test_wff_minisat_prover, boost::unit_test::data::make(range3), i) {
     auto &data = get_set_mm();
     //auto &lib = data.lib;
     auto &tb = data.tb;
