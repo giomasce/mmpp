@@ -127,6 +127,9 @@ int subst_search_main(int argc, char *argv[]) {
                     auto res = tb.unify_assertion({std::make_pair(tb.get_turnstile(), pt_hyp)}, std::make_pair(tb.get_turnstile(), pt_thesis));
                     if (!res.empty()) {
                         std::cout << "     Found match " << tb.resolve_label(std::get<0>(res[0])) << std::endl;
+                        if (!tb.get_assertion(std::get<0>(res[0])).get_mand_dists().empty()) {
+                            std::cout << "     It has DISTINCT VARIABLES provisions!" << std::endl;
+                        }
                         found = true;
                     } else {
                         std::cout << "     Found NO match..." << std::endl;
@@ -138,10 +141,13 @@ int subst_search_main(int argc, char *argv[]) {
                     pt_thm.children.push_back(pt_hyp);
                     pt_thm.children.push_back(pt_thesis);
                     assert(pt_thm.validate(tb.get_validation_rule()));
-                    std::cout << "   Inference form: searching for " << tb.print_sentence(pt_thm) << std::endl;
+                    std::cout << "   Implication form: searching for " << tb.print_sentence(pt_thm) << std::endl;
                     res = tb.unify_assertion({}, std::make_pair(tb.get_turnstile(), pt_thm));
                     if (!res.empty()) {
                         std::cout << "     Found match " << tb.resolve_label(std::get<0>(res[0])) << std::endl;
+                        if (!tb.get_assertion(std::get<0>(res[0])).get_mand_dists().empty()) {
+                            std::cout << "     It has DISTINCT VARIABLES provisions!" << std::endl;
+                        }
                         found = true;
                         found_strong = true;
                     } else {
