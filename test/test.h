@@ -1,9 +1,13 @@
 #pragma once
 
-#include <iostream>
+/* For the reasons explained in test/test.cpp, all the code using Boost.Test must
+ * be guarded by the ENABLE_TEST_CODE macro.
+ */
+
+#ifndef DISABLE_TESTS
 
 // See the comment in test_main.cpp
-#if (!defined(_WIN32)) || (defined(COMPILE_TEST))
+#if (!defined(_WIN32)) || (defined(TEST_BUILD))
 #if (!(defined(_WIN32)))
 #define BOOST_TEST_DYN_LINK
 #endif
@@ -14,6 +18,12 @@
 #include <boost/test/data/monomorphic.hpp>
 #endif
 
+#endif
+
+#include <iostream>
+
+#include "mm/funds.h"
+
 // Some useful printers
 namespace std {
 template< typename T, typename U >
@@ -21,8 +31,6 @@ std::ostream &operator<<(std::ostream &str, const std::pair< T, U > &x) {
     return str << "(" << x.first << ", " << x.second << ")";
 }
 }
-
-#include "mm/funds.h"
 
 inline std::ostream &operator<<(std::ostream &str, SymTok tok) {
     return str << tok.val();

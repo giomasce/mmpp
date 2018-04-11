@@ -54,8 +54,8 @@ static_block {
     register_main_function("mmpp", main_mmpp);
 }
 
-// See the comment in test_main.cpp
-#if (!defined(_WIN32)) || (!defined(COMPILE_TEST))
+// See the comment in test/test.cpp
+#if (!defined(_WIN32)) || (!defined(TEST_BUILD))
 
 int main(int argc, char *argv[]) {
     platform_set_max_ram(4 * 1024 * 1024 * 1024LL);

@@ -5,6 +5,10 @@ USE_MICROHTTPD = true
 USE_BEAST = false
 USE_Z3 = true
 
+# Some features of Boost.Test are relatively recent, so in order to support
+# older distributions we make it easy to disable tests altogether.
+DISABLE_TESTS = false
+
 TEMPLATE = app
 CONFIG += link_pkgconfig
 #CONFIG += object_parallel_to_source
@@ -43,12 +47,20 @@ macx {
     QMAKE_LIBS += -ldl -rdynamic -L/usr/local/lib
 }
 
+equals(DISABLE_TESTS, "true") {
+    DEFINES += DISABLE_TESTS
+}
+
 !win32 {
-    QMAKE_LIBS += -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lboost_unit_test_framework -lpthread
+    QMAKE_LIBS += -lboost_system -lboost_filesystem -lboost_serialization -lboost_coroutine -lpthread
+    !equals(DISABLE_TESTS, "true") {
+        QMAKE_LIBS += -lboost_unit_test_framework
+    }
 }
 
 win32 {
-    #DEFINES += COMPILE_TEST
+    # See comment in test/test.cpp
+    #DEFINES += TEST_BUILD
     DEFINES += BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE
     DEFINES += NOMINMAX
     #DEFINES += BOOST_LIB_DIAGNOSTIC
