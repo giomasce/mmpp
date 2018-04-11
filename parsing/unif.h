@@ -419,6 +419,9 @@ private:
             const auto &n2 = pt2.get_node();
             if ((*this->is_var)(n1.label)) {
                 assert(n1.descendants_num == 0);
+                if (n1.type != n2.type) {
+                    return false;
+                }
                 auto cur_subst = this->subst.find(n1.label);
                 auto match = pt2.get_view();
                 if (cur_subst == this->subst.end()) {
@@ -632,6 +635,9 @@ private:
             bool v2 = (*this->is_var)(n2.label);
             assert(!(v1 && pt1.has_children()));
             assert(!(v2 && pt2.has_children()));
+            if (n1.type != n2.type) {
+                return false;
+            }
             if (v1 && v2) {
                 // If both are variables, then we use the disjoint set structure to determine how to substitute
                 this->djs.make_set(n1.label);
