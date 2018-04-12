@@ -27,39 +27,41 @@ std::set< SymTok > compute_var_types(const std::map< SymTok, std::tuple< LabTok,
     return ret;
 }
 
-std::vector< std::tuple< std::string, std::string, std::vector< std::pair< std::string, std::string > > > > raw_bound_data = {
-    { "class { x | ph }", "ph", { { "x", "" } } },
-    { "class { x e. A | ph }", "ph", { { "x", "A" } } },
-    { "class [_ A / x ]_ B", "B", { { "x", "" } } },
-    { "class U_ x e. A B", "B", { { "x", "A" } } },
-    { "class |^|_ x e. A B", "B", { { "x", "A" } } },
-    { "class { <. x , y >. | ph }", "ph", { { "x", "" }, { "y", "" } } },
-    { "class ( x e. A |-> B )", "B", { { "x", "A" } } },
-    { "class ( iota x ph )", "ph", { { "x", "" } } },
-    { "class { <. <. x , y >. , z >. | ph }", "ph", { { "x", "" }, { "y", "" }, { "z", "" } } },
-    { "class ( x e. A , y e. B |-> C )", "C", { { "x", "A" }, { "y", "B" } } },
-    { "class ( iota_ x e. A ph )", "ph", { { "x", "" } } },
-    { "class X_ x e. A B", "B", { { "x", "A" } } },
-    { "class sum_ x e. A B", "B", { { "x", "A" } } },
-    { "class S. A B _d x", "B", { { "x", "A" } } },
-    { "class S_ [ A -> B ] C _d x", "C", { { "x", "" } } },    // Might be relaxed
-    { "class sum* x e. A B", "B", { { "x", "A" } } },
-    { "class prod_ x e. A B", "B", { { "x", "A" } } },
+using RawBoundDataTuple = std::tuple< std::string, std::string, std::vector< std::pair< std::string, std::string > > >;
 
-    { "wff A. x ph", "ph", { { "x", "" } } },
-    { "wff E. x ph", "ph", { { "x", "" } } },
-    { "wff F/ x ph", "ph", { { "x", "" } } },
-    { "wff [ x / y ] ph", "ph", { { "y", "" } } },
-    { "wff E! x ph", "ph", { { "x", "" } } },
-    { "wff E* x ph", "ph", { { "x", "" } } },
-    { "wff F/_ x A", "A", { { "x", "" } } },
-    { "wff A. x e. A ph", "ph", { { "x", "A" } } },
-    { "wff E. x e. A ph", "ph", { { "x", "A" } } },
-    { "wff E! x e. A ph", "ph", { { "x", "A" } } },
-    { "wff E* x e. A ph", "ph", { { "x", "A" } } },
+std::vector< RawBoundDataTuple > raw_bound_data = {
+    RawBoundDataTuple{ "class { x | ph }", "ph", { { "x", "" } } },
+    RawBoundDataTuple{ "class { x e. A | ph }", "ph", { { "x", "A" } } },
+    RawBoundDataTuple{ "class [_ A / x ]_ B", "B", { { "x", "" } } },
+    RawBoundDataTuple{ "class U_ x e. A B", "B", { { "x", "A" } } },
+    RawBoundDataTuple{ "class |^|_ x e. A B", "B", { { "x", "A" } } },
+    RawBoundDataTuple{ "class { <. x , y >. | ph }", "ph", { { "x", "" }, { "y", "" } } },
+    RawBoundDataTuple{ "class ( x e. A |-> B )", "B", { { "x", "A" } } },
+    RawBoundDataTuple{ "class ( iota x ph )", "ph", { { "x", "" } } },
+    RawBoundDataTuple{ "class { <. <. x , y >. , z >. | ph }", "ph", { { "x", "" }, { "y", "" }, { "z", "" } } },
+    RawBoundDataTuple{ "class ( x e. A , y e. B |-> C )", "C", { { "x", "A" }, { "y", "B" } } },
+    RawBoundDataTuple{ "class ( iota_ x e. A ph )", "ph", { { "x", "" } } },
+    RawBoundDataTuple{ "class X_ x e. A B", "B", { { "x", "A" } } },
+    RawBoundDataTuple{ "class sum_ x e. A B", "B", { { "x", "A" } } },
+    RawBoundDataTuple{ "class S. A B _d x", "B", { { "x", "A" } } },
+    RawBoundDataTuple{ "class S_ [ A -> B ] C _d x", "C", { { "x", "" } } },    // Might be relaxed
+    RawBoundDataTuple{ "class sum* x e. A B", "B", { { "x", "A" } } },
+    RawBoundDataTuple{ "class prod_ x e. A B", "B", { { "x", "A" } } },
+
+    RawBoundDataTuple{ "wff A. x ph", "ph", { { "x", "" } } },
+    RawBoundDataTuple{ "wff E. x ph", "ph", { { "x", "" } } },
+    RawBoundDataTuple{ "wff F/ x ph", "ph", { { "x", "" } } },
+    RawBoundDataTuple{ "wff [ x / y ] ph", "ph", { { "y", "" } } },
+    RawBoundDataTuple{ "wff E! x ph", "ph", { { "x", "" } } },
+    RawBoundDataTuple{ "wff E* x ph", "ph", { { "x", "" } } },
+    RawBoundDataTuple{ "wff F/_ x A", "A", { { "x", "" } } },
+    RawBoundDataTuple{ "wff A. x e. A ph", "ph", { { "x", "A" } } },
+    RawBoundDataTuple{ "wff E. x e. A ph", "ph", { { "x", "A" } } },
+    RawBoundDataTuple{ "wff E! x e. A ph", "ph", { { "x", "A" } } },
+    RawBoundDataTuple{ "wff E* x e. A ph", "ph", { { "x", "A" } } },
     // CondEq??
-    { "wff [. A / x ]. ph", "ph", { { "x", "" } } },
-    { "wff Disj_ x e. A B", "B", { { "x", "A" } } },
+    RawBoundDataTuple{ "wff [. A / x ]. ph", "ph", { { "x", "" } } },
+    RawBoundDataTuple{ "wff Disj_ x e. A B", "B", { { "x", "A" } } },
 };
 
 size_t get_idx(const std::vector< ParsingTree< SymTok, LabTok > > &v, const LabTok x) {
