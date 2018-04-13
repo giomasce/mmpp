@@ -13,9 +13,16 @@
 #define STACKTRACE_USE_BOOST
 #endif
 
+/* Under macOS neither boost nor backward give very good results (neither is
+ * able to reconstruct line numbers). We default to backtrace because
+ * it has a somewhat nicer output.
+ */
 #if (defined(__APPLE__) && defined(__MACH__))
-#define BOOST_STACKTRACE_USE_BACKTRACE
-#define STACKTRACE_USE_BOOST
+#define STACKTRACE_USE_BACKWARD
+
+// If you want you can switch to boost
+//#define BOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED
+//#define STACKTRACE_USE_BOOST
 #endif
 
 /* Under Linux backward has more features than boost; moreover, since the header
@@ -27,7 +34,7 @@
 #define BACKWARD_HAS_BFD 1
 #define STACKTRACE_USE_BACKWARD
 
-// If you want to can switch to boost (compile with -lbacktrace)
+// If you want you can switch to boost (compile with -lbacktrace)
 //#define BOOST_STACKTRACE_USE_BACKTRACE
 //#define STACKTRACE_USE_BOOST
 #endif
