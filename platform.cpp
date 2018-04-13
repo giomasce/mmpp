@@ -157,7 +157,7 @@ PlatformStackTrace platform_get_stack_trace() {
 
 void platform_dump_stack_trace(std::ostream &st, const backward::StackTrace &stacktrace) {
     backward::Printer p;
-    p.snippet = true;
+    p.snippet = false;
     p.color_mode = backward::ColorMode::always;
     p.address = true;
     p.object = true;
@@ -305,7 +305,7 @@ PlatformStackTrace platform_get_stack_trace() {
 
 void platform_dump_stack_trace(std::ostream &st, const backward::StackTrace &stacktrace) {
     backward::Printer p;
-    p.snippet = true;
+    p.snippet = false;
     p.color_mode = backward::ColorMode::always;
     p.address = true;
     p.object = true;
