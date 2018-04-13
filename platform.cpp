@@ -410,7 +410,7 @@ void platform_dump_stack_trace(std::ostream &st, const backward::StackTrace &sta
     p.snippet = false;
     p.color_mode = backward::ColorMode::always;
     p.address = true;
-    p.object = true;
+    p.object = false;
     p.print(stacktrace, st);
     st.flush();
 }
