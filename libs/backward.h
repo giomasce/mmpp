@@ -2210,6 +2210,7 @@ public:
     bool loaded() const { return _loaded; }
 
     static void handleSignal(int, siginfo_t* info, void* _ctx) {
+        (void) info;
         ucontext_t *uctx = (ucontext_t*) _ctx;
 
         StackTrace st;
