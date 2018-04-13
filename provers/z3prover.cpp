@@ -406,23 +406,22 @@ struct Z3Adapter {
                     break; }
                 case Z3_OP_PR_UNIT_RESOLUTION: {
 #ifdef VERBOSE_Z3
-                    /*cout << "Unit resolution: " << num_args << " with arity " << decl.arity() << endl;
+                    /*std::cout << "Unit resolution: " << num_args << " with arity " << decl.arity() << std::endl;
                     for (unsigned i = 0; i < num_args-1; i++) {
-                        cout << "HP" << i << ": " << extract_thesis(e.arg(i)) << endl;
-                        cout << "HP" << i << ": " << parse_expr(extract_thesis(e.arg(i)))->to_string() << endl;
+                        std::cout << "HP" << i << ": " << extract_thesis(e.arg(i)) << std::endl;
+                        std::cout << "HP" << i << ": " << parse_expr(extract_thesis(e.arg(i)), this->tb)->to_string() << std::endl;
                     }
-                    cout << "TH: " << e.arg(num_args-1) << endl;
-                    cout << "TH: " << parse_expr(e.arg(num_args-1))->to_string() << endl;*/
+                    std::cout << "TH: " << e.arg(num_args-1) << std::endl;
+                    std::cout << "TH: " << parse_expr(e.arg(num_args-1), this->tb)->to_string() << std::endl;*/
 #endif
 
                     size_t elims_num = num_args - 2;
-                    z3::expr or_expr = extract_thesis(e.arg(0));
-                    assert(or_expr.decl().decl_kind() == Z3_OP_OR);
-                    size_t clauses_num = or_expr.num_args();
-#ifdef NDEBUG
-                    (void) clauses_num;
-#endif
-                    assert(clauses_num >= 2);
+                    z3::expr ur_expr = extract_thesis(e.arg(0));
+                    size_t clauses_num = 1;
+                    if (ur_expr.decl().decl_kind() == Z3_OP_OR) {
+                        clauses_num = ur_expr.num_args();
+                        assert(clauses_num >= 2);
+                    }
                     assert(elims_num <= clauses_num);
 
                     Prover< CreativeCheckpointedProofEngine< Sentence > > orig_prover = this->convert_proof(e.arg(0), depth+1);
@@ -439,8 +438,13 @@ struct Z3Adapter {
                     std::vector< pwff > orig_clauses;
                     std::vector< pwff > new_clauses;
                     std::vector< Prover< CreativeCheckpointedProofEngine< Sentence > > > provers;
-                    for (unsigned int i = 0; i < or_expr.num_args(); i++) {
-                        pwff clause = parse_expr(or_expr.arg(i), tb);
+                    for (unsigned int i = 0; i < clauses_num; i++) {
+                        pwff clause;
+                        if (clauses_num == 1) {
+                            clause = parse_expr(ur_expr, tb);
+                        } else {
+                            clause = parse_expr(ur_expr.arg(i), tb);
+                        }
                         orig_clauses.push_back(clause);
 
                         // Search an eliminator for the positive form
