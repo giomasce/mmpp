@@ -16,18 +16,7 @@ std::string size_to_string(uint64_t size) {
     return stream.str();
 }
 
-void print_stacktrace(std::ostream &st, const backward::StackTrace &stacktrace) {
-    backward::Printer p;
-    p.snippet = true;
-    p.color_mode = backward::ColorMode::always;
-    p.address = true;
-    p.object = true;
-    p.print(stacktrace, st);
-    st.flush();
-}
-
-MMPPException::MMPPException(const std::string &reason) : reason(reason) {
-    this->stacktrace.load_here();
+MMPPException::MMPPException(const std::string &reason) : reason(reason), stacktrace(platform_get_stack_trace()) {
     if (mmpp_abort) {
         std::cerr << "Exception with message: " << reason << std::endl;
         this->print_stacktrace(std::cerr);
@@ -39,12 +28,12 @@ const std::string &MMPPException::get_reason() const {
     return this->reason;
 }
 
-const backward::StackTrace &MMPPException::get_stacktrace() const {
+const PlatformStackTrace &MMPPException::get_stacktrace() const {
     return this->stacktrace;
 }
 
 void MMPPException::print_stacktrace(std::ostream &st) const {
-    ::print_stacktrace(st, this->get_stacktrace());
+    platform_dump_stack_trace(st, this->get_stacktrace());
 }
 
 bool starts_with(std::string a, std::string b) {

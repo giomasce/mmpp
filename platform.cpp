@@ -149,6 +149,22 @@ uint64_t platform_get_current_used_ram( )
     return (size_t)rss * (size_t)sysconf( _SC_PAGESIZE);
 }
 
+PlatformStackTrace platform_get_stack_trace() {
+    backward::StackTrace ret;
+    ret.load_here();
+    return ret;
+}
+
+void platform_dump_stack_trace(std::ostream &st, const backward::StackTrace &stacktrace) {
+    backward::Printer p;
+    p.snippet = true;
+    p.color_mode = backward::ColorMode::always;
+    p.address = true;
+    p.object = true;
+    p.print(stacktrace, st);
+    st.flush();
+}
+
 #elif (defined(__APPLE__) && defined(__MACH__))
 
 #include <csignal>
@@ -281,6 +297,22 @@ uint64_t platform_get_current_used_ram( )
     }
 }
 
+PlatformStackTrace platform_get_stack_trace() {
+    backward::StackTrace ret;
+    ret.load_here();
+    return ret;
+}
+
+void platform_dump_stack_trace(std::ostream &st, const backward::StackTrace &stacktrace) {
+    backward::Printer p;
+    p.snippet = true;
+    p.color_mode = backward::ColorMode::always;
+    p.address = true;
+    p.object = true;
+    p.print(stacktrace, st);
+    st.flush();
+}
+
 #elif (defined(_WIN32))
 
 #include <future>
@@ -391,6 +423,15 @@ void platform_set_current_thread_name(const std::string &name) {
 
 void platform_set_current_thread_low_priority() {
     SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
+}
+
+PlatformStackTrace platform_get_stack_trace() {
+    return boost::stacktrace::stacktrace();
+}
+
+void platform_dump_stack_trace(std::ostream &str, const PlatformStackTrace &trace) {
+    str << "Stack trace (more recent call first)" << std::endl;
+    str << trace;
 }
 
 #else

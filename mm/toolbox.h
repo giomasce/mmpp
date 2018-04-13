@@ -517,28 +517,27 @@ std::string test_prover(Prover< Engine > prover, const LibraryToolbox &tb) {
 template< typename SentType >
 class CheckedProverException {
 public:
-    CheckedProverException(const SentType &on_stack, const SentType &expected, const backward::StackTrace &stacktrace) : on_stack(on_stack), expected(expected), stacktrace(stacktrace) {}
+    CheckedProverException(const SentType &on_stack, const SentType &expected, const PlatformStackTrace &stacktrace) : on_stack(on_stack), expected(expected), stacktrace(stacktrace) {}
     const SentType &get_on_stack() const {
         return this->on_stack;
     }
     const SentType &get_expected() const {
         return this->expected;
     }
-    const backward::StackTrace &get_stacktrace() const {
+    const PlatformStackTrace &get_stacktrace() const {
         return this->stacktrace;
     }
 
 private:
     SentType on_stack;
     SentType expected;
-    backward::StackTrace stacktrace;
+    PlatformStackTrace stacktrace;
 };
 
 template< typename Engine, typename std::enable_if< std::is_base_of< InspectableProofEngine< typename Engine::SentType >, Engine >::value >::type* = nullptr >
 Prover< Engine > checked_prover(Prover< Engine > prover, typename Engine::SentType thesis)
 {
-    backward::StackTrace stacktrace;
-    stacktrace.load_here();
+    auto stacktrace = platform_get_stack_trace();
     return [=](Engine &engine)->bool {
         size_t stack_len_before = engine.get_stack().size();
         bool res = prover(engine);
@@ -557,8 +556,7 @@ Prover< Engine > checked_prover(Prover< Engine > prover, typename Engine::SentTy
 template< typename Engine, typename std::enable_if< std::is_base_of< InspectableProofEngine< typename Engine::SentType >, Engine >::value >::type* = nullptr >
 Prover< Engine > checked_prover(Prover< Engine > prover, size_t hyp_num, typename Engine::SentType thesis)
 {
-    backward::StackTrace stacktrace;
-    stacktrace.load_here();
+    auto stacktrace = platform_get_stack_trace();
     return [=](Engine &engine)->bool {
         size_t stack_len_before = engine.get_stack().size();
         bool res = prover(engine);

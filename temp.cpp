@@ -143,7 +143,7 @@ int test_backtrace_main(int argc, char *argv[]) {
 
     backward::StackTrace st;
     st.load_here();
-    print_stacktrace(std::cout, st);
+    platform_dump_stack_trace(std::cout, st);
     return 0;
 }
 static_block {
