@@ -287,12 +287,12 @@ struct Z3Adapter {
                     // The thesis should be true independently of ph
                     pwff thesis = parse_expr(e.arg(0), tb);
 #ifdef VERBOSE_Z3
-                    //cout << "ORACLE for '" << thesis->to_string() << "'!" << endl;
+                    std::cout << "ORACLE for '" << thesis->to_string() << "'!" << std::endl;
 #endif
-                    //Prover p1 = thesis->get_adv_truth_prover(tb);
-                    auto pt = pt2_to_pt(thesis->to_parsing_tree(this->tb));
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > p1 = thesis->get_adv_truth_prover(tb).second;
+                    /*auto pt = pt2_to_pt(thesis->to_parsing_tree(this->tb));
                     auto sent = this->tb.reconstruct_sentence(pt, this->tb.get_turnstile());
-                    Prover< CreativeCheckpointedProofEngine< Sentence > > p1 = this->tb.build_prover({}, sent, {}, {});
+                    Prover< CreativeCheckpointedProofEngine< Sentence > > p1 = this->tb.build_prover({}, sent, {}, {});*/
                     return this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(a1i_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", thesis->get_type_prover(this->tb)}}, {p1});
                     break; }
                 case Z3_OP_PR_TRANSITIVITY: {
