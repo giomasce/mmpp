@@ -58,6 +58,10 @@ equals(DISABLE_TESTS, "true") {
     }
 }
 
+linux {
+    QMAKE_LIBS += -lbfd
+}
+
 win32 {
     # See comment in test/test.cpp
     #DEFINES += TEST_BUILD

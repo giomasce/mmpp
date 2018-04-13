@@ -7,11 +7,37 @@
 
 #include <boost/filesystem.hpp>
 
+/* Windows is not supported by backward, so we have to use boost.
+ */
 #if (defined(_WIN32))
+#define STACKTRACE_USE_BOOST
+#endif
+
+#if (defined(__APPLE__) && defined(__MACH__))
+#define BOOST_STACKTRACE_USE_BACKTRACE
+#define STACKTRACE_USE_BOOST
+#endif
+
+/* Under Linux backward has more features than boost; moreover, since the header
+ * is in the repository, it works on Ubuntu 16.04 too, which ships an older version
+ * of boost. Therefore we default to backtrace.
+ */
+#if (defined(__linux) || defined(__linux__))
+// By default we use backtrace wth libbfd (compile with -lbfd)
+#define BACKWARD_HAS_BFD 1
+#define STACKTRACE_USE_BACKWARD
+
+// If you want to can switch to boost (compile with -lbacktrace)
+//#define BOOST_STACKTRACE_USE_BACKTRACE
+//#define STACKTRACE_USE_BOOST
+#endif
+
+#ifdef STACKTRACE_USE_BOOST
 #include <boost/stacktrace.hpp>
 typedef boost::stacktrace::stacktrace PlatformStackTrace;
-#else
-#define BACKWARD_HAS_BFD 1
+#endif
+
+#ifdef STACKTRACE_USE_BACKWARD
 #include "libs/backward.h"
 typedef backward::StackTrace PlatformStackTrace;
 #endif
