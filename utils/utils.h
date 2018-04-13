@@ -24,6 +24,9 @@
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/concepts.hpp>
 
+#define BACKWARD_HAS_BFD 1
+#include "libs/backward.h"
+
 /* A template struct without specializations: useful for checking variable types
  * (for example when there is automatic type deduction).
  * For example, if you declare
@@ -35,30 +38,20 @@ struct TD;
 
 const size_t DEFAULT_STACK_SIZE = 8*1024*1024;
 
-#define EXCEPTIONS_SELF_DEBUG
-
-#if defined(__GNUG__) && defined(EXCEPTIONS_SELF_DEBUG)
-std::vector< std::string > dump_stacktrace(size_t depth);
-std::vector< std::string > dump_stacktrace();
-#else
-inline static std::vector< std::string > dump_stacktrace(size_t depth=0) {
-    (void) depth;
-    return {};
-}
-#endif
-
 extern bool mmpp_abort;
+
+void print_stacktrace(std::ostream &st, const backward::StackTrace &stacktrace);
 
 class MMPPException {
 public:
     MMPPException(const std::string &reason="");
     const std::string &get_reason() const;
-    const std::vector< std::string > &get_stacktrace() const;
+    const backward::StackTrace &get_stacktrace() const;
     void print_stacktrace(std::ostream &st) const;
 
 private:
     std::string reason;
-    std::vector< std::string > stacktrace;
+    backward::StackTrace stacktrace;
 };
 
 template< typename Exception, typename... Args >

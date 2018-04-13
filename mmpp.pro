@@ -189,7 +189,8 @@ HEADERS += \
     provers/wffsat.h \
     provers/subst.h \
     mm/setmm.h \
-    test/test.h
+    test/test.h \
+    libs/backward.h
 
 DISTFILES += \
     README.md \

@@ -3,58 +3,6 @@
 
 #include <boost/crc.hpp>
 
-#if defined(__GNUG__) && defined(EXCEPTIONS_SELF_DEBUG)
-#include <execinfo.h>
-#include <cxxabi.h>
-#include <dlfcn.h>
-#include <stdlib.h>
-
-// Taken from https://stupefydeveloper.blogspot.it/2008/10/cc-call-stack.html and partially adapted
-// At some point we could move to Boost.Stacktrace
-std::vector<std::string> dump_stacktrace(size_t depth) {
-
-    std::vector< std::string > ret;
-    std::vector< void* > trace(depth);
-    Dl_info dlinfo;
-    int status;
-    const char *symname;
-    char *demangled;
-    int trace_size = backtrace(trace.data(), depth);
-    for (int i=0; i<trace_size; ++i)
-    {
-        if(!dladdr(trace[i], &dlinfo)) {
-            continue;
-        }
-
-        symname = dlinfo.dli_sname;
-
-        demangled = abi::__cxa_demangle(symname, nullptr, 0, &status);
-        if (status == 0 && demangled) {
-            symname = demangled;
-        }
-
-        std::ostringstream oss;
-        oss << "address: " << trace[i] << ", object: " << dlinfo.dli_fname << ", function: " << symname;
-        ret.push_back(oss.str());
-
-        if (demangled) {
-            free(demangled);
-        }
-    }
-    return ret;
-}
-
-std::vector<std::string> dump_stacktrace() {
-    for (size_t depth = 10; ; depth *= 2) {
-        auto ret = dump_stacktrace(depth);
-        if (ret.size() < depth) {
-            return ret;
-        }
-    }
-}
-
-#endif
-
 // Partly taken from http://programanddesign.com/cpp/human-readable-file-size-in-c/
 std::string size_to_string(uint64_t size) {
     std::ostringstream stream;
@@ -68,7 +16,18 @@ std::string size_to_string(uint64_t size) {
     return stream.str();
 }
 
-MMPPException::MMPPException(const std::string &reason) : reason(reason), stacktrace(dump_stacktrace()) {
+void print_stacktrace(std::ostream &st, const backward::StackTrace &stacktrace) {
+    backward::Printer p;
+    p.snippet = true;
+    p.color_mode = backward::ColorMode::always;
+    p.address = true;
+    p.object = true;
+    p.print(stacktrace, st);
+    st.flush();
+}
+
+MMPPException::MMPPException(const std::string &reason) : reason(reason) {
+    this->stacktrace.load_here();
     if (mmpp_abort) {
         std::cerr << "Exception with message: " << reason << std::endl;
         this->print_stacktrace(std::cerr);
@@ -80,17 +39,12 @@ const std::string &MMPPException::get_reason() const {
     return this->reason;
 }
 
-const std::vector<std::string> &MMPPException::get_stacktrace() const {
+const backward::StackTrace &MMPPException::get_stacktrace() const {
     return this->stacktrace;
 }
 
 void MMPPException::print_stacktrace(std::ostream &st) const {
-    st << "Stack trace:" << std::endl;
-    for (auto &frame : this->stacktrace) {
-        st << "  * " << frame << std::endl;
-    }
-    st << "End of stack trace" << std::endl;
-    st.flush();
+    ::print_stacktrace(st, this->get_stacktrace());
 }
 
 bool starts_with(std::string a, std::string b) {

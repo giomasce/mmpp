@@ -10,7 +10,7 @@
 #include "mm/setmm.h"
 #include "test/test.h"
 
-//#define VERBOSE_Z3
+#define VERBOSE_Z3
 
 pwff parse_expr(z3::expr e, const LibraryToolbox &tb) {
     assert(e.is_app());
@@ -700,10 +700,7 @@ BOOST_DATA_TEST_CASE(test_wff_minisat_prover, boost::unit_test::data::xrange(3),
         std::cout << "A checked prover failed:" << std::endl;
         std::cout << "On stack: " << tb.print_sentence(e.get_on_stack()) << std::endl;
         std::cout << "Expected: " << tb.print_sentence(e.get_expected()) << std::endl;
-        std::cout << "Stack trace:" << std::endl;
-        for (const auto &s : e.get_stacktrace()) {
-            std::cout << s << std::endl;
-        }
+        print_stacktrace(std::cout, e.get_stacktrace());
 #endif
     }
     BOOST_TEST(res);

@@ -136,3 +136,16 @@ int temp_main(int argc, char *argv[]) {
 static_block {
     register_main_function("temp", temp_main);
 }
+
+int test_backtrace_main(int argc, char *argv[]) {
+    (void) argc;
+    (void) argv;
+
+    backward::StackTrace st;
+    st.load_here();
+    print_stacktrace(std::cout, st);
+    return 0;
+}
+static_block {
+    register_main_function("test_backtrace", test_backtrace_main);
+}
