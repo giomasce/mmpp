@@ -514,15 +514,29 @@ std::string test_prover(Prover< Engine > prover, const LibraryToolbox &tb) {
     }
 }
 
-template< typename Engine, typename std::enable_if< std::is_base_of< ProofEngine, Engine >::value >::type* = nullptr >
-Prover< Engine > checked_prover(Prover< Engine > prover, size_t hyp_num, Sentence thesis)
+template< typename Engine, typename std::enable_if< std::is_base_of< InspectableProofEngine< typename Engine::SentType >, Engine >::value >::type* = nullptr >
+Prover< Engine > checked_prover(Prover< Engine > prover, typename Engine::SentType thesis)
 {
     return [=](Engine &engine)->bool {
         size_t stack_len_before = engine.get_stack().size();
         bool res = prover(engine);
         size_t stack_len_after = engine.get_stack().size();
         assert(stack_len_after >= 1);
-        assert(stack_len_after - stack_len_before == hyp_num - 1);
+        assert(stack_len_after + 1 >= stack_len_before);
+        assert(engine.get_stack().back() == thesis);
+        return res;
+    };
+}
+
+template< typename Engine, typename std::enable_if< std::is_base_of< InspectableProofEngine< typename Engine::SentType >, Engine >::value >::type* = nullptr >
+Prover< Engine > checked_prover(Prover< Engine > prover, size_t hyp_num, typename Engine::SentType thesis)
+{
+    return [=](Engine &engine)->bool {
+        size_t stack_len_before = engine.get_stack().size();
+        bool res = prover(engine);
+        size_t stack_len_after = engine.get_stack().size();
+        assert(stack_len_after >= 1);
+        assert(stack_len_after + 1 == stack_len_before + hyp_num);
         assert(engine.get_stack().back() == thesis);
         return res;
     };

@@ -381,6 +381,13 @@ public:
 template< typename SentType_ >
 class CreativeProofEngine : virtual public ProofEngine {
 public:
+    typedef ProofSentenceTraits< SentType_ > TraitsType;
+    typedef typename TraitsType::SentType SentType;
+    typedef typename TraitsType::SubstMapType SubstMapType;
+    typedef typename TraitsType::VarType VarType;
+    typedef typename TraitsType::LibType LibType;
+    typedef typename TraitsType::AdvLibType AdvLibType;
+
     virtual void process_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent) = 0;
 };
 
@@ -393,11 +400,38 @@ public:
 
 template< typename SentType_ >
 class CreativeCheckpointedProofEngine : virtual public CheckpointedProofEngine, virtual public CreativeProofEngine< SentType_ > {
+public:
+    typedef ProofSentenceTraits< SentType_ > TraitsType;
+    typedef typename TraitsType::SentType SentType;
+    typedef typename TraitsType::SubstMapType SubstMapType;
+    typedef typename TraitsType::VarType VarType;
+    typedef typename TraitsType::LibType LibType;
+    typedef typename TraitsType::AdvLibType AdvLibType;
+};
+
+template< typename SentType_ >
+class InspectableProofEngine : virtual public CreativeCheckpointedProofEngine< SentType_ > {
+public:
+    typedef ProofSentenceTraits< SentType_ > TraitsType;
+    typedef typename TraitsType::SentType SentType;
+    typedef typename TraitsType::SubstMapType SubstMapType;
+    typedef typename TraitsType::VarType VarType;
+    typedef typename TraitsType::LibType LibType;
+    typedef typename TraitsType::AdvLibType AdvLibType;
+
+    virtual const std::vector< SentType > &get_stack() const = 0;
 };
 
 template< typename SentType_ >
 class SemiCreativeProofEngineImpl : public ProofEngineBase< SentType_ >, virtual public ProofEngine {
 public:
+    typedef ProofSentenceTraits< SentType_ > TraitsType;
+    typedef typename TraitsType::SentType SentType;
+    typedef typename TraitsType::SubstMapType SubstMapType;
+    typedef typename TraitsType::VarType VarType;
+    typedef typename TraitsType::LibType LibType;
+    typedef typename TraitsType::AdvLibType AdvLibType;
+
     SemiCreativeProofEngineImpl(const typename ProofEngineBase< SentType_ >::LibType &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType_ >(lib, gen_proof_tree) {}
 
     void process_label(const LabTok label) override {
@@ -422,8 +456,15 @@ protected:
 };
 
 template< typename SentType_ >
-class CreativeProofEngineImpl final : public SemiCreativeProofEngineImpl< SentType_ >, virtual public CreativeCheckpointedProofEngine< SentType_ > {
+class CreativeProofEngineImpl final : public SemiCreativeProofEngineImpl< SentType_ >, virtual public InspectableProofEngine< SentType_ > {
 public:
+    typedef ProofSentenceTraits< SentType_ > TraitsType;
+    typedef typename TraitsType::SentType SentType;
+    typedef typename TraitsType::SubstMapType SubstMapType;
+    typedef typename TraitsType::VarType VarType;
+    typedef typename TraitsType::LibType LibType;
+    typedef typename TraitsType::AdvLibType AdvLibType;
+
     CreativeProofEngineImpl(const typename ProofEngineBase< SentType_ >::AdvLibType &lib, bool gen_proof_tree = false) : SemiCreativeProofEngineImpl< SentType_ >(lib, gen_proof_tree), lib(lib) {}
 
     LabTok create_new_hypothesis(const typename ProofEngineBase< SentType_ >::SentType &sent);
@@ -443,6 +484,10 @@ public:
 
     void rollback() override {
         this->ProofEngineBase< SentType_ >::rollback();
+    }
+
+    const std::vector< SentType > &get_stack() const override {
+        return this->ProofEngineBase< SentType_ >::get_stack();
     }
 
     const std::map< LabTok, typename ProofEngineBase< SentType_ >::SentType > &get_new_hypotheses() const {
@@ -473,6 +518,13 @@ LabTok CreativeProofEngineImpl< SentType_ >::create_new_hypothesis(const typenam
 template< typename SentType_ >
 class ProofEngineImpl final : public ProofEngineBase< SentType_ >, virtual public ProofEngine {
 public:
+    typedef ProofSentenceTraits< SentType_ > TraitsType;
+    typedef typename TraitsType::SentType SentType;
+    typedef typename TraitsType::SubstMapType SubstMapType;
+    typedef typename TraitsType::VarType VarType;
+    typedef typename TraitsType::LibType LibType;
+    typedef typename TraitsType::AdvLibType AdvLibType;
+
     ProofEngineImpl(const typename ProofEngineBase< SentType_ >::LibType &lib, bool gen_proof_tree = false) : ProofEngineBase< SentType_ >(lib, gen_proof_tree) {}
 
     void process_label(const LabTok label) override {
