@@ -10,7 +10,7 @@
 #include "mm/setmm.h"
 #include "test/test.h"
 
-#define VERBOSE_Z3
+//#define VERBOSE_Z3
 
 pwff parse_expr(z3::expr e, const LibraryToolbox &tb) {
     assert(e.is_app());
@@ -559,6 +559,7 @@ struct Z3Adapter {
                         }
                     }
                     assert(*wff == *target_wff);
+                    pwff thesis = parse_expr(extract_thesis(e), tb);
                     ret = this->build_checked_prover(ret, thesis);
                     return ret;
                     break; }
@@ -575,6 +576,7 @@ struct Z3Adapter {
                     auto hyp_not = std::dynamic_pointer_cast< const Not >(hyp);
                     assert(hyp_not != nullptr);
                     auto ret = this->tb.build_registered_prover< InspectableProofEngine< Sentence > >(bifald_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", hyp_not->get_a()->get_type_prover(this->tb)}}, {hyp_prover});
+                    pwff thesis = parse_expr(extract_thesis(e), tb);
                     ret = this->build_checked_prover(ret, thesis);
                     return ret;
                     break; }
@@ -589,6 +591,7 @@ struct Z3Adapter {
                     std::cout << "LEMMA ORACLE for '" << Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e), tb))->to_string() << "'!" << std::endl;
 #endif
                     Prover< InspectableProofEngine< Sentence > > ret = Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e), tb))->get_adv_truth_prover(this->tb).second;
+                    pwff thesis = parse_expr(extract_thesis(e), tb);
                     ret = this->build_checked_prover(ret, thesis);
                     return ret;
                     break; }
@@ -610,6 +613,7 @@ struct Z3Adapter {
                     std::cout << "GENERIC ORACLE for '" << Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e), tb))->to_string() << "'!" << std::endl;
 #endif
                     Prover< InspectableProofEngine< Sentence > > ret = Imp::create(this->get_current_abs_hyps(), parse_expr(extract_thesis(e), tb))->get_adv_truth_prover(this->tb).second;
+                    pwff thesis = parse_expr(extract_thesis(e), tb);
                     ret = this->build_checked_prover(ret, thesis);
                     return ret;
                     break;
@@ -684,10 +688,23 @@ BOOST_DATA_TEST_CASE(test_wff_minisat_prover, boost::unit_test::data::xrange(3),
     CreativeProofEngineImpl< Sentence > engine(tb, true);
     Prover< InspectableProofEngine< Sentence > > main_prover = adapter.convert_proof(adapter.s.proof());
     bool res;
-    if (adapter.hyps.size() == 1) {
-        res = tb.build_registered_prover< InspectableProofEngine< Sentence > >(refute_rp, {{"ph", adapter.target->get_type_prover(tb)}}, {main_prover})(engine);
-    } else {
-        res = tb.build_registered_prover< InspectableProofEngine< Sentence > >(efald_rp, {{"ph", adapter.and_hyps->get_type_prover(tb)}, {"ps", adapter.thesis->get_type_prover(tb)}}, {main_prover})(engine);
+    try {
+        if (adapter.hyps.size() == 1) {
+            res = tb.build_registered_prover< InspectableProofEngine< Sentence > >(refute_rp, {{"ph", adapter.target->get_type_prover(tb)}}, {main_prover})(engine);
+        } else {
+            res = tb.build_registered_prover< InspectableProofEngine< Sentence > >(efald_rp, {{"ph", adapter.and_hyps->get_type_prover(tb)}, {"ps", adapter.thesis->get_type_prover(tb)}}, {main_prover})(engine);
+        }
+    } catch (CheckedProverException< Sentence > &e) {
+        res = false;
+#ifdef VERBOSE_Z3
+        std::cout << "A checked prover failed:" << std::endl;
+        std::cout << "On stack: " << tb.print_sentence(e.get_on_stack()) << std::endl;
+        std::cout << "Expected: " << tb.print_sentence(e.get_expected()) << std::endl;
+        std::cout << "Stack trace:" << std::endl;
+        for (const auto &s : e.get_stacktrace()) {
+            std::cout << s << std::endl;
+        }
+#endif
     }
     BOOST_TEST(res);
     BOOST_TEST(engine.get_stack().size() == (size_t) 1);
@@ -702,8 +719,8 @@ BOOST_DATA_TEST_CASE(test_wff_minisat_prover, boost::unit_test::data::xrange(3),
         std::cout << "proof generation failed..." << std::endl;
     }
     std::cout << std::endl;
-}
 #endif
+}
 #endif
 
 int test_z3_2_main(int argc, char *argv[])

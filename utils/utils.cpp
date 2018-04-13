@@ -10,6 +10,7 @@
 #include <stdlib.h>
 
 // Taken from https://stupefydeveloper.blogspot.it/2008/10/cc-call-stack.html and partially adapted
+// At some point we could move to Boost.Stacktrace
 std::vector<std::string> dump_stacktrace(size_t depth) {
 
     std::vector< std::string > ret;
@@ -33,7 +34,7 @@ std::vector<std::string> dump_stacktrace(size_t depth) {
         }
 
         std::ostringstream oss;
-        oss << "address: 0x" << trace[i] << ", object: " << dlinfo.dli_fname << ", function: " << symname;
+        oss << "address: " << trace[i] << ", object: " << dlinfo.dli_fname << ", function: " << symname;
         ret.push_back(oss.str());
 
         if (demangled) {

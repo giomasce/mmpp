@@ -514,16 +514,41 @@ std::string test_prover(Prover< Engine > prover, const LibraryToolbox &tb) {
     }
 }
 
+template< typename SentType >
+class CheckedProverException {
+public:
+    CheckedProverException(const SentType &on_stack, const SentType &expected, const std::vector< std::string > &stacktrace) : on_stack(on_stack), expected(expected), stacktrace(stacktrace) {}
+    const SentType &get_on_stack() const {
+        return this->on_stack;
+    }
+    const SentType &get_expected() const {
+        return this->expected;
+    }
+    const std::vector< std::string > &get_stacktrace() const {
+        return this->stacktrace;
+    }
+
+private:
+    SentType on_stack;
+    SentType expected;
+    std::vector< std::string > stacktrace;
+};
+
 template< typename Engine, typename std::enable_if< std::is_base_of< InspectableProofEngine< typename Engine::SentType >, Engine >::value >::type* = nullptr >
 Prover< Engine > checked_prover(Prover< Engine > prover, typename Engine::SentType thesis)
 {
+    auto stacktrace = dump_stacktrace();
     return [=](Engine &engine)->bool {
         size_t stack_len_before = engine.get_stack().size();
         bool res = prover(engine);
         size_t stack_len_after = engine.get_stack().size();
-        assert(stack_len_after >= 1);
-        assert(stack_len_after + 1 >= stack_len_before);
-        assert(engine.get_stack().back() == thesis);
+        if (res) {
+            assert(stack_len_after >= 1);
+            assert(stack_len_after + 1 >= stack_len_before);
+            assert_or_throw< CheckedProverException< typename Engine::SentType > >(engine.get_stack().back() == thesis, engine.get_stack().back(), thesis, stacktrace);
+        } else {
+            assert(stack_len_after == stack_len_before);
+        }
         return res;
     };
 }
@@ -531,13 +556,18 @@ Prover< Engine > checked_prover(Prover< Engine > prover, typename Engine::SentTy
 template< typename Engine, typename std::enable_if< std::is_base_of< InspectableProofEngine< typename Engine::SentType >, Engine >::value >::type* = nullptr >
 Prover< Engine > checked_prover(Prover< Engine > prover, size_t hyp_num, typename Engine::SentType thesis)
 {
+    auto stacktrace = dump_stacktrace();
     return [=](Engine &engine)->bool {
         size_t stack_len_before = engine.get_stack().size();
         bool res = prover(engine);
         size_t stack_len_after = engine.get_stack().size();
-        assert(stack_len_after >= 1);
-        assert(stack_len_after + 1 == stack_len_before + hyp_num);
-        assert(engine.get_stack().back() == thesis);
+        if (res) {
+            assert(stack_len_after >= 1);
+            assert(stack_len_after + 1 == stack_len_before + hyp_num);
+            assert_or_throw< CheckedProverException< typename Engine::SentType > >(engine.get_stack().back() == thesis, engine.get_stack().back(), thesis, stacktrace);
+        } else {
+            assert(stack_len_after == stack_len_before);
+        }
         return res;
     };
 }
