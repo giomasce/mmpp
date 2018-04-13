@@ -141,9 +141,9 @@ int test_backtrace_main(int argc, char *argv[]) {
     (void) argc;
     (void) argv;
 
-    backward::StackTrace st;
-    st.load_here();
-    platform_dump_stack_trace(std::cout, st);
+    auto stacktrace = platform_get_stack_trace();
+    platform_dump_stack_trace(std::cout, stacktrace);
+
     return 0;
 }
 static_block {
