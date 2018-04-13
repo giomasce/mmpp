@@ -700,7 +700,7 @@ BOOST_DATA_TEST_CASE(test_wff_minisat_prover, boost::unit_test::data::xrange(3),
         std::cout << "A checked prover failed:" << std::endl;
         std::cout << "On stack: " << tb.print_sentence(e.get_on_stack()) << std::endl;
         std::cout << "Expected: " << tb.print_sentence(e.get_expected()) << std::endl;
-        print_stacktrace(std::cout, e.get_stacktrace());
+        platform_dump_stack_trace(std::cout, e.get_stacktrace());
 #endif
     }
     BOOST_TEST(res);
