@@ -318,12 +318,16 @@ struct Z3Adapter {
                     return ret;
                     break; }
                 case Z3_OP_PR_MONOTONICITY: {
-                    assert(num_args == 2);
-                    assert(arity == 2);
+                    /*assert(num_args == 2);
+                    assert(arity == 2);*/
 #ifdef VERBOSE_Z3
-                    /*cout << "EXPR: " << e.arg(num_args-1) << endl;
-                    cout << "HP1: " << parse_expr(extract_thesis(e.arg(0)))->to_string() << endl;
-                    cout << "TH: " << parse_expr(e.arg(1))->to_string() << endl;*/
+                    /*std::cout << "Monotonicity: " << num_args << " with arity " << decl.arity() << std::endl;
+                    for (unsigned i = 0; i < num_args-1; i++) {
+                        std::cout << "HP" << i << ": " << extract_thesis(e.arg(i)) << std::endl;
+                        std::cout << "HP" << i << ": " << parse_expr(extract_thesis(e.arg(i)), this->tb)->to_string() << std::endl;
+                    }
+                    std::cout << "TH: " << e.arg(num_args-1) << std::endl;
+                    std::cout << "TH: " << parse_expr(e.arg(num_args-1), this->tb)->to_string() << std::endl;*/
 #endif
                     // Recognize the monotonic operation
                     z3::expr thesis = e.arg(num_args-1);
@@ -360,7 +364,6 @@ struct Z3Adapter {
                                 if (eq(th_left.arg(i), th_right.arg(i))) {
                                     hyp_provers.push_back(this->tb.build_registered_prover< CreativeCheckpointedProofEngine< Sentence > >(biidd_rp, {{"ph", this->get_current_abs_hyps()->get_type_prover(this->tb)}, {"ps", parse_expr(th_left.arg(i), tb)->get_type_prover(this->tb)}}, {}));
                                 } else {
-                                    assert(!used);
                                     hyp_provers.push_back(this->convert_proof(e.arg(0), depth+1));
                                     used++;
                                 }
