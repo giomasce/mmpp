@@ -64,60 +64,6 @@ struct ProofTree {
     LabTok number;
 };
 
-template< typename It1, typename It2 >
-bool is_disjoint(It1 from1, It1 to1, It2 from2, It2 to2) {
-    while (true) {
-        if (from1 == to1) {
-            return true;
-        }
-        if (from2 == to2) {
-            return true;
-        }
-        if (*from1 < *from2) {
-            ++from1;
-            continue;
-        }
-        if (*from2 < *from1) {
-            ++from2;
-            continue;
-        }
-        return false;
-    }
-}
-
-template< typename It1, typename It2 >
-bool is_included(It1 from1, It1 to1, It2 from2, It2 to2) {
-    while (true) {
-        if (from1 == to1) {
-            return true;
-        }
-        if (from2 == to2) {
-            return false;
-        }
-        if (*from1 < *from2) {
-            return false;
-        }
-        if (*from2 < *from1) {
-            ++from2;
-            continue;
-        }
-        ++from1;
-        ++from2;
-    }
-}
-
-template< typename It >
-bool has_no_diagonal(It from, It end) {
-    while (true) {
-        if (from == end) {
-            return true;
-        }
-        if (from->first == from->second) {
-            return false;
-        }
-        ++from;
-    }
-}
 
 template< typename SentType_ >
 void propagate_dists(const Assertion &ass, const typename ProofSentenceTraits< SentType_ >::SubstMapType &subst_map, const typename ProofSentenceTraits< SentType_ >::LibType &lib,
