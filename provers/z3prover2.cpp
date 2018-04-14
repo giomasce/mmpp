@@ -5,7 +5,7 @@
 #include "mm/toolbox.h"
 #include "mm/setmm.h"
 
-#define VERBOSE_Z3
+//#define VERBOSE_Z3
 
 unsigned expr_get_num_bound(const z3::expr &e) {
     assert(e.is_quantifier());

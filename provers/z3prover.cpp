@@ -10,7 +10,7 @@
 #include "mm/setmm.h"
 #include "test/test.h"
 
-#define VERBOSE_Z3
+//#define VERBOSE_Z3
 
 pwff parse_expr(z3::expr e, const LibraryToolbox &tb) {
     assert(e.is_app());
