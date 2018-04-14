@@ -232,16 +232,9 @@ int subst_search_main(int argc, char *argv[]) {
     auto &tb = data.tb;
 
     auto &ders = tb.get_derivations();
-
-    LabTok imp_lab = tb.get_label("wi");
-    LabTok ph_lab = tb.get_label("wph");
-
     auto equalities = compute_equalities(tb);
     auto adaptors = compute_type_adaptors(tb);
     auto var_types = compute_var_types(equalities, adaptors);
-
-    SymTok var_type = tb.get_symbol("set");
-
     auto bound_data = preprocess_bound_data(tb);
 
     int attempted = 0;
@@ -398,38 +391,39 @@ int subst_search_main(int argc, char *argv[]) {
                         this_found = true;
                     }
                 });
-                for (unsigned i = 0; i < rule.size(); i++) {
-                    auto it = equalities.find(rule[i]);
-                    if (it != equalities.end()) {
+                size_t pivot_pos = 0;
+                for (size_t i = 0; i < rule.size(); i++) {
+                    auto pivot_var_type = rule[i];
+                    if (var_types.find(pivot_var_type) != var_types.end()) {
+                        auto bound_data_it = this_bound_data.second.find(pivot_pos);
+                        if (bound_data_it != this_bound_data.second.end()) {
+                            pivot_pos++;
+                            continue;
+                        }
+
                         bool this_local_found = false;
                         Finally f4([&this_local_found,&all_local_found]() {
                             if (!this_local_found) {
                                 all_local_found = false;
                             }
                         });
-                        std::cout << " * Search for a substitution rule for " << tb.resolve_symbol(it->first) << " in position " << i << std::endl;
+                        std::cout << " * Search for a substitution rule for " << tb.resolve_symbol(pivot_var_type) << " in position " << i << std::endl;
                         ParsingTree< SymTok, LabTok > pt_hyp;
-                        pt_hyp.label = std::get<0>(it->second);
-                        pt_hyp.type = tb.get_turnstile_alias();
                         ParsingTree< SymTok, LabTok > pt_left;
                         ParsingTree< SymTok, LabTok > pt_right;
                         pt_left.label = label;
                         pt_left.type = type;
                         pt_right.label = label;
                         pt_right.type = type;
-                        for (unsigned j = 0; j < rule.size(); j++) {
-                            if (ders.find(rule[j]) != ders.end()) {
+                        for (size_t j = 0; j < rule.size(); j++) {
+                            auto var_type = rule[j];
+                            if (var_types.find(var_type) != var_types.end()) {
                                 ParsingTree< SymTok, LabTok > pt_var1;
                                 ParsingTree< SymTok, LabTok > pt_var2;
-                                auto var1 = tb.new_temp_var(rule[j]);
-                                pt_var1.label = var1.first;
-                                pt_var1.type = rule[j];
+                                pt_var1 = create_temp_var_pt(tb, var_type);
                                 if (i == j) {
-                                    auto var2 = tb.new_temp_var(rule[j]);
-                                    pt_var2.label = var2.first;
-                                    pt_var2.type = rule[j];
-                                    pt_hyp.children.push_back(pt_var1);
-                                    pt_hyp.children.push_back(pt_var2);
+                                    pt_var2 = create_temp_var_pt(tb, var_type);
+                                    pt_hyp = create_equality_pt(tb, equalities, adaptors, pt_var1, pt_var2);
                                 } else {
                                     pt_var2 = pt_var1;
                                 }
@@ -437,50 +431,61 @@ int subst_search_main(int argc, char *argv[]) {
                                 pt_right.children.push_back(pt_var2);
                             }
                         }
-                        ParsingTree< SymTok, LabTok > pt_thesis;
-                        pt_thesis.label = std::get<0>(equalities[type]);
-                        pt_thesis.type = tb.get_turnstile_alias();
-                        pt_thesis.children.push_back(pt_left);
-                        pt_thesis.children.push_back(pt_right);
+                        ParsingTree< SymTok, LabTok > pt_thesis = create_equality_pt(tb, equalities, adaptors, pt_left, pt_right);
 
-                        assert(pt_thesis.validate(tb.get_validation_rule()));
-                        assert(pt_hyp.validate(tb.get_validation_rule()));
-                        std::cout << "   Inference form" << std::endl;
-                        auto res = search_theorem(tb, {std::make_pair(tb.get_turnstile(), pt_hyp)}, std::make_pair(tb.get_turnstile(), pt_thesis));
+                        std::set< std::pair< SymTok, SymTok > > acceptable_dists;
+                        std::vector< ParsingTree< SymTok, LabTok > > pts_nf_hyps;
+                        if (has_bound_data && pivot_pos == this_bound_data.first) {
+                            // If we have bound_data for this syntax constructor, then we need to patch the body hypothesis
+                            // and create not-free hypotheses
+                            std::set< size_t > vars_idx;
+                            for (const auto &p : boost::adaptors::reverse(this_bound_data.second)) {
+                                auto var_idx = p.first;
+                                auto range_idx = p.second;
+                                for (const auto &prev_var_idx : vars_idx) {
+                                    assert(prev_var_idx != var_idx);
+                                    assert(pt_left.children[prev_var_idx].label != pt_left.children[var_idx].label);
+                                    acceptable_dists.insert(std::minmax(tb.get_var_lab_to_sym(pt_left.children[prev_var_idx].label), tb.get_var_lab_to_sym(pt_left.children[var_idx].label)));
+                                }
+                                vars_idx.insert(var_idx);
+                                assert(pt_left.children[var_idx] == pt_right.children[var_idx]);
+                                if (range_idx < pt_left.children.size()) {
+                                    pt_hyp = create_restr_forall_pt(tb, pt_left.children[var_idx], pt_left.children[range_idx], pt_hyp);
+                                } else {
+                                    pt_hyp = create_forall_pt(tb, pt_left.children[var_idx], pt_hyp);
+                                }
+                            }
+                            for (const auto &p : this_bound_data.second) {
+                                for (const auto &var_idx : vars_idx) {
+                                    auto range_idx = p.second;
+                                    if (range_idx < pt_left.children.size()) {
+                                        pts_nf_hyps.push_back(create_not_free_pt(tb, equalities, adaptors, pt_left.children[var_idx], pt_left.children[range_idx]));
+                                        pts_nf_hyps.push_back(create_not_free_pt(tb, equalities, adaptors, pt_left.children[var_idx], pt_right.children[range_idx]));
+                                    }
+                                }
+                            }
+                        }
 
-                        ParsingTree< SymTok, LabTok > pt_thm;
-                        pt_thm.type = tb.get_turnstile_alias();
-                        pt_thm.label = imp_lab;
-                        pt_thm.children.push_back(pt_hyp);
-                        pt_thm.children.push_back(pt_thesis);
-                        assert(pt_thm.validate(tb.get_validation_rule()));
+                        /*std::cout << "   Inference form" << std::endl;
+                        auto res = search_theorem(tb, {std::make_pair(tb.get_turnstile(), pt_hyp)}, std::make_pair(tb.get_turnstile(), pt_thesis));*/
+
+                        ParsingTree< SymTok, LabTok > pt_thm = create_implication_pt(tb, pt_hyp, pt_thesis);
                         std::cout << "   Implication form" << std::endl;
-                        res = search_theorem(tb, {}, std::make_pair(tb.get_turnstile(), pt_thm));
+                        auto res = search_theorem(tb, {}, std::make_pair(tb.get_turnstile(), pt_thm));
                         if (res.first && !res.second) {
                             this_local_found = true;
                         }
 
-                        ParsingTree< SymTok, LabTok > pt_ph;
-                        pt_ph.type = tb.get_turnstile_alias();
-                        pt_ph.label = ph_lab;
-                        ParsingTree< SymTok, LabTok > pt_hypd;
-                        pt_hypd.type = tb.get_turnstile_alias();
-                        pt_hypd.label = imp_lab;
-                        pt_hypd.children.push_back(pt_ph);
-                        pt_hypd.children.push_back(pt_hyp);
-                        ParsingTree< SymTok, LabTok > pt_thesisd;
-                        pt_thesisd.type = tb.get_turnstile_alias();
-                        pt_thesisd.label = imp_lab;
-                        pt_thesisd.children.push_back(pt_ph);
-                        pt_thesisd.children.push_back(pt_thesis);
-                        assert(pt_hypd.validate(tb.get_validation_rule()));
-                        assert(pt_thesisd.validate(tb.get_validation_rule()));
+                        ParsingTree< SymTok, LabTok > pt_ph = create_temp_var_pt(tb, tb.get_turnstile_alias());
+                        ParsingTree< SymTok, LabTok > pt_hypd = create_implication_pt(tb, pt_ph, pt_hyp);
+                        ParsingTree< SymTok, LabTok > pt_thesisd = create_implication_pt(tb, pt_ph, pt_thesis);
                         std::cout << "   Deduction form" << std::endl;
                         res = search_theorem(tb, {std::make_pair(tb.get_turnstile(), pt_hypd)}, std::make_pair(tb.get_turnstile(), pt_thesisd));
                         if (res.first && !res.second) {
                             this_local_found = true;
                         }
-                    } else if (rule[i] == var_type) {
+                        pivot_pos++;
+                    } else if (false) {  //(rule[i] == var_type) {
                         if (false) {
                             std::cout << " * Search for a not-free rule for " << tb.resolve_symbol(rule[i]) << " in position " << i << std::endl;
                             tb.new_temp_var_frame();
@@ -491,7 +496,7 @@ int subst_search_main(int argc, char *argv[]) {
                             pt_body.label = label;
                             pt_body.type = type;
                             ParsingTree< SymTok, LabTok > pt_var;
-                            pt_var.type = var_type;
+                            pt_var.type = {};  //var_type;
                             for (unsigned j = 0; j < rule.size(); j++) {
                                 if (ders.find(rule[j]) != ders.end()) {
                                     ParsingTree< SymTok, LabTok > pt_var2;
