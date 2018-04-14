@@ -140,7 +140,8 @@ SOURCES += \
     provers/subst.cpp \
     apps/verify.cpp \
     mm/setmm.cpp \
-    test/test_wff.cpp
+    test/test_wff.cpp \
+    provers/z3prover2.cpp
 
 HEADERS += \
     pch.h \
