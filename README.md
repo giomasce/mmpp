@@ -38,7 +38,7 @@ the source code checkout.
 First you need to install the dependencies. On Debian-based systems
 this is usually as hard as giving this command to a terminal:
 
-    sudo apt-get install git build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev node-typescript binutils-dev
+    sudo apt-get install git build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev node-typescript binutils-dev pkg-config
 
 Other Linux distributions will require some similar command, depending
 on the distribution package manager. You need GCC version at least 5,
