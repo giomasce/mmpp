@@ -140,8 +140,7 @@ SOURCES += \
     provers/subst.cpp \
     apps/verify.cpp \
     mm/setmm.cpp \
-    test/test_wff.cpp \
-    provers/z3prover2.cpp
+    test/test_wff.cpp
 
 HEADERS += \
     pch.h \
@@ -250,7 +249,8 @@ equals(USE_BEAST, "true") {
 equals(USE_Z3, "true") {
     DEFINES += USE_Z3
     SOURCES += \
-        provers/z3prover.cpp
+        provers/z3prover.cpp \
+        provers/z3prover2.cpp
     !win32 {
         QMAKE_LIBS += -lz3
     }
