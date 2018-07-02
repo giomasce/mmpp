@@ -149,6 +149,15 @@ uint64_t platform_get_current_used_ram( )
     return (size_t)rss * (size_t)sysconf( _SC_PAGESIZE);
 }
 
+#include <cxxabi.h>
+
+std::string platform_type_of_current_exception() {
+    int status;
+    auto ret = abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), nullptr, nullptr, &status);
+    assert(status == 0);
+    return ret;
+}
+
 #elif (defined(__APPLE__) && defined(__MACH__))
 
 #include <csignal>
@@ -281,6 +290,11 @@ uint64_t platform_get_current_used_ram( )
     }
 }
 
+// FIXME
+std::string platform_type_of_current_exception() {
+    return "";
+}
+
 #elif (defined(_WIN32))
 
 #include <future>
@@ -391,6 +405,11 @@ void platform_set_current_thread_name(const std::string &name) {
 
 void platform_set_current_thread_low_priority() {
     SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
+}
+
+// FIXME
+std::string platform_type_of_current_exception() {
+    return "";
 }
 
 #else

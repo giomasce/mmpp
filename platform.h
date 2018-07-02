@@ -60,3 +60,4 @@ void platform_set_current_thread_name(const std::string &name);
 void platform_set_current_thread_low_priority();
 PlatformStackTrace platform_get_stack_trace();
 void platform_dump_stack_trace(std::ostream &str, const PlatformStackTrace &trace);
+std::string platform_type_of_current_exception();
