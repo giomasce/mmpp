@@ -232,10 +232,10 @@ void scan_proof(const z3::expr &e, const LibraryToolbox &tb, int depth = 0) {
             std::cout << "Declaration: " << decl << " of arity " << arity << " and args num " << num_args << ": " << tb.print_sentence(thesis_pt) << std::endl;
 #endif
 
-            switch (kind) {
+            /*switch (kind) {
             case Z3_OP_PR_ASSERTED:
                 break;
-            }
+            }*/
         } else {
 #ifdef VERBOSE_Z3
             std::cout << "unknown kind " << kind << std::endl;

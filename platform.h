@@ -11,6 +11,8 @@
  */
 #if (defined(_WIN32))
 #define STACKTRACE_USE_BOOST
+
+#define COROUTINE_USE_COROUTINE
 #endif
 
 /* Under macOS neither boost nor backward give very good results (neither is
@@ -23,6 +25,8 @@
 // If you want you can switch to boost
 //#define BOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED
 //#define STACKTRACE_USE_BOOST
+
+#define COROUTINE_USE_COROUTINE
 #endif
 
 /* Under Linux backward has more features than boost; moreover, since the header
@@ -37,6 +41,8 @@
 // If you want you can switch to boost (compile with -lbacktrace)
 //#define BOOST_STACKTRACE_USE_BACKTRACE
 //#define STACKTRACE_USE_BOOST
+
+#define COROUTINE_USE_COROUTINE2
 #endif
 
 #ifdef STACKTRACE_USE_BOOST
@@ -47,6 +53,25 @@ typedef boost::stacktrace::stacktrace PlatformStackTrace;
 #ifdef STACKTRACE_USE_BACKWARD
 #include "libs/backward.h"
 typedef backward::StackTrace PlatformStackTrace;
+#endif
+
+#ifdef COROUTINE_USE_COROUTINE
+#define BOOST_COROUTINES_NO_DEPRECATION_WARNING
+#include <boost/coroutine/all.hpp>
+template< typename T >
+using coroutine_pull = typename boost::coroutines::asymmetric_coroutine< T >::pull_type;
+template< typename T >
+using coroutine_push = typename boost::coroutines::asymmetric_coroutine< T >::push_type;
+using coroutine_forced_unwind = boost::coroutines::detail::forced_unwind;
+#endif
+
+#ifdef COROUTINE_USE_COROUTINE2
+#include <boost/coroutine2/all.hpp>
+template< typename T >
+using coroutine_pull = typename boost::coroutines2::coroutine< T >::pull_type;
+template< typename T >
+using coroutine_push = typename boost::coroutines2::coroutine< T >::push_type;
+using coroutine_forced_unwind = boost::context::detail::forced_unwind;
 #endif
 
 void platform_set_max_ram(uint64_t bytes);

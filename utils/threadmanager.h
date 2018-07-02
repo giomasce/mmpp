@@ -10,19 +10,18 @@
 #include <atomic>
 #include <queue>
 
-#include <boost/coroutine2/all.hpp>
-
+#include "platform.h"
 #include "utils.h"
 
 class Yielder {
 public:
-    Yielder(boost::coroutines2::coroutine< void >::push_type &base_yield);
+    Yielder(coroutine_push< void > &base_yield);
     void operator()() {
         this->yield_impl();
     }
 
 private:
-    boost::coroutines2::coroutine< void >::push_type &yield_impl;
+    coroutine_push< void > &yield_impl;
 };
 
 class Coroutine {
@@ -40,12 +39,12 @@ private:
 
     template< typename T >
     static decltype(auto) make_coroutine(std::shared_ptr< T > body) {
-        return std::make_unique< boost::coroutines2::coroutine< void >::pull_type >([body](boost::coroutines2::coroutine< void >::push_type &yield_impl) mutable {
+        return std::make_unique< coroutine_pull< void > >([body](coroutine_push< void > &yield_impl) mutable {
             Yielder yield(yield_impl);
             yield();
             try {
                 (*body)(yield);
-            } catch (const boost::context::detail::forced_unwind&) {
+            } catch (const coroutine_forced_unwind&) {
                 // Rethow internal coroutine exceptions, as per their specifications
                 throw;
             } catch (...) {
@@ -55,7 +54,7 @@ private:
         });
     }
 
-    std::unique_ptr< boost::coroutines2::coroutine< void >::pull_type > coro_impl;
+    std::unique_ptr< coroutine_pull< void > > coro_impl;
 };
 
 /*
