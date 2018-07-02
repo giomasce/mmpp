@@ -191,15 +191,15 @@ bool CoroutineThreadManager::dequeue_coroutine(CoroutineThreadManager::Coroutine
 }
 
 bool Coroutine::execute() {
-    if (this->coro_impl) {
-        this->coro_impl();
+    if (*this->coro_impl) {
+        (*this->coro_impl)();
         return true;
     } else {
         return false;
     }
 }
 
-Yielder::Yielder(boost::coroutines::asymmetric_coroutine< void >::push_type &base_yield) : yield_impl(base_yield) {
+Yielder::Yielder(boost::coroutines2::coroutine< void >::push_type &base_yield) : yield_impl(base_yield) {
 }
 
 bool CoroutineThreadManager::CTMComp::operator()(const std::pair<std::chrono::system_clock::time_point, CoroutineThreadManager::CoroutineRuntimeData> &x, const std::pair<std::chrono::system_clock::time_point, CoroutineThreadManager::CoroutineRuntimeData> &y) const {
