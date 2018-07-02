@@ -292,9 +292,15 @@ uint64_t platform_get_current_used_ram( )
     }
 }
 
-// FIXME
+#include <cxxabi.h>
+
 std::string platform_type_of_current_exception() {
-    return "";
+    int status;
+    auto demangled = abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), nullptr, nullptr, &status);
+    assert(status == 0);
+    std::string ret(demangled);
+    free(demangled);
+    return ret;
 }
 
 #elif (defined(_WIN32))
