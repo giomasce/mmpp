@@ -153,8 +153,10 @@ uint64_t platform_get_current_used_ram( )
 
 std::string platform_type_of_current_exception() {
     int status;
-    auto ret = abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), nullptr, nullptr, &status);
+    auto demangled = abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), nullptr, nullptr, &status);
     assert(status == 0);
+    std::string ret(demangled);
+    free(demangled);
     return ret;
 }
 
