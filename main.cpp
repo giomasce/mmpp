@@ -76,14 +76,9 @@ int main(int argc, char *argv[]) {
     //return main_func(argc, argv);
     try {
         return main_func(argc, argv);
-    } catch (const MMPPException &e) {
-        std::cerr << "Dying because of MMPPException with reason '" << e.get_reason() << "'..." << std::endl;
-        return 1;
-    } catch (const char* &e) {
-        std::cerr << "Dying because of string exception '" << e << "'..." << std::endl;
-        return 1;
-    } catch (std::string &e) {
-        std::cerr << "Dying because of string exception '" << e << "'..." << std::endl;
+    } catch (...) {
+        std::cerr << "Program terminated with exception" << std::endl;
+        default_exception_handler(std::current_exception());
         return 1;
     }
 }

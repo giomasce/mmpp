@@ -322,3 +322,5 @@ bool has_no_diagonal(It from, It end) {
         ++from;
     }
 }
+
+void default_exception_handler(std::exception_ptr ptr);

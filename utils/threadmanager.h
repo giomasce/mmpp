@@ -48,10 +48,9 @@ private:
             } catch (const boost::context::detail::forced_unwind&) {
                 // Rethow internal coroutine exceptions, as per their specifications
                 throw;
-            } catch (const std::exception &e) {
-                std::cerr << "Coroutine threw exception of type " << platform_type_of_current_exception() << ": " << e.what() << std::endl;
             } catch (...) {
-                std::cerr << "Coroutine threw exception of type " << platform_type_of_current_exception() << std::endl;
+                std::cerr << "Coroutine filed with exception" << std::endl;
+                default_exception_handler(std::current_exception());
             }
         });
     }

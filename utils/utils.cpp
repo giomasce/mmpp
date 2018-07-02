@@ -2,6 +2,7 @@
 #include "utils.h"
 
 #include <boost/crc.hpp>
+#include <boost/type_index.hpp>
 
 // Partly taken from http://programanddesign.com/cpp/human-readable-file-size-in-c/
 std::string size_to_string(uint64_t size) {
@@ -159,4 +160,24 @@ std::streamsize HashSink::write(const char *s, std::streamsize n)
 std::string HashSink::get_digest()
 {
     return this->hasher->get_digest();
+}
+
+void default_exception_handler(std::exception_ptr ptr)
+{
+    try {
+        if (ptr) {
+            std::rethrow_exception(ptr);
+        }
+    } catch (const MMPPException &e) {
+        std::cerr << "Exception of type MMPPException: " << e.get_reason() << std::endl;
+        platform_dump_stack_trace(std::cerr, e.get_stacktrace());
+    } catch (const char* &e) {
+        std::cerr << "Exception of type char*: " << e << std::endl;
+    } catch (const std::string &e) {
+        std::cerr << "Exception of type std::string: " << e << std::endl;
+    } catch (const std::exception &e) {
+        std::cerr << "Exception of dynamic type " << boost::typeindex::type_id_runtime(e).pretty_name() << ": " << e.what() << std::endl;
+    } catch (...) {
+        std::cerr << "Exception of unmanaged type " << platform_type_of_current_exception() << std::endl;
+    }
 }
