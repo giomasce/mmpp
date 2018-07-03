@@ -603,8 +603,16 @@ int uct_main(int argc, char *argv[]) {
         if (res == PROVED) {
             std::cout << "Found proof after " << i+1 << " visits:";
             CreativeProofEngineImpl< Sentence > engine(tb, false);
+            std::vector< std::function< void() > > children_cb;
+            for (const auto &hyp : problem.second) {
+                LabTok hyp_lab = engine.create_new_hypothesis(tb.reconstruct_sentence(pt2_to_pt(hyp), tb.get_turnstile()));
+                children_cb.emplace_back([hyp_lab,&engine]() {
+                    engine.process_label(hyp_lab);
+                });
+            }
+            prover->set_children_callbacks(std::move(children_cb));
             try {
-                    prover->replay_proof(engine);
+                prover->replay_proof(engine);
             } catch (ProofException< Sentence > &pe) {
                 std::cout << "Failed with exception:" << std::endl;
                 tb.dump_proof_exception(pe, std::cout);
