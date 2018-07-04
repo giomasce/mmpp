@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(test_tree_unification) {
     }*/
 }
 
-std::vector< std::pair< bool, std::string > > unification_data = {
+static std::vector< std::pair< bool, std::string > > setmm_unification_data = {
     { true, "|- ( ( A e. CC /\\ B e. CC /\\ N e. NN0 ) -> ( ( A + B ) ^ N ) = sum_ k e. ( 0 ... N ) ( ( N _C k ) x. ( ( A ^ ( N - k ) ) x. ( B ^ k ) ) ) )" },
     { true, "|- ( ph -> ( ps <-> ps ) )" },
     { true, "|- ( ph -> ph )" },
@@ -177,7 +177,7 @@ std::vector< std::pair< bool, std::string > > unification_data = {
     { false, "|- ph -> ph" },
 };
 
-BOOST_DATA_TEST_CASE(test_unification, boost::unit_test::data::make(unification_data)) {
+BOOST_DATA_TEST_CASE(test_setmm_unification, boost::unit_test::data::make(setmm_unification_data)) {
     auto &data = get_set_mm();
     //auto &lib = data.lib;
     auto &tb = data.tb;
@@ -199,6 +199,125 @@ BOOST_DATA_TEST_CASE(test_unification, boost::unit_test::data::make(unification_
         auto &thesis_sent = lib.get_sentence(ass.get_thesis());
         std::cout << " => " << tb.print_sentence(thesis_sent, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << std::endl;
     }*/
+}
+
+decltype(auto) get_unification_test_derivation() {
+    std::unordered_map<char, std::vector<std::pair< size_t, std::vector<char> > > > derivations;
+    derivations['S'].push_back(std::make_pair(100, std::vector< char >({ 'S', '+', 'P' })));
+    derivations['S'].push_back(std::make_pair(101, std::vector< char >({ 'S', '-', 'P' })));
+    derivations['S'].push_back(std::make_pair(102, std::vector< char >({ 'P' })));
+    derivations['P'].push_back(std::make_pair(103, std::vector< char >({ 'P', '*', 'P' })));
+    derivations['P'].push_back(std::make_pair(104, std::vector< char >({ 'P', '/', 'P' })));
+    derivations['P'].push_back(std::make_pair(105, std::vector< char >({ 'F' })));
+    derivations['F'].push_back(std::make_pair(106, std::vector< char >({ '(', 'S', ')' })));
+    derivations['F'].push_back(std::make_pair(107, std::vector< char >({ 'N' })));
+    derivations['N'].push_back(std::make_pair(108, std::vector< char >({ 'D', 'N' })));
+    derivations['N'].push_back(std::make_pair(109, std::vector< char >({ 'D' })));
+    derivations['D'].push_back(std::make_pair(120, std::vector< char >({ '0' })));
+    derivations['D'].push_back(std::make_pair(121, std::vector< char >({ '1' })));
+    derivations['D'].push_back(std::make_pair(122, std::vector< char >({ '2' })));
+    derivations['D'].push_back(std::make_pair(123, std::vector< char >({ '3' })));
+    derivations['D'].push_back(std::make_pair(124, std::vector< char >({ '4' })));
+    derivations['D'].push_back(std::make_pair(125, std::vector< char >({ '5' })));
+    derivations['D'].push_back(std::make_pair(126, std::vector< char >({ '6' })));
+    derivations['D'].push_back(std::make_pair(127, std::vector< char >({ '7' })));
+    derivations['D'].push_back(std::make_pair(128, std::vector< char >({ '8' })));
+    derivations['D'].push_back(std::make_pair(129, std::vector< char >({ '9' })));
+    derivations['D'].push_back(std::make_pair(200, std::vector< char >({ 'x' })));
+    derivations['D'].push_back(std::make_pair(201, std::vector< char >({ 'y' })));
+    derivations['D'].push_back(std::make_pair(202, std::vector< char >({ 'z' })));
+    derivations['N'].push_back(std::make_pair(210, std::vector< char >({ 'a' })));
+    derivations['N'].push_back(std::make_pair(211, std::vector< char >({ 'b' })));
+    derivations['N'].push_back(std::make_pair(212, std::vector< char >({ 'c' })));
+    return derivations;
+}
+
+struct UnificationTest {
+    std::string left;
+    std::string right;
+    std::unordered_map<size_t, std::pair<char, std::string> > subst;
+    std::unordered_map<char, std::vector<std::pair< size_t, std::vector<char> > > > derivations;
+    bool bilateral;
+    bool valid;
+};
+
+BOOST_TEST_DONT_PRINT_LOG_VALUE(UnificationTest);
+
+static std::vector< UnificationTest > unification_test_data = {
+    { "x+y+z", "1+2+3", {{200, {'D', "1"}},
+                         {201, {'D', "2"}},
+                         {202, {'D', "3"}}},
+      get_unification_test_derivation(), false, true },
+    { "x+y+z", "1+2+3", {{200, {'D', "1"}},
+                         {201, {'D', "2"}},
+                         {202, {'D', "3"}}},
+      get_unification_test_derivation(), true, true },
+    { "x+y", "1+2+3", {},
+      get_unification_test_derivation(), false, false },
+    { "x+y", "1+2+3", {},
+      get_unification_test_derivation(), true, false },
+    { "x+y+3", "1+2+z", {},
+      get_unification_test_derivation(), false, false },
+    { "x+y+3", "1+2+z", {{200, {'D', "1"}},
+                         {201, {'D', "2"}},
+                         {202, {'D', "3"}}},
+      get_unification_test_derivation(), true, true },
+};
+
+template< bool bilateral, typename SymType, typename LabType >
+struct SelectUnificator;
+
+template< typename SymType, typename LabType >
+struct SelectUnificator<true, SymType, LabType > { typedef BilateralUnificator< SymType, LabType > type ; };
+
+template< typename SymType, typename LabType >
+struct SelectUnificator<false, SymType, LabType > { typedef UnilateralUnificator< SymType, LabType > type ; };
+
+template< bool bilateral, typename SymType, typename LabType >
+using SelectUnificatorT = typename SelectUnificator< bilateral, SymType, LabType >::type;
+
+template< bool bilateral >
+void test_unification_impl(const UnificationTest &sample) {
+    assert(sample.bilateral == bilateral);
+    LRParser< char, size_t > lr(sample.derivations);
+    lr.initialize();
+    std::vector< char > left_vec(sample.left.begin(), sample.left.end());
+    std::vector< char > right_vec(sample.right.begin(), sample.right.end());
+    auto left_pt = lr.parse(left_vec, 'S');
+    auto right_pt = lr.parse(right_vec, 'S');
+    BOOST_TEST(left_pt.label != 0);
+    BOOST_TEST(right_pt.label != 0);
+
+    std::function< bool(size_t) > is_var = [](auto x) { return x >= 200; };
+    SelectUnificatorT< bilateral, char, size_t > unif(is_var);
+    unif.add_parsing_trees(left_pt, right_pt);
+    if (sample.valid) {
+        BOOST_TEST(unif.is_unifiable());
+        bool res;
+        SubstMap< char, size_t > found_subst;
+        std::tie(res, found_subst) = unif.unify();
+        BOOST_TEST(res);
+        BOOST_TEST(found_subst.size() == sample.subst.size());
+        for (const auto &subst_pair : sample.subst) {
+            std::vector< char > subst_vec(subst_pair.second.second.begin(), subst_pair.second.second.end());
+            auto subst_pt = lr.parse(subst_vec, subst_pair.second.first);
+            BOOST_TEST(subst_pt.label != 0);
+            BOOST_TEST(subst_pt == found_subst.at(subst_pair.first));
+        }
+    } else {
+        BOOST_TEST(!unif.is_unifiable());
+        bool res;
+        std::tie(res, std::ignore) = unif.unify();
+        BOOST_TEST(!res);
+    }
+}
+
+BOOST_DATA_TEST_CASE(test_unification, boost::unit_test::data::make(unification_test_data)) {
+    if (sample.bilateral) {
+        test_unification_impl< true >(sample);
+    } else {
+        test_unification_impl< false >(sample);
+    }
 }
 
 #endif

@@ -528,7 +528,7 @@ public:
     }
 
     /*
-     * Return an approximation from above of failer: is has_failed() returns true, then all unifications from now on will return false.
+     * Return an approximation from above of failed: is has_failed() returns true, then all unifications from now on will return false.
      * However, it is possible that has_failed() returns false, but unification fails anyway.
      */
     bool has_failed() {

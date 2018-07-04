@@ -31,7 +31,7 @@
 
 int test_main(int argc, char *argv[]) {
     // Load immediately set.mm, so it loading bar does not mix with testing output
-    get_set_mm();
+    //get_set_mm();
     return boost::unit_test::unit_test_main(&init_unit_test, argc, argv);
 }
 static_block {
