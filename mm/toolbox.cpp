@@ -286,7 +286,7 @@ std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok>
     }
 
     // Build a substitution map
-    SubstMap< SymTok, LabTok > subst = this->build_refreshing_subst_map(var_labs);
+    SubstMap< SymTok, LabTok > subst = this->build_refreshing_subst_map(var_labs).first;
 
     // Substitute and return
     ParsingTree< SymTok, LabTok > thesis_new_pt = ::substitute(thesis_pt, is_var, subst);
@@ -331,7 +331,7 @@ ParsingTree<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree(const ParsingTr
     collect_variables(pt, is_var, var_labs);
 
     // Build a substitution map
-    SubstMap< SymTok, LabTok > subst = this->build_refreshing_subst_map(var_labs);
+    SubstMap< SymTok, LabTok > subst = this->build_refreshing_subst_map(var_labs).first;
 
     // Substitute and return
     return ::substitute(pt, is_var, subst);
@@ -351,26 +351,27 @@ ParsingTree2<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree2(const Parsing
     return ::substitute2_simple(pt, is_var, subst);
 }
 
-SubstMap<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map(const std::set<LabTok> &vars) const
+std::pair< SubstMap<SymTok, LabTok>, std::set< LabTok > > LibraryToolbox::build_refreshing_subst_map(const std::set<LabTok> &vars) const
 {
     SubstMap< SymTok, LabTok > subst;
-    for (const auto var : vars) {
+    std::set< LabTok > new_vars;
+    for (const auto &var : vars) {
         SymTok type_sym = this->get_sentence(var).at(0);
-        SymTok new_sym;
         LabTok new_lab;
-        std::tie(new_lab, new_sym) = this->new_temp_var(type_sym);
+        std::tie(new_lab, std::ignore) = this->new_temp_var(type_sym);
+        new_vars.insert(new_lab);
         ParsingTree< SymTok, LabTok > new_pt;
         new_pt.label = new_lab;
         new_pt.type = type_sym;
         subst[var] = new_pt;
     }
-    return subst;
+    return std::make_pair(subst, new_vars);
 }
 
 SimpleSubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map2(const std::set<LabTok> &vars) const
 {
     SimpleSubstMap2< SymTok, LabTok > subst;
-    for (const auto var : vars) {
+    for (const auto &var : vars) {
         SymTok type_sym = this->get_sentence(var).at(0);
         LabTok new_lab;
         std::tie(new_lab, std::ignore) = this->new_temp_var(type_sym);
@@ -379,9 +380,10 @@ SimpleSubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map2(cons
     return subst;
 }
 
-SubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_full_subst_map2(const std::set<LabTok> &vars) const
+std::pair< SubstMap2<SymTok, LabTok>, std::set< LabTok > > LibraryToolbox::build_refreshing_full_subst_map2(const std::set<LabTok> &vars) const
 {
-    return subst_to_subst2(this->build_refreshing_subst_map(vars));
+    auto tmp = this->build_refreshing_subst_map(vars);
+    return std::make_pair(subst_to_subst2(tmp.first), tmp.second);
 }
 
 SymTok LibraryToolbox::get_symbol(std::string s) const

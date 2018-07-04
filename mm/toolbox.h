@@ -297,7 +297,7 @@ private:
     void compute_ders_by_label();
     std::unordered_map< LabTok, std::pair< SymTok, std::vector< SymTok > > > ders_by_label;
 
-    // Variables presents in sentences and assertions
+    // Variables in sentences and assertions
 public:
     const std::vector< std::set< LabTok > > &get_sentence_vars() const;
     const std::vector< std::set< LabTok > > &get_assertion_unconst_vars() const;
@@ -454,9 +454,9 @@ public:
     std::pair< std::vector< ParsingTree2< SymTok, LabTok > >, ParsingTree2< SymTok, LabTok > > refresh_assertion2(const Assertion &ass) const;
     ParsingTree< SymTok, LabTok > refresh_parsing_tree(const ParsingTree< SymTok, LabTok > &pt) const;
     ParsingTree2<SymTok, LabTok> refresh_parsing_tree2(const ParsingTree2< SymTok, LabTok > &pt) const;
-    SubstMap< SymTok, LabTok > build_refreshing_subst_map(const std::set< LabTok > &vars) const;
+    std::pair<SubstMap<SymTok, LabTok>, std::set<LabTok> > build_refreshing_subst_map(const std::set< LabTok > &vars) const;
     SimpleSubstMap2< SymTok, LabTok > build_refreshing_subst_map2(const std::set< LabTok > &vars) const;
-    SubstMap2< SymTok, LabTok > build_refreshing_full_subst_map2(const std::set< LabTok > &vars) const;
+    std::pair<SubstMap2<SymTok, LabTok>, std::set<LabTok> > build_refreshing_full_subst_map2(const std::set< LabTok > &vars) const;
 
     // Misc
 public:

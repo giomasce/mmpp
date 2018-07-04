@@ -11,18 +11,36 @@
 
 #include <memory>
 #include <iostream>
+#include <type_traits>
 
-//#define LOG_UCT
+#define LOG_UCT
+
+// This uses some trickery in https://stackoverflow.com/q/51170934/807307
+struct OstreamWrapper {
+    OstreamWrapper(std::ostream &out) : out(out) {}
+
+    template< typename T >
+    decltype(auto) operator<<(T &&arg) {
+        return out << std::forward< T >(arg);
+    }
+
+    decltype(auto) operator<<(std::ostream& (&arg)(std::ostream&)) {
+        return out << arg;
+    }
+
+    std::ostream &out;
+};
 
 struct VisitContext {
     static uint32_t depth;
     std::string action;
     VisitContext(std::string action) : action(action) {
 #ifdef LOG_UCT
-        this->log() << "Beginning " << this->action << std::endl;
+        this->log() << "Begin " << this->action << std::endl;
 #endif
         this->depth++;
     }
+    VisitContext(const VisitContext&) = delete;
     ~VisitContext() {
         this->depth--;
 #ifdef LOG_UCT
@@ -34,15 +52,15 @@ struct VisitContext {
             std::cout << "  ";
         }
     }
-    static std::ostream &log() {
+    static OstreamWrapper log() {
         VisitContext::insert_space();
-        return std::cout;
+        return OstreamWrapper(std::cout);
     }
 };
 uint32_t VisitContext::depth = 0;
 
 #ifdef LOG_UCT
-static inline std::ostream &visit_log() {
+static inline decltype(auto) visit_log() {
     return VisitContext::log();
 }
 #endif
@@ -50,7 +68,7 @@ static inline std::ostream &visit_log() {
 VisitResult UCTProver::visit()
 {
 #ifdef LOG_UCT
-    auto vc = VisitContext("global visit");
+    VisitContext vc("global visit");
 #endif
     return this->root->visit();
 }
@@ -144,7 +162,7 @@ static std::unordered_map< LabTok, std::vector< LabTok > > filter_assertions(con
         LabTok label = p.first;
         auto &new_list = ret[label];
         const auto &orig_list = p.second;
-        for (const LabTok lab2 : orig_list) {
+        for (const LabTok &lab2 : orig_list) {
             if (uct.is_assertion_useful(tb.get_assertion(lab2))) {
                 new_list.push_back(lab2);
             }
@@ -172,7 +190,7 @@ VisitResult SentenceNode::visit()
     assert(!this->exhausted);
     this->visit_num++;
 #ifdef LOG_UCT
-    auto vc = VisitContext("visiting SentenceNode for " + tb.print_sentence(this->sentence, SentencePrinter::STYLE_ANSI_COLORS_SET_MM).to_string());
+    VisitContext vc("visiting SentenceNode for " + tb.print_sentence(this->sentence, SentencePrinter::STYLE_ANSI_COLORS_SET_MM).to_string());
 #endif
 
     // First visit: do some trivial checks, but do not create new children
@@ -187,7 +205,7 @@ VisitResult SentenceNode::visit()
             visit_log() << "Proved with an hypothesis!" << std::endl;
 #endif
             this->exhausted = true;
-            this->hyp_num = it - hyps.begin();
+            this->hyp_num = static_cast< size_t >(it - hyps.begin());
             return PROVED;
         } else {
 #ifdef LOG_UCT
@@ -218,7 +236,9 @@ VisitResult SentenceNode::visit()
 #ifdef LOG_UCT
                 visit_log() << "Creating a new StepNode child" << std::endl;
 #endif
-                this->children.push_back(StepNode::create(this->uct, this->weak_from_this(), ass.get_thesis(), subst_map));
+                auto strong_parent = this->get_parent().lock();
+                this->children.push_back(StepNode::create(this->uct, this->weak_from_this(), ass.get_thesis(), subst_map,
+                                                          strong_parent ? strong_parent->get_open_vars() : std::map< LabTok, SafeWeakPtr< StepNode > >{}));
                 created_child = true;
                 break;
             }
@@ -371,7 +391,7 @@ VisitResult StepNode::visit()
     auto &tb = strong_uct->get_toolbox();
     assert(!this->exhausted);
 #ifdef LOG_UCT
-    auto vc = VisitContext("visiting StepNode for label " + tb.resolve_label(this->label));
+    VisitContext vc("visiting StepNode for label " + tb.resolve_label(this->label));
 #else
     (void) tb;
 #endif
@@ -384,11 +404,20 @@ VisitResult StepNode::visit()
         return this->create_children();
     }
 
+#ifdef LOG_UCT
+    auto log = visit_log();
+    log << "Currently open variables:";
+    for (const auto &var : this->open_vars) {
+        log << " " << tb.resolve_symbol(tb.get_var_lab_to_sym(var.first));
+    }
+    log << std::endl;
+#endif
+
     // Then we visit a random child
 #ifdef LOG_UCT
     //visit_log() << "Later visit, let us visit a random child" << std::endl;
 #endif
-    size_t i = random_choose(this->active_children.begin(), this->active_children.end(), rand) - this->active_children.begin();
+    size_t i = static_cast< size_t >(random_choose(this->active_children.begin(), this->active_children.end(), rand) - this->active_children.begin());
     return this->visit_child(i);
 }
 
@@ -419,7 +448,7 @@ void StepNode::replay_proof(CheckpointedProofEngine &engine) const
     // Push the substitution map (floating hypotheses)
     const Assertion &ass = tb.get_assertion(this->label);
     auto full_subst_map = update2(this->const_subst_map, this->unconst_subst_map, true);
-    for (const auto hyp_lab : ass.get_float_hyps()) {
+    for (const auto &hyp_lab : ass.get_float_hyps()) {
         tb.build_type_prover(full_subst_map.at(hyp_lab))(engine);
     }
 
@@ -432,7 +461,13 @@ void StepNode::replay_proof(CheckpointedProofEngine &engine) const
     engine.process_label(this->label);
 }
 
-StepNode::StepNode(std::weak_ptr<UCTProver> uct, std::weak_ptr<SentenceNode> parent, LabTok label, const SubstMap2<SymTok, LabTok> &const_subst_map) : uct(uct), parent(parent), label(label), const_subst_map(const_subst_map) {
+const std::map<LabTok, SafeWeakPtr<StepNode> > &StepNode::get_open_vars() const
+{
+    return this->open_vars;
+}
+
+StepNode::StepNode(std::weak_ptr<UCTProver> uct, std::weak_ptr<SentenceNode> parent, LabTok label, const SubstMap2<SymTok, LabTok> &const_subst_map, const std::map<LabTok, SafeWeakPtr<StepNode> > &open_vars)
+    : uct(uct), parent(parent), label(label), const_subst_map(const_subst_map), open_vars(open_vars) {
 #ifdef LOG_UCT
     //visit_log() << this << ": Constructing StepNode" << std::endl;
 #endif
@@ -477,7 +512,16 @@ VisitResult StepNode::create_children()
     auto strong_uct = this->uct.lock();
     auto &tb = strong_uct->get_toolbox();
 
-    this->unconst_subst_map = tb.build_refreshing_full_subst_map2(tb.get_assertion_unconst_vars()[this->label.val()]);
+    std::set< LabTok > new_vars;
+    std::tie(this->unconst_subst_map, new_vars) = tb.build_refreshing_full_subst_map2(tb.get_assertion_unconst_vars()[this->label.val()]);
+    for (const auto &new_var : new_vars) {
+        bool res;
+        std::tie(std::ignore, res) = this->open_vars.insert(std::make_pair(new_var, this->weak_from_this()));
+        assert(res);
+#ifdef NDEBUG
+        (void) res;
+#endif
+    }
     auto full_subst_map = update2(this->const_subst_map, this->unconst_subst_map, true);
     const Assertion &ass = tb.get_assertion(this->label);
     assert(ass.is_valid());
@@ -519,7 +563,7 @@ VisitResult StepNode::visit_child(size_t i)
 #ifdef LOG_UCT
         visit_log() << "We found a proof for a child!" << std::endl;
 #endif
-        this->active_children.erase(this->active_children.begin() + i);
+        this->active_children.erase(this->active_children.begin() + static_cast< ssize_t >(i));
         if (this->active_children.empty()) {
 #ifdef LOG_UCT
             visit_log() << "All children finally proved!" << std::endl;
@@ -531,7 +575,7 @@ VisitResult StepNode::visit_child(size_t i)
         this->exhausted = true;
         return DEAD;
     }
-    this->worst_child = min_element(this->active_children.begin(), this->active_children.end(), [](auto &a, auto &b) { return a->get_value() < b->get_value(); }) - this->active_children.begin();
+    this->worst_child = static_cast< size_t >(min_element(this->active_children.begin(), this->active_children.end(), [](auto &a, auto &b) { return a->get_value() < b->get_value(); }) - this->active_children.begin());
     return CONTINUE;
 }
 
@@ -581,7 +625,7 @@ int uct_main(int argc, char *argv[]) {
 
     size_t pb_idx = 0;
     if (argc == 2) {
-        pb_idx = atoi(argv[1]);
+        pb_idx = static_cast< size_t >(atoi(argv[1]));
     }
 
     auto problems = parse_tests(tb);
@@ -595,7 +639,10 @@ int uct_main(int argc, char *argv[]) {
     std::cout << std::endl;
 
     auto prover = UCTProver::create(tb, problem.first, problem.second);
-    for (int i = 0; ; i++) {
+    for (int i = 0; i < 50000; i++) {
+        if (i % 2500 == 0) {
+            std::cout << i << " visits done" << std::endl;
+        }
         VisitResult res = prover->visit();
 #ifdef LOG_UCT
         visit_log() << std::endl;
@@ -618,7 +665,7 @@ int uct_main(int argc, char *argv[]) {
                 tb.dump_proof_exception(pe, std::cout);
             }
             const auto &labels = engine.get_proof_labels();
-            for (const auto label : labels) {
+            for (const auto &label : labels) {
                 if (label != LabTok{}) {
                     std::cout << " " << tb.resolve_label(label);
                 } else {
@@ -633,13 +680,7 @@ int uct_main(int argc, char *argv[]) {
 #endif
             break;
         }
-        //while (cin.get() != '\n') {}
-        if (i % 2500 == 0) {
-            std::cout << i << " visits done" << std::endl;
-        }
-        if (i == 50000) {
-            break;
-        }
+        while (std::cin.get() != '\n') {}
     }
 
     return 0;

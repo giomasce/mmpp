@@ -95,9 +95,10 @@ public:
     uint32_t get_visit_num() const;
     std::weak_ptr< SentenceNode > get_parent() const;
     void replay_proof(CheckpointedProofEngine &engine) const;
+    const std::map< LabTok, SafeWeakPtr< StepNode > > &get_open_vars() const;
 
 protected:
-    StepNode(std::weak_ptr< UCTProver > uct, std::weak_ptr< SentenceNode > parent, LabTok label, const SubstMap2< SymTok, LabTok > &const_subst_map);
+    StepNode(std::weak_ptr< UCTProver > uct, std::weak_ptr< SentenceNode > parent, LabTok label, const SubstMap2< SymTok, LabTok > &const_subst_map, const std::map< LabTok, SafeWeakPtr< StepNode > > &open_vars);
     ~StepNode();
 
 private:
@@ -117,4 +118,5 @@ private:
     bool exhausted = false;
     /*float value = 0.0;
     uint32_t visit_num = 0;*/
+    std::map< LabTok, SafeWeakPtr< StepNode > > open_vars;
 };
