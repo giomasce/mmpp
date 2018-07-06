@@ -1,5 +1,10 @@
 #pragma once
 
+#include <utility>
+#include <unordered_map>
+#include <set>
+#include <vector>
+
 // Implementation from https://en.wikipedia.org/wiki/Disjoint-set_data_structure
 template< typename LabType >
 class DisjointSet {
