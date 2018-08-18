@@ -13,7 +13,8 @@
 #include <iostream>
 #include <type_traits>
 
-#define LOG_UCT
+// UCT logging is not thread-safe; disable it when using webmmpp
+//#define LOG_UCT
 
 // This uses some trickery in https://stackoverflow.com/q/51170934/807307
 struct OstreamWrapper {
