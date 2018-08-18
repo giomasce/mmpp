@@ -11,6 +11,7 @@
 #include "mm/toolbox.h"
 #include "parsing/unif.h"
 #include "provers/wff.h"
+#include "utils/utils.h"
 
 //#pragma GCC push_options
 //#pragma GCC optimize ("O0")
