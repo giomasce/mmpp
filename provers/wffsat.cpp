@@ -7,6 +7,8 @@
 static const RegisteredProver idi_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ph )");
 static const RegisteredProver concl_rp = LibraryToolbox::register_prover({"|- ( ps -> ch )"}, "|- ( ph -> ( ps -> ch ) )");
 struct CNFCallbackImpl : public CNFCallbackTest {
+    virtual ~CNFCallbackImpl() {}
+
     void prove_clause(size_t idx, const Clause &context) {
         //CNFCallbackTest::prove_clause(idx, context);
         pwff concl = this->clause_to_pwff(this->orig_clauses.at(idx));

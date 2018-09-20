@@ -144,7 +144,8 @@ SOURCES += \
     provers/subst.cpp \
     apps/verify.cpp \
     mm/setmm.cpp \
-    test/test_wff.cpp
+    test/test_wff.cpp \
+    mm/mmutils.cpp
 
 HEADERS += \
     pch.h \
@@ -198,7 +199,8 @@ HEADERS += \
     provers/subst.h \
     mm/setmm.h \
     test/test.h \
-    libs/backward.h
+    libs/backward.h \
+    mm/mmutils.h
 
 DISTFILES += \
     README.md \

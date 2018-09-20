@@ -10,6 +10,7 @@
 #include "parsing/lr.h"
 #include "parsing/earley.h"
 #include "mm/setmm.h"
+#include "mm/mmutils.h"
 #include "parsing/unif.h"
 
 const std::string ID_LETTERS = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890_$'.";
@@ -402,39 +403,44 @@ struct ReconstructFOF {
     const std::set<std::pair<LabTok, LabTok>> &dists;
     std::map<LabTok, LabTok> open_vars;
     std::map<LabTok, std::set<LabTok>> params;
+    std::vector<std::pair<LabTok, bool>> quants;
 
-    void find_params(const ParsingTree<SymTok, LabTok> &pt) {
+    ParsingTree<SymTok, LabTok> find_params(const ParsingTree<SymTok, LabTok> &pt, bool neg_depth = false) {
         assert(pt.label != LabTok{});
         SubstMap< SymTok, LabTok > subst;
+        bool is_quant = false;
+        bool forall = false;
         if (recognize(pt, "wff A. x ph", this->tb, subst)) {
-            LabTok new_var = subst.at(tb.get_var_sym_to_lab(tb.get_symbol("x"))).label;
-            assert(this->open_vars.find(new_var) == this->open_vars.end());
-            this->open_vars[new_var] = {};
-            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))));
-            this->open_vars.erase(new_var);
+            is_quant = true;
+            forall = true;
         } else if (recognize(pt, "wff E. x ph", this->tb, subst)) {
-            LabTok new_var = subst.at(tb.get_var_sym_to_lab(tb.get_symbol("x"))).label;
-            assert(this->open_vars.find(new_var) == this->open_vars.end());
-            this->open_vars[new_var] = {};
-            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))));
-            this->open_vars.erase(new_var);
+            is_quant = true;
+            forall = false;
+        }
+        if (is_quant) {
+            LabTok var = subst.at(tb.get_var_sym_to_lab(tb.get_symbol("x"))).label;
+            assert(this->open_vars.find(var) == this->open_vars.end());
+            LabTok new_var = tb.new_temp_var(tb.get_symbol("set")).first;
+            this->open_vars[var] = new_var;
+            this->quants.push_back(std::make_pair(new_var, forall ^ neg_depth));
+            auto ret = this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))), neg_depth);
+            this->open_vars.erase(var);
+            return ret;
         } else if (recognize(pt, "wff -. ph", this->tb, subst)) {
-            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))));
+            auto ph_pt = this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))), !neg_depth);
+            return create_pt(this->tb, "wff -. ph", {{"ph", ph_pt}});
         } else if (recognize(pt, "wff ( ph -> ps )", this->tb, subst)) {
-            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))));
-            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))));
+            auto ph_pt = this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))), !neg_depth);
+            auto ps_pt = this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))), neg_depth);
+            return create_pt(this->tb, "wff ( ph -> ps )", {{"ph", ph_pt}, {"ps", ps_pt}});
         } else if (recognize(pt, "wff ( ph /\\ ps )", this->tb, subst)) {
-            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))));
-            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))));
+            auto ph_pt = this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))), neg_depth);
+            auto ps_pt = this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))), neg_depth);
+            return create_pt(this->tb, "wff ( ph /\\ ps )", {{"ph", ph_pt}, {"ps", ps_pt}});
         } else if (recognize(pt, "wff ( ph \\/ ps )", this->tb, subst)) {
-            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))));
-            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))));
-        } else if (recognize(pt, "wff ( ph <-> ps )", this->tb, subst)) {
-            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))));
-            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))));
-        } else if (recognize(pt, "wff A = B", this->tb, subst)) {
-            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("A"))));
-            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("B"))));
+            auto ph_pt = this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))), neg_depth);
+            auto ps_pt = this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))), neg_depth);
+            return create_pt(this->tb, "wff ( ph \\/ ps )", {{"ph", ph_pt}, {"ps", ps_pt}});
         } else if (recognize(pt, "wff ph", this->tb, subst)) {
             auto var = subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))).label;
             std::set<LabTok> vars;
@@ -447,6 +453,9 @@ struct ReconstructFOF {
             if (!res.second) {
                 assert(res.first->second == vars);
             }
+            return pt;
+        } else {
+            assert(!"Operator unknown");
         }
     }
 };
@@ -464,8 +473,9 @@ int quant_cnf_main(int argc, char *argv[]) {
 
     std::set<std::pair<LabTok, LabTok>> dists;
     dists.insert(std::minmax(tb.get_var_sym_to_lab(tb.get_symbol("x")), tb.get_var_sym_to_lab(tb.get_symbol("ps"))));
-    ReconstructFOF rf = { tb, dists, {}, {} };
-    rf.find_params(pt);
+    ReconstructFOF rf = { tb, dists, {}, {}, {} };
+    std::cout << tb.print_sentence(pt) << std::endl;
+    std::cout << tb.print_sentence(rf.find_params(pt)) << std::endl;
 
     for (const auto &var : rf.params) {
         std::cout << tb.print_sentence(std::vector<SymTok>{tb.get_var_lab_to_sym(var.first)}) << ":";
