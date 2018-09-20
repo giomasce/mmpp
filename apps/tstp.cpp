@@ -31,6 +31,7 @@ enum class TSTPTokenType {
     FOF_AND,
     FOF_OR,
     EXPR_ARGLIST,
+    EXPR_DICTLIST,
     EXPR,
     LINE,
 };
@@ -120,6 +121,9 @@ enum TSTPRule {
     RULE_FUNC_APP_IS_EXPR,
     RULE_EMPTY_LIST_IS_EXPR,
     RULE_LIST_IS_EXPR,
+    RULE_COUPLE_IS_DICTLIST,
+    RULE_DICTLIST_AND_COUPLE_IS_DICTLIST,
+    RULE_DICT_IS_EXPR,
 
     RULE_CNF_IS_LINE,
     RULE_CNF_WITH_DERIV_IS_LINE,
@@ -191,12 +195,15 @@ std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, std::vector<TSTPTo
     make_rule(ders, TSTPTokenType::EXPR, RULE_FUNC_APP_IS_EXPR, {sym_tok(TSTPTokenType::ID), char_tok('('), sym_tok(TSTPTokenType::EXPR_ARGLIST), char_tok(')')});
     make_rule(ders, TSTPTokenType::EXPR, RULE_EMPTY_LIST_IS_EXPR, {char_tok('['), char_tok(']')});
     make_rule(ders, TSTPTokenType::EXPR, RULE_LIST_IS_EXPR, {char_tok('['), sym_tok(TSTPTokenType::EXPR_ARGLIST), char_tok(']')});
+    make_rule(ders, TSTPTokenType::EXPR_DICTLIST, RULE_COUPLE_IS_DICTLIST, {sym_tok(TSTPTokenType::ID), char_tok(':'), sym_tok(TSTPTokenType::EXPR)});
+    make_rule(ders, TSTPTokenType::EXPR_DICTLIST, RULE_DICTLIST_AND_COUPLE_IS_DICTLIST, {sym_tok(TSTPTokenType::EXPR_DICTLIST), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(':'), sym_tok(TSTPTokenType::EXPR)});
+    make_rule(ders, TSTPTokenType::EXPR, RULE_DICT_IS_EXPR, {char_tok('['), sym_tok(TSTPTokenType::EXPR_DICTLIST), char_tok(']')});
 
     // Rules for whole lines
-    make_rule(ders, TSTPTokenType::LINE, RULE_CNF_IS_LINE, {char_tok('c'), char_tok('n'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::CLAUSE), char_tok(')'), char_tok(',')});
+    make_rule(ders, TSTPTokenType::LINE, RULE_CNF_IS_LINE, {char_tok('c'), char_tok('n'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::CLAUSE), char_tok(')'), char_tok('.')});
     make_rule(ders, TSTPTokenType::LINE, RULE_CNF_WITH_DERIV_IS_LINE, {char_tok('c'), char_tok('n'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::CLAUSE), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(')'), char_tok('.')});
     make_rule(ders, TSTPTokenType::LINE, RULE_CNF_WITH_DERIV_AND_ANNOT_IS_LINE, {char_tok('c'), char_tok('n'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::CLAUSE), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(')'), char_tok('.')});
-    make_rule(ders, TSTPTokenType::LINE, RULE_FOF_IS_LINE, {char_tok('f'), char_tok('o'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::UNIT_FOF), char_tok(')'), char_tok(',')});
+    make_rule(ders, TSTPTokenType::LINE, RULE_FOF_IS_LINE, {char_tok('f'), char_tok('o'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::UNIT_FOF), char_tok(')'), char_tok('.')});
     make_rule(ders, TSTPTokenType::LINE, RULE_FOF_WITH_DERIV_IS_LINE, {char_tok('f'), char_tok('o'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::UNIT_FOF), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(')'), char_tok('.')});
     make_rule(ders, TSTPTokenType::LINE, RULE_FOF_WITH_DERIV_AND_ANNOT_IS_LINE, {char_tok('f'), char_tok('o'), char_tok('f'), char_tok('('), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::ID), char_tok(','), sym_tok(TSTPTokenType::UNIT_FOF), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(','), sym_tok(TSTPTokenType::EXPR), char_tok(')'), char_tok('.')});
 
@@ -337,7 +344,7 @@ void convert_to_tstp(const ParsingTree< SymTok, LabTok > &pt, std::ostream &st, 
         st << "]:";
         convert_to_tstp(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))), st, tb, set_vars);
     } else if (recognize(pt, "class x", tb, subst)) {
-        st <<  boost::to_upper_copy(tb.resolve_symbol(tb.get_var_lab_to_sym(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("x"))).label)));
+        st << boost::to_upper_copy(tb.resolve_symbol(tb.get_var_lab_to_sym(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("x"))).label)));
     } else if (recognize(pt, "set x", tb, subst)) {
         st << boost::to_upper_copy(tb.resolve_symbol(tb.get_var_lab_to_sym(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("x"))).label)));
     } else if (recognize(pt, "wff ph", tb, subst)) {
@@ -362,7 +369,6 @@ void convert_to_tstp(const ParsingTree< SymTok, LabTok > &pt, std::ostream &st, 
 
 int convert_to_tstp_main(int argc, char *argv[]) {
     (void) argc;
-    (void) argv;
 
     auto &data = get_set_mm();
     //auto &lib = data.lib;
@@ -370,8 +376,10 @@ int convert_to_tstp_main(int argc, char *argv[]) {
 
     //auto pt = tb.parse_sentence(tb.read_sentence("|- A. x ( -. -. a = a -> ( x = y /\\ E. y -. y = z ) )"));
     //auto pt = tb.parse_sentence(tb.read_sentence("|- A. x ( a = a -> a = a )"));
-    auto pt = tb.parse_sentence(tb.read_sentence("|- ( ( ( y = z -> ( ( x = y -> ph ) /\\ E. x ( x = y /\\ ph ) ) ) /\\ E. y ( y = z /\\ ( ( x = y -> ph ) /\\ E. x ( x = y /\\ ph ) ) ) ) <-> ( ( y = z -> ( ( x = z -> ph ) /\\ E. x ( x = z /\\ ph ) ) ) /\\ E. y ( y = z /\\ ( ( x = z -> ph ) /\\ E. x ( x = z /\\ ph ) ) ) ) )"));
+    //auto pt = tb.parse_sentence(tb.read_sentence("|- ( ( ( y = z -> ( ( x = y -> ph ) /\\ E. x ( x = y /\\ ph ) ) ) /\\ E. y ( y = z /\\ ( ( x = y -> ph ) /\\ E. x ( x = y /\\ ph ) ) ) ) <-> ( ( y = z -> ( ( x = z -> ph ) /\\ E. x ( x = z /\\ ph ) ) ) /\\ E. y ( y = z /\\ ( ( x = z -> ph ) /\\ E. x ( x = z /\\ ph ) ) ) ) )"));
     //auto pt = tb.parse_sentence(tb.read_sentence("|- ph"));
+    //auto pt = tb.parse_sentence(tb.read_sentence(("|- ( A. x ( ph -> ps ) -> ( E. x ph <-> E. x ( ph /\\  ps ) ) )")));
+    auto pt = tb.parse_sentence(tb.read_sentence(argv[1]));
     assert(pt.label != LabTok{});
     pt.validate(tb.get_validation_rule());
 
@@ -387,4 +395,88 @@ int convert_to_tstp_main(int argc, char *argv[]) {
 }
 static_block {
     register_main_function("convert_to_tstp", convert_to_tstp_main);
+}
+
+struct ReconstructFOF {
+    const LibraryToolbox &tb;
+    const std::set<std::pair<LabTok, LabTok>> &dists;
+    std::map<LabTok, LabTok> open_vars;
+    std::map<LabTok, std::set<LabTok>> params;
+
+    void find_params(const ParsingTree<SymTok, LabTok> &pt) {
+        assert(pt.label != LabTok{});
+        SubstMap< SymTok, LabTok > subst;
+        if (recognize(pt, "wff A. x ph", this->tb, subst)) {
+            LabTok new_var = subst.at(tb.get_var_sym_to_lab(tb.get_symbol("x"))).label;
+            assert(this->open_vars.find(new_var) == this->open_vars.end());
+            this->open_vars[new_var] = {};
+            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))));
+            this->open_vars.erase(new_var);
+        } else if (recognize(pt, "wff E. x ph", this->tb, subst)) {
+            LabTok new_var = subst.at(tb.get_var_sym_to_lab(tb.get_symbol("x"))).label;
+            assert(this->open_vars.find(new_var) == this->open_vars.end());
+            this->open_vars[new_var] = {};
+            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))));
+            this->open_vars.erase(new_var);
+        } else if (recognize(pt, "wff -. ph", this->tb, subst)) {
+            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))));
+        } else if (recognize(pt, "wff ( ph -> ps )", this->tb, subst)) {
+            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))));
+            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))));
+        } else if (recognize(pt, "wff ( ph /\\ ps )", this->tb, subst)) {
+            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))));
+            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))));
+        } else if (recognize(pt, "wff ( ph \\/ ps )", this->tb, subst)) {
+            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))));
+            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))));
+        } else if (recognize(pt, "wff ( ph <-> ps )", this->tb, subst)) {
+            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))));
+            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ps"))));
+        } else if (recognize(pt, "wff A = B", this->tb, subst)) {
+            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("A"))));
+            this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("B"))));
+        } else if (recognize(pt, "wff ph", this->tb, subst)) {
+            auto var = subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))).label;
+            std::set<LabTok> vars;
+            for (const auto &open_var : this->open_vars) {
+                if (this->dists.find(std::minmax(var, open_var.first)) == this->dists.end()) {
+                    vars.insert(open_var.first);
+                }
+            }
+            auto res = this->params.insert(std::make_pair(var, vars));
+            if (!res.second) {
+                assert(res.first->second == vars);
+            }
+        }
+    }
+};
+
+int quant_cnf_main(int argc, char *argv[]) {
+    (void) argc;
+
+    auto &data = get_set_mm();
+    //auto &lib = data.lib;
+    auto &tb = data.tb;
+
+    auto pt = tb.parse_sentence(tb.read_sentence(argv[1]));
+    assert(pt.label != LabTok{});
+    pt.validate(tb.get_validation_rule());
+
+    std::set<std::pair<LabTok, LabTok>> dists;
+    dists.insert(std::minmax(tb.get_var_sym_to_lab(tb.get_symbol("x")), tb.get_var_sym_to_lab(tb.get_symbol("ps"))));
+    ReconstructFOF rf = { tb, dists, {}, {} };
+    rf.find_params(pt);
+
+    for (const auto &var : rf.params) {
+        std::cout << tb.print_sentence(std::vector<SymTok>{tb.get_var_lab_to_sym(var.first)}) << ":";
+        for (const auto &var2 : var.second) {
+            std::cout << " " << tb.print_sentence(std::vector<SymTok>{tb.get_var_lab_to_sym(var2)});
+        }
+        std::cout << std::endl;
+    }
+
+    return 0;
+}
+static_block {
+    register_main_function("quant_cnf", quant_cnf_main);
 }
