@@ -8,7 +8,7 @@
 #include "toolbox.h"
 
 template<>
-struct ProofSentenceTraits< ParsingTree2< SymTok, LabTok > > {
+struct ProofSentenceTraits< ParsingTree2< SymTok, LabTok > > final {
     typedef ParsingTree2< SymTok, LabTok > SentType;
     typedef SubstMap2< SymTok, LabTok > SubstMapType;
     typedef LabTok VarType;

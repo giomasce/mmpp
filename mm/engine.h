@@ -114,6 +114,8 @@ public:
     {
     }
 
+    virtual ~ProofEngineBase() {}
+
     void set_gen_proof_tree(bool gen_proof_tree)
     {
         this->gen_proof_tree = gen_proof_tree;

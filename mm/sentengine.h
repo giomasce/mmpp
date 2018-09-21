@@ -8,7 +8,7 @@
 #include "mmtypes.h"
 
 template<>
-struct ProofSentenceTraits< Sentence > {
+struct ProofSentenceTraits< Sentence > final {
     typedef Sentence SentType;
     typedef VectorMap< SymTok, Sentence > SubstMapType;
     //typedef std::unordered_map< SymTok, Sentence > SubstMapType;
