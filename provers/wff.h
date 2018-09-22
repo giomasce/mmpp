@@ -28,8 +28,6 @@ template<typename Tag>
 struct ptvar_comp {
     bool operator()(const ptvar<Tag> &x, const ptvar<Tag> &y) const { return *x < *y; }
 };
-//extern template struct ptvar_comp<PropTag>;
-//extern template struct ptvar_comp<PredTag>;
 template<typename Tag>
 using ptvar_set = std::set< ptvar<Tag>, ptvar_comp<Tag> >;
 template< typename T, typename Tag >
@@ -1570,6 +1568,33 @@ ptwff<Tag> wff_from_pt(const ParsingTree< SymTok, LabTok > &pt, const LibraryToo
         return TVar<Tag>::create(pt_to_pt2(pt), tb);
     }
 }
+
+extern template class TWff<PropTag>;
+extern template class TWff<PredTag>;
+extern template class TVar<PropTag>;
+extern template class TVar<PredTag>;
+extern template class TTrue<PropTag>;
+extern template class TTrue<PredTag>;
+extern template class TFalse<PropTag>;
+extern template class TFalse<PredTag>;
+extern template class TNot<PropTag>;
+extern template class TNot<PredTag>;
+extern template class TImp<PropTag>;
+extern template class TImp<PredTag>;
+extern template class TBiimp<PropTag>;
+extern template class TBiimp<PredTag>;
+extern template class TAnd<PropTag>;
+extern template class TAnd<PredTag>;
+extern template class TOr<PropTag>;
+extern template class TOr<PredTag>;
+extern template class TNand<PropTag>;
+extern template class TNand<PredTag>;
+extern template class TXor<PropTag>;
+extern template class TXor<PredTag>;
+extern template class TAnd3<PropTag>;
+extern template class TAnd3<PredTag>;
+extern template class TOr3<PropTag>;
+extern template class TOr3<PredTag>;
 
 using Wff = TWff<PropTag>;
 using pwff = ptwff<PropTag>;
