@@ -12,6 +12,7 @@
 #include <memory>
 #include <iostream>
 #include <type_traits>
+#include <iterator>
 
 // UCT logging is not thread-safe; disable it when using webmmpp
 //#define LOG_UCT
@@ -564,7 +565,7 @@ VisitResult StepNode::visit_child(size_t i)
 #ifdef LOG_UCT
         visit_log() << "We found a proof for a child!" << std::endl;
 #endif
-        this->active_children.erase(this->active_children.begin() + static_cast< ssize_t >(i));
+        this->active_children.erase(this->active_children.begin() + static_cast< std::iterator_traits<decltype(this->active_children)::iterator>::difference_type >(i));
         if (this->active_children.empty()) {
 #ifdef LOG_UCT
             visit_log() << "All children finally proved!" << std::endl;
