@@ -180,9 +180,9 @@ void WffStrategy::operator()(Yielder &yield)
         this->maybe_report_result(this->shared_from_this(), result);
     });
 
-    auto wff = wff_from_pt(this->data->pt_thesis, this->toolbox);
+    auto wff = wff_from_pt<PropTag>(this->data->pt_thesis, this->toolbox);
     for (const auto &pt_hyp : this->data->pt_hypotheses) {
-        wff = Imp::create(wff_from_pt(pt_hyp, this->toolbox), wff);
+        wff = Imp::create(wff_from_pt<PropTag>(pt_hyp, this->toolbox), wff);
         yield();
     }
 

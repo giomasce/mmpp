@@ -215,7 +215,7 @@ BOOST_DATA_TEST_CASE(test_wff_from_pt, boost::unit_test::data::make(wff_from_pt_
 
     auto sent = tb.read_sentence(sample);
     auto pt = tb.parse_sentence(sent);
-    auto parsed = wff_from_pt(pt, tb);
+    auto parsed = wff_from_pt<PropTag>(pt, tb);
     BOOST_TEST(pt2_to_pt(parsed->to_parsing_tree(tb)) == pt);
 }
 

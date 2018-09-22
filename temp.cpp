@@ -105,7 +105,7 @@ int temp_main(int argc, char *argv[]) {
     ParsingTree< SymTok, LabTok > hyp1_pt = tb.parse_sentence(hyp1.begin()+1, hyp1.end(), tb.get_turnstile_alias());
     ParsingTree< SymTok, LabTok > hyp2_pt = tb.parse_sentence(hyp2.begin()+1, hyp2.end(), tb.get_turnstile_alias());
 
-    pwff wff = Imp::create(wff_from_pt(hyp2_pt, tb), Imp::create(wff_from_pt(hyp1_pt, tb), wff_from_pt(thesis_pt, tb)));
+    pwff wff = Imp::create(wff_from_pt<PropTag>(hyp2_pt, tb), Imp::create(wff_from_pt<PropTag>(hyp1_pt, tb), wff_from_pt<PropTag>(thesis_pt, tb)));
 
     std::cout << wff->to_string() << std::endl;
 
