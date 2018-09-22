@@ -11,15 +11,18 @@
 #include "parsing/parser.h"
 #include "provers/sat.h"
 
+struct PropWffType {};
+struct PredWffType {};
+
 class Wff;
-typedef std::shared_ptr< const Wff > pwff;
+using pwff = std::shared_ptr< const Wff >;
 
 class Var;
-typedef std::shared_ptr< const Var > pvar;
+using pvar = std::shared_ptr< const Var >;
 struct pvar_comp {
     bool operator()(const pvar &x, const pvar &y) const;
 };
-typedef std::set< pvar, pvar_comp > pvar_set;
+using pvar_set = std::set< pvar, pvar_comp >;
 template< typename T >
 using pvar_map = std::map< pvar, T, pvar_comp >;
 
@@ -37,8 +40,8 @@ struct pvar_pair_comp {
         return pvar_comp()(x.second, y.second);
     }
 };
-//typedef std::map< std::set< std::pair< bool, pvar >, pvar_pair_comp< bool > >, Prover< CheckpointedProofEngine > > CNForm;
-typedef std::map< std::vector< std::pair< bool, pvar > >, Prover< CheckpointedProofEngine > > CNForm;
+//using CNForm = std::map< std::set< std::pair< bool, pvar >, pvar_pair_comp< bool > >, Prover< CheckpointedProofEngine > >;
+using CNForm = std::map< std::vector< std::pair< bool, pvar > >, Prover< CheckpointedProofEngine > >;
 
 pvar_set collect_tseitin_vars(const CNForm &cnf);
 pvar_map< uint32_t > build_tseitin_map(const pvar_set &vars);
