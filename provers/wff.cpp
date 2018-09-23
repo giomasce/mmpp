@@ -193,17 +193,17 @@ template<typename Tag>
 const RegisteredProver ConvertibleTWff<Tag>::falsity_rp = LibraryToolbox::register_prover({"|- ( ps <-> ph )", "|- -. ph"}, "|- -. ps");
 
 template<typename Tag>
-std::string TTrue<Tag>::to_string() const {
+std::string TTrueBase<Tag>::to_string() const {
     return "T.";
 }
 
 template<typename Tag>
-ptwff<Tag> TTrue<Tag>::imp_not_form() const {
-    return TTrue::create();
+ptwff<Tag> TTrueBase<Tag>::imp_not_form() const {
+    return TTrue<Tag>::create();
 }
 
 template<typename Tag>
-ptwff<Tag> TTrue<Tag>::subst(ptvar<Tag> var, bool positive) const
+ptwff<Tag> TTrueBase<Tag>::subst(ptvar<Tag> var, bool positive) const
 {
     (void) var;
     (void) positive;
@@ -211,48 +211,48 @@ ptwff<Tag> TTrue<Tag>::subst(ptvar<Tag> var, bool positive) const
 }
 
 template<typename Tag>
-void TTrue<Tag>::get_variables(ptvar_set<Tag> &vars) const
+void TTrueBase<Tag>::get_variables(ptvar_set<Tag> &vars) const
 {
     (void) vars;
 }
 
 template<typename Tag>
-Prover<CheckpointedProofEngine> TTrue<Tag>::get_truth_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> TTrueBase<Tag>::get_truth_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< CheckpointedProofEngine >(TTrue::truth_rp, {}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(TTrueBase::truth_rp, {}, {});
 }
 
 template<typename Tag>
-bool TTrue<Tag>::is_true() const
+bool TTrueBase<Tag>::is_true() const
 {
     return true;
 }
 
 template<typename Tag>
-Prover<CheckpointedProofEngine> TTrue<Tag>::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> TTrueBase<Tag>::get_type_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< CheckpointedProofEngine >(TTrue::type_rp, {}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(TTrueBase::type_rp, {}, {});
 }
 
 template<typename Tag>
-Prover<CheckpointedProofEngine> TTrue<Tag>::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> TTrueBase<Tag>::get_imp_not_prover(const LibraryToolbox &tb) const
 {
-    return tb.build_registered_prover< CheckpointedProofEngine >(TTrue::imp_not_rp, {}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(TTrueBase::imp_not_rp, {}, {});
 }
 
 template<typename Tag>
-Prover<CheckpointedProofEngine> TTrue<Tag>::get_subst_prover(ptvar<Tag> var, bool positive, const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> TTrueBase<Tag>::get_subst_prover(ptvar<Tag> var, bool positive, const LibraryToolbox &tb) const
 {
     ptwff<Tag> subst = var;
     if (!positive) {
         subst = TNot<Tag>::create(subst);
     }
-    return tb.build_registered_prover< CheckpointedProofEngine >(TTrue::subst_rp, {{"ph", subst->get_type_prover(tb)}}, {});
+    return tb.build_registered_prover< CheckpointedProofEngine >(TTrueBase::subst_rp, {{"ph", subst->get_type_prover(tb)}}, {});
 }
 
 template<typename Tag>
-bool TTrue<Tag>::operator==(const TWff<Tag> &x) const {
-    auto px = dynamic_cast< const TTrue* >(&x);
+bool TTrueBase<Tag>::operator==(const TWff<Tag> &x) const {
+    auto px = dynamic_cast< const TTrueBase* >(&x);
     if (px == nullptr) {
         return false;
     } else {
@@ -261,21 +261,21 @@ bool TTrue<Tag>::operator==(const TWff<Tag> &x) const {
 }
 
 template<typename Tag>
-void TTrue<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
+void TTrueBase<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
 {
-    cnf[{{true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TTrue::tseitin1_rp, {{"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TTrueBase::tseitin1_rp, {{"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
 template<typename Tag>
-const RegisteredProver TTrue<Tag>::truth_rp = LibraryToolbox::register_prover({}, "|- T.");
+const RegisteredProver TTrueBase<Tag>::truth_rp = LibraryToolbox::register_prover({}, "|- T.");
 template<typename Tag>
-const RegisteredProver TTrue<Tag>::type_rp = LibraryToolbox::register_prover({}, "wff T.");
+const RegisteredProver TTrueBase<Tag>::type_rp = LibraryToolbox::register_prover({}, "wff T.");
 template<typename Tag>
-const RegisteredProver TTrue<Tag>::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( T. <-> T. )");
+const RegisteredProver TTrueBase<Tag>::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( T. <-> T. )");
 template<typename Tag>
-const RegisteredProver TTrue<Tag>::subst_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( T. <-> T. ) )");
+const RegisteredProver TTrueBase<Tag>::subst_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( T. <-> T. ) )");
 template<typename Tag>
-const RegisteredProver TTrue<Tag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> T. )");
+const RegisteredProver TTrueBase<Tag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> T. )");
 
 template<typename Tag>
 std::string TFalse<Tag>::to_string() const {
@@ -284,7 +284,7 @@ std::string TFalse<Tag>::to_string() const {
 
 template<typename Tag>
 ptwff<Tag> TFalse<Tag>::imp_not_form() const {
-    return TFalse::create();
+    return this->shared_from_this();
 }
 
 template<typename Tag>
@@ -1333,7 +1333,7 @@ template<typename Tag>
 ptwff<Tag> wff_from_pt(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb)
 {
     assert(tb.resolve_symbol(pt.type) == "wff");
-    if (pt.label == tb.get_registered_prover_label(TTrue<Tag>::type_rp)) {
+    if (pt.label == tb.get_registered_prover_label(TTrueBase<Tag>::type_rp)) {
         assert(pt.children.size() == 0);
         return TTrue<Tag>::create();
     } else if (pt.label == tb.get_registered_prover_label(TFalse<Tag>::type_rp)) {

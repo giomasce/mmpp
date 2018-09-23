@@ -168,7 +168,7 @@ protected:
 };
 
 template<typename Tag>
-class TTrue : public TWff0<Tag>, public enable_create<TTrue<Tag>> {
+class TTrueBase : public TWff0<Tag>, public virtual_enable_shared_from_this<TTrueBase<Tag>> {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
@@ -189,6 +189,17 @@ private:
     static const RegisteredProver imp_not_rp;
     static const RegisteredProver subst_rp;
     static const RegisteredProver tseitin1_rp;
+};
+
+template<typename Tag>
+class TTrue;
+
+template<>
+class TTrue<PredTag> : public TTrueBase<PredTag>, public enable_create<TTrue<PredTag>> {
+};
+
+template<>
+class TTrue<PropTag> : public TTrueBase<PropTag>, public enable_create< TTrue<PropTag> > {
 };
 
 template<typename Tag>
