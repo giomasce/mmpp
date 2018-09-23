@@ -328,7 +328,6 @@ private:
   static const RegisteredProver type_rp;
   static const RegisteredProver imp_not_rp;
   static const RegisteredProver subst_rp;
-  static const RegisteredProver mp_rp;
   static const RegisteredProver tseitin1_rp;
   static const RegisteredProver tseitin2_rp;
   static const RegisteredProver tseitin3_rp;

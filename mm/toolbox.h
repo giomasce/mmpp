@@ -542,6 +542,10 @@ Prover< Engine > checked_prover(Prover< Engine > prover, typename Engine::SentTy
         size_t stack_len_before = engine.get_stack().size();
         bool res = prover(engine);
         size_t stack_len_after = engine.get_stack().size();
+#ifdef NDEBUG
+        (void) stack_len_before;
+        (void) stack_len_after;
+#endif
         if (res) {
             assert(stack_len_after >= 1);
             assert(stack_len_after + 1 >= stack_len_before);
