@@ -126,7 +126,7 @@ std::string hash_object(const T &obj) {
     return hasher.get_digest();
 }
 
-// Funny trick from https://stackoverflow.com/a/41485014/807307
+// From https://stackoverflow.com/a/41485014/807307
 template<typename S>
 struct enable_make final : public S
 {
@@ -137,24 +137,35 @@ struct enable_make final : public S
     }
 };
 
+// From https://stackoverflow.com/a/15550262/807307
+struct virtual_enable_shared_from_this_base : std::enable_shared_from_this<virtual_enable_shared_from_this_base> {
+    virtual ~virtual_enable_shared_from_this_base();
+};
+
+template<typename T>
+struct virtual_enable_shared_from_this : public virtual virtual_enable_shared_from_this_base {
+    std::shared_ptr<T> shared_from_this() {
+        return std::dynamic_pointer_cast<T>(virtual_enable_shared_from_this_base::shared_from_this());
+    }
+    std::shared_ptr<const T> shared_from_this() const {
+        return std::dynamic_pointer_cast<const T>(virtual_enable_shared_from_this_base::shared_from_this());
+    }
+    std::weak_ptr<T> weak_from_this() {
+        return this->shared_from_this();
+    }
+    std::weak_ptr<const T> weak_from_this() const {
+        return this->shared_from_this();
+    }
+};
+
 template< typename T >
-struct enable_create : public std::enable_shared_from_this< T > {
+struct enable_create : public virtual_enable_shared_from_this< T > {
     template< typename... Args >
     static std::shared_ptr< T > create(Args&&... args) {
         std::shared_ptr< enable_make< T > > pointer = std::make_shared< enable_make< T > >(std::forward< Args >(args)...);
         static_cast< std::shared_ptr< enable_create< T > > >(pointer)->init();
         return pointer;
     }
-
-#if (!(__cpp_lib_enable_shared_from_this >= 201603))
-    std::weak_ptr< T > weak_from_this() {
-        return this->shared_from_this();
-    }
-
-    std::weak_ptr< const T > weak_from_this() const {
-        return this->shared_from_this();
-    }
-#endif
 
 protected:
     virtual void init() {}
