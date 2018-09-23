@@ -53,9 +53,11 @@ ptvar_map< uint32_t, Tag > build_tseitin_map(const ptvar_set<Tag> &vars);
 template<typename Tag>
 std::pair<CNFProblem, std::vector<Prover<CheckpointedProofEngine> > > build_cnf_problem(const CNForm<Tag> &cnf, const ptvar_map< uint32_t, Tag > &var_map);
 
-template<typename Tag>
+template<typename Tag_>
 class TWffBase {
 public:
+    typedef Tag_ Tag;
+
     virtual ~TWffBase();
     virtual std::string to_string() const = 0;
     virtual ptwff<Tag> imp_not_form() const = 0;
