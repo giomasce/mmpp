@@ -219,4 +219,15 @@ BOOST_DATA_TEST_CASE(test_wff_from_pt, boost::unit_test::data::make(wff_from_pt_
     BOOST_TEST(pt2_to_pt(parsed->to_parsing_tree(tb)) == pt);
 }
 
+BOOST_DATA_TEST_CASE(test_pred_wff_from_pt, boost::unit_test::data::make(wff_from_pt_data)) {
+    auto &data = get_set_mm();
+    //auto &lib = data.lib;
+    auto &tb = data.tb;
+
+    auto sent = tb.read_sentence(sample);
+    auto pt = tb.parse_sentence(sent);
+    auto parsed = wff_from_pt<PredTag>(pt, tb);
+    BOOST_TEST(pt2_to_pt(parsed->to_parsing_tree(tb)) == pt);
+}
+
 #endif

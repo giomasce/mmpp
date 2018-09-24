@@ -1302,6 +1302,37 @@ const RegisteredProver TOr3Base<Tag>::tseitin5_rp = LibraryToolbox::register_pro
 template<typename Tag>
 const RegisteredProver TOr3Base<Tag>::tseitin6_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ch \\/ ( ph \\/ ps \\/ ch ) ) )");
 
+std::string TForall<PredTag>::to_string() const
+{
+    return "A. " + this->var_string + " " + this->get_a()->to_string();
+}
+
+bool TForall<PredTag>::operator==(const TWff<Tag> &x) const {
+    auto px = dynamic_cast< const TForall* >(&x);
+    if (px == nullptr) {
+        return false;
+    } else {
+        return this->var == px->var && *this->get_a() == *px->get_a();
+    }
+}
+
+const RegisteredProver TForall<PredTag>::type_rp = LibraryToolbox::register_prover({}, "wff A. x ph");
+
+std::string TExists<PredTag>::to_string() const
+{
+    return "A. " + this->var_string + " " + this->get_a()->to_string();
+}
+
+bool TExists<PredTag>::operator==(const TWff<Tag> &x) const {
+    auto px = dynamic_cast< const TExists* >(&x);
+    if (px == nullptr) {
+        return false;
+    } else {
+        return this->var == px->var && *this->get_a() == *px->get_a();
+    }
+}
+const RegisteredProver TExists<PredTag>::type_rp = LibraryToolbox::register_prover({}, "wff E. x ph");
+
 template class TWff<PropTag>;
 template class TWff<PredTag>;
 template class TVar<PropTag>;
@@ -1328,12 +1359,42 @@ template class TAnd3<PropTag>;
 template class TAnd3<PredTag>;
 template class TOr3<PropTag>;
 template class TOr3<PredTag>;
+template class TForall<PredTag>;
+
+template<typename Tag>
+bool wff_from_pt_int(ptwff<Tag> &ret, const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
+
+template<>
+bool wff_from_pt_int<PropTag>(ptwff<PropTag> &ret, const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb) {
+    (void) ret;
+    (void) pt;
+    (void) tb;
+
+    return false;
+}
+
+template<>
+bool wff_from_pt_int<PredTag>(ptwff<PredTag> &ret, const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb) {
+    /*if (pt.label == tb.get_registered_prover_label(TForall<PredTag>::type_rp)) {
+        assert(pt.children.size() == 2);
+        assert(pt.children[0].children.empty());
+        ret = TForall<PredTag>::create(pt.children[0].label, wff_from_pt<PredTag>(pt.children[1], tb));
+        return true;
+    } else if (pt.label == tb.get_registered_prover_label(TExists<PredTag>::type_rp)) {
+        assert(pt.children.size() == 2);
+        assert(pt.children[0].children.empty());
+        ret = TExists<PredTag>::create(pt.children[0].label, wff_from_pt<PredTag>(pt.children[1], tb));
+        return true;
+    } else*/ {
+        return false;
+    }
+}
 
 template<typename Tag>
 ptwff<Tag> wff_from_pt(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb)
 {
     assert(tb.resolve_symbol(pt.type) == "wff");
-    if (pt.label == tb.get_registered_prover_label(TTrueBase<Tag>::type_rp)) {
+    if (pt.label == tb.get_registered_prover_label(TTrue<Tag>::type_rp)) {
         assert(pt.children.size() == 0);
         return TTrue<Tag>::create();
     } else if (pt.label == tb.get_registered_prover_label(TFalse<Tag>::type_rp)) {
@@ -1367,7 +1428,12 @@ ptwff<Tag> wff_from_pt(const ParsingTree< SymTok, LabTok > &pt, const LibraryToo
         assert(pt.children.size() == 3);
         return TOr3<Tag>::create(wff_from_pt<Tag>(pt.children[0], tb), wff_from_pt<Tag>(pt.children[1], tb), wff_from_pt<Tag>(pt.children[2], tb));
     } else {
-        return TVar<Tag>::create(pt_to_pt2(pt), tb);
+        ptwff<Tag> ret;
+        if (wff_from_pt_int<Tag>(ret, pt, tb)) {
+            return ret;
+        } else {
+            return TVar<Tag>::create(pt_to_pt2(pt), tb);
+        }
     }
 }
 

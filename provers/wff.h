@@ -47,6 +47,9 @@ template<typename Tag>
 ptwff<Tag> wff_from_pt(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb);
 
 template<typename Tag>
+bool wff_from_pt_int(ptwff<PredTag> &ret, const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb);
+
+template<typename Tag>
 ptvar_set<Tag> collect_tseitin_vars(const CNForm<Tag> &cnf);
 template<typename Tag>
 ptvar_map< uint32_t, Tag > build_tseitin_map(const ptvar_set<Tag> &vars);
@@ -670,6 +673,58 @@ protected:
     using TOr3Base<PredTag>::TOr3Base;
 };
 
+template<typename Tag>
+class TWffQuant : public virtual TWff<Tag> {
+public:
+    std::vector< ptwff<Tag> > get_children() const override { return { this->get_a() }; }
+    LabTok get_var() const { return this->var; }
+    ptwff<Tag> get_a() const { return this->a; }
+
+protected:
+    TWffQuant() = delete;
+    //TWffQuant(LabTok var, ptwff<Tag> a) : var(var), a(a) {}
+    TWffQuant(LabTok var, ptwff<Tag> a, const LibraryToolbox &tb) : var(var), a(a), var_string(tb.resolve_symbol(tb.get_var_lab_to_sym(var))) {}
+
+protected:
+    LabTok var;
+    std::string var_string;
+    ptwff<Tag> a;
+};
+
+template<typename Tag>
+class TForall;
+
+template<>
+class TForall<PredTag> : public TWffQuant<PredTag>, public enable_create<TForall<PredTag>> {
+    friend bool wff_from_pt_int<PredTag>(ptwff<PredTag> &ret, const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
+public:
+    std::string to_string() const override;
+    bool operator==(const TWff<Tag> &x) const override;
+
+protected:
+    using TWffQuant<PredTag>::TWffQuant;
+
+private:
+    static const RegisteredProver type_rp;
+};
+
+template<typename Tag>
+class TExists;
+
+template<>
+class TExists<PredTag> : public TWffQuant<PredTag>, public enable_create<TExists<PredTag>> {
+    friend bool wff_from_pt_int<PredTag>(ptwff<PredTag> &ret, const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
+public:
+    std::string to_string() const override;
+    bool operator==(const TWff<Tag> &x) const override;
+
+protected:
+    using TWffQuant<PredTag>::TWffQuant;
+
+private:
+    static const RegisteredProver type_rp;
+};
+
 extern template class TWff<PropTag>;
 extern template class TWff<PredTag>;
 extern template class TVar<PropTag>;
@@ -696,6 +751,7 @@ extern template class TAnd3<PropTag>;
 extern template class TAnd3<PredTag>;
 extern template class TOr3<PropTag>;
 extern template class TOr3<PredTag>;
+extern template class TForall<PredTag>;
 
 using Wff = TWff<PropTag>;
 using pwff = ptwff<PropTag>;
