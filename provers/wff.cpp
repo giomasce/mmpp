@@ -69,13 +69,11 @@ Prover<CheckpointedProofEngine> TWffBase<Tag>::get_subst_prover(ptvar<Tag> var, 
     return null_prover;
 }
 
-template<typename Tag>
-ptvar<Tag> TWff<Tag>::get_tseitin_var(const LibraryToolbox &tb) const {
+ptvar<PropTag> TWff<PropTag>::get_tseitin_var(const LibraryToolbox &tb) const {
     return TVar<Tag>::create(this->to_parsing_tree(tb), tb);
 }
 
-template<typename Tag>
-std::tuple<CNFProblem, ptvar_map<uint32_t, Tag>, std::vector<Prover<CheckpointedProofEngine> > > TWff<Tag>::get_tseitin_cnf_problem(const LibraryToolbox &tb) const {
+std::tuple<CNFProblem, ptvar_map<uint32_t, PropTag>, std::vector<Prover<CheckpointedProofEngine> > > TWff<PropTag>::get_tseitin_cnf_problem(const LibraryToolbox &tb) const {
     CNForm<Tag> cnf;
     this->get_tseitin_form(cnf, tb, *this);
     cnf[{{true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TWff::id_rp, {{"ph", this->get_type_prover(tb)}}, {});
@@ -85,16 +83,14 @@ std::tuple<CNFProblem, ptvar_map<uint32_t, Tag>, std::vector<Prover<Checkpointed
     return make_tuple(problem.first, map, problem.second);
 }
 
-template<typename Tag>
-void TWff<Tag>::set_library_toolbox(const LibraryToolbox &tb) const
+void TWff<PropTag>::set_library_toolbox(const LibraryToolbox &tb) const
 {
     for (auto child : this->get_children()) {
         child->set_library_toolbox(tb);
     }
 }
 
-template<typename Tag>
-std::pair<bool, Prover<CheckpointedProofEngine> > TWff<Tag>::get_adv_truth_prover(const LibraryToolbox &tb) const
+std::pair<bool, Prover<CheckpointedProofEngine> > TWff<PropTag>::get_adv_truth_prover(const LibraryToolbox &tb) const
 {
 #ifdef LOG_WFF
     cerr << "WFF proving: " << this->to_string() << endl;
@@ -114,8 +110,7 @@ std::pair<bool, Prover<CheckpointedProofEngine> > TWff<Tag>::get_adv_truth_prove
     return make_pair(true, final);
 }
 
-template<typename Tag>
-std::pair<bool, Prover<CheckpointedProofEngine> > TWff<Tag>::adv_truth_internal(typename ptvar_set<Tag>::iterator cur_var, typename ptvar_set<Tag>::iterator end_var, const LibraryToolbox &tb) const {
+std::pair<bool, Prover<CheckpointedProofEngine> > TWff<PropTag>::adv_truth_internal(typename ptvar_set<Tag>::iterator cur_var, typename ptvar_set<Tag>::iterator end_var, const LibraryToolbox &tb) const {
     if (cur_var == end_var) {
         return make_pair(this->is_true(), this->get_truth_prover(tb));
     } else {
@@ -144,16 +139,11 @@ std::pair<bool, Prover<CheckpointedProofEngine> > TWff<Tag>::adv_truth_internal(
     }
 }
 
-template<typename Tag>
-const RegisteredProver TWff<Tag>::adv_truth_1_rp = LibraryToolbox::register_prover({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )");
-template<typename Tag>
-const RegisteredProver TWff<Tag>::adv_truth_2_rp = LibraryToolbox::register_prover({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )");
-template<typename Tag>
-const RegisteredProver TWff<Tag>::adv_truth_3_rp = LibraryToolbox::register_prover({"|- ( ph -> ps )", "|- ( -. ph -> ps )"}, "|- ps");
-template<typename Tag>
-const RegisteredProver TWff<Tag>::adv_truth_4_rp = LibraryToolbox::register_prover({"|- ps", "|- ( ph <-> ps )"}, "|- ph");
-template<typename Tag>
-const RegisteredProver TWff<Tag>::id_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ph )");
+const RegisteredProver TWff<PropTag>::adv_truth_1_rp = LibraryToolbox::register_prover({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )");
+const RegisteredProver TWff<PropTag>::adv_truth_2_rp = LibraryToolbox::register_prover({"|- ch", "|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ps )");
+const RegisteredProver TWff<PropTag>::adv_truth_3_rp = LibraryToolbox::register_prover({"|- ( ph -> ps )", "|- ( -. ph -> ps )"}, "|- ps");
+const RegisteredProver TWff<PropTag>::adv_truth_4_rp = LibraryToolbox::register_prover({"|- ps", "|- ( ph <-> ps )"}, "|- ph");
+const RegisteredProver TWff<PropTag>::id_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ph )");
 
 template<typename Tag>
 ptwff<Tag> ConvertibleTWff<Tag>::subst(ptvar<Tag> var, bool positive) const
@@ -261,12 +251,6 @@ bool TTrueBase<Tag>::operator==(const TWff<Tag> &x) const {
 }
 
 template<typename Tag>
-void TTrueBase<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
-{
-    cnf[{{true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TTrueBase::tseitin1_rp, {{"th", glob_ctx.get_type_prover(tb)}}, {});
-}
-
-template<typename Tag>
 const RegisteredProver TTrueBase<Tag>::truth_rp = LibraryToolbox::register_prover({}, "|- T.");
 template<typename Tag>
 const RegisteredProver TTrueBase<Tag>::type_rp = LibraryToolbox::register_prover({}, "wff T.");
@@ -274,8 +258,13 @@ template<typename Tag>
 const RegisteredProver TTrueBase<Tag>::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( T. <-> T. )");
 template<typename Tag>
 const RegisteredProver TTrueBase<Tag>::subst_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( T. <-> T. ) )");
-template<typename Tag>
-const RegisteredProver TTrueBase<Tag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> T. )");
+
+void TTrue<PropTag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
+{
+    cnf[{{true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TTrue::tseitin1_rp, {{"th", glob_ctx.get_type_prover(tb)}}, {});
+}
+
+const RegisteredProver TTrue<PropTag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> T. )");
 
 template<typename Tag>
 std::string TFalseBase<Tag>::to_string() const {
@@ -346,12 +335,6 @@ bool TFalseBase<Tag>::operator==(const TWff<Tag> &x) const {
 }
 
 template<typename Tag>
-void TFalseBase<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
-{
-    cnf[{{false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TFalseBase::tseitin1_rp, {{"th", glob_ctx.get_type_prover(tb)}}, {});
-}
-
-template<typename Tag>
 const RegisteredProver TFalseBase<Tag>::falsity_rp = LibraryToolbox::register_prover({}, "|- -. F.");
 template<typename Tag>
 const RegisteredProver TFalseBase<Tag>::type_rp = LibraryToolbox::register_prover({}, "wff F.");
@@ -359,21 +342,23 @@ template<typename Tag>
 const RegisteredProver TFalseBase<Tag>::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( F. <-> F. )");
 template<typename Tag>
 const RegisteredProver TFalseBase<Tag>::subst_rp = LibraryToolbox::register_prover({}, "|- ( ph -> ( F. <-> F. ) )");
-template<typename Tag>
-const RegisteredProver TFalseBase<Tag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> -. F. )");
 
-template<typename Tag>
-std::string TVar<Tag>::to_string() const {
+void TFalse<PropTag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
+{
+    cnf[{{false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TFalse::tseitin1_rp, {{"th", glob_ctx.get_type_prover(tb)}}, {});
+}
+
+const RegisteredProver TFalse<PropTag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> -. F. )");
+
+std::string TVar<PropTag>::to_string() const {
     return this->string_repr;
 }
 
-template<typename Tag>
-ptwff<Tag> TVar<Tag>::imp_not_form() const {
+ptwff<PropTag> TVar<PropTag>::imp_not_form() const {
     return this->shared_from_this();
 }
 
-template<typename Tag>
-ptwff<Tag> TVar<Tag>::subst(ptvar<Tag> var, bool positive) const
+ptwff<PropTag> TVar<PropTag>::subst(ptvar<Tag> var, bool positive) const
 {
     if (*this == *var) {
         if (positive) {
@@ -386,14 +371,12 @@ ptwff<Tag> TVar<Tag>::subst(ptvar<Tag> var, bool positive) const
     }
 }
 
-template<typename Tag>
-void TVar<Tag>::get_variables(ptvar_set<Tag> &vars) const
+void TVar<PropTag>::get_variables(ptvar_set<Tag> &vars) const
 {
     vars.insert(this->shared_from_this());
 }
 
-template<typename Tag>
-Prover<CheckpointedProofEngine> TVar<Tag>::get_type_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> TVar<PropTag>::get_type_prover(const LibraryToolbox &tb) const
 {
     return tb.build_type_prover(this->get_name());
     /*auto label = tb.get_var_sym_to_lab(tb.get_symbol(this->name));
@@ -403,14 +386,12 @@ Prover<CheckpointedProofEngine> TVar<Tag>::get_type_prover(const LibraryToolbox 
     };*/
 }
 
-template<typename Tag>
-Prover<CheckpointedProofEngine> TVar<Tag>::get_imp_not_prover(const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> TVar<PropTag>::get_imp_not_prover(const LibraryToolbox &tb) const
 {
     return tb.build_registered_prover< CheckpointedProofEngine >(TVar::imp_not_rp, {{"ph", this->get_type_prover(tb)}}, {});
 }
 
-template<typename Tag>
-Prover<CheckpointedProofEngine> TVar<Tag>::get_subst_prover(ptvar<Tag> var, bool positive, const LibraryToolbox &tb) const
+Prover<CheckpointedProofEngine> TVar<PropTag>::get_subst_prover(ptvar<Tag> var, bool positive, const LibraryToolbox &tb) const
 {
     if (*this == *var) {
         if (positive) {
@@ -435,8 +416,7 @@ Prover<CheckpointedProofEngine> TVar<Tag>::get_subst_prover(ptvar<Tag> var, bool
     }
 }
 
-template<typename Tag>
-bool TVar<Tag>::operator==(const TWff<Tag> &x) const {
+bool TVar<PropTag>::operator==(const TWff<Tag> &x) const {
     auto px = dynamic_cast< const TVar* >(&x);
     if (px == nullptr) {
         return false;
@@ -445,13 +425,11 @@ bool TVar<Tag>::operator==(const TWff<Tag> &x) const {
     }
 }
 
-template<typename Tag>
-bool TVar<Tag>::operator<(const TVar &x) const {
+bool TVar<PropTag>::operator<(const TVar &x) const {
     return this->get_name() < x.get_name();
 }
 
-template<typename Tag>
-void TVar<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
+void TVar<PropTag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
 {
     (void) cnf;
     (void) tb;
@@ -464,60 +442,44 @@ static decltype(auto) var_cons_helper(const std::string &string_repr, const Libr
     return pt_to_pt2(pt);
 }
 
-template<typename Tag>
-void TVar<Tag>::set_library_toolbox(const LibraryToolbox &tb) const
+void TVar<PropTag>::set_library_toolbox(const LibraryToolbox &tb) const
 {
     if (!this->name.quick_is_valid()) {
         this->name = var_cons_helper(string_repr, tb);
     }
 }
 
-template<typename Tag>
-const typename TVar<Tag>::NameType &TVar<Tag>::get_name() const {
+const typename TVar<PropTag>::NameType &TVar<PropTag>::get_name() const {
     assert(this->name.quick_is_valid());
     return this->name;
 }
 
-template<typename Tag>
-TVar<Tag>::TVar(const std::string &string_repr) : string_repr(string_repr)
+TVar<PropTag>::TVar(const std::string &string_repr) : string_repr(string_repr)
 {
 }
 
-template<typename Tag>
-TVar<Tag>::TVar(TVar::NameType name, std::string string_repr) :
+TVar<PropTag>::TVar(TVar::NameType name, std::string string_repr) :
     name(name), string_repr(string_repr) {
 }
 
-template<typename Tag>
-TVar<Tag>::TVar(const std::string &string_repr, const LibraryToolbox &tb) :
+TVar<PropTag>::TVar(const std::string &string_repr, const LibraryToolbox &tb) :
     name(var_cons_helper(string_repr, tb)), string_repr(string_repr) {
 }
 
-template<typename Tag>
-TVar<Tag>::TVar(const TVar::NameType &name, const LibraryToolbox &tb) :
+TVar<PropTag>::TVar(const TVar::NameType &name, const LibraryToolbox &tb) :
     name(name), string_repr(tb.print_sentence(tb.reconstruct_sentence(pt2_to_pt(name))).to_string()) {
 }
 
-template<typename Tag>
-const RegisteredProver TVar<Tag>::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( ph <-> ph )");
-template<typename Tag>
-const RegisteredProver TVar<Tag>::subst_pos_1_rp = LibraryToolbox::register_prover({}, "|- ( T. -> ( ph -> ( T. <-> ph ) ) )");
-template<typename Tag>
-const RegisteredProver TVar<Tag>::subst_pos_2_rp = LibraryToolbox::register_prover({"|- T.", "|- ( T. -> ( ph -> ( T. <-> ph ) ) )"}, "|- ( ph -> ( T. <-> ph ) )");
-template<typename Tag>
-const RegisteredProver TVar<Tag>::subst_pos_3_rp = LibraryToolbox::register_prover({"|- ( ph -> ( T. <-> ph ) )"}, "|- ( ph -> ( ph <-> T. ) )");
-template<typename Tag>
-const RegisteredProver TVar<Tag>::subst_pos_truth_rp = LibraryToolbox::register_prover({}, "|- T.");
-template<typename Tag>
-const RegisteredProver TVar<Tag>::subst_neg_1_rp = LibraryToolbox::register_prover({}, "|- ( -. F. -> ( -. ph -> ( F. <-> ph ) ) )");
-template<typename Tag>
-const RegisteredProver TVar<Tag>::subst_neg_2_rp = LibraryToolbox::register_prover({"|- -. F.", "|- ( -. F. -> ( -. ph -> ( F. <-> ph ) ) )"}, "|- ( -. ph -> ( F. <-> ph ) )");
-template<typename Tag>
-const RegisteredProver TVar<Tag>::subst_neg_3_rp = LibraryToolbox::register_prover({"|- ( -. ph -> ( F. <-> ph ) )"}, "|- ( -. ph -> ( ph <-> F. ) )");
-template<typename Tag>
-const RegisteredProver TVar<Tag>::subst_neg_falsity_rp = LibraryToolbox::register_prover({}, "|- -. F.");
-template<typename Tag>
-const RegisteredProver TVar<Tag>::subst_indep_rp = LibraryToolbox::register_prover({}, "|- ( ps -> ( ph <-> ph ) )");
+const RegisteredProver TVar<PropTag>::imp_not_rp = LibraryToolbox::register_prover({}, "|- ( ph <-> ph )");
+const RegisteredProver TVar<PropTag>::subst_pos_1_rp = LibraryToolbox::register_prover({}, "|- ( T. -> ( ph -> ( T. <-> ph ) ) )");
+const RegisteredProver TVar<PropTag>::subst_pos_2_rp = LibraryToolbox::register_prover({"|- T.", "|- ( T. -> ( ph -> ( T. <-> ph ) ) )"}, "|- ( ph -> ( T. <-> ph ) )");
+const RegisteredProver TVar<PropTag>::subst_pos_3_rp = LibraryToolbox::register_prover({"|- ( ph -> ( T. <-> ph ) )"}, "|- ( ph -> ( ph <-> T. ) )");
+const RegisteredProver TVar<PropTag>::subst_pos_truth_rp = LibraryToolbox::register_prover({}, "|- T.");
+const RegisteredProver TVar<PropTag>::subst_neg_1_rp = LibraryToolbox::register_prover({}, "|- ( -. F. -> ( -. ph -> ( F. <-> ph ) ) )");
+const RegisteredProver TVar<PropTag>::subst_neg_2_rp = LibraryToolbox::register_prover({"|- -. F.", "|- ( -. F. -> ( -. ph -> ( F. <-> ph ) ) )"}, "|- ( -. ph -> ( F. <-> ph ) )");
+const RegisteredProver TVar<PropTag>::subst_neg_3_rp = LibraryToolbox::register_prover({"|- ( -. ph -> ( F. <-> ph ) )"}, "|- ( -. ph -> ( ph <-> F. ) )");
+const RegisteredProver TVar<PropTag>::subst_neg_falsity_rp = LibraryToolbox::register_prover({}, "|- -. F.");
+const RegisteredProver TVar<PropTag>::subst_indep_rp = LibraryToolbox::register_prover({}, "|- ( ps -> ( ph <-> ph ) )");
 
 template<typename Tag>
 std::string TNotBase<Tag>::to_string() const {
@@ -600,14 +562,6 @@ bool TNotBase<Tag>::operator==(const TWff<Tag> &x) const {
 }
 
 template<typename Tag>
-void TNotBase<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
-{
-    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TNotBase::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TNotBase::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-}
-
-template<typename Tag>
 const RegisteredProver TNotBase<Tag>::falsity_rp = LibraryToolbox::register_prover({ "|- ph" }, "|- -. -. ph");
 template<typename Tag>
 const RegisteredProver TNotBase<Tag>::type_rp = LibraryToolbox::register_prover({}, "wff -. ph");
@@ -615,10 +569,16 @@ template<typename Tag>
 const RegisteredProver TNotBase<Tag>::imp_not_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )"}, "|- ( -. ph <-> -. ps )");
 template<typename Tag>
 const RegisteredProver TNotBase<Tag>::subst_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps <-> ch ) )"}, "|- ( ph -> ( -. ps <-> -. ch ) )");
-template<typename Tag>
-const RegisteredProver TNotBase<Tag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ph \\/ -. -. ph ) )");
-template<typename Tag>
-const RegisteredProver TNotBase<Tag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ -. ph ) )");
+
+void TNot<PropTag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TNot::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TNot::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+}
+
+const RegisteredProver TNot<PropTag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ph \\/ -. -. ph ) )");
+const RegisteredProver TNot<PropTag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ -. ph ) )");
 
 template<typename Tag>
 std::string TImpBase<Tag>::to_string() const {
@@ -718,16 +678,6 @@ bool TImpBase<Tag>::operator==(const TWff<Tag> &x) const {
 }
 
 template<typename Tag>
-void TImpBase<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
-{
-    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
-    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TImpBase::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TImpBase::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TImpBase::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-}
-
-template<typename Tag>
 const RegisteredProver TImpBase<Tag>::truth_1_rp = LibraryToolbox::register_prover({ "|- ps" }, "|- ( ph -> ps )");
 template<typename Tag>
 const RegisteredProver TImpBase<Tag>::truth_2_rp = LibraryToolbox::register_prover({ "|- -. ph" }, "|- ( ph -> ps )");
@@ -743,12 +693,19 @@ template<typename Tag>
 const RegisteredProver TImpBase<Tag>::imp_not_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ch <-> th )"}, "|- ( ( ph -> ch ) <-> ( ps -> th ) )");
 template<typename Tag>
 const RegisteredProver TImpBase<Tag>::subst_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps <-> ch ) )", "|- ( ph -> ( th <-> ta ) )"}, "|- ( ph -> ( ( ps -> th ) <-> ( ch -> ta ) ) )");
-template<typename Tag>
-const RegisteredProver TImpBase<Tag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ ps ) \\/ -. ( ph -> ps ) ) )");
-template<typename Tag>
-const RegisteredProver TImpBase<Tag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ ( ph -> ps ) ) )");
-template<typename Tag>
-const RegisteredProver TImpBase<Tag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ps \\/ ( ph -> ps ) ) )");
+
+void TImp<PropTag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TImp::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TImp::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TImp::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+}
+
+const RegisteredProver TImp<PropTag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ ps ) \\/ -. ( ph -> ps ) ) )");
+const RegisteredProver TImp<PropTag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ ( ph -> ps ) ) )");
+const RegisteredProver TImp<PropTag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ps \\/ ( ph -> ps ) ) )");
 
 template<typename Tag>
 std::string TBiimpBase<Tag>::to_string() const {
@@ -804,30 +761,26 @@ bool TBiimpBase<Tag>::operator==(const TWff<Tag> &x) const {
 }
 
 template<typename Tag>
-void TBiimpBase<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
-{
-    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
-    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TBiimpBase::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TBiimpBase::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TBiimpBase::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TBiimpBase::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-}
-
-template<typename Tag>
 const RegisteredProver TBiimpBase<Tag>::type_rp = LibraryToolbox::register_prover({}, "wff ( ph <-> ps )");
 template<typename Tag>
 const RegisteredProver TBiimpBase<Tag>::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph <-> ps ) <-> -. ( ( ph -> ps ) -> -. ( ps -> ph ) ) )");
 template<typename Tag>
 const RegisteredProver TBiimpBase<Tag>::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
-template<typename Tag>
-const RegisteredProver TBiimpBase<Tag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ ( ph <-> ps ) ) )");
-template<typename Tag>
-const RegisteredProver TBiimpBase<Tag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ ps ) \\/ ( ph <-> ps ) ) )");
-template<typename Tag>
-const RegisteredProver TBiimpBase<Tag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ -. ps ) \\/ -. ( ph <-> ps ) ) )");
-template<typename Tag>
-const RegisteredProver TBiimpBase<Tag>::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ ps ) \\/ -. ( ph <-> ps ) ) )");
+
+void TBiimp<PropTag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TBiimp::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TBiimp::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TBiimp::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TBiimp::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+}
+
+const RegisteredProver TBiimp<PropTag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ ( ph <-> ps ) ) )");
+const RegisteredProver TBiimp<PropTag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ ps ) \\/ ( ph <-> ps ) ) )");
+const RegisteredProver TBiimp<PropTag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ -. ps ) \\/ -. ( ph <-> ps ) ) )");
+const RegisteredProver TBiimp<PropTag>::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ ps ) \\/ -. ( ph <-> ps ) ) )");
 
 template<typename Tag>
 std::string TAndBase<Tag>::to_string() const {
@@ -879,27 +832,24 @@ bool TAndBase<Tag>::operator==(const TWff<Tag> &x) const {
 }
 
 template<typename Tag>
-void TAndBase<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
-{
-    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
-    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAndBase::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAndBase::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAndBase::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-}
-
-template<typename Tag>
 const RegisteredProver TAndBase<Tag>::type_rp = LibraryToolbox::register_prover({}, "wff ( ph /\\ ps )");
 template<typename Tag>
 const RegisteredProver TAndBase<Tag>::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph /\\ ps ) <-> -. ( ph -> -. ps ) )");
 template<typename Tag>
 const RegisteredProver TAndBase<Tag>::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
-template<typename Tag>
-const RegisteredProver TAndBase<Tag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ ( ph /\\ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TAndBase<Tag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ -. ( ph /\\ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TAndBase<Tag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ps \\/ -. ( ph /\\ ps ) ) )");
+
+void TAnd<PropTag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+}
+
+const RegisteredProver TAnd<PropTag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ ( ph /\\ ps ) ) )");
+const RegisteredProver TAnd<PropTag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ -. ( ph /\\ ps ) ) )");
+const RegisteredProver TAnd<PropTag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ps \\/ -. ( ph /\\ ps ) ) )");
 
 template<typename Tag>
 std::string TOrBase<Tag>::to_string() const {
@@ -951,27 +901,24 @@ bool TOrBase<Tag>::operator==(const TWff<Tag> &x) const {
 }
 
 template<typename Tag>
-void TOrBase<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
-{
-    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
-    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOrBase::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOrBase::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOrBase::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-}
-
-template<typename Tag>
 const RegisteredProver TOrBase<Tag>::type_rp = LibraryToolbox::register_prover({}, "wff ( ph \\/ ps )");
 template<typename Tag>
 const RegisteredProver TOrBase<Tag>::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/ ps ) <-> ( -. ph -> ps ) )");
 template<typename Tag>
 const RegisteredProver TOrBase<Tag>::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
-template<typename Tag>
-const RegisteredProver TOrBase<Tag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ ps ) \\/ -. ( ph \\/ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TOrBase<Tag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ph \\/ ( ph \\/ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TOrBase<Tag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ps \\/ ( ph \\/ ps ) ) )");
+
+void TOr<PropTag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+}
+
+const RegisteredProver TOr<PropTag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ ps ) \\/ -. ( ph \\/ ps ) ) )");
+const RegisteredProver TOr<PropTag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ph \\/ ( ph \\/ ps ) ) )");
+const RegisteredProver TOr<PropTag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ps \\/ ( ph \\/ ps ) ) )");
 
 template<typename Tag>
 std::string TNandBase<Tag>::to_string() const {
@@ -1023,27 +970,24 @@ bool TNandBase<Tag>::operator==(const TWff<Tag> &x) const {
 }
 
 template<typename Tag>
-void TNandBase<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
-{
-    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
-    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TNandBase::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TNandBase::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TNandBase::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-}
-
-template<typename Tag>
 const RegisteredProver TNandBase<Tag>::type_rp = LibraryToolbox::register_prover({}, "wff ( ph -/\\ ps )");
 template<typename Tag>
 const RegisteredProver TNandBase<Tag>::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph -/\\ ps ) <-> -. ( ph /\\ ps ) )");
 template<typename Tag>
 const RegisteredProver TNandBase<Tag>::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
-template<typename Tag>
-const RegisteredProver TNandBase<Tag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ -. ( ph -/\\ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TNandBase<Tag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ ( ph -/\\ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TNandBase<Tag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ps \\/ ( ph -/\\ ps ) ) )");
+
+void TNand<PropTag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TNand::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TNand::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TNand::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+}
+
+const RegisteredProver TNand<PropTag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ -. ( ph -/\\ ps ) ) )");
+const RegisteredProver TNand<PropTag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ ( ph -/\\ ps ) ) )");
+const RegisteredProver TNand<PropTag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ps \\/ ( ph -/\\ ps ) ) )");
 
 template<typename Tag>
 std::string TXorBase<Tag>::to_string() const {
@@ -1095,30 +1039,26 @@ bool TXorBase<Tag>::operator==(const TWff<Tag> &x) const {
 }
 
 template<typename Tag>
-void TXorBase<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
-{
-    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
-    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TXorBase::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TXorBase::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TXorBase::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TXorBase::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-}
-
-template<typename Tag>
 const RegisteredProver TXorBase<Tag>::type_rp = LibraryToolbox::register_prover({}, "wff ( ph \\/_ ps )");
 template<typename Tag>
 const RegisteredProver TXorBase<Tag>::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/_ ps ) <-> -. ( ph <-> ps ) )");
 template<typename Tag>
 const RegisteredProver TXorBase<Tag>::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
-template<typename Tag>
-const RegisteredProver TXorBase<Tag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ -. ( ph \\/_ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TXorBase<Tag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ ps ) \\/ -. ( ph \\/_ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TXorBase<Tag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ -. ps ) \\/ ( ph \\/_ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TXorBase<Tag>::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ ps ) \\/ ( ph \\/_ ps ) ) )");
+
+void TXor<PropTag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
+{
+    this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
+    this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TXor::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TXor::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TXor::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TXor::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+}
+
+const RegisteredProver TXor<PropTag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ -. ( ph \\/_ ps ) ) )");
+const RegisteredProver TXor<PropTag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ ps ) \\/ -. ( ph \\/_ ps ) ) )");
+const RegisteredProver TXor<PropTag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ -. ps ) \\/ ( ph \\/_ ps ) ) )");
+const RegisteredProver TXor<PropTag>::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ ps ) \\/ ( ph \\/_ ps ) ) )");
 
 template<typename Tag>
 std::string TAnd3Base<Tag>::to_string() const
@@ -1173,7 +1113,13 @@ bool TAnd3Base<Tag>::operator==(const TWff<Tag> &x) const {
 }
 
 template<typename Tag>
-void TAnd3Base<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
+const RegisteredProver TAnd3Base<Tag>::type_rp = LibraryToolbox::register_prover({}, "wff ( ph /\\ ps /\\ ch )");
+template<typename Tag>
+const RegisteredProver TAnd3Base<Tag>::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph /\\ ps /\\ ch ) <-> ( ( ph /\\ ps ) /\\ ch ) )");
+template<typename Tag>
+const RegisteredProver TAnd3Base<Tag>::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
+
+void TAnd3<PropTag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
 {
     this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
     this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
@@ -1182,34 +1128,22 @@ void TAnd3Base<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb
     auto intermediate = TAnd<Tag>::create(this->get_a(), this->get_b());
 
     // intermediate = ( a /\ b )
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd3Base::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd3Base::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_b()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd3Base::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {false, this->get_b()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd3::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd3::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_b()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd3::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 
     // this = ( intermediate /\ c )
-    cnf[{{false, intermediate->get_tseitin_var(tb)}, {false, this->get_c()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd3Base::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{true, intermediate->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd3Base::tseitin5_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{true, this->get_c()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd3Base::tseitin6_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, intermediate->get_tseitin_var(tb)}, {false, this->get_c()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd3::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, intermediate->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd3::tseitin5_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_c()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TAnd3::tseitin6_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
-template<typename Tag>
-const RegisteredProver TAnd3Base<Tag>::type_rp = LibraryToolbox::register_prover({}, "wff ( ph /\\ ps /\\ ch )");
-template<typename Tag>
-const RegisteredProver TAnd3Base<Tag>::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph /\\ ps /\\ ch ) <-> ( ( ph /\\ ps ) /\\ ch ) )");
-template<typename Tag>
-const RegisteredProver TAnd3Base<Tag>::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
-template<typename Tag>
-const RegisteredProver TAnd3Base<Tag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ ( ph /\\ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TAnd3Base<Tag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ -. ( ph /\\ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TAnd3Base<Tag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ps \\/ -. ( ph /\\ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TAnd3Base<Tag>::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ( ph /\\ ps ) \\/ -. ch ) \\/ ( ph /\\ ps /\\ ch ) ) )");
-template<typename Tag>
-const RegisteredProver TAnd3Base<Tag>::tseitin5_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph /\\ ps ) \\/ -. ( ph /\\ ps /\\ ch ) ) )");
-template<typename Tag>
-const RegisteredProver TAnd3Base<Tag>::tseitin6_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ch \\/ -. ( ph /\\ ps /\\ ch ) ) )");
+const RegisteredProver TAnd3<PropTag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ph \\/ -. ps ) \\/ ( ph /\\ ps ) ) )");
+const RegisteredProver TAnd3<PropTag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ph \\/ -. ( ph /\\ ps ) ) )");
+const RegisteredProver TAnd3<PropTag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ps \\/ -. ( ph /\\ ps ) ) )");
+const RegisteredProver TAnd3<PropTag>::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( -. ( ph /\\ ps ) \\/ -. ch ) \\/ ( ph /\\ ps /\\ ch ) ) )");
+const RegisteredProver TAnd3<PropTag>::tseitin5_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph /\\ ps ) \\/ -. ( ph /\\ ps /\\ ch ) ) )");
+const RegisteredProver TAnd3<PropTag>::tseitin6_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ch \\/ -. ( ph /\\ ps /\\ ch ) ) )");
 
 template<typename Tag>
 std::string TOr3Base<Tag>::to_string() const
@@ -1264,7 +1198,13 @@ bool TOr3Base<Tag>::operator==(const TWff<Tag> &x) const {
 }
 
 template<typename Tag>
-void TOr3Base<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
+const RegisteredProver TOr3Base<Tag>::type_rp = LibraryToolbox::register_prover({}, "wff ( ph \\/ ps \\/ ch )");
+template<typename Tag>
+const RegisteredProver TOr3Base<Tag>::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/ ps \\/ ch ) <-> ( ( ph \\/ ps ) \\/ ch ) )");
+template<typename Tag>
+const RegisteredProver TOr3Base<Tag>::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
+
+void TOr3<PropTag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const
 {
     this->get_a()->get_tseitin_form(cnf, tb, glob_ctx);
     this->get_b()->get_tseitin_form(cnf, tb, glob_ctx);
@@ -1273,34 +1213,22 @@ void TOr3Base<Tag>::get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb,
     auto intermediate = TOr<Tag>::create(this->get_a(), this->get_b());
 
     // intermediate = ( a \/ b )
-    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr3Base::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr3Base::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_b()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr3Base::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, this->get_a()->get_tseitin_var(tb)}, {true, this->get_b()->get_tseitin_var(tb)}, {false, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr3::tseitin1_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_a()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr3::tseitin2_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_b()->get_tseitin_var(tb)}, {true, intermediate->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr3::tseitin3_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 
     // this = ( intermediate \/ c )
-    cnf[{{true, intermediate->get_tseitin_var(tb)}, {true, this->get_c()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr3Base::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{false, intermediate->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr3Base::tseitin5_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
-    cnf[{{false, this->get_c()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr3Base::tseitin6_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{true, intermediate->get_tseitin_var(tb)}, {true, this->get_c()->get_tseitin_var(tb)}, {false, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr3::tseitin4_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, intermediate->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr3::tseitin5_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
+    cnf[{{false, this->get_c()->get_tseitin_var(tb)}, {true, this->get_tseitin_var(tb)}}] = tb.build_registered_prover(TOr3::tseitin6_rp, {{"ph", this->get_a()->get_type_prover(tb)}, {"ps", this->get_b()->get_type_prover(tb)}, {"ch", this->get_c()->get_type_prover(tb)}, {"th", glob_ctx.get_type_prover(tb)}}, {});
 }
 
-template<typename Tag>
-const RegisteredProver TOr3Base<Tag>::type_rp = LibraryToolbox::register_prover({}, "wff ( ph \\/ ps \\/ ch )");
-template<typename Tag>
-const RegisteredProver TOr3Base<Tag>::imp_not_1_rp = LibraryToolbox::register_prover({}, "|- ( ( ph \\/ ps \\/ ch ) <-> ( ( ph \\/ ps ) \\/ ch ) )");
-template<typename Tag>
-const RegisteredProver TOr3Base<Tag>::imp_not_2_rp = LibraryToolbox::register_prover({"|- ( ph <-> ps )", "|- ( ps <-> ch )"}, "|- ( ph <-> ch )");
-template<typename Tag>
-const RegisteredProver TOr3Base<Tag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ ps ) \\/ -. ( ph \\/ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TOr3Base<Tag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ph \\/ ( ph \\/ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TOr3Base<Tag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ps \\/ ( ph \\/ ps ) ) )");
-template<typename Tag>
-const RegisteredProver TOr3Base<Tag>::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ( ph \\/ ps ) \\/ ch ) \\/ -. ( ph \\/ ps \\/ ch ) ) )");
-template<typename Tag>
-const RegisteredProver TOr3Base<Tag>::tseitin5_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ( ph \\/ ps ) \\/ ( ph \\/ ps \\/ ch ) ) )");
-template<typename Tag>
-const RegisteredProver TOr3Base<Tag>::tseitin6_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ch \\/ ( ph \\/ ps \\/ ch ) ) )");
+const RegisteredProver TOr3<PropTag>::tseitin1_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ph \\/ ps ) \\/ -. ( ph \\/ ps ) ) )");
+const RegisteredProver TOr3<PropTag>::tseitin2_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ph \\/ ( ph \\/ ps ) ) )");
+const RegisteredProver TOr3<PropTag>::tseitin3_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ps \\/ ( ph \\/ ps ) ) )");
+const RegisteredProver TOr3<PropTag>::tseitin4_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( ( ( ph \\/ ps ) \\/ ch ) \\/ -. ( ph \\/ ps \\/ ch ) ) )");
+const RegisteredProver TOr3<PropTag>::tseitin5_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ( ph \\/ ps ) \\/ ( ph \\/ ps \\/ ch ) ) )");
+const RegisteredProver TOr3<PropTag>::tseitin6_rp = LibraryToolbox::register_prover({}, "|- ( th -> ( -. ch \\/ ( ph \\/ ps \\/ ch ) ) )");
 
 std::string TForall<PredTag>::to_string() const
 {
@@ -1333,10 +1261,11 @@ bool TExists<PredTag>::operator==(const TWff<Tag> &x) const {
 }
 const RegisteredProver TExists<PredTag>::type_rp = LibraryToolbox::register_prover({}, "wff E. x ph");
 
+template class TWffBase<PropTag>;
+template class TWffBase<PredTag>;
 template class TWff<PropTag>;
 template class TWff<PredTag>;
 template class TVar<PropTag>;
-template class TVar<PredTag>;
 template class TTrue<PropTag>;
 template class TTrue<PredTag>;
 template class TFalse<PropTag>;
@@ -1366,11 +1295,8 @@ bool wff_from_pt_int(ptwff<Tag> &ret, const ParsingTree<SymTok, LabTok> &pt, con
 
 template<>
 bool wff_from_pt_int<PropTag>(ptwff<PropTag> &ret, const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb) {
-    (void) ret;
-    (void) pt;
-    (void) tb;
-
-    return false;
+    ret = TVar<PropTag>::create(pt_to_pt2(pt), tb);
+    return true;
 }
 
 template<>
@@ -1432,7 +1358,7 @@ ptwff<Tag> wff_from_pt(const ParsingTree< SymTok, LabTok > &pt, const LibraryToo
         if (wff_from_pt_int<Tag>(ret, pt, tb)) {
             return ret;
         } else {
-            return TVar<Tag>::create(pt_to_pt2(pt), tb);
+            assert(!"Cannot reconstruct wff from parsing tree");
         }
     }
 }
