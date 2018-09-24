@@ -47,7 +47,7 @@ template<typename Tag>
 ptwff<Tag> wff_from_pt(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb);
 
 template<typename Tag>
-bool wff_from_pt_int(ptwff<PredTag> &ret, const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb);
+ptwff<Tag> wff_from_pt_int(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb);
 
 template<typename Tag>
 ptvar_set<Tag> collect_tseitin_vars(const CNForm<Tag> &cnf);
@@ -754,7 +754,7 @@ class TForall;
 
 template<>
 class TForall<PredTag> : public TWffQuant<PredTag>, public enable_create<TForall<PredTag>> {
-    friend bool wff_from_pt_int<PredTag>(ptwff<PredTag> &ret, const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
+    friend ptwff<PredTag> wff_from_pt_int<PredTag>(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
     bool operator==(const TWff<Tag> &x) const override;
@@ -772,7 +772,7 @@ class TExists;
 
 template<>
 class TExists<PredTag> : public TWffQuant<PredTag>, public enable_create<TExists<PredTag>> {
-    friend bool wff_from_pt_int<PredTag>(ptwff<PredTag> &ret, const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
+    friend ptwff<PredTag> wff_from_pt_int<PredTag>(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
     bool operator==(const TWff<Tag> &x) const override;
@@ -790,7 +790,6 @@ class TTerm;
 
 template<>
 class TTerm<PredTag> : public TWff0<PredTag>, public enable_create<TTerm<PredTag>> {
-    friend bool wff_from_pt_int<PredTag>(ptwff<PredTag> &ret, const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
     bool operator==(const TWff<Tag> &x) const override;

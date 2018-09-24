@@ -1232,31 +1232,24 @@ template class TOr3<PropTag>;
 template class TOr3<PredTag>;
 template class TForall<PredTag>;
 
-template<typename Tag>
-bool wff_from_pt_int(ptwff<Tag> &ret, const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
-
 template<>
-bool wff_from_pt_int<PropTag>(ptwff<PropTag> &ret, const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb) {
-    ret = TVar<PropTag>::create(pt_to_pt2(pt), tb);
-    return true;
+ptwff<PropTag> wff_from_pt_int<PropTag>(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb) {
+    return TVar<PropTag>::create(pt_to_pt2(pt), tb);
 }
 
 template<>
-bool wff_from_pt_int<PredTag>(ptwff<PredTag> &ret, const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb) {
+ptwff<PredTag> wff_from_pt_int<PredTag>(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb) {
     if (pt.label == tb.get_registered_prover_label(TForall<PredTag>::type_rp)) {
         assert(pt.children.size() == 2);
         assert(pt.children[0].children.empty());
-        ret = TForall<PredTag>::create(pt.children[0].label, wff_from_pt<PredTag>(pt.children[1], tb), tb);
-        return true;
+        return TForall<PredTag>::create(pt.children[0].label, wff_from_pt<PredTag>(pt.children[1], tb), tb);
     } else if (pt.label == tb.get_registered_prover_label(TExists<PredTag>::type_rp)) {
         assert(pt.children.size() == 2);
         assert(pt.children[0].children.empty());
-        ret = TExists<PredTag>::create(pt.children[0].label, wff_from_pt<PredTag>(pt.children[1], tb), tb);
-        return true;
+        return TExists<PredTag>::create(pt.children[0].label, wff_from_pt<PredTag>(pt.children[1], tb), tb);
     } else {
         assert(pt.children.empty());
-        ret = TTerm<PredTag>::create(pt.label, tb);
-        return true;
+        return TTerm<PredTag>::create(pt.label, tb);
     }
 }
 
@@ -1298,12 +1291,7 @@ ptwff<Tag> wff_from_pt(const ParsingTree< SymTok, LabTok > &pt, const LibraryToo
         assert(pt.children.size() == 3);
         return TOr3<Tag>::create(wff_from_pt<Tag>(pt.children[0], tb), wff_from_pt<Tag>(pt.children[1], tb), wff_from_pt<Tag>(pt.children[2], tb));
     } else {
-        ptwff<Tag> ret;
-        if (wff_from_pt_int<Tag>(ret, pt, tb)) {
-            return ret;
-        } else {
-            assert(!"Cannot reconstruct wff from parsing tree");
-        }
+        return wff_from_pt_int<Tag>(pt, tb);
     }
 }
 
