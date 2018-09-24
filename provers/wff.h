@@ -195,15 +195,19 @@ template<typename Tag>
 class TTrue;
 
 template<>
-class TTrue<PredTag> : public TTrueBase<PredTag>, public enable_create<TTrue<PredTag>> {
+class TTrue<PropTag> : public TTrueBase<PropTag>, public enable_create<TTrue<PropTag>> {
+protected:
+    using TTrueBase<PropTag>::TTrueBase;
 };
 
 template<>
-class TTrue<PropTag> : public TTrueBase<PropTag>, public enable_create< TTrue<PropTag> > {
+class TTrue<PredTag> : public TTrueBase<PredTag>, public enable_create<TTrue<PredTag>> {
+protected:
+    using TTrueBase<PredTag>::TTrueBase;
 };
 
 template<typename Tag>
-class TFalse : public TWff0<Tag>, public enable_create< TFalse<Tag> > {
+class TFalseBase : public TWff0<Tag>, public virtual_enable_shared_from_this<TFalseBase<Tag>> {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
@@ -224,6 +228,21 @@ private:
     static const RegisteredProver imp_not_rp;
     static const RegisteredProver subst_rp;
     static const RegisteredProver tseitin1_rp;
+};
+
+template<typename Tag>
+class TFalse;
+
+template<>
+class TFalse<PropTag> : public TFalseBase<PropTag>, public enable_create<TFalse<PropTag>> {
+protected:
+    using TFalseBase<PropTag>::TFalseBase;
+};
+
+template<>
+class TFalse<PredTag> : public TFalseBase<PredTag>, public enable_create<TFalse<PredTag>> {
+protected:
+    using TFalseBase<PredTag>::TFalseBase;
 };
 
 template<typename Tag>
@@ -269,7 +288,7 @@ private:
 };
 
 template<typename Tag>
-class TNot : public TWff1<Tag>, public enable_create< TNot<Tag> > {
+class TNotBase : public TWff1<Tag>, public virtual_enable_shared_from_this< TNotBase<Tag> > {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
@@ -299,7 +318,22 @@ private:
 };
 
 template<typename Tag>
-class TImp : public TWff2<Tag>, public enable_create< TImp<Tag> > {
+class TNot;
+
+template<>
+class TNot<PropTag> : public TNotBase<PropTag>, public enable_create<TNot<PropTag>> {
+protected:
+    using TNotBase<PropTag>::TNotBase;
+};
+
+template<>
+class TNot<PredTag> : public TNotBase<PredTag>, public enable_create<TNot<PredTag>> {
+protected:
+    using TNotBase<PredTag>::TNotBase;
+};
+
+template<typename Tag>
+class TImpBase : public TWff2<Tag>, public virtual_enable_shared_from_this< TImpBase<Tag> > {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
@@ -334,7 +368,22 @@ private:
 };
 
 template<typename Tag>
-class TBiimp : public TWff2<Tag>, public ConvertibleTWff<Tag>, public enable_create< TBiimp<Tag> > {
+class TImp;
+
+template<>
+class TImp<PropTag> : public TImpBase<PropTag>, public enable_create<TImp<PropTag>> {
+protected:
+    using TImpBase<PropTag>::TImpBase;
+};
+
+template<>
+class TImp<PredTag> : public TImpBase<PredTag>, public enable_create<TImp<PredTag>> {
+protected:
+    using TImpBase<PredTag>::TImpBase;
+};
+
+template<typename Tag>
+class TBiimpBase : public TWff2<Tag>, public ConvertibleTWff<Tag>, public virtual_enable_shared_from_this< TBiimpBase<Tag> > {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
@@ -360,7 +409,22 @@ private:
 };
 
 template<typename Tag>
-class TAnd : public TWff2<Tag>, public ConvertibleTWff<Tag>, public enable_create< TAnd<Tag> > {
+class TBiimp;
+
+template<>
+class TBiimp<PropTag> : public TBiimpBase<PropTag>, public enable_create<TBiimp<PropTag>> {
+protected:
+    using TBiimpBase<PropTag>::TBiimpBase;
+};
+
+template<>
+class TBiimp<PredTag> : public TBiimpBase<PredTag>, public enable_create<TBiimp<PredTag>> {
+protected:
+    using TBiimpBase<PredTag>::TBiimpBase;
+};
+
+template<typename Tag>
+class TAndBase : public TWff2<Tag>, public ConvertibleTWff<Tag>, public virtual_enable_shared_from_this< TAndBase<Tag> > {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
@@ -385,7 +449,22 @@ private:
 };
 
 template<typename Tag>
-class TOr : public TWff2<Tag>, public ConvertibleTWff<Tag>, public enable_create< TOr<Tag> > {
+class TAnd;
+
+template<>
+class TAnd<PropTag> : public TAndBase<PropTag>, public enable_create<TAnd<PropTag>> {
+protected:
+    using TAndBase<PropTag>::TAndBase;
+};
+
+template<>
+class TAnd<PredTag> : public TAndBase<PredTag>, public enable_create<TAnd<PredTag>> {
+protected:
+    using TAndBase<PredTag>::TAndBase;
+};
+
+template<typename Tag>
+class TOrBase : public TWff2<Tag>, public ConvertibleTWff<Tag>, public virtual_enable_shared_from_this< TOrBase<Tag> > {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
@@ -410,7 +489,22 @@ private:
 };
 
 template<typename Tag>
-class TNand : public TWff2<Tag>, public ConvertibleTWff<Tag>, public enable_create< TNand<Tag> > {
+class TOr;
+
+template<>
+class TOr<PropTag> : public TOrBase<PropTag>, public enable_create<TOr<PropTag>> {
+protected:
+    using TOrBase<PropTag>::TOrBase;
+};
+
+template<>
+class TOr<PredTag> : public TOrBase<PredTag>, public enable_create<TOr<PredTag>> {
+protected:
+    using TOrBase<PredTag>::TOrBase;
+};
+
+template<typename Tag>
+class TNandBase : public TWff2<Tag>, public ConvertibleTWff<Tag>, public virtual_enable_shared_from_this< TNandBase<Tag> > {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
@@ -435,7 +529,22 @@ private:
 };
 
 template<typename Tag>
-class TXor : public TWff2<Tag>, public ConvertibleTWff<Tag>, public enable_create< TXor<Tag> > {
+class TNand;
+
+template<>
+class TNand<PropTag> : public TNandBase<PropTag>, public enable_create<TNand<PropTag>> {
+protected:
+    using TNandBase<PropTag>::TNandBase;
+};
+
+template<>
+class TNand<PredTag> : public TNandBase<PredTag>, public enable_create<TNand<PredTag>> {
+protected:
+    using TNandBase<PredTag>::TNandBase;
+};
+
+template<typename Tag>
+class TXorBase : public TWff2<Tag>, public ConvertibleTWff<Tag>, public virtual_enable_shared_from_this< TXorBase<Tag> > {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
@@ -461,7 +570,22 @@ private:
 };
 
 template<typename Tag>
-class TAnd3 : public TWff3<Tag>, public ConvertibleTWff<Tag>, public enable_create< TAnd3<Tag> > {
+class TXor;
+
+template<>
+class TXor<PropTag> : public TXorBase<PropTag>, public enable_create<TXor<PropTag>> {
+protected:
+    using TXorBase<PropTag>::TXorBase;
+};
+
+template<>
+class TXor<PredTag> : public TXorBase<PredTag>, public enable_create<TXor<PredTag>> {
+protected:
+    using TXorBase<PredTag>::TXorBase;
+};
+
+template<typename Tag>
+class TAnd3Base : public TWff3<Tag>, public ConvertibleTWff<Tag>, public virtual_enable_shared_from_this< TAnd3Base<Tag> > {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
@@ -489,7 +613,22 @@ private:
 };
 
 template<typename Tag>
-class TOr3 : public TWff3<Tag>, public ConvertibleTWff<Tag>, public enable_create< TOr3<Tag> > {
+class TAnd3;
+
+template<>
+class TAnd3<PropTag> : public TAnd3Base<PropTag>, public enable_create<TAnd3<PropTag>> {
+protected:
+    using TAnd3Base<PropTag>::TAnd3Base;
+};
+
+template<>
+class TAnd3<PredTag> : public TAnd3Base<PredTag>, public enable_create<TAnd3<PredTag>> {
+protected:
+    using TAnd3Base<PredTag>::TAnd3Base;
+};
+
+template<typename Tag>
+class TOr3Base : public TWff3<Tag>, public ConvertibleTWff<Tag>, public virtual_enable_shared_from_this< TOr3Base<Tag> > {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
@@ -514,6 +653,21 @@ private:
     static const RegisteredProver tseitin4_rp;
     static const RegisteredProver tseitin5_rp;
     static const RegisteredProver tseitin6_rp;
+};
+
+template<typename Tag>
+class TOr3;
+
+template<>
+class TOr3<PropTag> : public TOr3Base<PropTag>, public enable_create<TOr3<PropTag>> {
+protected:
+    using TOr3Base<PropTag>::TOr3Base;
+};
+
+template<>
+class TOr3<PredTag> : public TOr3Base<PredTag>, public enable_create<TOr3<PredTag>> {
+protected:
+    using TOr3Base<PredTag>::TOr3Base;
 };
 
 extern template class TWff<PropTag>;
