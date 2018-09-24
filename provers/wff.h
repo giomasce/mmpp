@@ -63,9 +63,6 @@ public:
 
     virtual ~TWffBase();
     virtual std::string to_string() const = 0;
-    virtual ptwff<Tag> imp_not_form() const = 0;
-    virtual ptwff<Tag> subst(ptvar<Tag> var, bool positive) const = 0;
-    virtual void get_variables(ptvar_set<Tag> &vars) const = 0;
     virtual bool operator==(const TWff<Tag> &x) const = 0;
     virtual std::vector< ptwff<Tag> > get_children() const = 0;
 
@@ -75,13 +72,16 @@ public:
     virtual Prover< CheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
     virtual bool is_false() const;
     virtual Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
-    virtual Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
-    virtual Prover< CheckpointedProofEngine > get_subst_prover(ptvar<Tag> var, bool positive, const LibraryToolbox &tb) const;
 };
 
 template<>
 class TWff<PropTag> : public TWffBase<PropTag> {
 public:
+    virtual Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const;
+    virtual ptwff<Tag> imp_not_form() const = 0;
+    virtual Prover< CheckpointedProofEngine > get_subst_prover(ptvar<Tag> var, bool positive, const LibraryToolbox &tb) const;
+    virtual ptwff<Tag> subst(ptvar<Tag> var, bool positive) const = 0;
+    virtual void get_variables(ptvar_set<Tag> &vars) const = 0;
     virtual void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff &glob_ctx) const = 0;
 
     ptvar<Tag> get_tseitin_var(const LibraryToolbox &tb) const;
@@ -107,7 +107,10 @@ class TWff<PredTag> : public TWffBase<PredTag> {
  * @brief A generic TWff that uses the imp_not form to provide truth and falsity.
  */
 template<typename Tag>
-class ConvertibleTWff : public virtual TWff<Tag> {
+class ConvertibleTWff;
+
+template<>
+class ConvertibleTWff<PropTag> : public virtual TWff<PropTag> {
 public:
     ptwff<Tag> subst(ptvar<Tag> var, bool positive) const override;
     Prover< CheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const override;
@@ -118,6 +121,10 @@ public:
 private:
     static const RegisteredProver truth_rp;
     static const RegisteredProver falsity_rp;
+};
+
+template<>
+class ConvertibleTWff<PredTag> : public virtual TWff<PredTag> {
 };
 
 template<typename Tag>
@@ -175,25 +182,18 @@ protected:
 };
 
 template<typename Tag>
-class TTrueBase : public TWff0<Tag>, public virtual_enable_shared_from_this<TTrueBase<Tag>> {
+class TTrueBase : public TWff0<Tag> {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
-    ptwff<Tag> imp_not_form() const override;
-    ptwff<Tag> subst(ptvar<Tag> var, bool positive) const override;
-    void get_variables(ptvar_set<Tag> &vars) const override;
     Prover< CheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const override;
     bool is_true() const override;
     Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
-    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
-    Prover< CheckpointedProofEngine > get_subst_prover(ptvar<Tag> var, bool positive, const LibraryToolbox &tb) const override;
     bool operator==(const TWff<Tag> &x) const override;
 
 private:
     static const RegisteredProver truth_rp;
     static const RegisteredProver type_rp;
-    static const RegisteredProver imp_not_rp;
-    static const RegisteredProver subst_rp;
 };
 
 template<typename Tag>
@@ -203,11 +203,18 @@ template<>
 class TTrue<PropTag> : public TTrueBase<PropTag>, public enable_create<TTrue<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
+    ptwff<Tag> imp_not_form() const override;
+    ptwff<Tag> subst(ptvar<Tag> var, bool positive) const override;
+    void get_variables(ptvar_set<Tag> &vars) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+    Prover< CheckpointedProofEngine > get_subst_prover(ptvar<Tag> var, bool positive, const LibraryToolbox &tb) const override;
 
 protected:
     using TTrueBase<PropTag>::TTrueBase;
 
 private:
+    static const RegisteredProver imp_not_rp;
+    static const RegisteredProver subst_rp;
     static const RegisteredProver tseitin1_rp;
 };
 
@@ -218,25 +225,18 @@ protected:
 };
 
 template<typename Tag>
-class TFalseBase : public TWff0<Tag>, public virtual_enable_shared_from_this<TFalseBase<Tag>> {
+class TFalseBase : public TWff0<Tag> {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
-    ptwff<Tag> imp_not_form() const override;
-    ptwff<Tag> subst(ptvar<Tag> var, bool positive) const override;
-    void get_variables(ptvar_set<Tag> &vars) const override;
     Prover< CheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const override;
     bool is_false() const override;
     Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
-    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
-    Prover< CheckpointedProofEngine > get_subst_prover(ptvar<Tag> var, bool positive, const LibraryToolbox &tb) const override;
     bool operator==(const TWff<Tag> &x) const override;
 
 private:
     static const RegisteredProver falsity_rp;
     static const RegisteredProver type_rp;
-    static const RegisteredProver imp_not_rp;
-    static const RegisteredProver subst_rp;
 };
 
 template<typename Tag>
@@ -246,11 +246,18 @@ template<>
 class TFalse<PropTag> : public TFalseBase<PropTag>, public enable_create<TFalse<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
+    ptwff<Tag> imp_not_form() const override;
+    ptwff<Tag> subst(ptvar<Tag> var, bool positive) const override;
+    void get_variables(ptvar_set<Tag> &vars) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+    Prover< CheckpointedProofEngine > get_subst_prover(ptvar<Tag> var, bool positive, const LibraryToolbox &tb) const override;
 
 protected:
     using TFalseBase<PropTag>::TFalseBase;
 
 private:
+    static const RegisteredProver imp_not_rp;
+    static const RegisteredProver subst_rp;
     static const RegisteredProver tseitin1_rp;
 };
 
@@ -305,28 +312,16 @@ private:
     static const RegisteredProver subst_indep_rp;
 };
 
-// FIXME Remove this
-template<>
-class TVar<PredTag> : public TWff0<PredTag>, public enable_create<TVar<PredTag>> {
-public:
-    bool operator<(const TVar &x) const { (void) x; return false; }
-};
-
 template<typename Tag>
-class TNotBase : public TWff1<Tag>, public virtual_enable_shared_from_this< TNotBase<Tag> > {
+class TNotBase : public TWff1<Tag> {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
-    ptwff<Tag> imp_not_form() const override;
-    ptwff<Tag> subst(ptvar<Tag> var, bool positive) const override;
-    void get_variables(ptvar_set<Tag> &vars) const override;
     Prover< CheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const override;
     bool is_true() const override;
     Prover< CheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const override;
     bool is_false() const override;
     Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
-    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
-    Prover< CheckpointedProofEngine > get_subst_prover(ptvar<Tag> var, bool positive, const LibraryToolbox &tb) const override;
     bool operator==(const TWff<Tag> &x) const override;
 
 protected:
@@ -335,8 +330,6 @@ protected:
 private:
   static const RegisteredProver falsity_rp;
   static const RegisteredProver type_rp;
-  static const RegisteredProver imp_not_rp;
-  static const RegisteredProver subst_rp;
 };
 
 template<typename Tag>
@@ -346,11 +339,18 @@ template<>
 class TNot<PropTag> : public TNotBase<PropTag>, public enable_create<TNot<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
+    ptwff<Tag> imp_not_form() const override;
+    ptwff<Tag> subst(ptvar<Tag> var, bool positive) const override;
+    void get_variables(ptvar_set<Tag> &vars) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+    Prover< CheckpointedProofEngine > get_subst_prover(ptvar<Tag> var, bool positive, const LibraryToolbox &tb) const override;
 
 protected:
     using TNotBase<PropTag>::TNotBase;
 
 private:
+    static const RegisteredProver imp_not_rp;
+    static const RegisteredProver subst_rp;
     static const RegisteredProver tseitin1_rp;
     static const RegisteredProver tseitin2_rp;
 };
@@ -362,20 +362,15 @@ protected:
 };
 
 template<typename Tag>
-class TImpBase : public TWff2<Tag>, public virtual_enable_shared_from_this< TImpBase<Tag> > {
+class TImpBase : public TWff2<Tag> {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
-    ptwff<Tag> imp_not_form() const override;
-    ptwff<Tag> subst(ptvar<Tag> var, bool positive) const override;
-    void get_variables(ptvar_set<Tag> &vars) const override;
     Prover< CheckpointedProofEngine > get_truth_prover(const LibraryToolbox &tb) const override;
     bool is_true() const override;
     Prover< CheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const override;
     bool is_false() const override;
     Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
-    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
-    Prover< CheckpointedProofEngine > get_subst_prover(ptvar<Tag> var, bool positive, const LibraryToolbox &tb) const override;
     bool operator==(const TWff<Tag> &x) const override;
 
 protected:
@@ -388,8 +383,6 @@ private:
   static const RegisteredProver falsity_2_rp;
   static const RegisteredProver falsity_3_rp;
   static const RegisteredProver type_rp;
-  static const RegisteredProver imp_not_rp;
-  static const RegisteredProver subst_rp;
 };
 
 template<typename Tag>
@@ -399,11 +392,18 @@ template<>
 class TImp<PropTag> : public TImpBase<PropTag>, public enable_create<TImp<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
+    ptwff<Tag> imp_not_form() const override;
+    ptwff<Tag> subst(ptvar<Tag> var, bool positive) const override;
+    void get_variables(ptvar_set<Tag> &vars) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
+    Prover< CheckpointedProofEngine > get_subst_prover(ptvar<Tag> var, bool positive, const LibraryToolbox &tb) const override;
 
 protected:
     using TImpBase<PropTag>::TImpBase;
 
 private:
+    static const RegisteredProver imp_not_rp;
+    static const RegisteredProver subst_rp;
     static const RegisteredProver tseitin1_rp;
     static const RegisteredProver tseitin2_rp;
     static const RegisteredProver tseitin3_rp;
@@ -416,15 +416,11 @@ protected:
 };
 
 template<typename Tag>
-class TBiimpBase : public TWff2<Tag>, public ConvertibleTWff<Tag>, public virtual_enable_shared_from_this< TBiimpBase<Tag> > {
+class TBiimpBase : public TWff2<Tag>, public ConvertibleTWff<Tag> {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
-    ptwff<Tag> imp_not_form() const override;
-    ptwff<Tag> half_imp_not_form() const;
-    void get_variables(ptvar_set<Tag> &vars) const override;
     Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
-    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
     bool operator==(const TWff<Tag> &x) const override;
 
 protected:
@@ -432,8 +428,6 @@ protected:
 
 private:
   static const RegisteredProver type_rp;
-  static const RegisteredProver imp_not_1_rp;
-  static const RegisteredProver imp_not_2_rp;
 };
 
 template<typename Tag>
@@ -443,11 +437,17 @@ template<>
 class TBiimp<PropTag> : public TBiimpBase<PropTag>, public enable_create<TBiimp<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
+    ptwff<Tag> imp_not_form() const override;
+    ptwff<Tag> half_imp_not_form() const;
+    void get_variables(ptvar_set<Tag> &vars) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
 
 protected:
     using TBiimpBase<PropTag>::TBiimpBase;
 
 private:
+    static const RegisteredProver imp_not_1_rp;
+    static const RegisteredProver imp_not_2_rp;
     static const RegisteredProver tseitin1_rp;
     static const RegisteredProver tseitin2_rp;
     static const RegisteredProver tseitin3_rp;
@@ -461,15 +461,11 @@ protected:
 };
 
 template<typename Tag>
-class TAndBase : public TWff2<Tag>, public ConvertibleTWff<Tag>, public virtual_enable_shared_from_this< TAndBase<Tag> > {
+class TAndBase : public TWff2<Tag>, public ConvertibleTWff<Tag> {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
-    ptwff<Tag> imp_not_form() const override;
-  ptwff<Tag> half_imp_not_form() const;
-  void get_variables(ptvar_set<Tag> &vars) const override;
   Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
-  Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
   bool operator==(const TWff<Tag> &x) const override;
 
 protected:
@@ -477,8 +473,6 @@ protected:
 
 private:
   static const RegisteredProver type_rp;
-  static const RegisteredProver imp_not_1_rp;
-  static const RegisteredProver imp_not_2_rp;
 };
 
 template<typename Tag>
@@ -488,11 +482,17 @@ template<>
 class TAnd<PropTag> : public TAndBase<PropTag>, public enable_create<TAnd<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
+    ptwff<Tag> imp_not_form() const override;
+    ptwff<Tag> half_imp_not_form() const;
+    void get_variables(ptvar_set<Tag> &vars) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
 
 protected:
     using TAndBase<PropTag>::TAndBase;
 
 private:
+    static const RegisteredProver imp_not_1_rp;
+    static const RegisteredProver imp_not_2_rp;
     static const RegisteredProver tseitin1_rp;
     static const RegisteredProver tseitin2_rp;
     static const RegisteredProver tseitin3_rp;
@@ -505,15 +505,11 @@ protected:
 };
 
 template<typename Tag>
-class TOrBase : public TWff2<Tag>, public ConvertibleTWff<Tag>, public virtual_enable_shared_from_this< TOrBase<Tag> > {
+class TOrBase : public TWff2<Tag>, public ConvertibleTWff<Tag> {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
-    ptwff<Tag> imp_not_form() const override;
-    ptwff<Tag> half_imp_not_form() const;
-    void get_variables(ptvar_set<Tag> &vars) const override;
     Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
-    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
     bool operator==(const TWff<Tag> &x) const override;
 
 protected:
@@ -521,8 +517,6 @@ protected:
 
 private:
   static const RegisteredProver type_rp;
-  static const RegisteredProver imp_not_1_rp;
-  static const RegisteredProver imp_not_2_rp;
 };
 
 template<typename Tag>
@@ -532,11 +526,17 @@ template<>
 class TOr<PropTag> : public TOrBase<PropTag>, public enable_create<TOr<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
+    ptwff<Tag> imp_not_form() const override;
+    ptwff<Tag> half_imp_not_form() const;
+    void get_variables(ptvar_set<Tag> &vars) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
 
 protected:
     using TOrBase<PropTag>::TOrBase;
 
 private:
+    static const RegisteredProver imp_not_1_rp;
+    static const RegisteredProver imp_not_2_rp;
     static const RegisteredProver tseitin1_rp;
     static const RegisteredProver tseitin2_rp;
     static const RegisteredProver tseitin3_rp;
@@ -549,15 +549,11 @@ protected:
 };
 
 template<typename Tag>
-class TNandBase : public TWff2<Tag>, public ConvertibleTWff<Tag>, public virtual_enable_shared_from_this< TNandBase<Tag> > {
+class TNandBase : public TWff2<Tag>, public ConvertibleTWff<Tag> {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
-    ptwff<Tag> imp_not_form() const override;
-    ptwff<Tag> half_imp_not_form() const;
-    void get_variables(ptvar_set<Tag> &vars) const override;
     Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
-    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
     bool operator==(const TWff<Tag> &x) const override;
 
 protected:
@@ -565,8 +561,6 @@ protected:
 
 private:
   static const RegisteredProver type_rp;
-  static const RegisteredProver imp_not_1_rp;
-  static const RegisteredProver imp_not_2_rp;
 };
 
 template<typename Tag>
@@ -576,11 +570,17 @@ template<>
 class TNand<PropTag> : public TNandBase<PropTag>, public enable_create<TNand<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
+    ptwff<Tag> imp_not_form() const override;
+    ptwff<Tag> half_imp_not_form() const;
+    void get_variables(ptvar_set<Tag> &vars) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
 
 protected:
     using TNandBase<PropTag>::TNandBase;
 
 private:
+    static const RegisteredProver imp_not_1_rp;
+    static const RegisteredProver imp_not_2_rp;
     static const RegisteredProver tseitin1_rp;
     static const RegisteredProver tseitin2_rp;
     static const RegisteredProver tseitin3_rp;
@@ -593,15 +593,11 @@ protected:
 };
 
 template<typename Tag>
-class TXorBase : public TWff2<Tag>, public ConvertibleTWff<Tag>, public virtual_enable_shared_from_this< TXorBase<Tag> > {
+class TXorBase : public TWff2<Tag>, public ConvertibleTWff<Tag> {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
-    ptwff<Tag> imp_not_form() const override;
-    ptwff<Tag> half_imp_not_form() const;
-    void get_variables(ptvar_set<Tag> &vars) const override;
     Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
-    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
     bool operator==(const TWff<Tag> &x) const override;
 
 protected:
@@ -609,8 +605,6 @@ protected:
 
 private:
   static const RegisteredProver type_rp;
-  static const RegisteredProver imp_not_1_rp;
-  static const RegisteredProver imp_not_2_rp;
 };
 
 template<typename Tag>
@@ -620,11 +614,17 @@ template<>
 class TXor<PropTag> : public TXorBase<PropTag>, public enable_create<TXor<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
+    ptwff<Tag> imp_not_form() const override;
+    ptwff<Tag> half_imp_not_form() const;
+    void get_variables(ptvar_set<Tag> &vars) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
 
 protected:
     using TXorBase<PropTag>::TXorBase;
 
 private:
+    static const RegisteredProver imp_not_1_rp;
+    static const RegisteredProver imp_not_2_rp;
     static const RegisteredProver tseitin1_rp;
     static const RegisteredProver tseitin2_rp;
     static const RegisteredProver tseitin3_rp;
@@ -638,15 +638,11 @@ protected:
 };
 
 template<typename Tag>
-class TAnd3Base : public TWff3<Tag>, public ConvertibleTWff<Tag>, public virtual_enable_shared_from_this< TAnd3Base<Tag> > {
+class TAnd3Base : public TWff3<Tag>, public ConvertibleTWff<Tag> {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
-    ptwff<Tag> imp_not_form() const override;
-    ptwff<Tag> half_imp_not_form() const;
-    void get_variables(ptvar_set<Tag> &vars) const override;
     Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
-    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
     bool operator==(const TWff<Tag> &x) const override;
 
 protected:
@@ -654,8 +650,6 @@ protected:
 
 private:
     static const RegisteredProver type_rp;
-    static const RegisteredProver imp_not_1_rp;
-    static const RegisteredProver imp_not_2_rp;
 };
 
 template<typename Tag>
@@ -665,11 +659,17 @@ template<>
 class TAnd3<PropTag> : public TAnd3Base<PropTag>, public enable_create<TAnd3<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
+    ptwff<Tag> imp_not_form() const override;
+    ptwff<Tag> half_imp_not_form() const;
+    void get_variables(ptvar_set<Tag> &vars) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
 
 protected:
     using TAnd3Base<PropTag>::TAnd3Base;
 
 private:
+    static const RegisteredProver imp_not_1_rp;
+    static const RegisteredProver imp_not_2_rp;
     static const RegisteredProver tseitin1_rp;
     static const RegisteredProver tseitin2_rp;
     static const RegisteredProver tseitin3_rp;
@@ -685,15 +685,11 @@ protected:
 };
 
 template<typename Tag>
-class TOr3Base : public TWff3<Tag>, public ConvertibleTWff<Tag>, public virtual_enable_shared_from_this< TOr3Base<Tag> > {
+class TOr3Base : public TWff3<Tag>, public ConvertibleTWff<Tag> {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
-    ptwff<Tag> imp_not_form() const override;
-    ptwff<Tag> half_imp_not_form() const;
-    void get_variables(ptvar_set<Tag> &vars) const override;
     Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
-    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
     bool operator==(const TWff<Tag> &x) const override;
 
 protected:
@@ -701,8 +697,6 @@ protected:
 
 private:
     static const RegisteredProver type_rp;
-    static const RegisteredProver imp_not_1_rp;
-    static const RegisteredProver imp_not_2_rp;
 };
 
 template<typename Tag>
@@ -712,11 +706,17 @@ template<>
 class TOr3<PropTag> : public TOr3Base<PropTag>, public enable_create<TOr3<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
+    ptwff<Tag> imp_not_form() const override;
+    ptwff<Tag> half_imp_not_form() const;
+    void get_variables(ptvar_set<Tag> &vars) const override;
+    Prover< CheckpointedProofEngine > get_imp_not_prover(const LibraryToolbox &tb) const override;
 
 protected:
     using TOr3Base<PropTag>::TOr3Base;
 
 private:
+    static const RegisteredProver imp_not_1_rp;
+    static const RegisteredProver imp_not_2_rp;
     static const RegisteredProver tseitin1_rp;
     static const RegisteredProver tseitin2_rp;
     static const RegisteredProver tseitin3_rp;
@@ -741,7 +741,7 @@ public:
 protected:
     TWffQuant() = delete;
     //TWffQuant(LabTok var, ptwff<Tag> a) : var(var), a(a) {}
-    TWffQuant(LabTok var, ptwff<Tag> a, const LibraryToolbox &tb) : var(var), a(a), var_string(tb.resolve_symbol(tb.get_var_lab_to_sym(var))) {}
+    TWffQuant(LabTok var, ptwff<Tag> a, const LibraryToolbox &tb) : var(var), var_string(tb.resolve_symbol(tb.get_var_lab_to_sym(var))), a(a) {}
 
 protected:
     LabTok var;
