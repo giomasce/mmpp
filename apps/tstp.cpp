@@ -290,7 +290,7 @@ bool recognize(const ParsingTree< SymTok, LabTok > &pt, const std::string &model
     bool ret;
     std::tie(ret, subst) = unif.unify();
     if (ret) {
-        for (const auto var : model_vars) {
+        for (const auto &var : model_vars) {
             ParsingTree< SymTok, LabTok > pt_var;
             pt_var.label = var;
             pt_var.type = tb.get_var_lab_to_type_sym(var);
@@ -353,7 +353,7 @@ void convert_to_tstp(const ParsingTree< SymTok, LabTok > &pt, std::ostream &st, 
         if (!set_vars.empty()) {
             st << "(";
             bool first = true;
-            for (const auto x : set_vars) {
+            for (const auto &x : set_vars) {
                 if (first) {
                     first = false;
                 } else {
@@ -364,7 +364,7 @@ void convert_to_tstp(const ParsingTree< SymTok, LabTok > &pt, std::ostream &st, 
             st << ")";
         }
     } else {
-        assert(!"Should not arrive here");
+        throw MMPPException("Unknown syntax construct");
     }
 }
 
@@ -455,7 +455,7 @@ struct ReconstructFOF {
             }
             return pt;
         } else {
-            assert(!"Operator unknown");
+            throw MMPPException("Unknown syntax construct");
         }
     }
 };

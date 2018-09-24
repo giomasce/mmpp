@@ -163,7 +163,7 @@ ParsingTree< SymTok, LabTok > expr_to_pt(const z3::expr &e, const LibraryToolbox
                 ret = substitute(ret, tb.get_standard_is_var(), subst);
                 return ret;
             }
-            break; }
+            }
         default:
             throw "Cannot handle this formula";
         }
@@ -218,9 +218,6 @@ void scan_proof(const z3::expr &e, const LibraryToolbox &tb, int depth = 0) {
         z3::func_decl decl = e.decl();
         auto num_args = e.num_args();
         auto arity = decl.arity();
-#ifdef NDEBUG
-        (void) arity;
-#endif
         Z3_decl_kind kind = decl.decl_kind();
 
         if (Z3_OP_PR_UNDEF <= kind && kind < Z3_OP_PR_UNDEF + 0x100) {
@@ -230,6 +227,8 @@ void scan_proof(const z3::expr &e, const LibraryToolbox &tb, int depth = 0) {
 #ifdef VERBOSE_Z3
             std::cout << std::string(depth, ' ');
             std::cout << "Declaration: " << decl << " of arity " << arity << " and args num " << num_args << ": " << tb.print_sentence(thesis_pt) << std::endl;
+#else
+            (void) arity;
 #endif
 
             /*switch (kind) {
@@ -265,7 +264,7 @@ static bool recognize(const ParsingTree< SymTok, LabTok > &pt, const std::string
     bool ret;
     std::tie(ret, subst) = unif.unify();
     if (ret) {
-        for (const auto var : model_vars) {
+        for (const auto &var : model_vars) {
             ParsingTree< SymTok, LabTok > pt_var;
             pt_var.label = var;
             pt_var.type = tb.get_var_lab_to_type_sym(var);
@@ -316,14 +315,14 @@ z3::expr convert_to_z3(const ParsingTree< SymTok, LabTok > &pt, const LibraryToo
     } else if (recognize(pt, "wff ph", tb, subst)) {
         z3::sort_vector sorts(ctx);
         z3::expr_vector args(ctx);
-        for (const auto x : set_vars) {
+        for (const auto &x : set_vars) {
             sorts.push_back(set_sort);
             args.push_back(ctx.constant(tb.resolve_symbol(tb.get_var_lab_to_sym(x)).c_str(), set_sort));
         }
         auto func = ctx.function(tb.resolve_symbol(tb.get_var_lab_to_sym(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))).label)).c_str(), sorts, ctx.bool_sort());
         return func(args);
     } else {
-        assert(!"Should not arrive here");
+        throw MMPPException("Unknown syntax construct");
     }
 }
 

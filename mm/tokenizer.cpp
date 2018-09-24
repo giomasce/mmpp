@@ -54,7 +54,7 @@ void FileTokenizer::set_file_size()
     this->filesize = this->fin.tellg();
     this->fin.seekg(pos, std::ios_base::beg);
     if (this->reportable != nullptr && this->filesize > 0) {
-        this->reportable->set_total((double) this->filesize);
+        this->reportable->set_total(static_cast<double>(this->filesize));
     }
 }
 
@@ -64,7 +64,7 @@ char FileTokenizer::get_char()
     this->fin.get(c);
     this->pos++;
     if (this->reportable != nullptr) {
-        this->reportable->report((double) this->pos);
+        this->reportable->report(static_cast<double>(this->pos));
     }
     return c;
 }
