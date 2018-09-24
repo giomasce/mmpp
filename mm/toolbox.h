@@ -29,6 +29,8 @@ template< typename Engine >
 using Prover = std::function< bool(Engine&) >;
 const Prover< ProofEngine > null_prover = [](ProofEngine&){ return false; };
 
+Prover<ProofEngine> trivial_prover(LabTok label);
+
 struct SentencePrinter {
     enum Style {
         STYLE_PLAIN,

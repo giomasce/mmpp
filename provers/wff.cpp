@@ -46,13 +46,6 @@ bool TWffBase<Tag>::is_false() const
     return false;
 }
 
-template<typename Tag>
-Prover<CheckpointedProofEngine> TWffBase<Tag>::get_type_prover(const LibraryToolbox &tb) const
-{
-    (void) tb;
-    return null_prover;
-}
-
 Prover<CheckpointedProofEngine> TWff<PropTag>::get_imp_not_prover(const LibraryToolbox &tb) const
 {
     (void) tb;
@@ -1165,6 +1158,10 @@ bool TForall<PredTag>::operator==(const TWff<Tag> &x) const {
     }
 }
 
+Prover<CheckpointedProofEngine> TForall<PredTag>::get_type_prover(const LibraryToolbox &tb) const {
+    return tb.build_registered_prover< CheckpointedProofEngine >(TForall::type_rp, {{ "x", trivial_prover(this->var) }, { "ph", this->a->get_type_prover(tb) }}, {});
+}
+
 const RegisteredProver TForall<PredTag>::type_rp = LibraryToolbox::register_prover({}, "wff A. x ph");
 
 std::string TExists<PredTag>::to_string() const
@@ -1180,7 +1177,31 @@ bool TExists<PredTag>::operator==(const TWff<Tag> &x) const {
         return this->var == px->var && *this->get_a() == *px->get_a();
     }
 }
+
+Prover<CheckpointedProofEngine> TExists<PredTag>::get_type_prover(const LibraryToolbox &tb) const {
+    return tb.build_registered_prover< CheckpointedProofEngine >(TExists::type_rp, {{ "x", trivial_prover(this->var) }, { "ph", this->a->get_type_prover(tb) }}, {});
+}
+
 const RegisteredProver TExists<PredTag>::type_rp = LibraryToolbox::register_prover({}, "wff E. x ph");
+
+std::string TTerm<PredTag>::to_string() const {
+    return this->pred_string;
+}
+
+bool TTerm<PredTag>::operator==(const TWff<Tag> &x) const
+{
+    auto px = dynamic_cast<const TTerm*>(&x);
+    if (px == nullptr) {
+        return false;
+    } else {
+        return this->pred == px->pred;
+    }
+}
+
+Prover<CheckpointedProofEngine> TTerm<PredTag>::get_type_prover(const LibraryToolbox &tb) const {
+    (void) tb;
+    return trivial_prover(this->pred);
+}
 
 template class TWffBase<PropTag>;
 template class TWffBase<PredTag>;
@@ -1233,7 +1254,9 @@ bool wff_from_pt_int<PredTag>(ptwff<PredTag> &ret, const ParsingTree<SymTok, Lab
         ret = TExists<PredTag>::create(pt.children[0].label, wff_from_pt<PredTag>(pt.children[1], tb), tb);
         return true;
     } else {
-        return false;
+        assert(pt.children.empty());
+        ret = TTerm<PredTag>::create(pt.label, tb);
+        return true;
     }
 }
 

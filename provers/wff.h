@@ -71,7 +71,7 @@ public:
     virtual bool is_true() const;
     virtual Prover< CheckpointedProofEngine > get_falsity_prover(const LibraryToolbox &tb) const;
     virtual bool is_false() const;
-    virtual Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const;
+    virtual Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const = 0;
 };
 
 template<>
@@ -758,6 +758,7 @@ class TForall<PredTag> : public TWffQuant<PredTag>, public enable_create<TForall
 public:
     std::string to_string() const override;
     bool operator==(const TWff<Tag> &x) const override;
+    Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
 
 protected:
     using TWffQuant<PredTag>::TWffQuant;
@@ -775,12 +776,32 @@ class TExists<PredTag> : public TWffQuant<PredTag>, public enable_create<TExists
 public:
     std::string to_string() const override;
     bool operator==(const TWff<Tag> &x) const override;
+    Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
 
 protected:
     using TWffQuant<PredTag>::TWffQuant;
 
 private:
     static const RegisteredProver type_rp;
+};
+
+template<typename Tag>
+class TTerm;
+
+template<>
+class TTerm<PredTag> : public TWff0<PredTag>, public enable_create<TTerm<PredTag>> {
+    friend bool wff_from_pt_int<PredTag>(ptwff<PredTag> &ret, const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
+public:
+    std::string to_string() const override;
+    bool operator==(const TWff<Tag> &x) const override;
+    Prover< CheckpointedProofEngine > get_type_prover(const LibraryToolbox &tb) const override;
+
+protected:
+    TTerm(LabTok pred, const LibraryToolbox &tb) : pred(pred), pred_string(tb.resolve_symbol(tb.get_var_lab_to_sym(pred))) {}
+
+private:
+    LabTok pred;
+    std::string pred_string;
 };
 
 extern template class TWffBase<PropTag>;

@@ -1200,3 +1200,10 @@ std::string ProofPrinter::to_string() const
     buf << *this;
     return buf.str();
 }
+
+Prover<ProofEngine> trivial_prover(LabTok label) {
+    return [label](ProofEngine &e) {
+        e.process_label(label);
+        return true;
+    };
+}
