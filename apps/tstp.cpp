@@ -1,6 +1,7 @@
 
 #include <unordered_map>
 #include <string>
+#include <sstream>
 
 #include <boost/format.hpp>
 #include <boost/functional/hash.hpp>
@@ -72,13 +73,15 @@ struct hash< TSTPToken > {
 };
 }
 
+static_assert(static_cast<unsigned int>(std::numeric_limits<unsigned char>::max()) < 0x100, "I need unsigned char to be < 0x100");
+
 enum TSTPRule {
     RULE_NONE = 0,
     RULE_CHAR_IS_LETTER = 0x100,
     RULE_CHAR_IS_WHITESPACE = 0x200,
     RULE_LINE = 0x300,
     RULE_LETTER_IS_ID,
-    RULE_ID_AND_LETTER_IS_ID,
+    RULE_LETTER_AND_ID_IS_ID,
 
     RULE_ID_IS_TERM,
     RULE_TERM_IS_ARGLIST,
@@ -140,16 +143,42 @@ void make_rule(std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, std
     ders[type].push_back(std::make_pair(rule, tokens));
 }
 
+char letter_to_char(const ParsingTree<TSTPToken, TSTPRule> &pt) {
+    assert(pt.type == sym_tok(TSTPTokenType::LETTER));
+    int diff = pt.label - RULE_CHAR_IS_LETTER;
+    assert(0 <= diff && diff < 0x100);
+    return static_cast<char>(diff);
+}
+
+std::string reconstruct_id(const ParsingTree<TSTPToken, TSTPRule> &pt) {
+    assert(pt.type == sym_tok(TSTPTokenType::ID));
+    std::ostringstream ss;
+    const auto *cur = &pt;
+    while (true) {
+        if (cur->label == RULE_LETTER_IS_ID) {
+            assert(cur->children.size() == 1);
+            ss << letter_to_char(cur->children[0]);
+            return ss.str();
+        }
+        assert(cur->label == RULE_LETTER_AND_ID_IS_ID);
+        assert(cur->children.size() == 2);
+        ss << letter_to_char(cur->children[0]);
+        cur = &cur->children[1];
+    }
+}
+
 std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, std::vector<TSTPToken> > > > create_derivations() {
     std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, std::vector<TSTPToken> > > > ders;
     for (char c : ID_LETTERS) {
-        make_rule(ders, TSTPTokenType::LETTER, static_cast< TSTPRule >(RULE_CHAR_IS_LETTER+c), {char_tok(c)});
+        auto uc = static_cast<unsigned char>(c);
+        make_rule(ders, TSTPTokenType::LETTER, static_cast< TSTPRule >(RULE_CHAR_IS_LETTER+uc), {char_tok(c)});
     }
     for (char c : SPACE_LETTERS) {
-        make_rule(ders, TSTPTokenType::LETTER, static_cast< TSTPRule >(RULE_CHAR_IS_WHITESPACE+c), {char_tok(c)});
+        auto uc = static_cast<unsigned char>(c);
+        make_rule(ders, TSTPTokenType::LETTER, static_cast< TSTPRule >(RULE_CHAR_IS_WHITESPACE+uc), {char_tok(c)});
     }
     make_rule(ders, TSTPTokenType::ID, RULE_LETTER_IS_ID, {sym_tok(TSTPTokenType::LETTER)});
-    make_rule(ders, TSTPTokenType::ID, RULE_ID_AND_LETTER_IS_ID, {sym_tok(TSTPTokenType::ID), sym_tok(TSTPTokenType::LETTER)});
+    make_rule(ders, TSTPTokenType::ID, RULE_LETTER_AND_ID_IS_ID, {sym_tok(TSTPTokenType::LETTER), sym_tok(TSTPTokenType::ID)});
 
     // Rules for CNFs
     make_rule(ders, TSTPTokenType::TERM, RULE_ID_IS_TERM, {sym_tok(TSTPTokenType::ID)});
@@ -270,7 +299,8 @@ int parse_tstp_main(int argc, char *argv[]) {
     while (std::getline(std::cin, line)) {
         auto lexes = trivial_lexer(line);
         auto pt = parser.parse(lexes.begin(), lexes.end(), TSTPToken(TSTPTokenType::LINE));
-        std::cout << "Parsed as " << pt.label << std::endl;
+        std::cout << "Parsed as " << pt.label << ", with " << pt.children.size() << " children" << std::endl;
+        std::cout << "Id is " << reconstruct_id(pt.children[0]) << "\n";
     }
 
     return 0;
