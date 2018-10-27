@@ -161,11 +161,14 @@ std::vector<TSTPToken> trivial_lexer(std::string s) {
     return ret;
 }
 
+std::shared_ptr<Clause> Clause::reconstruct(const PT &pt)
+{
+
+}
+
 int parse_tstp_main(int argc, char *argv[]) {
     (void) argc;
     (void) argv;
-
-    using namespace gio::mmpp::tstp;
 
     auto ders = create_derivations();
     LRParser< TSTPToken, TSTPRule > parser(ders);

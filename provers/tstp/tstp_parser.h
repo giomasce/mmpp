@@ -78,7 +78,7 @@ namespace gio {
 namespace mmpp {
 namespace tstp {
 
-static_assert(::std::numeric_limits<unsigned char>::max() == 0xff, "I need unsigned char to be < 0x100");
+static_assert(::std::numeric_limits<unsigned char>::max() == 0xff, "I need byte-sized unsigned char");
 
 enum class TSTPRule {
     NONE = 0,
@@ -187,7 +187,7 @@ private:
 
 class Clause : public enable_create<Clause> {
 public:
-    static std::shared_ptr<Clause> parse_from(const PT &pt);
+    static std::shared_ptr<Clause> reconstruct(const PT &pt);
 
 protected:
     explicit Clause(const std::vector<std::pair<bool, std::shared_ptr<Atom>>> &literals) : literals(literals) {}
