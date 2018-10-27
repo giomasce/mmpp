@@ -134,6 +134,7 @@ std::unordered_map<Token, std::vector<std::pair<Rule, std::vector<Token> > > > c
     make_rule(ders, TokenType::EXPR, Rule::FUNC_APP_IS_EXPR, {sym_tok(TokenType::ID), char_tok('('), sym_tok(TokenType::EXPR_ARGLIST), char_tok(')')});
     make_rule(ders, TokenType::EXPR, Rule::EMPTY_LIST_IS_EXPR, {char_tok('['), char_tok(']')});
     make_rule(ders, TokenType::EXPR, Rule::LIST_IS_EXPR, {char_tok('['), sym_tok(TokenType::EXPR_ARGLIST), char_tok(']')});
+    make_rule(ders, TokenType::EXPR, Rule::CNF_IS_EXPR, {char_tok('$'), char_tok('c'), char_tok('n'), char_tok('f'), char_tok('('), sym_tok(TokenType::CLAUSE), char_tok(')')});
     make_rule(ders, TokenType::EXPR_DICTLIST, Rule::COUPLE_IS_DICTLIST, {sym_tok(TokenType::ID), char_tok(':'), sym_tok(TokenType::EXPR)});
     make_rule(ders, TokenType::EXPR_DICTLIST, Rule::DICTLIST_AND_COUPLE_IS_DICTLIST, {sym_tok(TokenType::EXPR_DICTLIST), char_tok(','), sym_tok(TokenType::ID), char_tok(':'), sym_tok(TokenType::EXPR)});
     make_rule(ders, TokenType::EXPR, Rule::DICT_IS_EXPR, {char_tok('['), sym_tok(TokenType::EXPR_DICTLIST), char_tok(']')});
@@ -359,13 +360,23 @@ std::shared_ptr<Clause> Clause::reconstruct(const PT &pt)
     return ret;
 }
 
-std::vector<std::shared_ptr<Clause>> reconstruct_clauses(const ParsingTree<Token, Rule> &pt) {
+struct RefutationLine {
+    std::string name;
+    std::shared_ptr<Clause> clause;
+    ParsingTree<Token, Rule> just;
+};
+
+decltype(auto) reconstruct_clauses(const ParsingTree<Token, Rule> &pt) {
     auto line_to_clause = [](const ParsingTree<Token, Rule> &pt) {
         gio_assert(pt.type == sym_tok(TokenType::CNF_LINE));
         gio_assert(pt.children.size() >= 3);
-        return Clause::reconstruct(pt.children[2]);
+        ParsingTree<Token, Rule> just;
+        if (pt.children.size() >= 4) {
+            just = pt.children[3];
+        }
+        return RefutationLine{reconstruct_id(pt.children[0]), Clause::reconstruct(pt.children[2]), std::move(just)};
     };
-    std::vector<std::shared_ptr<Clause>> ret;
+    std::vector<RefutationLine> ret;
     const auto *cur = &pt;
     while (true) {
         gio_assert(cur->type == sym_tok(TokenType::CNF_LINES));
@@ -425,21 +436,6 @@ static_block {
     register_main_function("parse_tstp", parse_tstp_main);
 }
 
-template<typename T>
-struct istream_begin_end {
-    istream_begin_end(std::istream &s) : s(s) {}
-
-    decltype(auto) begin() const {
-        return std::istream_iterator<T>(s);
-    }
-
-    decltype(auto) end() const {
-        return std::istream_iterator<T>();
-    }
-
-    std::istream &s;
-};
-
 int parse_tstp_file_main(int argc, char *argv[]) {
     (void) argc;
     (void) argv;
@@ -452,7 +448,8 @@ int parse_tstp_file_main(int argc, char *argv[]) {
     auto clauses = reconstruct_clauses(pt);
     std::cout << "Clauses:\n";
     for (const auto &clause : clauses) {
-        std::cout << " * " << *clause << "\n";
+        std::cout << " * "  << clause.name << ": " << *clause.clause << "\n";
+        std::cout << "\n";
     }
 
     return 0;

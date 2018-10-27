@@ -352,5 +352,20 @@ std::string to_string(const T &t) {
     std::terminate();
 }
 
+template<typename T>
+struct istream_begin_end {
+    istream_begin_end(std::istream &s) : s(s) {}
+
+    decltype(auto) begin() const {
+        return std::istream_iterator<T>(s);
+    }
+
+    decltype(auto) end() const {
+        return std::istream_iterator<T>();
+    }
+
+    std::istream &s;
+};
+
 #define gio_assert(expr) (static_cast<bool>(expr) ? static_cast<void>(0) : failed_assertion(#expr, __FILE__, __LINE__, BOOST_CURRENT_FUNCTION))
 #define gio_assert_ctx(expr, ctx) (static_cast<bool>(expr) ? static_cast<void>(0) : failed_assertion(#expr, __FILE__, __LINE__, BOOST_CURRENT_FUNCTION, to_string(ctx)))
