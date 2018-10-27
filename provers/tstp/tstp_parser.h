@@ -13,7 +13,7 @@ namespace gio {
 namespace mmpp {
 namespace tstp {
 
-enum class TSTPTokenType {
+enum class TokenType {
     CHAR,
     WHITESPACE,
     LETTER,
@@ -34,24 +34,24 @@ enum class TSTPTokenType {
     LINE,
 };
 
-std::ostream &operator<<(std::ostream &stream, const TSTPTokenType &tt);
+std::ostream &operator<<(std::ostream &stream, const TokenType &tt);
 
-struct TSTPToken {
-    TSTPTokenType type;
+struct Token {
+    TokenType type;
     char content;
 
-    TSTPToken() = default;
-    TSTPToken(TSTPTokenType type, char content = 0) : type(type), content(content) {}
+    Token() = default;
+    Token(TokenType type, char content = 0) : type(type), content(content) {}
 
-    bool operator==(const TSTPToken &other) const {
+    bool operator==(const Token &other) const {
         return this->type == other.type && this->content == other.content;
     }
 
-    bool operator!=(const TSTPToken &other) const {
+    bool operator!=(const Token &other) const {
         return !this->operator==(other);
     }
 
-    bool operator<(const TSTPToken &other) const {
+    bool operator<(const Token &other) const {
         return (this->type < other.type) || (this->type == other.type && this->content < other.content);
     }
 };
@@ -62,8 +62,8 @@ struct TSTPToken {
 
 namespace std {
 template< >
-struct hash< gio::mmpp::tstp::TSTPToken > {
-    typedef gio::mmpp::tstp::TSTPToken argument_type;
+struct hash< gio::mmpp::tstp::Token > {
+    typedef gio::mmpp::tstp::Token argument_type;
     typedef ::std::size_t result_type;
     result_type operator()(const argument_type &x) const noexcept {
         result_type res = 0;
@@ -80,7 +80,7 @@ namespace tstp {
 
 static_assert(::std::numeric_limits<unsigned char>::max() == 0xff, "I need byte-sized unsigned char");
 
-enum class TSTPRule {
+enum class Rule {
     NONE = 0,
     CHAR_IS_LETTER = 0x100,
     CHAR_IS_WHITESPACE = 0x200,
@@ -142,7 +142,7 @@ enum class TSTPRule {
     FOF_WITH_DERIV_AND_ANNOT_IS_LINE,
 };
 
-typedef ParsingTree<TSTPToken, TSTPRule> PT;
+typedef ParsingTree<Token, Rule> PT;
 
 class Term {
 };
