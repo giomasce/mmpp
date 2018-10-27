@@ -161,6 +161,36 @@ std::vector<Token> trivial_lexer(std::string s) {
     return ret;
 }
 
+std::shared_ptr<Term> Term::reconstruct(const PT &pt)
+{
+
+}
+
+std::shared_ptr<Var> Var::reconstruct(const PT &pt)
+{
+
+}
+
+std::shared_ptr<FunctorApp> FunctorApp::reconstruct(const PT &pt)
+{
+
+}
+
+std::shared_ptr<Atom> Atom::reconstruct(const PT &pt)
+{
+
+}
+
+std::shared_ptr<Equality> Equality::reconstruct(const PT &pt)
+{
+
+}
+
+std::shared_ptr<PredicateApp> PredicateApp::reconstruct(const PT &pt)
+{
+
+}
+
 std::shared_ptr<Clause> Clause::reconstruct(const PT &pt)
 {
 

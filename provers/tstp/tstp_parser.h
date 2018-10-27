@@ -34,8 +34,6 @@ enum class TokenType {
     LINE,
 };
 
-std::ostream &operator<<(std::ostream &stream, const TokenType &tt);
-
 struct Token {
     TokenType type;
     char content;
@@ -145,9 +143,14 @@ enum class Rule {
 typedef ParsingTree<Token, Rule> PT;
 
 class Term {
+public:
+    static std::shared_ptr<Term> reconstruct(const PT &pt);
 };
 
 class Var : public Term, public enable_create<Var> {
+public:
+    static std::shared_ptr<Var> reconstruct(const PT &pt);
+
 protected:
     explicit Var(const std::string &name) : name(name) {}
 
@@ -156,6 +159,9 @@ private:
 };
 
 class FunctorApp : public Term, public enable_create<FunctorApp> {
+public:
+    static std::shared_ptr<FunctorApp> reconstruct(const PT &pt);
+
 protected:
     FunctorApp(const std::string &functor, const std::vector<std::shared_ptr<Term>> &args) : functor(functor), args(args) {}
 
@@ -165,9 +171,14 @@ private:
 };
 
 class Atom {
+public:
+    static std::shared_ptr<Atom> reconstruct(const PT &pt);
 };
 
 class Equality : public Atom, public enable_create<Equality> {
+public:
+    static std::shared_ptr<Equality> reconstruct(const PT &pt);
+
 protected:
     Equality(const std::shared_ptr<Term> &first, const std::shared_ptr<Term> &second) : first(first), second(second) {}
 
@@ -177,6 +188,9 @@ private:
 };
 
 class PredicateApp : public Atom, public enable_create<PredicateApp> {
+public:
+    static std::shared_ptr<PredicateApp> reconstruct(const PT &pt);
+
 protected:
     PredicateApp(const std::string &predicate, const std::vector<std::shared_ptr<Term>> &args) : predicate(predicate), args(args) {}
 
