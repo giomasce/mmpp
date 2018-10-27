@@ -54,8 +54,8 @@ static_block {
     register_main_function("mmpp", main_mmpp);
 }
 
-void terminator() {
-    std::cerr << "Program terminated by an uncaught exception" << std::endl;
+[[noreturn]] void terminator() {
+    std::cerr << "Program terminated\n";
     default_exception_handler(std::current_exception());
     platform_dump_stack_trace(std::cerr, platform_get_stack_trace());
     std::abort();

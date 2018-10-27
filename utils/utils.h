@@ -23,6 +23,7 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/concepts.hpp>
+#include <boost/current_function.hpp>
 
 #include "platform.h"
 
@@ -334,3 +335,22 @@ bool has_no_diagonal(It from, It end) {
 }
 
 void default_exception_handler(std::exception_ptr ptr);
+
+template<typename T>
+std::string to_string(const T &t) {
+    std::ostringstream ss;
+    ss << t;
+    return ss.str();
+}
+
+[[noreturn]] inline void failed_assertion(const char *expr, const char *file, int line, const char *func, const std::string &ctx = "") {
+    std::cerr << file << ":" << line << ":" << func << ": assertion `" << expr << "' failed";
+    if (ctx != "") {
+        std::cerr << " with context `" << ctx << "'";
+    }
+    std::cerr << std::endl;
+    std::terminate();
+}
+
+#define gio_assert(expr) (static_cast<bool>(expr) ? static_cast<void>(0) : failed_assertion(#expr, __FILE__, __LINE__, BOOST_CURRENT_FUNCTION))
+#define gio_assert_ctx(expr, ctx) (static_cast<bool>(expr) ? static_cast<void>(0) : failed_assertion(#expr, __FILE__, __LINE__, BOOST_CURRENT_FUNCTION, to_string(ctx)))

@@ -24,24 +24,24 @@ Token char_tok(char c) { return Token(TokenType::CHAR, c); }
 Token sym_tok(TokenType type) { return Token(type); }
 
 char letter_to_char(const ParsingTree<Token, Rule> &pt) {
-    assert(pt.type == sym_tok(TokenType::LETTER));
+    gio_assert(pt.type == sym_tok(TokenType::LETTER));
     int diff = static_cast<int>(pt.label) - static_cast<int>(Rule::CHAR_IS_LETTER);
-    assert(0 <= diff && diff < 0x100);
+    gio_assert(0 <= diff && diff < 0x100);
     return static_cast<char>(diff);
 }
 
 std::string reconstruct_id(const ParsingTree<Token, Rule> &pt) {
-    assert(pt.type == sym_tok(TokenType::ID));
     std::ostringstream ss;
     const auto *cur = &pt;
     while (true) {
+        gio_assert(pt.type == sym_tok(TokenType::ID));
         if (cur->label == Rule::LETTER_IS_ID) {
-            assert(cur->children.size() == 1);
+            gio_assert(cur->children.size() == 1);
             ss << letter_to_char(cur->children[0]);
             return ss.str();
         }
-        assert(cur->label == Rule::LETTER_AND_ID_IS_ID);
-        assert(cur->children.size() == 2);
+        gio_assert(cur->label == Rule::LETTER_AND_ID_IS_ID);
+        gio_assert(cur->children.size() == 2);
         ss << letter_to_char(cur->children[0]);
         cur = &cur->children[1];
     }
@@ -79,9 +79,9 @@ std::unordered_map<Token, std::vector<std::pair<Rule, std::vector<Token> > > > c
     // Rules for CNFs
     make_rule(ders, TokenType::TERM, Rule::ID_IS_TERM, {sym_tok(TokenType::ID)});
     make_rule(ders, TokenType::ARGLIST, Rule::TERM_IS_ARGLIST, {sym_tok(TokenType::TERM)});
-    make_rule(ders, TokenType::ARGLIST, Rule::ARGLIST_AND_TERM_IS_ARGLIST, {sym_tok(TokenType::ARGLIST), char_tok(','), sym_tok(TokenType::TERM)});
+    make_rule(ders, TokenType::ARGLIST, Rule::TERM_AND_ARGLIST_IS_ARGLIST, {sym_tok(TokenType::TERM), char_tok(','), sym_tok(TokenType::ARGLIST)});
     make_rule(ders, TokenType::TERM, Rule::FUNC_APP_IS_TERM, {sym_tok(TokenType::ID), char_tok('('), sym_tok(TokenType::ARGLIST), char_tok(')')});
-    make_rule(ders, TokenType::ATOM, Rule::TERM_IS_ATOM, {sym_tok(TokenType::TERM)});
+    make_rule(ders, TokenType::ATOM, Rule::PRED_APP_IS_ATOM, {sym_tok(TokenType::ID), char_tok('('), sym_tok(TokenType::ARGLIST), char_tok(')')});
     make_rule(ders, TokenType::ATOM, Rule::TERM_EQ_IS_ATOM, {sym_tok(TokenType::TERM), char_tok('='), sym_tok(TokenType::TERM)});
     make_rule(ders, TokenType::ATOM, Rule::TERM_NEQ_IS_ATOM, {sym_tok(TokenType::TERM), char_tok('!'), char_tok('='), sym_tok(TokenType::TERM)});
     make_rule(ders, TokenType::LITERAL, Rule::ATOM_IS_LITERAL, {sym_tok(TokenType::ATOM)});
@@ -161,39 +161,163 @@ std::vector<Token> trivial_lexer(std::string s) {
     return ret;
 }
 
+std::vector<std::shared_ptr<Term>> reconstruct_arglist(const PT &pt) {
+    std::vector<std::shared_ptr<Term>> ret;
+    const auto *cur = &pt;
+    while (true) {
+        gio_assert(pt.type == TokenType::ARGLIST);
+        if (cur->label == Rule::TERM_IS_ARGLIST) {
+            gio_assert(cur->children.size() == 1);
+            ret.push_back(Term::reconstruct(cur->children[0]));
+            return ret;
+        }
+        gio_assert(cur->label == Rule::TERM_AND_ARGLIST_IS_ARGLIST);
+        gio_assert(cur->children.size() == 2);
+        ret.push_back(Term::reconstruct(cur->children[0]));
+        cur = &cur->children[1];
+    }
+}
+
 std::shared_ptr<Term> Term::reconstruct(const PT &pt)
 {
+    gio_assert(pt.type == TokenType::TERM);
+    if (pt.label == Rule::ID_IS_TERM) {
+        return Var::reconstruct(pt);
+    } else {
+        gio_assert(pt.label == Rule::FUNC_APP_IS_TERM);
+        return FunctorApp::reconstruct(pt);
+    }
+}
 
+Term::~Term()
+{
 }
 
 std::shared_ptr<Var> Var::reconstruct(const PT &pt)
 {
+    gio_assert(pt.type == TokenType::TERM);
+    gio_assert(pt.label == Rule::ID_IS_TERM);
+    gio_assert(pt.children.size() == 1);
+    return Var::create(reconstruct_id(pt.children[0]));
+}
 
+void Var::print_to(std::ostream &s) const
+{
+    s << this->name;
 }
 
 std::shared_ptr<FunctorApp> FunctorApp::reconstruct(const PT &pt)
 {
-
+    gio_assert(pt.type == TokenType::TERM);
+    gio_assert(pt.label == Rule::FUNC_APP_IS_TERM);
+    gio_assert(pt.children.size() == 2);
+    return FunctorApp::create(reconstruct_id(pt.children[0]), reconstruct_arglist(pt.children[1]));
 }
 
-std::shared_ptr<Atom> Atom::reconstruct(const PT &pt)
+void FunctorApp::print_to(std::ostream &s) const
 {
-
+    s << this->functor << '(';
+    bool first = true;
+    for (const auto &arg : this->args) {
+        if (!first) {
+            s << ',';
+        }
+        first = false;
+        s << *arg;
+    }
+    s << ')';
 }
 
-std::shared_ptr<Equality> Equality::reconstruct(const PT &pt)
+Atom::~Atom()
 {
+}
 
+std::pair<bool, std::shared_ptr<Atom>> Atom::reconstruct(const PT &pt)
+{
+    if (pt.type == sym_tok(TokenType::LITERAL)) {
+        gio_assert(pt.children.size() == 1);
+        auto ret = Atom::reconstruct(pt.children[0]);
+        if (pt.label == Rule::NEG_ATOM_IS_LITERAL) {
+            ret.first = !ret.first;
+        } else {
+            gio_assert(pt.label == Rule::ATOM_IS_LITERAL);
+        }
+        return ret;
+    }
+    gio_assert(pt.type == sym_tok(TokenType::ATOM));
+    if (pt.label == Rule::PRED_APP_IS_ATOM) {
+        return std::make_pair(true, PredicateApp::reconstruct(pt));
+    } else {
+        return Equality::reconstruct(pt);
+    }
+}
+
+std::pair<bool, std::shared_ptr<Equality>> Equality::reconstruct(const PT &pt)
+{
+    gio_assert(pt.type == sym_tok(TokenType::ATOM));
+    gio_assert(pt.label == Rule::TERM_EQ_IS_ATOM || pt.label == Rule::TERM_NEQ_IS_ATOM);
+    gio_assert(pt.children.size() == 2);
+    return std::make_pair(pt.label == Rule::TERM_EQ_IS_ATOM, Equality::create(Term::reconstruct(pt.children[0]), Term::reconstruct(pt.children[1])));
+}
+
+void Equality::print_to(std::ostream &s) const
+{
+    s << *this->first << '=' << *this->second;
 }
 
 std::shared_ptr<PredicateApp> PredicateApp::reconstruct(const PT &pt)
 {
+    gio_assert(pt.type == sym_tok(TokenType::ATOM));
+    gio_assert(pt.label == Rule::PRED_APP_IS_ATOM);
+    gio_assert(pt.children.size() == 2);
+    return PredicateApp::create(reconstruct_id(pt.children[0]), reconstruct_arglist(pt.children[1]));
+}
 
+void PredicateApp::print_to(std::ostream &s) const
+{
+    s << this->predicate << '(';
+    bool first = true;
+    for (const auto &arg : this->args) {
+        if (!first) {
+            s << ',';
+        }
+        first = false;
+        s << *arg;
+    }
+    s << ')';
 }
 
 std::shared_ptr<Clause> Clause::reconstruct(const PT &pt)
 {
+    gio_assert(pt.type == sym_tok(TokenType::CLAUSE));
+    if (pt.label == Rule::PARENS_CLAUSE_IS_CLAUSE) {
+        gio_assert(pt.children.size() == 1);
+        return Clause::reconstruct(pt.children[0]);
+    }
+    if (pt.label == Rule::LITERAL_IS_CLAUSE) {
+        gio_assert(pt.children.size() == 1);
+        return Clause::create(std::vector<std::pair<bool, std::shared_ptr<Atom>>>{Atom::reconstruct(pt.children[0])});
+    }
+    gio_assert(pt.label == Rule::CLAUSE_AND_LITERAL_IS_CLAUSE);
+    gio_assert(pt.children.size() == 2);
+    auto ret = Clause::reconstruct(pt.children[0]);
+    ret->literals.push_back(Atom::reconstruct(pt.children[1]));
+    return ret;
+}
 
+void Clause::print_to(std::ostream &s) const
+{
+    bool first = true;
+    for (const auto &lit : this->literals) {
+        if (!first) {
+            s << '|';
+        }
+        first = false;
+        if (!lit.first) {
+            s << '~';
+        }
+        s << *lit.second;
+    }
 }
 
 int parse_tstp_main(int argc, char *argv[]) {
@@ -211,6 +335,8 @@ int parse_tstp_main(int argc, char *argv[]) {
         auto pt = parser.parse(lexes.begin(), lexes.end(), Token(TokenType::LINE));
         std::cout << "Parsed as " << pt.label << ", with " << pt.children.size() << " children" << std::endl;
         std::cout << "Id is " << reconstruct_id(pt.children[0]) << "\n";
+        auto clause = Clause::reconstruct(pt.children[2]);
+        std::cout << "Recostructed as " << *clause << "\n";
     }
 
     return 0;
