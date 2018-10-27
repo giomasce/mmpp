@@ -19,6 +19,7 @@ CONFIG += link_pkgconfig
 DEFINES += "PROJ_DIR=\"\\\"$$PWD\\\"\""
 
 CONFIG += c++14
+CONFIG -= app_bundle
 
 linux {
     # Compile with gcc
