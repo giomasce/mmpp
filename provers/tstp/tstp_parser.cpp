@@ -13,134 +13,15 @@
 #include "parsing/earley.h"
 #include "utils/utils.h"
 
+namespace gio {
+namespace mmpp {
+namespace tstp {
+
 const std::string ID_LETTERS = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890_$'.";
 const std::string SPACE_LETTERS = " \t\n\r";
 
-enum class TSTPTokenType {
-    CHAR,
-    WHITESPACE,
-    LETTER,
-    ID,
-    TERM,
-    ARGLIST,
-    ATOM,
-    LITERAL,
-    CLAUSE,
-    VARLIST,
-    UNIT_FOF,
-    FOF,
-    FOF_AND,
-    FOF_OR,
-    EXPR_ARGLIST,
-    EXPR_DICTLIST,
-    EXPR,
-    LINE,
-};
-
-std::ostream &operator<<(std::ostream &stream, const TSTPTokenType &tt);
-
-struct TSTPToken {
-    TSTPTokenType type;
-    char content;
-
-    TSTPToken() = default;
-    TSTPToken(TSTPTokenType type, char content = 0) : type(type), content(content) {}
-
-    bool operator==(const TSTPToken &other) const {
-        return this->type == other.type && this->content == other.content;
-    }
-
-    bool operator!=(const TSTPToken &other) const {
-        return !this->operator==(other);
-    }
-
-    bool operator<(const TSTPToken &other) const {
-        return (this->type < other.type) || (this->type == other.type && this->content < other.content);
-    }
-};
-
-std::ostream &operator<<(std::ostream &stream, const TSTPToken &tok);
 TSTPToken char_tok(char c) { return TSTPToken(TSTPTokenType::CHAR, c); }
 TSTPToken sym_tok(TSTPTokenType type) { return TSTPToken(type); }
-
-namespace std {
-template< >
-struct hash< TSTPToken > {
-    typedef TSTPToken argument_type;
-    typedef std::size_t result_type;
-    result_type operator()(const argument_type &x) const noexcept;
-};
-}
-
-static_assert(std::numeric_limits<unsigned char>::max() == 0xff, "I need unsigned char to be < 0x100");
-
-enum class TSTPRule {
-    NONE = 0,
-    CHAR_IS_LETTER = 0x100,
-    CHAR_IS_WHITESPACE = 0x200,
-    LINE = 0x300,
-    LETTER_IS_ID,
-    LETTER_AND_ID_IS_ID,
-
-    ID_IS_TERM,
-    TERM_IS_ARGLIST,
-    ARGLIST_AND_TERM_IS_ARGLIST,
-    FUNC_APP_IS_TERM,
-    TERM_IS_ATOM,
-    TERM_EQ_IS_ATOM,
-    TERM_NEQ_IS_ATOM,
-    ATOM_IS_LITERAL,
-    NEG_ATOM_IS_LITERAL,
-    LITERAL_IS_CLAUSE,
-    CLAUSE_AND_LITERAL_IS_CLAUSE,
-    PARENS_CLAUSE_IS_CLAUSE,
-
-    UNIT_FOF_IS_FOF,
-    PARENS_FOF_IS_UNIT_FOF,
-    TERM_IS_UNIT_FOF,
-    NOT_UNIT_FOF_IS_UNIT_FOF,
-    TERM_EQ_IS_UNIT_FOF,
-    TERM_NEQ_IS_UNIF_FOF,
-    ID_IS_VARLIST,
-    VARLIST_AND_ID_IS_VARLIST,
-    FORALL_IS_UNIT_FOF,
-    EXISTS_IS_UNIT_FOF,
-    BIIMP_IS_FOF,
-    IMP_IS_FOF,
-    REV_IMP_IS_FOF,
-    XOR_IS_FOF,
-    NOR_IS_FOF,
-    NAND_IS_FOF,
-    AND_IS_FOF,
-    AND_IS_AND,
-    AND_AND_UNIT_FOF_IS_AND,
-    OR_IS_FOF,
-    OR_IS_OR,
-    OR_AND_UNIT_FOF_IS_OR,
-
-    ID_IS_EXPR,
-    EXPR_IS_ARGLIST,
-    ARGLIST_AND_EXPR_IS_ARGLIST,
-    FUNC_APP_IS_EXPR,
-    EMPTY_LIST_IS_EXPR,
-    LIST_IS_EXPR,
-    COUPLE_IS_DICTLIST,
-    DICTLIST_AND_COUPLE_IS_DICTLIST,
-    DICT_IS_EXPR,
-
-    CNF_IS_LINE,
-    CNF_WITH_DERIV_IS_LINE,
-    CNF_WITH_DERIV_AND_ANNOT_IS_LINE,
-    FOF_IS_LINE,
-    FOF_WITH_DERIV_IS_LINE,
-    FOF_WITH_DERIV_AND_ANNOT_IS_LINE,
-};
-
-std::ostream &operator<<(std::ostream &stream, const TSTPRule &rule);
-
-void make_rule(std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, std::vector<TSTPToken> > > > &ders, TSTPTokenType type, TSTPRule rule, std::vector< TSTPToken > tokens) {
-    ders[type].push_back(std::make_pair(rule, tokens));
-}
 
 char letter_to_char(const ParsingTree<TSTPToken, TSTPRule> &pt) {
     assert(pt.type == sym_tok(TSTPTokenType::LETTER));
@@ -164,6 +45,22 @@ std::string reconstruct_id(const ParsingTree<TSTPToken, TSTPRule> &pt) {
         ss << letter_to_char(cur->children[0]);
         cur = &cur->children[1];
     }
+}
+
+std::ostream &operator<<(std::ostream &stream, const TSTPTokenType &tt) {
+    return stream << static_cast< int >(tt);
+}
+
+std::ostream &operator<<(std::ostream &stream, const TSTPRule &rule) {
+    return stream << static_cast< int >(rule);
+}
+
+std::ostream &operator<<(std::ostream &stream, const TSTPToken &tok) {
+    return stream << "[" << tok.type << "," << tok.content << "]";
+}
+
+void make_rule(std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, std::vector<TSTPToken> > > > &ders, TSTPTokenType type, TSTPRule rule, std::vector< TSTPToken > tokens) {
+    ders[type].push_back(std::make_pair(rule, tokens));
 }
 
 std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, std::vector<TSTPToken> > > > create_derivations() {
@@ -239,28 +136,7 @@ std::unordered_map<TSTPToken, std::vector<std::pair<TSTPRule, std::vector<TSTPTo
     return ders;
 }
 
-std::ostream &operator<<(std::ostream &stream, const TSTPTokenType &tt) {
-    return stream << static_cast< int >(tt);
-}
-
-std::ostream &operator<<(std::ostream &stream, const TSTPRule &rule) {
-    return stream << static_cast< int >(rule);
-}
-
-std::ostream &operator<<(std::ostream &stream, const TSTPToken &tok) {
-    return stream << "[" << tok.type << "," << tok.content << "]";
-}
-
-namespace std {
-hash<TSTPToken>::result_type hash<TSTPToken>::operator()(const hash<TSTPToken>::argument_type &x) const noexcept {
-    result_type res = 0;
-    boost::hash_combine(res, x.type);
-    boost::hash_combine(res, x.content);
-    return res;
-}
-}
-
-std::vector< TSTPToken > trivial_lexer(std::string s) {
+std::vector<TSTPToken> trivial_lexer(std::string s) {
     std::vector < TSTPToken > ret;
     std::set< char > id_letters_set;
     for (char c : ID_LETTERS) {
@@ -289,6 +165,8 @@ int parse_tstp_main(int argc, char *argv[]) {
     (void) argc;
     (void) argv;
 
+    using namespace gio::mmpp::tstp;
+
     auto ders = create_derivations();
     LRParser< TSTPToken, TSTPRule > parser(ders);
     //EarleyParser< TSTPToken, TSTPRule > parser(ders);
@@ -306,4 +184,8 @@ int parse_tstp_main(int argc, char *argv[]) {
 }
 static_block {
     register_main_function("parse_tstp", parse_tstp_main);
+}
+
+}
+}
 }

@@ -13,6 +13,7 @@
 #include "mm/setmm.h"
 #include "mm/mmutils.h"
 #include "parsing/unif.h"
+#include "tstp_parser.h"
 
 bool recognize(const ParsingTree< SymTok, LabTok > &pt, const std::string &model, const LibraryToolbox &tb, SubstMap< SymTok, LabTok > &subst) {
     UnilateralUnificator< SymTok, LabTok > unif(tb.get_standard_is_var());
