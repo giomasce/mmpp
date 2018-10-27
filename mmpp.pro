@@ -138,14 +138,15 @@ SOURCES += \
     libs/minisat/Solver.cc \
     provers/sat.cpp \
     provers/wffblock.cpp \
-    apps/tstp.cpp \
+    provers/tstp/tstp.cpp \
     provers/wffsat.cpp \
     apps/resolver.cpp \
     provers/subst.cpp \
     apps/verify.cpp \
     mm/setmm.cpp \
     test/test_wff.cpp \
-    mm/mmutils.cpp
+    mm/mmutils.cpp \
+    provers/tstp/tstp_parser.cpp
 
 HEADERS += \
     pch.h \
@@ -200,7 +201,8 @@ HEADERS += \
     mm/setmm.h \
     test/test.h \
     libs/backward.h \
-    mm/mmutils.h
+    mm/mmutils.h \
+    provers/tstp/tstp_parser.h
 
 DISTFILES += \
     README.md \
