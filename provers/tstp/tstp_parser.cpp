@@ -279,16 +279,6 @@ Atom::~Atom()
 
 std::pair<bool, std::shared_ptr<Atom>> Atom::reconstruct(const PT &pt)
 {
-    if (pt.type == sym_tok(TokenType::LITERAL)) {
-        gio_assert(pt.children.size() == 1);
-        auto ret = Atom::reconstruct(pt.children[0]);
-        if (pt.label == Rule::NEG_ATOM_IS_LITERAL) {
-            ret.first = !ret.first;
-        } else {
-            gio_assert(pt.label == Rule::ATOM_IS_LITERAL);
-        }
-        return ret;
-    }
     gio_assert(pt.type == sym_tok(TokenType::ATOM));
     if (pt.label == Rule::PRED_APP_IS_ATOM || pt.label == Rule::ID_IS_ATOM) {
         return std::make_pair(true, PredicateApp::reconstruct(pt));
@@ -342,6 +332,28 @@ void PredicateApp::print_to(std::ostream &s) const
     }
 }
 
+std::shared_ptr<Literal> Literal::reconstruct(const PT &pt)
+{
+    gio_assert(pt.children.size() == 1);
+    auto ret = Atom::reconstruct(pt.children[0]);
+    if (pt.label == Rule::NEG_ATOM_IS_LITERAL) {
+        ret.first = !ret.first;
+    } else {
+        gio_assert(pt.label == Rule::ATOM_IS_LITERAL);
+    }
+    return Literal::create(ret.first, ret.second);
+}
+
+void Literal::print_to(std::ostream &s) const
+{
+    if (!this->sign) {
+        s << '~';
+    }
+    s << *this->atom;
+}
+
+Literal::Literal(bool sign, const std::shared_ptr<Atom> &atom) : sign(sign), atom(atom) {}
+
 std::shared_ptr<Clause> Clause::reconstruct(const PT &pt)
 {
     gio_assert(pt.type == sym_tok(TokenType::CLAUSE));
@@ -351,13 +363,25 @@ std::shared_ptr<Clause> Clause::reconstruct(const PT &pt)
     }
     if (pt.label == Rule::LITERAL_IS_CLAUSE) {
         gio_assert(pt.children.size() == 1);
-        return Clause::create(std::vector<std::pair<bool, std::shared_ptr<Atom>>>{Atom::reconstruct(pt.children[0])});
+        return Clause::create(std::vector<std::shared_ptr<Literal>>{Literal::reconstruct(pt.children[0])});
     }
     gio_assert(pt.label == Rule::CLAUSE_AND_LITERAL_IS_CLAUSE);
     gio_assert(pt.children.size() == 2);
     auto ret = Clause::reconstruct(pt.children[0]);
-    ret->literals.push_back(Atom::reconstruct(pt.children[1]));
+    ret->literals.push_back(Literal::reconstruct(pt.children[1]));
     return ret;
+}
+
+void Clause::print_to(std::ostream &s) const
+{
+    bool first = true;
+    for (const auto &lit : this->literals) {
+        if (!first) {
+            s << '|';
+        }
+        first = false;
+        s << *lit;
+    }
 }
 
 struct RefutationLine {
@@ -389,21 +413,6 @@ decltype(auto) reconstruct_clauses(const ParsingTree<Token, Rule> &pt) {
         gio_assert(cur->children.size() == 2);
         ret.push_back(line_to_clause(cur->children[0]));
         cur = &cur->children[1];
-    }
-}
-
-void Clause::print_to(std::ostream &s) const
-{
-    bool first = true;
-    for (const auto &lit : this->literals) {
-        if (!first) {
-            s << '|';
-        }
-        first = false;
-        if (!lit.first) {
-            s << '~';
-        }
-        s << *lit.second;
     }
 }
 

@@ -169,6 +169,7 @@ struct enable_create : public virtual_enable_shared_from_this< T > {
     }
 
 protected:
+    virtual ~enable_create() {}
     virtual void init() {}
 };
 

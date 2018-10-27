@@ -225,6 +225,20 @@ private:
     std::vector<std::shared_ptr<Term>> args;
 };
 
+class Literal : public enable_create<Literal> {
+public:
+    static std::shared_ptr<Literal> reconstruct(const PT &pt);
+
+    void print_to(std::ostream &s) const;
+
+protected:
+    Literal(bool sign, const std::shared_ptr<Atom> &atom);
+
+private:
+    bool sign;
+    std::shared_ptr<Atom> atom;
+};
+
 class Clause : public enable_create<Clause> {
 public:
     static std::shared_ptr<Clause> reconstruct(const PT &pt);
@@ -232,10 +246,10 @@ public:
     void print_to(std::ostream &s) const;
 
 protected:
-    explicit Clause(const std::vector<std::pair<bool, std::shared_ptr<Atom>>> &literals) : literals(literals) {}
+    explicit Clause(const std::vector<std::shared_ptr<Literal>> &literals) : literals(literals) {}
 
 private:
-    std::vector<std::pair<bool, std::shared_ptr<Atom>>> literals;
+    std::vector<std::shared_ptr<Literal>> literals;
 };
 
 template<typename T, typename = decltype(std::declval<T>().print_to(std::declval<std::ostream&>()))>
