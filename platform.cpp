@@ -442,7 +442,7 @@ void platform_dump_stack_trace(std::ostream &st, const backward::StackTrace &sta
     st.flush();
 }
 
-backward::SignalHandling sh;
+static backward::SignalHandling sh;
 
 #endif
 
