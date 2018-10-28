@@ -159,6 +159,8 @@ public:
 
     void print_to(std::ostream &s) const;
     bool operator<(const Term &x) const;
+    std::shared_ptr<Term> substitute(const std::map<std::string, std::shared_ptr<Term>> &subst) const;
+    std::pair<std::shared_ptr<Term>, std::shared_ptr<Term>> replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<Term> &term) const;
 
 protected:
     Term(const std::string &functor, const std::vector<std::shared_ptr<Term>> &args);
@@ -174,6 +176,8 @@ public:
 
     void print_to(std::ostream &s) const;
     bool operator<(const Atom &x) const;
+    std::shared_ptr<Atom> substitute(const std::map<std::string, std::shared_ptr<Term>> &subst) const;
+    std::pair<std::shared_ptr<Term>, std::shared_ptr<Atom>> replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<Term> &term) const;
 
 protected:
     Atom(const std::string &predicate, const std::vector<std::shared_ptr<Term>> &args);
@@ -189,6 +193,9 @@ public:
 
     void print_to(std::ostream &s) const;
     bool operator<(const Literal &x) const;
+    std::shared_ptr<Literal> opposite() const;
+    std::shared_ptr<Literal> substitute(const std::map<std::string, std::shared_ptr<Term>> &subst) const;
+    std::pair<std::shared_ptr<Term>, std::shared_ptr<Literal>> replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<Term> &term) const;
 
 protected:
     Literal(bool sign, const std::shared_ptr<Atom> &atom);
@@ -203,6 +210,8 @@ public:
     static std::shared_ptr<Clause> reconstruct(const PT &pt);
 
     void print_to(std::ostream &s) const;
+    std::shared_ptr<Clause> substitute(const std::map<std::string, std::shared_ptr<Term>> &subst) const;
+    std::shared_ptr<Clause> resolve(const Clause &other, const std::shared_ptr<Literal> &lit) const;
 
 protected:
     explicit Clause(const std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal>>> &literals);
@@ -211,11 +220,86 @@ private:
     std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal>>> literals;
 };
 
+// See https://stackoverflow.com/q/53022868/807307
 template<typename T, typename = decltype(std::declval<T>().print_to(std::declval<std::ostream&>()))>
 std::ostream &operator<<(std::ostream &s, const T &t) {
     t.print_to(s);
     return s;
 }
+
+class Inference {
+public:
+    virtual ~Inference();
+    virtual std::shared_ptr<Clause> compute_thesis(const std::vector<std::shared_ptr<Clause>> &hyps) const = 0;
+};
+
+class Axiom : public Inference, public enable_create<Axiom> {
+public:
+    std::shared_ptr<Clause> compute_thesis(const std::vector<std::shared_ptr<Clause>> &hyps) const;
+
+protected:
+    Axiom(const std::shared_ptr<Clause> &clause);
+
+private:
+    std::shared_ptr<Clause> clause;
+};
+
+class Assume : public Inference, public enable_create<Assume> {
+public:
+    std::shared_ptr<Clause> compute_thesis(const std::vector<std::shared_ptr<Clause>> &hyps) const;
+
+protected:
+    Assume(const std::shared_ptr<Literal> &literal);
+
+private:
+    std::shared_ptr<Literal> literal;
+};
+
+class Subst : public Inference, public enable_create<Subst> {
+public:
+    std::shared_ptr<Clause> compute_thesis(const std::vector<std::shared_ptr<Clause>> &hyps) const;
+
+protected:
+    Subst(const std::map<std::string, std::shared_ptr<Term>> &subst);
+
+private:
+    std::map<std::string, std::shared_ptr<Term>> subst;
+};
+
+class Resolve : public Inference, public enable_create<Resolve> {
+public:
+    std::shared_ptr<Clause> compute_thesis(const std::vector<std::shared_ptr<Clause>> &hyps) const;
+
+protected:
+    Resolve(const std::shared_ptr<Literal> &literal);
+
+private:
+    std::shared_ptr<Literal> literal;
+};
+
+class Refl : public Inference, public enable_create<Refl> {
+public:
+    std::shared_ptr<Clause> compute_thesis(const std::vector<std::shared_ptr<Clause>> &hyps) const;
+
+protected:
+    Refl(const std::shared_ptr<Term> &term);
+
+private:
+    std::shared_ptr<Term> term;
+};
+
+class Equality : public Inference, public enable_create<Equality> {
+public:
+    std::shared_ptr<Clause> compute_thesis(const std::vector<std::shared_ptr<Clause>> &hyps) const;
+
+protected:
+    Equality(const std::shared_ptr<Literal> &literal, const std::vector<uint32_t> &path, const std::shared_ptr<Term> &term);
+
+private:
+    std::shared_ptr<Literal> literal;
+    std::vector<uint32_t> path;
+    std::shared_ptr<Term> term;
+};
 
 }
 }
