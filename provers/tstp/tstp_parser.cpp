@@ -251,10 +251,10 @@ std::shared_ptr<const Term> Term::substitute(const std::map<std::string, std::sh
         if (it != subst.end()) {
             return it->second;
         } else {
-            return Term::create(this->functor, this->args);
+            return this->shared_from_this();
         }
     } else {
-        return Term::create(this->functor, this->args);
+        return this->shared_from_this();
     }
 }
 
@@ -267,7 +267,7 @@ std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Term> > Term::repla
         new_args[idx] = res.second;
         return std::make_pair(res.first, Term::create(this->functor, new_args));
     } else {
-        return std::make_pair(Term::create(this->functor, this->args), term);
+        return std::make_pair(this->shared_from_this(), term);
     }
 }
 
