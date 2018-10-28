@@ -120,6 +120,7 @@ std::unordered_map<Token, std::vector<std::pair<Rule, std::vector<Token> > > > c
     make_rule(ders, TokenType::ATOM, Rule::TERM_NEQ_IS_ATOM, {sym_tok(TokenType::TERM), char_tok('!'), char_tok('='), sym_tok(TokenType::TERM)});
     make_rule(ders, TokenType::LITERAL, Rule::ATOM_IS_LITERAL, {sym_tok(TokenType::ATOM)});
     make_rule(ders, TokenType::LITERAL, Rule::NEG_ATOM_IS_LITERAL, {char_tok('~'), sym_tok(TokenType::ATOM)});
+    make_rule(ders, TokenType::LITERAL, Rule::NEG_PARENS_ATOM_IS_LITERAL, {char_tok('~'), char_tok('('), sym_tok(TokenType::ATOM), char_tok(')')});
     make_rule(ders, TokenType::CLAUSE, Rule::LITERAL_IS_CLAUSE, {sym_tok(TokenType::LITERAL)});
     make_rule(ders, TokenType::CLAUSE, Rule::CLAUSE_AND_LITERAL_IS_CLAUSE, {sym_tok(TokenType::CLAUSE), char_tok('|'), sym_tok(TokenType::LITERAL)});
     make_rule(ders, TokenType::CLAUSE, Rule::PARENS_CLAUSE_IS_CLAUSE, {char_tok('('), sym_tok(TokenType::CLAUSE), char_tok(')')});
@@ -375,7 +376,7 @@ std::shared_ptr<const Literal> Literal::reconstruct(const PT &pt)
     gio_assert(pt.type == sym_tok(TokenType::LITERAL));
     gio_assert(pt.children.size() == 1);
     auto ret = Atom::reconstruct(pt.children[0]);
-    if (pt.label == Rule::NEG_ATOM_IS_LITERAL) {
+    if (pt.label == Rule::NEG_ATOM_IS_LITERAL || pt.label == Rule::NEG_PARENS_ATOM_IS_LITERAL) {
         ret.first = !ret.first;
     } else {
         gio_assert(pt.label == Rule::ATOM_IS_LITERAL);
@@ -734,10 +735,11 @@ struct RefutationLine {
     std::vector<size_t> hyps;
 };
 
-decltype(auto) reconstruct_clauses(const ParsingTree<Token, Rule> &pt) {
+struct Refutation {
     std::map<std::string, size_t> id_map;
-    std::vector<RefutationLine> ret;
-    auto line_to_clause = [&id_map,&ret](const ParsingTree<Token, Rule> &pt) {
+    std::vector<RefutationLine> lines;
+
+    const RefutationLine &reconstruct_clause(const ParsingTree<Token, Rule> &pt) {
         gio_assert(pt.type == sym_tok(TokenType::CNF_LINE));
         gio_assert(pt.children.size() >= 3);
         std::string name = reconstruct_id(pt.children[0]);
@@ -750,20 +752,25 @@ decltype(auto) reconstruct_clauses(const ParsingTree<Token, Rule> &pt) {
                 hyps.push_back(id_map.at(hyp_str));
             }
         }
-        id_map[name] = ret.size();
-        ret.push_back({std::move(name), Clause::reconstruct(pt.children[2]), std::move(inference), std::move(hyps)});
-    };
+        this->id_map[name] = this->lines.size();
+        this->lines.push_back({std::move(name), Clause::reconstruct(pt.children[2]), std::move(inference), std::move(hyps)});
+        return this->lines.back();
+    }
+};
+
+Refutation reconstruct_clauses(const ParsingTree<Token, Rule> &pt) {
+    Refutation ref;
     const auto *cur = &pt;
     while (true) {
         gio_assert(cur->type == sym_tok(TokenType::CNF_LINES));
         if (cur->label == Rule::CNF_LINE_IS_CNF_LINES) {
             gio_assert(cur->children.size() == 1);
-            line_to_clause(cur->children[0]);
-            return ret;
+            ref.reconstruct_clause(cur->children[0]);
+            return ref;
         }
         gio_assert(cur->label == Rule::CNF_LINE_AND_CNF_LINES_IS_CNF_LINES);
         gio_assert(cur->children.size() == 2);
-        line_to_clause(cur->children[0]);
+        ref.reconstruct_clause(cur->children[0]);
         cur = &cur->children[1];
     }
 }
@@ -797,6 +804,34 @@ static_block {
     register_main_function("parse_tstp", parse_tstp_main);
 }
 
+struct SplitClauses {
+    SplitClauses(std::istream &stream) : stream(stream) {}
+
+    std::string operator()() {
+        std::ostringstream ss;
+        unsigned depth = 0;
+        while (true) {
+            char c;
+            if (!this->stream) {
+                return "";
+            }
+            this->stream >> c;
+            ss << c;
+            if (c == '(') {
+                depth++;
+            }
+            if (c == ')') {
+                depth--;
+            }
+            if (c == '.' && depth == 0) {
+                return ss.str();
+            }
+        }
+    }
+
+    std::istream &stream;
+};
+
 int parse_tstp_file_main(int argc, char *argv[]) {
     (void) argc;
     (void) argv;
@@ -804,29 +839,36 @@ int parse_tstp_file_main(int argc, char *argv[]) {
     auto parser = init_tstp_parser();
 
     //std::ifstream fin("/tmp/test");
-    auto lexes = simple_lexer(istream_begin_end<char>(std::cin));
+    /*auto lexes = simple_lexer(istream_begin_end<char>(std::cin));
     auto pt = parser.parse(lexes.begin(), lexes.end(), Token(TokenType::CNF_LINES));
     std::cout << "Parsed as " << pt.label << ", with " << pt.children.size() << " children" << std::endl;
-    auto clauses = reconstruct_clauses(pt);
+    auto ref = reconstruct_clauses(pt);
     std::cout << "Clauses:\n";
-    for (const auto &clause : clauses) {
-        std::cout << " * "  << clause.name << ": " << *clause.clause << "\n";
-        if (!clause.hyps.empty()) {
+    for (const auto &line : ref.lines) {*/
+    SplitClauses sc(std::cin);
+    Refutation ref;
+    std::string line_str;
+    while ((line_str = sc()) != "") {
+        auto lexes = simple_lexer(line_str);
+        auto pt = parser.parse(lexes.begin(), lexes.end(), Token(TokenType::CNF_LINE));
+        auto line = ref.reconstruct_clause(pt);
+        std::cout << " * "  << line.name << ": " << *line.clause << "\n";
+        if (!line.hyps.empty()) {
             std::cout << "   Proved from";
-            for (const auto &hyp : clause.hyps) {
-                std::cout << " " << clauses[hyp].name;
+            for (const auto &hyp : line.hyps) {
+                std::cout << " " << ref.lines[hyp].name;
             }
             std::cout << "\n";
         }
-        if (clause.inference) {
+        if (line.inference) {
             std::vector<std::shared_ptr<const Clause>> hyps;
-            for (const auto &hyp : clause.hyps) {
-                hyps.push_back(clauses[hyp].clause);
+            for (const auto &hyp : line.hyps) {
+                hyps.push_back(ref.lines[hyp].clause);
             }
-            auto new_clause = clause.inference->compute_thesis(hyps);
+            auto new_clause = line.inference->compute_thesis(hyps);
             std::cout << "   Inference gave " << *new_clause << "\n";
-            gio_assert(!(*clause.clause < *new_clause));
-            gio_assert(!(*new_clause < *clause.clause));
+            gio_assert(!(*line.clause < *new_clause));
+            gio_assert(!(*new_clause < *line.clause));
         }
         std::cout << "\n";
     }
