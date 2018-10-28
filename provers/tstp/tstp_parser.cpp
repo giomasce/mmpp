@@ -439,13 +439,17 @@ std::shared_ptr<const Clause> Clause::reconstruct(const PT &pt)
 
 void Clause::print_to(std::ostream &s) const
 {
-    bool first = true;
-    for (const auto &lit : this->literals) {
-        if (!first) {
-            s << '|';
+    if (this->literals.empty()) {
+        s << "$false";
+    } else {
+        bool first = true;
+        for (const auto &lit : this->literals) {
+            if (!first) {
+                s << '|';
+            }
+            first = false;
+            s << *lit;
         }
-        first = false;
-        s << *lit;
     }
 }
 
@@ -491,7 +495,10 @@ std::shared_ptr<const Clause> Clause::resolve(const Clause &other, const std::sh
     return Clause::create(new_literals);
 }
 
-Clause::Clause(const std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal> > > &literals) : literals(literals) {}
+Clause::Clause(const std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal> > > &literals) : literals(literals) {
+    const static auto false_lit = Literal::create(true, Atom::create("$false", std::vector<std::shared_ptr<const Term>>{}));
+    this->literals.erase(false_lit);
+}
 
 Inference::~Inference() {}
 
