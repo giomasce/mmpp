@@ -211,52 +211,15 @@ std::shared_ptr<Term> Term::reconstruct(const PT &pt)
 {
     gio_assert(pt.type == TokenType::TERM);
     if (pt.label == Rule::ID_IS_TERM) {
-        if (std::find(VAR_LETTERS.begin(), VAR_LETTERS.end(), reconstrct_id_first_char(pt.children[0])) != VAR_LETTERS.end()) {
-            return Var::reconstruct(pt);
-        } else {
-            return FunctorApp::reconstruct(pt);
-        }
-    } else {
-        gio_assert(pt.label == Rule::FUNC_APP_IS_TERM);
-        return FunctorApp::reconstruct(pt);
-    }
-}
-
-Term::~Term()
-{
-}
-
-std::shared_ptr<Var> Var::reconstruct(const PT &pt)
-{
-    gio_assert(pt.type == TokenType::TERM);
-    gio_assert(pt.label == Rule::ID_IS_TERM);
-    gio_assert(pt.children.size() == 1);
-    std::string name = reconstruct_id(pt.children[0]);
-    gio_assert(std::find(VAR_LETTERS.begin(), VAR_LETTERS.end(), name[0]) != VAR_LETTERS.end());
-    return Var::create(std::move(name));
-}
-
-void Var::print_to(std::ostream &s) const
-{
-    s << this->name;
-}
-
-std::shared_ptr<FunctorApp> FunctorApp::reconstruct(const PT &pt)
-{
-    gio_assert(pt.type == TokenType::TERM);
-    if (pt.label == Rule::FUNC_APP_IS_TERM) {
-        gio_assert(pt.children.size() == 2);
-        return FunctorApp::create(reconstruct_id(pt.children[0]), reconstruct_arglist(pt.children[1]));
-    } else {
-        gio_assert(pt.label == Rule::ID_IS_TERM);
         gio_assert(pt.children.size() == 1);
-        std::string name = reconstruct_id(pt.children[0]);
-        gio_assert(std::find(VAR_LETTERS.begin(), VAR_LETTERS.end(), name[0]) == VAR_LETTERS.end());
-        return FunctorApp::create(std::move(name), std::vector<std::shared_ptr<Term>>{});
+        return Term::create(reconstruct_id(pt.children[0]), std::vector<std::shared_ptr<Term>>{});
+    } else {
+        gio_assert(pt.children.size() == 2);
+        return Term::create(reconstruct_id(pt.children[0]), reconstruct_arglist(pt.children[1]));
     }
 }
 
-void FunctorApp::print_to(std::ostream &s) const
+void Term::print_to(std::ostream &s) const
 {
     s << this->functor;
     if (!this->args.empty()) {
@@ -273,63 +236,67 @@ void FunctorApp::print_to(std::ostream &s) const
     }
 }
 
-Atom::~Atom()
+bool Term::operator<(const Term &x) const
 {
+    if (this->functor < x.functor) return true;
+    if (x.functor < this->functor) return false;
+    gio_assert(this->args.size() == x.args.size());
+    return std::lexicographical_compare(this->args.begin(), this->args.end(), x.args.begin(), x.args.end(), star_less<std::shared_ptr<Term>>());
+}
+
+Term::Term(const std::string &functor, const std::vector<std::shared_ptr<Term> > &args) : functor(functor), args(args) {
+    gio_assert(args.empty() || std::find(VAR_LETTERS.begin(), VAR_LETTERS.end(), this->functor[0]) == VAR_LETTERS.end());
 }
 
 std::pair<bool, std::shared_ptr<Atom>> Atom::reconstruct(const PT &pt)
 {
     gio_assert(pt.type == sym_tok(TokenType::ATOM));
-    if (pt.label == Rule::PRED_APP_IS_ATOM || pt.label == Rule::ID_IS_ATOM) {
-        return std::make_pair(true, PredicateApp::reconstruct(pt));
-    } else {
-        return Equality::reconstruct(pt);
-    }
-}
-
-std::pair<bool, std::shared_ptr<Equality>> Equality::reconstruct(const PT &pt)
-{
-    gio_assert(pt.type == sym_tok(TokenType::ATOM));
-    gio_assert(pt.label == Rule::TERM_EQ_IS_ATOM || pt.label == Rule::TERM_NEQ_IS_ATOM);
-    gio_assert(pt.children.size() == 2);
-    return std::make_pair(pt.label == Rule::TERM_EQ_IS_ATOM, Equality::create(Term::reconstruct(pt.children[0]), Term::reconstruct(pt.children[1])));
-}
-
-void Equality::print_to(std::ostream &s) const
-{
-    s << *this->first << '=' << *this->second;
-}
-
-std::shared_ptr<PredicateApp> PredicateApp::reconstruct(const PT &pt)
-{
-    gio_assert(pt.type == sym_tok(TokenType::ATOM));
     if (pt.label == Rule::PRED_APP_IS_ATOM) {
         gio_assert(pt.children.size() == 2);
-        return PredicateApp::create(reconstruct_id(pt.children[0]), reconstruct_arglist(pt.children[1]));
-    } else {
-        gio_assert(pt.label == Rule::ID_IS_ATOM);
+        return std::make_pair(true, Atom::create(reconstruct_id(pt.children[0]), reconstruct_arglist(pt.children[1])));
+    } else if (pt.label == Rule::ID_IS_ATOM) {
         gio_assert(pt.children.size() == 1);
         std::string name = reconstruct_id(pt.children[0]);
-        gio_assert(std::find(VAR_LETTERS.begin(), VAR_LETTERS.end(), name[0]) == VAR_LETTERS.end());
-        return PredicateApp::create(std::move(name), std::vector<std::shared_ptr<Term>>{});
+        return std::make_pair(true, Atom::create(std::move(name), std::vector<std::shared_ptr<Term>>{}));
+    } else {
+        gio_assert(pt.label == Rule::TERM_EQ_IS_ATOM || pt.label == Rule::TERM_NEQ_IS_ATOM);
+        gio_assert(pt.children.size() == 2);
+        return std::make_pair(pt.label == Rule::TERM_EQ_IS_ATOM, Atom::create("$equal", std::vector<std::shared_ptr<Term>>{Term::reconstruct(pt.children[0]), Term::reconstruct(pt.children[1])}));
     }
 }
 
-void PredicateApp::print_to(std::ostream &s) const
+void Atom::print_to(std::ostream &s) const
 {
-    s << this->predicate;
-    if (!this->args.empty()) {
-        s << '(';
-        bool first = true;
-        for (const auto &arg : this->args) {
-            if (!first) {
-                s << ',';
+    if (this->predicate == "$equal") {
+        gio_assert(this->args.size() == 2);
+        s << *this->args[0] << "=" << *this->args[1];
+    } else {
+        s << this->predicate;
+        if (!this->args.empty()) {
+            s << '(';
+            bool first = true;
+            for (const auto &arg : this->args) {
+                if (!first) {
+                    s << ',';
+                }
+                first = false;
+                s << *arg;
             }
-            first = false;
-            s << *arg;
+            s << ')';
         }
-        s << ')';
     }
+}
+
+bool Atom::operator<(const Atom &x) const
+{
+    if (this->predicate < x.predicate) return true;
+    if (x.predicate < this->predicate) return false;
+    gio_assert(this->args.size() == x.args.size());
+    return std::lexicographical_compare(this->args.begin(), this->args.end(), x.args.begin(), x.args.end(), star_less<std::shared_ptr<Term>>());
+}
+
+Atom::Atom(const std::string &predicate, const std::vector<std::shared_ptr<Term> > &args) : predicate(predicate), args(args) {
+    gio_assert(std::find(VAR_LETTERS.begin(), VAR_LETTERS.end(), this->predicate[0]) == VAR_LETTERS.end());
 }
 
 std::shared_ptr<Literal> Literal::reconstruct(const PT &pt)
@@ -352,6 +319,13 @@ void Literal::print_to(std::ostream &s) const
     s << *this->atom;
 }
 
+bool Literal::operator<(const Literal &x) const
+{
+    if (this->sign < x.sign) return true;
+    if (x.sign < this->sign) return false;
+    return *this->atom < *x.atom;
+}
+
 Literal::Literal(bool sign, const std::shared_ptr<Atom> &atom) : sign(sign), atom(atom) {}
 
 std::shared_ptr<Clause> Clause::reconstruct(const PT &pt)
@@ -363,12 +337,12 @@ std::shared_ptr<Clause> Clause::reconstruct(const PT &pt)
     }
     if (pt.label == Rule::LITERAL_IS_CLAUSE) {
         gio_assert(pt.children.size() == 1);
-        return Clause::create(std::vector<std::shared_ptr<Literal>>{Literal::reconstruct(pt.children[0])});
+        return Clause::create(std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal>>>{Literal::reconstruct(pt.children[0])});
     }
     gio_assert(pt.label == Rule::CLAUSE_AND_LITERAL_IS_CLAUSE);
     gio_assert(pt.children.size() == 2);
     auto ret = Clause::reconstruct(pt.children[0]);
-    ret->literals.push_back(Literal::reconstruct(pt.children[1]));
+    ret->literals.insert(Literal::reconstruct(pt.children[1]));
     return ret;
 }
 
@@ -383,6 +357,8 @@ void Clause::print_to(std::ostream &s) const
         s << *lit;
     }
 }
+
+Clause::Clause(const std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal> > > &literals) : literals(literals) {}
 
 struct RefutationLine {
     std::string name;

@@ -164,12 +164,15 @@ struct enable_create : public virtual_enable_shared_from_this< T > {
     template< typename... Args >
     static std::shared_ptr< T > create(Args&&... args) {
         std::shared_ptr< enable_make< T > > pointer = std::make_shared< enable_make< T > >(std::forward< Args >(args)...);
-        static_cast< std::shared_ptr< enable_create< T > > >(pointer)->init();
+        std::static_pointer_cast< enable_create< T > >(pointer)->init();
         return pointer;
     }
 
+    // Would this be somehow helpful?
+/*public:
+    virtual ~enable_create() {}*/
+
 protected:
-    virtual ~enable_create() {}
     virtual void init() {}
 };
 
@@ -366,6 +369,13 @@ struct istream_begin_end {
     }
 
     std::istream &s;
+};
+
+template<typename T>
+struct star_less {
+    constexpr bool operator()(const T &x, const T &y) const {
+        return *x < *y;
+    }
 };
 
 #define gio_assert(expr) (static_cast<bool>(expr) ? static_cast<void>(0) : failed_assertion(#expr, __FILE__, __LINE__, BOOST_CURRENT_FUNCTION))

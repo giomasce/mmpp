@@ -153,72 +153,30 @@ enum class Rule {
 
 typedef ParsingTree<Token, Rule> PT;
 
-class Term {
+class Term : public enable_create<Term> {
 public:
     static std::shared_ptr<Term> reconstruct(const PT &pt);
 
-    ~Term();
-    virtual void print_to(std::ostream &s) const = 0;
-};
-
-class Var : public Term, public enable_create<Var> {
-public:
-    static std::shared_ptr<Var> reconstruct(const PT &pt);
-
-    void print_to(std::ostream &s) const override;
+    void print_to(std::ostream &s) const;
+    bool operator<(const Term &x) const;
 
 protected:
-    explicit Var(const std::string &name) : name(name) {}
-
-private:
-    std::string name;
-};
-
-class FunctorApp : public Term, public enable_create<FunctorApp> {
-public:
-    static std::shared_ptr<FunctorApp> reconstruct(const PT &pt);
-
-    void print_to(std::ostream &s) const override;
-
-protected:
-    FunctorApp(const std::string &functor, const std::vector<std::shared_ptr<Term>> &args) : functor(functor), args(args) {}
+    Term(const std::string &functor, const std::vector<std::shared_ptr<Term>> &args);
 
 private:
     std::string functor;
     std::vector<std::shared_ptr<Term>> args;
 };
 
-class Atom {
-public:
-    virtual ~Atom();
-    virtual void print_to(std::ostream &s) const = 0;
-
+class Atom : public enable_create<Atom> {
 public:
     static std::pair<bool, std::shared_ptr<Atom>> reconstruct(const PT &pt);
-};
 
-class Equality : public Atom, public enable_create<Equality> {
-public:
-    static std::pair<bool, std::shared_ptr<Equality>> reconstruct(const PT &pt);
-
-    void print_to(std::ostream &s) const override;
+    void print_to(std::ostream &s) const;
+    bool operator<(const Atom &x) const;
 
 protected:
-    Equality(const std::shared_ptr<Term> &first, const std::shared_ptr<Term> &second) : first(first), second(second) {}
-
-private:
-    std::shared_ptr<Term> first;
-    std::shared_ptr<Term> second;
-};
-
-class PredicateApp : public Atom, public enable_create<PredicateApp> {
-public:
-    static std::shared_ptr<PredicateApp> reconstruct(const PT &pt);
-
-    void print_to(std::ostream &s) const override;
-
-protected:
-    PredicateApp(const std::string &predicate, const std::vector<std::shared_ptr<Term>> &args) : predicate(predicate), args(args) {}
+    Atom(const std::string &predicate, const std::vector<std::shared_ptr<Term>> &args);
 
 private:
     std::string predicate;
@@ -230,6 +188,7 @@ public:
     static std::shared_ptr<Literal> reconstruct(const PT &pt);
 
     void print_to(std::ostream &s) const;
+    bool operator<(const Literal &x) const;
 
 protected:
     Literal(bool sign, const std::shared_ptr<Atom> &atom);
@@ -246,10 +205,10 @@ public:
     void print_to(std::ostream &s) const;
 
 protected:
-    explicit Clause(const std::vector<std::shared_ptr<Literal>> &literals) : literals(literals) {}
+    explicit Clause(const std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal>>> &literals);
 
 private:
-    std::vector<std::shared_ptr<Literal>> literals;
+    std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal>>> literals;
 };
 
 template<typename T, typename = decltype(std::declval<T>().print_to(std::declval<std::ostream&>()))>
