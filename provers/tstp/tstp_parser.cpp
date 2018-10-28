@@ -190,11 +190,11 @@ std::vector<Token> simple_lexer(const T &s) {
     return ret;
 }
 
-std::vector<std::shared_ptr<Term>> reconstruct_arglist(const PT &pt) {
-    std::vector<std::shared_ptr<Term>> ret;
+std::vector<std::shared_ptr<const Term>> reconstruct_arglist(const PT &pt) {
+    std::vector<std::shared_ptr<const Term>> ret;
     const auto *cur = &pt;
     while (true) {
-        gio_assert(pt.type == TokenType::ARGLIST);
+        gio_assert(cur->type == TokenType::ARGLIST);
         if (cur->label == Rule::TERM_IS_ARGLIST) {
             gio_assert(cur->children.size() == 1);
             ret.push_back(Term::reconstruct(cur->children[0]));
@@ -207,12 +207,12 @@ std::vector<std::shared_ptr<Term>> reconstruct_arglist(const PT &pt) {
     }
 }
 
-std::shared_ptr<Term> Term::reconstruct(const PT &pt)
+std::shared_ptr<const Term> Term::reconstruct(const PT &pt)
 {
     gio_assert(pt.type == TokenType::TERM);
     if (pt.label == Rule::ID_IS_TERM) {
         gio_assert(pt.children.size() == 1);
-        return Term::create(reconstruct_id(pt.children[0]), std::vector<std::shared_ptr<Term>>{});
+        return Term::create(reconstruct_id(pt.children[0]), std::vector<std::shared_ptr<const Term>>{});
     } else {
         gio_assert(pt.children.size() == 2);
         return Term::create(reconstruct_id(pt.children[0]), reconstruct_arglist(pt.children[1]));
@@ -241,10 +241,10 @@ bool Term::operator<(const Term &x) const
     if (this->functor < x.functor) return true;
     if (x.functor < this->functor) return false;
     gio_assert(this->args.size() == x.args.size());
-    return std::lexicographical_compare(this->args.begin(), this->args.end(), x.args.begin(), x.args.end(), star_less<std::shared_ptr<Term>>());
+    return std::lexicographical_compare(this->args.begin(), this->args.end(), x.args.begin(), x.args.end(), star_less<std::shared_ptr<const Term>>());
 }
 
-std::shared_ptr<Term> Term::substitute(const std::map<std::string, std::shared_ptr<Term> > &subst) const {
+std::shared_ptr<const Term> Term::substitute(const std::map<std::string, std::shared_ptr<const Term> > &subst) const {
     if (std::find(VAR_LETTERS.begin(), VAR_LETTERS.end(), this->functor[0]) != VAR_LETTERS.end()) {
         gio_assert(this->args.empty());
         auto it = subst.find(this->functor);
@@ -258,7 +258,7 @@ std::shared_ptr<Term> Term::substitute(const std::map<std::string, std::shared_p
     }
 }
 
-std::pair<std::shared_ptr<Term>, std::shared_ptr<Term> > Term::replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<Term> &term) const {
+std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Term> > Term::replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const {
     if (path_begin != path_end) {
         auto &idx = *path_begin;
         assert_or_throw<std::invalid_argument>(idx < this->args.size(), "invalid path");
@@ -271,11 +271,11 @@ std::pair<std::shared_ptr<Term>, std::shared_ptr<Term> > Term::replace(std::vect
     }
 }
 
-Term::Term(const std::string &functor, const std::vector<std::shared_ptr<Term> > &args) : functor(functor), args(args) {
+Term::Term(const std::string &functor, const std::vector<std::shared_ptr<const Term> > &args) : functor(functor), args(args) {
     gio_assert(this->args.empty() || std::find(VAR_LETTERS.begin(), VAR_LETTERS.end(), this->functor[0]) == VAR_LETTERS.end());
 }
 
-std::pair<bool, std::shared_ptr<Atom>> Atom::reconstruct(const PT &pt)
+std::pair<bool, std::shared_ptr<const Atom>> Atom::reconstruct(const PT &pt)
 {
     gio_assert(pt.type == sym_tok(TokenType::ATOM));
     if (pt.label == Rule::PRED_APP_IS_ATOM) {
@@ -284,11 +284,11 @@ std::pair<bool, std::shared_ptr<Atom>> Atom::reconstruct(const PT &pt)
     } else if (pt.label == Rule::ID_IS_ATOM) {
         gio_assert(pt.children.size() == 1);
         std::string name = reconstruct_id(pt.children[0]);
-        return std::make_pair(true, Atom::create(std::move(name), std::vector<std::shared_ptr<Term>>{}));
+        return std::make_pair(true, Atom::create(std::move(name), std::vector<std::shared_ptr<const Term>>{}));
     } else {
         gio_assert(pt.label == Rule::TERM_EQ_IS_ATOM || pt.label == Rule::TERM_NEQ_IS_ATOM);
         gio_assert(pt.children.size() == 2);
-        return std::make_pair(pt.label == Rule::TERM_EQ_IS_ATOM, Atom::create("$equal", std::vector<std::shared_ptr<Term>>{Term::reconstruct(pt.children[0]), Term::reconstruct(pt.children[1])}));
+        return std::make_pair(pt.label == Rule::TERM_EQ_IS_ATOM, Atom::create("$equal", std::vector<std::shared_ptr<const Term>>{Term::reconstruct(pt.children[0]), Term::reconstruct(pt.children[1])}));
     }
 }
 
@@ -319,18 +319,18 @@ bool Atom::operator<(const Atom &x) const
     if (this->predicate < x.predicate) return true;
     if (x.predicate < this->predicate) return false;
     gio_assert(this->args.size() == x.args.size());
-    return std::lexicographical_compare(this->args.begin(), this->args.end(), x.args.begin(), x.args.end(), star_less<std::shared_ptr<Term>>());
+    return std::lexicographical_compare(this->args.begin(), this->args.end(), x.args.begin(), x.args.end(), star_less<std::shared_ptr<const Term>>());
 }
 
-std::shared_ptr<Atom> Atom::substitute(const std::map<std::string, std::shared_ptr<Term> > &subst) const {
-    std::vector<std::shared_ptr<Term>> new_args;
+std::shared_ptr<const Atom> Atom::substitute(const std::map<std::string, std::shared_ptr<const Term> > &subst) const {
+    std::vector<std::shared_ptr<const Term>> new_args;
     for (const auto &arg : args) {
         new_args.push_back(arg->substitute(subst));
     }
     return Atom::create(this->predicate, new_args);
 }
 
-std::pair<std::shared_ptr<Term>, std::shared_ptr<Atom> > Atom::replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<Term> &term) const {
+std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Atom> > Atom::replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const {
     assert_or_throw<std::invalid_argument>(path_begin != path_end, "empty path");
     auto &idx = *path_begin;
     assert_or_throw<std::invalid_argument>(idx < this->args.size(), "invalid path");
@@ -340,11 +340,11 @@ std::pair<std::shared_ptr<Term>, std::shared_ptr<Atom> > Atom::replace(std::vect
     return std::make_pair(res.first, Atom::create(this->predicate, new_args));
 }
 
-Atom::Atom(const std::string &predicate, const std::vector<std::shared_ptr<Term> > &args) : predicate(predicate), args(args) {
+Atom::Atom(const std::string &predicate, const std::vector<std::shared_ptr<const Term> > &args) : predicate(predicate), args(args) {
     gio_assert(std::find(VAR_LETTERS.begin(), VAR_LETTERS.end(), this->predicate[0]) == VAR_LETTERS.end());
 }
 
-std::shared_ptr<Literal> Literal::reconstruct(const PT &pt)
+std::shared_ptr<const Literal> Literal::reconstruct(const PT &pt)
 {
     gio_assert(pt.children.size() == 1);
     auto ret = Atom::reconstruct(pt.children[0]);
@@ -371,38 +371,43 @@ bool Literal::operator<(const Literal &x) const
     return *this->atom < *x.atom;
 }
 
-std::shared_ptr<Literal> Literal::opposite() const
+std::shared_ptr<const Literal> Literal::opposite() const
 {
     return Literal::create(!this->sign, this->atom);
 }
 
-std::shared_ptr<Literal> Literal::substitute(const std::map<std::string, std::shared_ptr<Term> > &subst) const {
+std::shared_ptr<const Literal> Literal::substitute(const std::map<std::string, std::shared_ptr<const Term> > &subst) const {
     return Literal::create(this->sign, this->atom->substitute(subst));
 }
 
-std::pair<std::shared_ptr<Term>, std::shared_ptr<Literal> > Literal::replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<Term> &term) const {
+std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Literal> > Literal::replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const {
     auto res = this->atom->replace(path_begin, path_end, term);
     return std::make_pair(res.first, Literal::create(this->sign, res.second));
 }
 
-Literal::Literal(bool sign, const std::shared_ptr<Atom> &atom) : sign(sign), atom(atom) {}
+Literal::Literal(bool sign, const std::shared_ptr<const Atom> &atom) : sign(sign), atom(atom) {}
 
-std::shared_ptr<Clause> Clause::reconstruct(const PT &pt)
+std::shared_ptr<const Clause> Clause::reconstruct(const PT &pt)
 {
     gio_assert(pt.type == sym_tok(TokenType::CLAUSE));
     if (pt.label == Rule::PARENS_CLAUSE_IS_CLAUSE) {
         gio_assert(pt.children.size() == 1);
         return Clause::reconstruct(pt.children[0]);
     }
-    if (pt.label == Rule::LITERAL_IS_CLAUSE) {
-        gio_assert(pt.children.size() == 1);
-        return Clause::create(std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal>>>{Literal::reconstruct(pt.children[0])});
+    std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>> literals;
+    const auto *cur = &pt;
+    while (true) {
+        gio_assert(cur->type == sym_tok(TokenType::CLAUSE));
+        if (cur->label == Rule::LITERAL_IS_CLAUSE) {
+            gio_assert(cur->children.size() == 1);
+            literals.insert(Literal::reconstruct(cur->children[0]));
+            return Clause::create(literals);
+        }
+        gio_assert(cur->label == Rule::CLAUSE_AND_LITERAL_IS_CLAUSE);
+        gio_assert(pt.children.size() == 2);
+        literals.insert(Literal::reconstruct(cur->children[1]));
+        cur = &cur->children[0];
     }
-    gio_assert(pt.label == Rule::CLAUSE_AND_LITERAL_IS_CLAUSE);
-    gio_assert(pt.children.size() == 2);
-    auto ret = Clause::reconstruct(pt.children[0]);
-    ret->literals.insert(Literal::reconstruct(pt.children[1]));
-    return ret;
 }
 
 void Clause::print_to(std::ostream &s) const
@@ -417,17 +422,17 @@ void Clause::print_to(std::ostream &s) const
     }
 }
 
-std::shared_ptr<Clause> Clause::substitute(const std::map<std::string, std::shared_ptr<Term> > &subst) const {
-    std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal>>> new_literals;
+std::shared_ptr<const Clause> Clause::substitute(const std::map<std::string, std::shared_ptr<const Term> > &subst) const {
+    std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>> new_literals;
     for (const auto &lit : this->literals) {
         new_literals.insert(lit->substitute(subst));
     }
     return Clause::create(new_literals);
 }
 
-std::shared_ptr<Clause> Clause::resolve(const Clause &other, const std::shared_ptr<Literal> &lit) const
+std::shared_ptr<const Clause> Clause::resolve(const Clause &other, const std::shared_ptr<const Literal> &lit) const
 {
-    std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal>>> new_literals;
+    std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>> new_literals;
     bool found = false;
 
     // Process first clause
@@ -454,57 +459,57 @@ std::shared_ptr<Clause> Clause::resolve(const Clause &other, const std::shared_p
     return Clause::create(new_literals);
 }
 
-Clause::Clause(const std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal> > > &literals) : literals(literals) {}
+Clause::Clause(const std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal> > > &literals) : literals(literals) {}
 
 Inference::~Inference() {}
 
-std::shared_ptr<Clause> Axiom::compute_thesis(const std::vector<std::shared_ptr<Clause> > &hyps) const {
+std::shared_ptr<const Clause> Axiom::compute_thesis(const std::vector<std::shared_ptr<const Clause> > &hyps) const {
     gio_assert(hyps.empty());
     return this->clause;
 }
 
-Axiom::Axiom(const std::shared_ptr<Clause> &clause) : clause(clause) {}
+Axiom::Axiom(const std::shared_ptr<const Clause> &clause) : clause(clause) {}
 
-std::shared_ptr<Clause> Assume::compute_thesis(const std::vector<std::shared_ptr<Clause> > &hyps) const {
+std::shared_ptr<const Clause> Assume::compute_thesis(const std::vector<std::shared_ptr<const Clause> > &hyps) const {
     gio_assert(hyps.empty());
-    return Clause::create(std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal>>>{literal, literal->opposite()});
+    return Clause::create(std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>>{literal, literal->opposite()});
 }
 
-Assume::Assume(const std::shared_ptr<Literal> &literal) : literal(literal) {}
+Assume::Assume(const std::shared_ptr<const Literal> &literal) : literal(literal) {}
 
-std::shared_ptr<Clause> Subst::compute_thesis(const std::vector<std::shared_ptr<Clause> > &hyps) const {
+std::shared_ptr<const Clause> Subst::compute_thesis(const std::vector<std::shared_ptr<const Clause> > &hyps) const {
     gio_assert(hyps.size() == 1);
     return hyps[0]->substitute(this->subst);
 }
 
-Subst::Subst(const std::map<std::string, std::shared_ptr<Term> > &subst) : subst(subst) {}
+Subst::Subst(const std::map<std::string, std::shared_ptr<const Term> > &subst) : subst(subst) {}
 
-std::shared_ptr<Clause> Resolve::compute_thesis(const std::vector<std::shared_ptr<Clause> > &hyps) const {
+std::shared_ptr<const Clause> Resolve::compute_thesis(const std::vector<std::shared_ptr<const Clause> > &hyps) const {
     gio_assert(hyps.size() == 2);
     return hyps[0]->resolve(*hyps[1], this->literal);
 }
 
-Resolve::Resolve(const std::shared_ptr<Literal> &literal) : literal(literal) {}
+Resolve::Resolve(const std::shared_ptr<const Literal> &literal) : literal(literal) {}
 
-std::shared_ptr<Clause> Refl::compute_thesis(const std::vector<std::shared_ptr<Clause> > &hyps) const {
+std::shared_ptr<const Clause> Refl::compute_thesis(const std::vector<std::shared_ptr<const Clause> > &hyps) const {
     gio_assert(hyps.empty());
-    return Clause::create(std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal>>>{Literal::create(true, Atom::create("$equal", std::vector<std::shared_ptr<Term>>{this->term, this->term}))});
+    return Clause::create(std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>>{Literal::create(true, Atom::create("$equal", std::vector<std::shared_ptr<const Term>>{this->term, this->term}))});
 }
 
-Refl::Refl(const std::shared_ptr<Term> &term) : term(term) {}
+Refl::Refl(const std::shared_ptr<const Term> &term) : term(term) {}
 
-std::shared_ptr<Clause> Equality::compute_thesis(const std::vector<std::shared_ptr<Clause> > &hyps) const {
+std::shared_ptr<const Clause> Equality::compute_thesis(const std::vector<std::shared_ptr<const Clause> > &hyps) const {
     gio_assert(hyps.empty());
     auto res = this->literal->replace(this->path.begin(), this->path.end(), this->term);
-    auto eq_lit = Literal::create(false, Atom::create("$equal", std::vector<std::shared_ptr<Term>>{res.first, this->term}));
-    return Clause::create(std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal>>>{eq_lit, this->literal->opposite(), res.second});
+    auto eq_lit = Literal::create(false, Atom::create("$equal", std::vector<std::shared_ptr<const Term>>{res.first, this->term}));
+    return Clause::create(std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>>{eq_lit, this->literal->opposite(), res.second});
 }
 
-Equality::Equality(const std::shared_ptr<Literal> &literal, const std::vector<uint32_t> &path, const std::shared_ptr<Term> &term) : literal(literal), path(path), term(term) {}
+Equality::Equality(const std::shared_ptr<const Literal> &literal, const std::vector<uint32_t> &path, const std::shared_ptr<const Term> &term) : literal(literal), path(path), term(term) {}
 
 struct RefutationLine {
     std::string name;
-    std::shared_ptr<Clause> clause;
+    std::shared_ptr<const Clause> clause;
     ParsingTree<Token, Rule> just;
 };
 

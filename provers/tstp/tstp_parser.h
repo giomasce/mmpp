@@ -155,69 +155,69 @@ typedef ParsingTree<Token, Rule> PT;
 
 class Term : public enable_create<Term> {
 public:
-    static std::shared_ptr<Term> reconstruct(const PT &pt);
+    static std::shared_ptr<const Term> reconstruct(const PT &pt);
 
     void print_to(std::ostream &s) const;
     bool operator<(const Term &x) const;
-    std::shared_ptr<Term> substitute(const std::map<std::string, std::shared_ptr<Term>> &subst) const;
-    std::pair<std::shared_ptr<Term>, std::shared_ptr<Term>> replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<Term> &term) const;
+    std::shared_ptr<const Term> substitute(const std::map<std::string, std::shared_ptr<const Term>> &subst) const;
+    std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Term>> replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const;
 
 protected:
-    Term(const std::string &functor, const std::vector<std::shared_ptr<Term>> &args);
+    Term(const std::string &functor, const std::vector<std::shared_ptr<const Term>> &args);
 
 private:
     std::string functor;
-    std::vector<std::shared_ptr<Term>> args;
+    std::vector<std::shared_ptr<const Term>> args;
 };
 
 class Atom : public enable_create<Atom> {
 public:
-    static std::pair<bool, std::shared_ptr<Atom>> reconstruct(const PT &pt);
+    static std::pair<bool, std::shared_ptr<const Atom>> reconstruct(const PT &pt);
 
     void print_to(std::ostream &s) const;
     bool operator<(const Atom &x) const;
-    std::shared_ptr<Atom> substitute(const std::map<std::string, std::shared_ptr<Term>> &subst) const;
-    std::pair<std::shared_ptr<Term>, std::shared_ptr<Atom>> replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<Term> &term) const;
+    std::shared_ptr<const Atom> substitute(const std::map<std::string, std::shared_ptr<const Term>> &subst) const;
+    std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Atom>> replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const;
 
 protected:
-    Atom(const std::string &predicate, const std::vector<std::shared_ptr<Term>> &args);
+    Atom(const std::string &predicate, const std::vector<std::shared_ptr<const Term>> &args);
 
 private:
     std::string predicate;
-    std::vector<std::shared_ptr<Term>> args;
+    std::vector<std::shared_ptr<const Term>> args;
 };
 
 class Literal : public enable_create<Literal> {
 public:
-    static std::shared_ptr<Literal> reconstruct(const PT &pt);
+    static std::shared_ptr<const Literal> reconstruct(const PT &pt);
 
     void print_to(std::ostream &s) const;
     bool operator<(const Literal &x) const;
-    std::shared_ptr<Literal> opposite() const;
-    std::shared_ptr<Literal> substitute(const std::map<std::string, std::shared_ptr<Term>> &subst) const;
-    std::pair<std::shared_ptr<Term>, std::shared_ptr<Literal>> replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<Term> &term) const;
+    std::shared_ptr<const Literal> opposite() const;
+    std::shared_ptr<const Literal> substitute(const std::map<std::string, std::shared_ptr<const Term>> &subst) const;
+    std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Literal>> replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const;
 
 protected:
-    Literal(bool sign, const std::shared_ptr<Atom> &atom);
+    Literal(bool sign, const std::shared_ptr<const Atom> &atom);
 
 private:
     bool sign;
-    std::shared_ptr<Atom> atom;
+    std::shared_ptr<const Atom> atom;
 };
 
 class Clause : public enable_create<Clause> {
 public:
-    static std::shared_ptr<Clause> reconstruct(const PT &pt);
+    static std::shared_ptr<const Clause> reconstruct(const PT &pt);
 
     void print_to(std::ostream &s) const;
-    std::shared_ptr<Clause> substitute(const std::map<std::string, std::shared_ptr<Term>> &subst) const;
-    std::shared_ptr<Clause> resolve(const Clause &other, const std::shared_ptr<Literal> &lit) const;
+    std::shared_ptr<const Clause> substitute(const std::map<std::string, std::shared_ptr<const Term>> &subst) const;
+    std::shared_ptr<const Clause> resolve(const Clause &other, const std::shared_ptr<const Literal> &lit) const;
 
 protected:
-    explicit Clause(const std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal>>> &literals);
+    explicit Clause(const std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>> &literals);
 
 private:
-    std::set<std::shared_ptr<Literal>, star_less<std::shared_ptr<Literal>>> literals;
+    std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>> literals;
 };
 
 // See https://stackoverflow.com/q/53022868/807307
@@ -230,75 +230,75 @@ std::ostream &operator<<(std::ostream &s, const T &t) {
 class Inference {
 public:
     virtual ~Inference();
-    virtual std::shared_ptr<Clause> compute_thesis(const std::vector<std::shared_ptr<Clause>> &hyps) const = 0;
+    virtual std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const = 0;
 };
 
 class Axiom : public Inference, public enable_create<Axiom> {
 public:
-    std::shared_ptr<Clause> compute_thesis(const std::vector<std::shared_ptr<Clause>> &hyps) const;
+    std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
 
 protected:
-    Axiom(const std::shared_ptr<Clause> &clause);
+    Axiom(const std::shared_ptr<const Clause> &clause);
 
 private:
-    std::shared_ptr<Clause> clause;
+    std::shared_ptr<const Clause> clause;
 };
 
 class Assume : public Inference, public enable_create<Assume> {
 public:
-    std::shared_ptr<Clause> compute_thesis(const std::vector<std::shared_ptr<Clause>> &hyps) const;
+    std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
 
 protected:
-    Assume(const std::shared_ptr<Literal> &literal);
+    Assume(const std::shared_ptr<const Literal> &literal);
 
 private:
-    std::shared_ptr<Literal> literal;
+    std::shared_ptr<const Literal> literal;
 };
 
 class Subst : public Inference, public enable_create<Subst> {
 public:
-    std::shared_ptr<Clause> compute_thesis(const std::vector<std::shared_ptr<Clause>> &hyps) const;
+    std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
 
 protected:
-    Subst(const std::map<std::string, std::shared_ptr<Term>> &subst);
+    Subst(const std::map<std::string, std::shared_ptr<const Term>> &subst);
 
 private:
-    std::map<std::string, std::shared_ptr<Term>> subst;
+    std::map<std::string, std::shared_ptr<const Term>> subst;
 };
 
 class Resolve : public Inference, public enable_create<Resolve> {
 public:
-    std::shared_ptr<Clause> compute_thesis(const std::vector<std::shared_ptr<Clause>> &hyps) const;
+    std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
 
 protected:
-    Resolve(const std::shared_ptr<Literal> &literal);
+    Resolve(const std::shared_ptr<const Literal> &literal);
 
 private:
-    std::shared_ptr<Literal> literal;
+    std::shared_ptr<const Literal> literal;
 };
 
 class Refl : public Inference, public enable_create<Refl> {
 public:
-    std::shared_ptr<Clause> compute_thesis(const std::vector<std::shared_ptr<Clause>> &hyps) const;
+    std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
 
 protected:
-    Refl(const std::shared_ptr<Term> &term);
+    Refl(const std::shared_ptr<const Term> &term);
 
 private:
-    std::shared_ptr<Term> term;
+    std::shared_ptr<const Term> term;
 };
 
 class Equality : public Inference, public enable_create<Equality> {
 public:
-    std::shared_ptr<Clause> compute_thesis(const std::vector<std::shared_ptr<Clause>> &hyps) const;
+    std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
 
 protected:
-    Equality(const std::shared_ptr<Literal> &literal, const std::vector<uint32_t> &path, const std::shared_ptr<Term> &term);
+    Equality(const std::shared_ptr<const Literal> &literal, const std::vector<uint32_t> &path, const std::shared_ptr<const Term> &term);
 
 private:
-    std::shared_ptr<Literal> literal;
+    std::shared_ptr<const Literal> literal;
     std::vector<uint32_t> path;
-    std::shared_ptr<Term> term;
+    std::shared_ptr<const Term> term;
 };
 
 }
