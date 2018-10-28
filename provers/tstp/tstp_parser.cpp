@@ -133,7 +133,7 @@ std::unordered_map<Token, std::vector<std::pair<Rule, std::vector<Token> > > > c
     // Rules for generic expressions
     make_rule(ders, TokenType::EXPR, Rule::ID_IS_EXPR, {sym_tok(TokenType::ID)});
     make_rule(ders, TokenType::EXPR_ARGLIST, Rule::EXPR_IS_ARGLIST, {sym_tok(TokenType::EXPR)});
-    make_rule(ders, TokenType::EXPR_ARGLIST, Rule::ARGLIST_AND_EXPR_IS_ARGLIST, {sym_tok(TokenType::EXPR_ARGLIST), char_tok(','), sym_tok(TokenType::EXPR)});
+    make_rule(ders, TokenType::EXPR_ARGLIST, Rule::EXPR_AND_ARGLIST_IS_ARGLIST, {sym_tok(TokenType::EXPR), char_tok(','), sym_tok(TokenType::EXPR_ARGLIST)});
     make_rule(ders, TokenType::EXPR, Rule::FUNC_APP_IS_EXPR, {sym_tok(TokenType::ID), char_tok('('), sym_tok(TokenType::EXPR_ARGLIST), char_tok(')')});
     make_rule(ders, TokenType::EXPR, Rule::EMPTY_LIST_IS_EXPR, {char_tok('['), char_tok(']')});
     make_rule(ders, TokenType::EXPR, Rule::LIST_IS_EXPR, {char_tok('['), sym_tok(TokenType::EXPR_ARGLIST), char_tok(']')});
@@ -485,6 +485,11 @@ std::shared_ptr<const Clause> Subst::compute_thesis(const std::vector<std::share
     return hyps[0]->substitute(this->subst);
 }
 
+std::pair<std::shared_ptr<const Subst>, std::vector<std::string> > Subst::reconstruct(const PT &pt)
+{
+    return {};
+}
+
 Subst::Subst(const std::map<std::string, std::shared_ptr<const Term> > &subst) : subst(subst) {}
 
 std::shared_ptr<const Clause> Resolve::compute_thesis(const std::vector<std::shared_ptr<const Clause> > &hyps) const {
@@ -492,11 +497,21 @@ std::shared_ptr<const Clause> Resolve::compute_thesis(const std::vector<std::sha
     return hyps[0]->resolve(*hyps[1], this->literal);
 }
 
+std::pair<std::shared_ptr<const Resolve>, std::vector<std::string> > Resolve::reconstruct(const PT &pt)
+{
+    return {};
+}
+
 Resolve::Resolve(const std::shared_ptr<const Literal> &literal) : literal(literal) {}
 
 std::shared_ptr<const Clause> Refl::compute_thesis(const std::vector<std::shared_ptr<const Clause> > &hyps) const {
     gio_assert(hyps.empty());
     return Clause::create(std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>>{Literal::create(true, Atom::create(EQUAL_NAME, std::vector<std::shared_ptr<const Term>>{this->term, this->term}))});
+}
+
+std::pair<std::shared_ptr<const Refl>, std::vector<std::string> > Refl::reconstruct(const PT &pt)
+{
+    return {};
 }
 
 Refl::Refl(const std::shared_ptr<const Term> &term) : term(term) {}
@@ -508,36 +523,101 @@ std::shared_ptr<const Clause> Equality::compute_thesis(const std::vector<std::sh
     return Clause::create(std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>>{eq_lit, this->literal->opposite(), res.second});
 }
 
+std::pair<std::shared_ptr<const Equality>, std::vector<std::string> > Equality::reconstruct(const PT &pt)
+{
+    return {};
+}
+
 Equality::Equality(const std::shared_ptr<const Literal> &literal, const std::vector<uint32_t> &path, const std::shared_ptr<const Term> &term) : literal(literal), path(path), term(term) {}
+
+void check_pt(const PT& pt, const TokenType &type, const Rule &label, size_t children_num, const std::string &msg = "invalid arg") {
+    assert_or_throw<std::invalid_argument>(pt.type == sym_tok(type), msg);
+    assert_or_throw<std::invalid_argument>(pt.label == label, msg);
+    assert_or_throw<std::invalid_argument>(pt.children.size() == children_num, msg);
+}
+
+std::pair<std::shared_ptr<const Inference>, std::vector<std::string>> reconstruct_inference(const ParsingTree<Token, Rule> &pt) {
+    check_pt(pt, TokenType::EXPR, Rule::FUNC_APP_IS_EXPR, 2);
+    const auto inf_kind = reconstruct_id(pt.children[0]);
+    const auto &pt2 = pt.children[1];
+    check_pt(pt2, TokenType::EXPR_ARGLIST, Rule::EXPR_AND_ARGLIST_IS_ARGLIST, 2);
+    const auto &pt3 = pt2.children[0];
+    check_pt(pt3, TokenType::EXPR, Rule::ID_IS_EXPR, 1);
+    const auto inf_name = reconstruct_id(pt3.children[0]);
+    const auto &pt4 = pt2.children[1];
+    if (inf_kind == "introduced") {
+        if (inf_name == "tautology") {
+            check_pt(pt4, TokenType::EXPR_ARGLIST, Rule::EXPR_IS_ARGLIST, 1);
+            const auto &pt5 = pt4.children[0];
+            check_pt(pt5, TokenType::EXPR, Rule::LIST_IS_EXPR, 1);
+            const auto &pt6 = pt5.children[0];
+            check_pt(pt6, TokenType::EXPR_ARGLIST, Rule::EXPR_AND_ARGLIST_IS_ARGLIST, 2);
+            const auto &pt7 = pt6.children[0];
+            check_pt(pt7, TokenType::EXPR, Rule::ID_IS_EXPR, 1);
+            const auto taut_name = reconstruct_id(pt7.children[0]);
+            const auto &pt8 = pt6.children[1];
+            if (taut_name == "refl") {
+                return Refl::reconstruct(pt8);
+            } else if (taut_name == "equality") {
+                return Equality::reconstruct(pt8);
+            } else {
+                std::invalid_argument("unknown tautology name");
+            }
+        } else {
+            throw std::invalid_argument("unknown inference name");
+        }
+    } else if (inf_kind == "inference") {
+        if (inf_name == "subst") {
+            return Subst::reconstruct(pt4);
+        } else if (inf_name == "resolve") {
+            return Resolve::reconstruct(pt4);
+        } else {
+            throw std::invalid_argument("unknown inference name");
+        }
+    } else {
+        throw std::invalid_argument("unknown inference kind");
+    }
+
+    return {};
+}
 
 struct RefutationLine {
     std::string name;
     std::shared_ptr<const Clause> clause;
-    ParsingTree<Token, Rule> just;
+    std::shared_ptr<const Inference> inference;
+    std::vector<size_t> hyps;
 };
 
 decltype(auto) reconstruct_clauses(const ParsingTree<Token, Rule> &pt) {
-    auto line_to_clause = [](const ParsingTree<Token, Rule> &pt) {
+    std::map<std::string, size_t> id_map;
+    std::vector<RefutationLine> ret;
+    auto line_to_clause = [&id_map,&ret](const ParsingTree<Token, Rule> &pt) {
         gio_assert(pt.type == sym_tok(TokenType::CNF_LINE));
         gio_assert(pt.children.size() >= 3);
-        ParsingTree<Token, Rule> just;
+        std::string name = reconstruct_id(pt.children[0]);
+        std::shared_ptr<const Inference> inference;
+        std::vector<size_t> hyps;
         if (pt.children.size() >= 4) {
-            just = pt.children[3];
+            std::vector<std::string> hyps_str;
+            std::tie(inference, hyps_str) = reconstruct_inference(pt.children[3]);
+            for (const auto &hyp_str : hyps_str) {
+                hyps.push_back(id_map.at(hyp_str));
+            }
         }
-        return RefutationLine{reconstruct_id(pt.children[0]), Clause::reconstruct(pt.children[2]), std::move(just)};
+        id_map[name] = ret.size();
+        ret.push_back({std::move(name), Clause::reconstruct(pt.children[2]), std::move(inference), std::move(hyps)});
     };
-    std::vector<RefutationLine> ret;
     const auto *cur = &pt;
     while (true) {
         gio_assert(cur->type == sym_tok(TokenType::CNF_LINES));
         if (cur->label == Rule::CNF_LINE_IS_CNF_LINES) {
             gio_assert(cur->children.size() == 1);
-            ret.push_back(line_to_clause(cur->children[0]));
+            line_to_clause(cur->children[0]);
             return ret;
         }
         gio_assert(cur->label == Rule::CNF_LINE_AND_CNF_LINES_IS_CNF_LINES);
         gio_assert(cur->children.size() == 2);
-        ret.push_back(line_to_clause(cur->children[0]));
+        line_to_clause(cur->children[0]);
         cur = &cur->children[1];
     }
 }

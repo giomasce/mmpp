@@ -129,7 +129,7 @@ enum class Rule {
 
     ID_IS_EXPR,
     EXPR_IS_ARGLIST,
-    ARGLIST_AND_EXPR_IS_ARGLIST,
+    EXPR_AND_ARGLIST_IS_ARGLIST,
     FUNC_APP_IS_EXPR,
     EMPTY_LIST_IS_EXPR,
     LIST_IS_EXPR,
@@ -259,6 +259,8 @@ class Subst : public Inference, public enable_create<Subst> {
 public:
     std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
 
+    static std::pair<std::shared_ptr<const Subst>, std::vector<std::string>> reconstruct(const PT &pt);
+
 protected:
     Subst(const std::map<std::string, std::shared_ptr<const Term>> &subst);
 
@@ -269,6 +271,8 @@ private:
 class Resolve : public Inference, public enable_create<Resolve> {
 public:
     std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
+
+    static std::pair<std::shared_ptr<const Resolve>, std::vector<std::string>> reconstruct(const PT &pt);
 
 protected:
     Resolve(const std::shared_ptr<const Literal> &literal);
@@ -281,6 +285,8 @@ class Refl : public Inference, public enable_create<Refl> {
 public:
     std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
 
+    static std::pair<std::shared_ptr<const Refl>, std::vector<std::string>> reconstruct(const PT &pt);
+
 protected:
     Refl(const std::shared_ptr<const Term> &term);
 
@@ -291,6 +297,8 @@ private:
 class Equality : public Inference, public enable_create<Equality> {
 public:
     std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
+
+    static std::pair<std::shared_ptr<const Equality>, std::vector<std::string>> reconstruct(const PT &pt);
 
 protected:
     Equality(const std::shared_ptr<const Literal> &literal, const std::vector<uint32_t> &path, const std::shared_ptr<const Term> &term);
