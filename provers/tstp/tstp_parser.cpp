@@ -21,6 +21,9 @@ const std::string VAR_LETTERS = "QWERTYUIOPASDFGHJKLZXCVBNM";
 const std::string ID_LETTERS = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890_$.@";
 const std::string SPACE_LETTERS = " \t\n\r";
 
+const std::string EQUAL_NAME = "$equal";
+const std::string FALSE_NAME = "$false";
+
 Token char_tok(char c) { return Token(TokenType::CHAR, c); }
 Token sym_tok(TokenType type) { return Token(type); }
 
@@ -288,13 +291,13 @@ std::pair<bool, std::shared_ptr<const Atom>> Atom::reconstruct(const PT &pt)
     } else {
         gio_assert(pt.label == Rule::TERM_EQ_IS_ATOM || pt.label == Rule::TERM_NEQ_IS_ATOM);
         gio_assert(pt.children.size() == 2);
-        return std::make_pair(pt.label == Rule::TERM_EQ_IS_ATOM, Atom::create("$equal", std::vector<std::shared_ptr<const Term>>{Term::reconstruct(pt.children[0]), Term::reconstruct(pt.children[1])}));
+        return std::make_pair(pt.label == Rule::TERM_EQ_IS_ATOM, Atom::create(EQUAL_NAME, std::vector<std::shared_ptr<const Term>>{Term::reconstruct(pt.children[0]), Term::reconstruct(pt.children[1])}));
     }
 }
 
 void Atom::print_to(std::ostream &s) const
 {
-    if (this->predicate == "$equal") {
+    if (this->predicate == EQUAL_NAME) {
         gio_assert(this->args.size() == 2);
         s << *this->args[0] << "=" << *this->args[1];
     } else {
@@ -493,7 +496,7 @@ Resolve::Resolve(const std::shared_ptr<const Literal> &literal) : literal(litera
 
 std::shared_ptr<const Clause> Refl::compute_thesis(const std::vector<std::shared_ptr<const Clause> > &hyps) const {
     gio_assert(hyps.empty());
-    return Clause::create(std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>>{Literal::create(true, Atom::create("$equal", std::vector<std::shared_ptr<const Term>>{this->term, this->term}))});
+    return Clause::create(std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>>{Literal::create(true, Atom::create(EQUAL_NAME, std::vector<std::shared_ptr<const Term>>{this->term, this->term}))});
 }
 
 Refl::Refl(const std::shared_ptr<const Term> &term) : term(term) {}
@@ -501,7 +504,7 @@ Refl::Refl(const std::shared_ptr<const Term> &term) : term(term) {}
 std::shared_ptr<const Clause> Equality::compute_thesis(const std::vector<std::shared_ptr<const Clause> > &hyps) const {
     gio_assert(hyps.empty());
     auto res = this->literal->replace(this->path.begin(), this->path.end(), this->term);
-    auto eq_lit = Literal::create(false, Atom::create("$equal", std::vector<std::shared_ptr<const Term>>{res.first, this->term}));
+    auto eq_lit = Literal::create(false, Atom::create(EQUAL_NAME, std::vector<std::shared_ptr<const Term>>{res.first, this->term}));
     return Clause::create(std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>>{eq_lit, this->literal->opposite(), res.second});
 }
 
