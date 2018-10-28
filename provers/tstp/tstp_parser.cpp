@@ -18,7 +18,7 @@ namespace mmpp {
 namespace tstp {
 
 const std::string VAR_LETTERS = "QWERTYUIOPASDFGHJKLZXCVBNM";
-const std::string ID_LETTERS = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890_$.@";
+const std::string ID_LETTERS = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890_.@";
 const std::string SPACE_LETTERS = " \t\n\r";
 
 const std::string EQUAL_NAME = "$equal";
@@ -26,6 +26,12 @@ const std::string FALSE_NAME = "$false";
 
 Token char_tok(char c) { return Token(TokenType::CHAR, c); }
 Token sym_tok(TokenType type) { return Token(type); }
+
+void check_pt(const PT& pt, const TokenType &type, const Rule &label, size_t children_num, const std::string &msg = "invalid arg") {
+    assert_or_throw<std::invalid_argument>(pt.type == sym_tok(type), msg);
+    assert_or_throw<std::invalid_argument>(pt.label == label, msg);
+    assert_or_throw<std::invalid_argument>(pt.children.size() == children_num, msg);
+}
 
 char letter_to_char(const ParsingTree<Token, Rule> &pt) {
     gio_assert(pt.type == sym_tok(TokenType::LETTER));
@@ -35,16 +41,26 @@ char letter_to_char(const ParsingTree<Token, Rule> &pt) {
 }
 
 std::string reconstruct_id(const ParsingTree<Token, Rule> &pt) {
+    if (pt.type == sym_tok(TokenType::ID)) {
+        if (pt.label == Rule::RESTR_ID_IS_ID) {
+            gio_assert(pt.children.size() == 1);
+            return reconstruct_id(pt.children[0]);
+        } else {
+            gio_assert(pt.label == Rule::DOLLAR_AND_RESTR_ID_IS_ID);
+            gio_assert(pt.children.size() == 1);
+            return std::string("$") + reconstruct_id(pt.children[0]);
+        }
+    }
     std::ostringstream ss;
     const auto *cur = &pt;
     while (true) {
-        gio_assert(cur->type == sym_tok(TokenType::ID));
-        if (cur->label == Rule::LETTER_IS_ID) {
+        gio_assert(cur->type == sym_tok(TokenType::RESTR_ID));
+        if (cur->label == Rule::LETTER_IS_RESTR_ID) {
             gio_assert(cur->children.size() == 1);
             ss << letter_to_char(cur->children[0]);
             return ss.str();
         }
-        gio_assert(cur->label == Rule::LETTER_AND_ID_IS_ID);
+        gio_assert(cur->label == Rule::LETTER_AND_ID_IS_RESTR_ID);
         gio_assert(cur->children.size() == 2);
         ss << letter_to_char(cur->children[0]);
         cur = &cur->children[1];
@@ -53,11 +69,11 @@ std::string reconstruct_id(const ParsingTree<Token, Rule> &pt) {
 
 char reconstrct_id_first_char(const ParsingTree<Token, Rule> &pt) {
     gio_assert(pt.type == sym_tok(TokenType::ID));
-    if (pt.label == Rule::LETTER_IS_ID) {
+    if (pt.label == Rule::LETTER_IS_RESTR_ID) {
         gio_assert(pt.children.size() == 1);
         return letter_to_char(pt.children[0]);
     }
-    gio_assert(pt.label == Rule::LETTER_AND_ID_IS_ID);
+    gio_assert(pt.label == Rule::LETTER_AND_ID_IS_RESTR_ID);
     gio_assert(pt.children.size() == 2);
     return letter_to_char(pt.children[0]);
 }
@@ -88,8 +104,10 @@ std::unordered_map<Token, std::vector<std::pair<Rule, std::vector<Token> > > > c
         auto uc = static_cast<unsigned char>(c);
         make_rule(ders, TokenType::LETTER, static_cast<Rule>(static_cast<int>(Rule::CHAR_IS_WHITESPACE) + uc), {char_tok(c)});
     }
-    make_rule(ders, TokenType::ID, Rule::LETTER_IS_ID, {sym_tok(TokenType::LETTER)});
-    make_rule(ders, TokenType::ID, Rule::LETTER_AND_ID_IS_ID, {sym_tok(TokenType::LETTER), sym_tok(TokenType::ID)});
+    make_rule(ders, TokenType::RESTR_ID, Rule::LETTER_IS_RESTR_ID, {sym_tok(TokenType::LETTER)});
+    make_rule(ders, TokenType::RESTR_ID, Rule::LETTER_AND_ID_IS_RESTR_ID, {sym_tok(TokenType::LETTER), sym_tok(TokenType::RESTR_ID)});
+    make_rule(ders, TokenType::ID, Rule::RESTR_ID_IS_ID, {sym_tok(TokenType::RESTR_ID)});
+    make_rule(ders, TokenType::ID, Rule::DOLLAR_AND_RESTR_ID_IS_ID, {char_tok('$'), sym_tok(TokenType::RESTR_ID)});
 
     // Rules for CNFs
     make_rule(ders, TokenType::TERM, Rule::ID_IS_TERM, {sym_tok(TokenType::ID)});
@@ -137,7 +155,8 @@ std::unordered_map<Token, std::vector<std::pair<Rule, std::vector<Token> > > > c
     make_rule(ders, TokenType::EXPR, Rule::FUNC_APP_IS_EXPR, {sym_tok(TokenType::ID), char_tok('('), sym_tok(TokenType::EXPR_ARGLIST), char_tok(')')});
     make_rule(ders, TokenType::EXPR, Rule::EMPTY_LIST_IS_EXPR, {char_tok('['), char_tok(']')});
     make_rule(ders, TokenType::EXPR, Rule::LIST_IS_EXPR, {char_tok('['), sym_tok(TokenType::EXPR_ARGLIST), char_tok(']')});
-    make_rule(ders, TokenType::EXPR, Rule::CNF_IS_EXPR, {char_tok('$'), char_tok('c'), char_tok('n'), char_tok('f'), char_tok('('), sym_tok(TokenType::CLAUSE), char_tok(')')});
+    make_rule(ders, TokenType::EXPR, Rule::CNF_IS_EXPR, {char_tok('$'), char_tok('c'), char_tok('n'), char_tok('f'), char_tok('('), sym_tok(TokenType::LITERAL), char_tok(')')});
+    make_rule(ders, TokenType::EXPR, Rule::TERM_IS_EXPR, {char_tok('$'), char_tok('f'), char_tok('o'), char_tok('t'), char_tok('('), sym_tok(TokenType::TERM), char_tok(')')});
     make_rule(ders, TokenType::EXPR_DICTLIST, Rule::COUPLE_IS_DICTLIST, {sym_tok(TokenType::ID), char_tok(':'), sym_tok(TokenType::EXPR)});
     make_rule(ders, TokenType::EXPR_DICTLIST, Rule::DICTLIST_AND_COUPLE_IS_DICTLIST, {sym_tok(TokenType::EXPR_DICTLIST), char_tok(','), sym_tok(TokenType::ID), char_tok(':'), sym_tok(TokenType::EXPR)});
     make_rule(ders, TokenType::EXPR, Rule::DICT_IS_EXPR, {char_tok('['), sym_tok(TokenType::EXPR_DICTLIST), char_tok(']')});
@@ -257,11 +276,15 @@ std::shared_ptr<const Term> Term::substitute(const std::map<std::string, std::sh
             return this->shared_from_this();
         }
     } else {
-        return this->shared_from_this();
+        std::vector<std::shared_ptr<const Term>> new_args;
+        for (const auto &arg : this->args) {
+            new_args.push_back(arg->substitute(subst));
+        }
+        return Term::create(this->functor, new_args);
     }
 }
 
-std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Term> > Term::replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const {
+std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Term> > Term::replace(std::vector<size_t>::const_iterator path_begin, std::vector<size_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const {
     if (path_begin != path_end) {
         auto &idx = *path_begin;
         assert_or_throw<std::invalid_argument>(idx < this->args.size(), "invalid path");
@@ -327,13 +350,13 @@ bool Atom::operator<(const Atom &x) const
 
 std::shared_ptr<const Atom> Atom::substitute(const std::map<std::string, std::shared_ptr<const Term> > &subst) const {
     std::vector<std::shared_ptr<const Term>> new_args;
-    for (const auto &arg : args) {
+    for (const auto &arg : this->args) {
         new_args.push_back(arg->substitute(subst));
     }
     return Atom::create(this->predicate, new_args);
 }
 
-std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Atom> > Atom::replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const {
+std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Atom> > Atom::replace(std::vector<size_t>::const_iterator path_begin, std::vector<size_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const {
     assert_or_throw<std::invalid_argument>(path_begin != path_end, "empty path");
     auto &idx = *path_begin;
     assert_or_throw<std::invalid_argument>(idx < this->args.size(), "invalid path");
@@ -349,6 +372,7 @@ Atom::Atom(const std::string &predicate, const std::vector<std::shared_ptr<const
 
 std::shared_ptr<const Literal> Literal::reconstruct(const PT &pt)
 {
+    gio_assert(pt.type == sym_tok(TokenType::LITERAL));
     gio_assert(pt.children.size() == 1);
     auto ret = Atom::reconstruct(pt.children[0]);
     if (pt.label == Rule::NEG_ATOM_IS_LITERAL) {
@@ -383,7 +407,7 @@ std::shared_ptr<const Literal> Literal::substitute(const std::map<std::string, s
     return Literal::create(this->sign, this->atom->substitute(subst));
 }
 
-std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Literal> > Literal::replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const {
+std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Literal> > Literal::replace(std::vector<size_t>::const_iterator path_begin, std::vector<size_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const {
     auto res = this->atom->replace(path_begin, path_end, term);
     return std::make_pair(res.first, Literal::create(this->sign, res.second));
 }
@@ -423,6 +447,11 @@ void Clause::print_to(std::ostream &s) const
         first = false;
         s << *lit;
     }
+}
+
+bool Clause::operator<(const Clause &x) const
+{
+    return std::lexicographical_compare(this->literals.begin(), this->literals.end(), x.literals.begin(), x.literals.end(), star_less<std::shared_ptr<const Literal>>());
 }
 
 std::shared_ptr<const Clause> Clause::substitute(const std::map<std::string, std::shared_ptr<const Term> > &subst) const {
@@ -487,7 +516,46 @@ std::shared_ptr<const Clause> Subst::compute_thesis(const std::vector<std::share
 
 std::pair<std::shared_ptr<const Subst>, std::vector<std::string> > Subst::reconstruct(const PT &pt)
 {
-    return {};
+    check_pt(pt, TokenType::EXPR_ARGLIST, Rule::EXPR_AND_ARGLIST_IS_ARGLIST, 2);
+    check_pt(pt.children[0], TokenType::EXPR, Rule::EMPTY_LIST_IS_EXPR, 0);
+    const auto &pt2 = pt.children[1];
+    check_pt(pt2, TokenType::EXPR_ARGLIST, Rule::EXPR_IS_ARGLIST, 1);
+    const auto &pt3 = pt2.children[0];
+    check_pt(pt3, TokenType::EXPR, Rule::DICT_IS_EXPR, 1);
+    const auto &pt4 = pt3.children[0];
+    check_pt(pt4, TokenType::EXPR_DICTLIST, Rule::COUPLE_IS_DICTLIST, 2);
+    const auto hyp_name = reconstruct_id(pt4.children[0]);
+    const auto &pt5 = pt4.children[1];
+    check_pt(pt5, TokenType::EXPR, Rule::LIST_IS_EXPR, 1);
+    const auto *cur = &pt5.children[0];
+    std::map<std::string, std::shared_ptr<const Term>> subst;
+    auto process_entry = [&subst](const PT &pt) {
+        check_pt(pt, TokenType::EXPR, Rule::FUNC_APP_IS_EXPR, 2);
+        const auto bind_name = reconstruct_id(pt.children[0]);
+        assert_or_throw<std::invalid_argument>(bind_name == "bind", "invalid subst inference");
+        const auto &pt2 = pt.children[1];
+        check_pt(pt2, TokenType::EXPR_ARGLIST, Rule::EXPR_AND_ARGLIST_IS_ARGLIST, 2);
+        const auto &pt3 = pt2.children[0];
+        check_pt(pt3, TokenType::EXPR, Rule::ID_IS_EXPR, 1);
+        const auto var_name = reconstruct_id(pt3.children[0]);
+        const auto &pt4 = pt2.children[1];
+        check_pt(pt4, TokenType::EXPR_ARGLIST, Rule::EXPR_IS_ARGLIST, 1);
+        const auto &pt5 = pt4.children[0];
+        check_pt(pt5, TokenType::EXPR, Rule::TERM_IS_EXPR, 1);
+        subst[var_name] = Term::reconstruct(pt5.children[0]);
+    };
+    while (true) {
+        assert_or_throw<std::invalid_argument>(cur->type == sym_tok(TokenType::EXPR_ARGLIST), "invalid subst inference");
+        if (cur->label == Rule::EXPR_IS_ARGLIST) {
+            assert_or_throw<std::invalid_argument>(cur->children.size() == 1, "invalid subst inference");
+            process_entry(cur->children[0]);
+            return {Subst::create(subst), {hyp_name}};
+        }
+        assert_or_throw<std::invalid_argument>(cur->label == Rule::EXPR_AND_ARGLIST_IS_ARGLIST, "invalid subst inference");
+        assert_or_throw<std::invalid_argument>(cur->children.size() == 2, "invalid subst inference");
+        process_entry(cur->children[0]);
+        cur = &cur->children[1];
+    }
 }
 
 Subst::Subst(const std::map<std::string, std::shared_ptr<const Term> > &subst) : subst(subst) {}
@@ -499,7 +567,29 @@ std::shared_ptr<const Clause> Resolve::compute_thesis(const std::vector<std::sha
 
 std::pair<std::shared_ptr<const Resolve>, std::vector<std::string> > Resolve::reconstruct(const PT &pt)
 {
-    return {};
+    check_pt(pt, TokenType::EXPR_ARGLIST, Rule::EXPR_AND_ARGLIST_IS_ARGLIST, 2);
+    const auto &pt2 = pt.children[0];
+    check_pt(pt2, TokenType::EXPR, Rule::LIST_IS_EXPR, 1);
+    const auto &pt3 = pt2.children[0];
+    check_pt(pt3, TokenType::EXPR_ARGLIST, Rule::EXPR_IS_ARGLIST, 1);
+    const auto &pt4 = pt3.children[0];
+    check_pt(pt4, TokenType::EXPR, Rule::CNF_IS_EXPR, 1);
+    const auto lit = Literal::reconstruct(pt4.children[0]);
+    const auto &pt5 = pt.children[1];
+    check_pt(pt5, TokenType::EXPR_ARGLIST, Rule::EXPR_IS_ARGLIST, 1);
+    const auto &pt6 = pt5.children[0];
+    check_pt(pt6, TokenType::EXPR, Rule::LIST_IS_EXPR, 1);
+    const auto &pt7 = pt6.children[0];
+    check_pt(pt7, TokenType::EXPR_ARGLIST, Rule::EXPR_AND_ARGLIST_IS_ARGLIST, 2);
+    const auto &pt8 = pt7.children[0];
+    check_pt(pt8, TokenType::EXPR, Rule::ID_IS_EXPR, 1);
+    const auto hyp1_name = reconstruct_id(pt8.children[0]);
+    const auto &pt9 = pt7.children[1];
+    check_pt(pt9, TokenType::EXPR_ARGLIST, Rule::EXPR_IS_ARGLIST, 1);
+    const auto &pt10 = pt9.children[0];
+    check_pt(pt10, TokenType::EXPR, Rule::ID_IS_EXPR, 1);
+    const auto hyp2_name = reconstruct_id(pt10.children[0]);
+    return {Resolve::create(lit), {hyp1_name, hyp2_name}};
 }
 
 Resolve::Resolve(const std::shared_ptr<const Literal> &literal) : literal(literal) {}
@@ -511,7 +601,15 @@ std::shared_ptr<const Clause> Refl::compute_thesis(const std::vector<std::shared
 
 std::pair<std::shared_ptr<const Refl>, std::vector<std::string> > Refl::reconstruct(const PT &pt)
 {
-    return {};
+    check_pt(pt, TokenType::EXPR_ARGLIST, Rule::EXPR_IS_ARGLIST, 1);
+    const auto &pt2 = pt.children[0];
+    check_pt(pt2, TokenType::EXPR, Rule::LIST_IS_EXPR, 1);
+    const auto &pt3 = pt2.children[0];
+    check_pt(pt3, TokenType::EXPR_ARGLIST, Rule::EXPR_IS_ARGLIST, 1);
+    const auto &pt4 = pt3.children[0];
+    check_pt(pt4, TokenType::EXPR, Rule::TERM_IS_EXPR, 1);
+    auto term = Term::reconstruct(pt4.children[0]);
+    return {Refl::create(term), {}};
 }
 
 Refl::Refl(const std::shared_ptr<const Term> &term) : term(term) {}
@@ -523,18 +621,59 @@ std::shared_ptr<const Clause> Equality::compute_thesis(const std::vector<std::sh
     return Clause::create(std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>>{eq_lit, this->literal->opposite(), res.second});
 }
 
+uint64_t reconstruct_int(const PT &pt) {
+    auto str = reconstruct_id(pt);
+    size_t pos;
+    uint64_t ret = stoull(str, &pos);
+    assert_or_throw<std::invalid_argument>(pos == str.size(), "invalid characters in numeral");
+    return ret;
+}
+
+std::vector<size_t> reconstruct_path(const PT &pt) {
+    std::vector<size_t> ret;
+    const auto *cur = &pt;
+    auto process_entry = [&ret](const PT &pt) {
+        check_pt(pt, TokenType::EXPR, Rule::ID_IS_EXPR, 1);
+        ret.push_back(static_cast<size_t>(reconstruct_int(pt.children[0])));
+    };
+    while (true) {
+        assert_or_throw<std::invalid_argument>(cur->type == sym_tok(TokenType::EXPR_ARGLIST), "invalid arg");
+        if (cur->label == Rule::EXPR_IS_ARGLIST) {
+            assert_or_throw<std::invalid_argument>(cur->children.size() == 1, "invalid arg");
+            process_entry(cur->children[0]);
+            return ret;
+        }
+        assert_or_throw<std::invalid_argument>(cur->label == Rule::EXPR_AND_ARGLIST_IS_ARGLIST, "invalid arg");
+        assert_or_throw<std::invalid_argument>(cur->children.size() == 2, "invalid arg");
+        process_entry(cur->children[0]);
+        cur = &cur->children[1];
+    }
+}
+
 std::pair<std::shared_ptr<const Equality>, std::vector<std::string> > Equality::reconstruct(const PT &pt)
 {
-    return {};
+    check_pt(pt, TokenType::EXPR_ARGLIST, Rule::EXPR_IS_ARGLIST, 1);
+    const auto &pt2 = pt.children[0];
+    check_pt(pt2, TokenType::EXPR, Rule::LIST_IS_EXPR, 1);
+    const auto &pt3 = pt2.children[0];
+    check_pt(pt3, TokenType::EXPR_ARGLIST, Rule::EXPR_AND_ARGLIST_IS_ARGLIST, 2);
+    const auto &pt4 = pt3.children[0];
+    check_pt(pt4, TokenType::EXPR, Rule::CNF_IS_EXPR, 1);
+    auto literal = Literal::reconstruct(pt4.children[0]);
+    const auto &pt5 = pt3.children[1];
+    check_pt(pt5, TokenType::EXPR_ARGLIST, Rule::EXPR_AND_ARGLIST_IS_ARGLIST, 2);
+    const auto &pt6 = pt5.children[0];
+    check_pt(pt6, TokenType::EXPR, Rule::LIST_IS_EXPR, 1);
+    const auto path = reconstruct_path(pt6.children[0]);
+    const auto &pt7 = pt5.children[1];
+    check_pt(pt7, TokenType::EXPR_ARGLIST, Rule::EXPR_IS_ARGLIST, 1);
+    const auto &pt8 = pt7.children[0];
+    check_pt(pt8, TokenType::EXPR, Rule::TERM_IS_EXPR, 1);
+    const auto term = Term::reconstruct(pt8.children[0]);
+    return {Equality::create(literal, path, term), {}};
 }
 
-Equality::Equality(const std::shared_ptr<const Literal> &literal, const std::vector<uint32_t> &path, const std::shared_ptr<const Term> &term) : literal(literal), path(path), term(term) {}
-
-void check_pt(const PT& pt, const TokenType &type, const Rule &label, size_t children_num, const std::string &msg = "invalid arg") {
-    assert_or_throw<std::invalid_argument>(pt.type == sym_tok(type), msg);
-    assert_or_throw<std::invalid_argument>(pt.label == label, msg);
-    assert_or_throw<std::invalid_argument>(pt.children.size() == children_num, msg);
-}
+Equality::Equality(const std::shared_ptr<const Literal> &literal, const std::vector<size_t> &path, const std::shared_ptr<const Term> &term) : literal(literal), path(path), term(term) {}
 
 std::pair<std::shared_ptr<const Inference>, std::vector<std::string>> reconstruct_inference(const ParsingTree<Token, Rule> &pt) {
     check_pt(pt, TokenType::EXPR, Rule::FUNC_APP_IS_EXPR, 2);
@@ -657,6 +796,7 @@ int parse_tstp_file_main(int argc, char *argv[]) {
 
     auto parser = init_tstp_parser();
 
+    //std::ifstream fin("/tmp/test");
     auto lexes = simple_lexer(istream_begin_end<char>(std::cin));
     auto pt = parser.parse(lexes.begin(), lexes.end(), Token(TokenType::CNF_LINES));
     std::cout << "Parsed as " << pt.label << ", with " << pt.children.size() << " children" << std::endl;
@@ -664,6 +804,23 @@ int parse_tstp_file_main(int argc, char *argv[]) {
     std::cout << "Clauses:\n";
     for (const auto &clause : clauses) {
         std::cout << " * "  << clause.name << ": " << *clause.clause << "\n";
+        if (!clause.hyps.empty()) {
+            std::cout << "   Proved from";
+            for (const auto &hyp : clause.hyps) {
+                std::cout << " " << clauses[hyp].name;
+            }
+            std::cout << "\n";
+        }
+        if (clause.inference) {
+            std::vector<std::shared_ptr<const Clause>> hyps;
+            for (const auto &hyp : clause.hyps) {
+                hyps.push_back(clauses[hyp].clause);
+            }
+            auto new_clause = clause.inference->compute_thesis(hyps);
+            std::cout << "   Inference gave " << *new_clause << "\n";
+            gio_assert(!(*clause.clause < *new_clause));
+            gio_assert(!(*new_clause < *clause.clause));
+        }
         std::cout << "\n";
     }
 

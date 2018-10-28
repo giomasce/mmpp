@@ -19,6 +19,7 @@ enum class TokenType {
     WHITESPACE,
     LETTER,
     ID,
+    RESTR_ID,
     TERM,
     ARGLIST,
     ATOM,
@@ -87,8 +88,10 @@ enum class Rule {
     CHAR_IS_LETTER = 0x100,
     CHAR_IS_WHITESPACE = 0x200,
     LINE = 0x300,
-    LETTER_IS_ID,
-    LETTER_AND_ID_IS_ID,
+    LETTER_IS_RESTR_ID,
+    LETTER_AND_ID_IS_RESTR_ID,
+    RESTR_ID_IS_ID,
+    DOLLAR_AND_RESTR_ID_IS_ID,
 
     ID_IS_TERM,
     TERM_IS_ARGLIST,
@@ -134,6 +137,7 @@ enum class Rule {
     EMPTY_LIST_IS_EXPR,
     LIST_IS_EXPR,
     CNF_IS_EXPR,
+    TERM_IS_EXPR,
     COUPLE_IS_DICTLIST,
     DICTLIST_AND_COUPLE_IS_DICTLIST,
     DICT_IS_EXPR,
@@ -160,7 +164,7 @@ public:
     void print_to(std::ostream &s) const;
     bool operator<(const Term &x) const;
     std::shared_ptr<const Term> substitute(const std::map<std::string, std::shared_ptr<const Term>> &subst) const;
-    std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Term>> replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const;
+    std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Term>> replace(std::vector<size_t>::const_iterator path_begin, std::vector<size_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const;
 
 protected:
     Term(const std::string &functor, const std::vector<std::shared_ptr<const Term>> &args);
@@ -177,7 +181,7 @@ public:
     void print_to(std::ostream &s) const;
     bool operator<(const Atom &x) const;
     std::shared_ptr<const Atom> substitute(const std::map<std::string, std::shared_ptr<const Term>> &subst) const;
-    std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Atom>> replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const;
+    std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Atom>> replace(std::vector<size_t>::const_iterator path_begin, std::vector<size_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const;
 
 protected:
     Atom(const std::string &predicate, const std::vector<std::shared_ptr<const Term>> &args);
@@ -195,7 +199,7 @@ public:
     bool operator<(const Literal &x) const;
     std::shared_ptr<const Literal> opposite() const;
     std::shared_ptr<const Literal> substitute(const std::map<std::string, std::shared_ptr<const Term>> &subst) const;
-    std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Literal>> replace(std::vector<uint32_t>::const_iterator path_begin, std::vector<uint32_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const;
+    std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Literal>> replace(std::vector<size_t>::const_iterator path_begin, std::vector<size_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const;
 
 protected:
     Literal(bool sign, const std::shared_ptr<const Atom> &atom);
@@ -210,6 +214,7 @@ public:
     static std::shared_ptr<const Clause> reconstruct(const PT &pt);
 
     void print_to(std::ostream &s) const;
+    bool operator<(const Clause &x) const;
     std::shared_ptr<const Clause> substitute(const std::map<std::string, std::shared_ptr<const Term>> &subst) const;
     std::shared_ptr<const Clause> resolve(const Clause &other, const std::shared_ptr<const Literal> &lit) const;
 
@@ -301,11 +306,11 @@ public:
     static std::pair<std::shared_ptr<const Equality>, std::vector<std::string>> reconstruct(const PT &pt);
 
 protected:
-    Equality(const std::shared_ptr<const Literal> &literal, const std::vector<uint32_t> &path, const std::shared_ptr<const Term> &term);
+    Equality(const std::shared_ptr<const Literal> &literal, const std::vector<size_t> &path, const std::shared_ptr<const Term> &term);
 
 private:
     std::shared_ptr<const Literal> literal;
-    std::vector<uint32_t> path;
+    std::vector<size_t> path;
     std::shared_ptr<const Term> term;
 };
 
