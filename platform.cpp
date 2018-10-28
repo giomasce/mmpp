@@ -434,13 +434,15 @@ PlatformStackTrace platform_get_stack_trace() {
 
 void platform_dump_stack_trace(std::ostream &st, const backward::StackTrace &stacktrace) {
     backward::Printer p;
-    p.snippet = false;
+    p.snippet = true;
     p.color_mode = backward::ColorMode::always;
     p.address = true;
     p.object = false;
     p.print(stacktrace, st);
     st.flush();
 }
+
+backward::SignalHandling sh;
 
 #endif
 
