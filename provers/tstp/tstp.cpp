@@ -7,6 +7,9 @@
 #include <boost/functional/hash.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #include "utils/utils.h"
 #include "parsing/lr.h"
 #include "parsing/earley.h"
@@ -129,8 +132,8 @@ int convert_to_tstp_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("convert_to_tstp", convert_to_tstp_main);
+gio_static_block {
+    gio::register_main_function("convert_to_tstp", convert_to_tstp_main);
 }
 
 struct ReconstructFOF {
@@ -222,6 +225,6 @@ int quant_cnf_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("quant_cnf", quant_cnf_main);
+gio_static_block {
+    gio::register_main_function("quant_cnf", quant_cnf_main);
 }

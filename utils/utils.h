@@ -52,13 +52,6 @@ private:
     PlatformStackTrace stacktrace;
 };
 
-template< typename Exception, typename... Args >
-inline static void assert_or_throw(bool cond, Args&&... args) {
-    if (!cond) {
-        throw Exception(std::forward< Args >(args)...);
-    }
-}
-
 std::string size_to_string(uint64_t size);
 bool starts_with(std::string a, std::string b);
 
@@ -68,32 +61,6 @@ struct Tic {
 
 Tic tic();
 void toc(const Tic &t, int reps);
-
-std::map< std::string, std::function< int(int, char*[]) > > &get_main_functions();
-void register_main_function(const std::string &name, const std::function< int(int, char*[]) > &main_function);
-
-// static_block implementation from https://stackoverflow.com/a/34321324/807307
-#define CONCATENATE(s1, s2) s1##s2
-#define EXPAND_THEN_CONCATENATE(s1, s2) CONCATENATE(s1, s2)
-#ifdef __COUNTER__
-#define UNIQUE_IDENTIFIER(prefix) EXPAND_THEN_CONCATENATE(prefix, __COUNTER__)
-#else
-#define UNIQUE_IDENTIFIER(prefix) EXPAND_THEN_CONCATENATE(prefix, __LINE__)
-#endif /* COUNTER */
-#define static_block STATIC_BLOCK_IMPL1(UNIQUE_IDENTIFIER(_static_block_))
-#define STATIC_BLOCK_IMPL1(prefix) \
-    STATIC_BLOCK_IMPL2(CONCATENATE(prefix,_fn),CONCATENATE(prefix,_var))
-#ifdef _MSC_VER
-#define STATIC_BLOCK_IMPL2(function_name,var_name) \
-static void function_name(); \
-static int var_name = (function_name(), 0) ; \
-static void function_name()
-#else
-#define STATIC_BLOCK_IMPL2(function_name,var_name) \
-static void function_name(); \
-static int var_name __attribute((unused)) = (function_name(), 0) ; \
-static void function_name()
-#endif
 
 class Hasher {
 public:
@@ -341,22 +308,6 @@ bool has_no_diagonal(It from, It end) {
 void default_exception_handler(std::exception_ptr ptr);
 
 template<typename T>
-std::string to_string(const T &t) {
-    std::ostringstream ss;
-    ss << t;
-    return ss.str();
-}
-
-[[noreturn]] inline void failed_assertion(const char *expr, const char *file, int line, const char *func, const std::string &ctx = "") {
-    std::cerr << file << ":" << line << ":" << func << ": assertion `" << expr << "' failed";
-    if (ctx != "") {
-        std::cerr << " with context `" << ctx << "'";
-    }
-    std::cerr << std::endl;
-    std::terminate();
-}
-
-template<typename T>
 struct istream_begin_end {
     istream_begin_end(std::istream &s) : s(s) {}
 
@@ -377,6 +328,3 @@ struct star_less {
         return *x < *y;
     }
 };
-
-#define gio_assert(expr) (static_cast<bool>(expr) ? static_cast<void>(0) : failed_assertion(#expr, __FILE__, __LINE__, BOOST_CURRENT_FUNCTION))
-#define gio_assert_ctx(expr, ctx) (static_cast<bool>(expr) ? static_cast<void>(0) : failed_assertion(#expr, __FILE__, __LINE__, BOOST_CURRENT_FUNCTION, to_string(ctx)))

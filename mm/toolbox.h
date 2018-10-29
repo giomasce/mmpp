@@ -9,6 +9,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include <giolib/assert.h>
+
 class LibraryToolbox;
 
 #include "library.h"
@@ -375,7 +377,7 @@ public:
         if (res.empty()) {
             std::cerr << std::string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string() << std::endl;
         }
-        assert_or_throw< MMPPException >(!res.empty(), std::string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
+        gio::assert_or_throw< MMPPException >(!res.empty(), std::string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
         const auto &res1 = res[0];
         return [=](Engine &engine){
             RegisteredProverInstanceData inst_data(res1);
@@ -551,7 +553,7 @@ Prover< Engine > checked_prover(Prover< Engine > prover, typename Engine::SentTy
         if (res) {
             assert(stack_len_after >= 1);
             assert(stack_len_after + 1 >= stack_len_before);
-            assert_or_throw< CheckedProverException< typename Engine::SentType > >(engine.get_stack().back() == thesis, engine.get_stack().back(), thesis, stacktrace);
+            gio::assert_or_throw< CheckedProverException< typename Engine::SentType > >(engine.get_stack().back() == thesis, engine.get_stack().back(), thesis, stacktrace);
         } else {
             assert(stack_len_after == stack_len_before);
         }
@@ -570,7 +572,7 @@ Prover< Engine > checked_prover(Prover< Engine > prover, size_t hyp_num, typenam
         if (res) {
             assert(stack_len_after >= 1);
             assert(stack_len_after + 1 == stack_len_before + hyp_num);
-            assert_or_throw< CheckedProverException< typename Engine::SentType > >(engine.get_stack().back() == thesis, engine.get_stack().back(), thesis, stacktrace);
+            gio::assert_or_throw< CheckedProverException< typename Engine::SentType > >(engine.get_stack().back() == thesis, engine.get_stack().back(), thesis, stacktrace);
         } else {
             assert(stack_len_after == stack_len_before);
         }

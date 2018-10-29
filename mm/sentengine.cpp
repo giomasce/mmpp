@@ -75,17 +75,17 @@ void ProofSentenceTraits<Sentence>::check_match(const LibType &lib, LabTok label
     for (auto it = templ.begin(); it != templ.end(); it++) {
         const SymTok &tok = *it;
         if (lib.is_constant(tok)) {
-            assert_or_throw< ProofException< Sentence > >(tok == *stack_it, "Essential hypothesis does not match stack beacuse of wrong constant", err);
+            gio::assert_or_throw< ProofException< Sentence > >(tok == *stack_it, "Essential hypothesis does not match stack beacuse of wrong constant", err);
             stack_it++;
         } else {
             const Sentence &subst = subst_map.at(tok);
             assert(distance(stack_it, stack.end()) >= 0);
-            assert_or_throw< ProofException< Sentence > >(subst.size() - 1 <= (size_t) distance(stack_it, stack.end()), "Essential hypothesis does not match stack because stack is shorter", err);
-            assert_or_throw< ProofException< Sentence > >(equal(subst.begin() + 1, subst.end(), stack_it), "Essential hypothesis does not match stack because of wrong variable substitution", err);
+            gio::assert_or_throw< ProofException< Sentence > >(subst.size() - 1 <= (size_t) distance(stack_it, stack.end()), "Essential hypothesis does not match stack because stack is shorter", err);
+            gio::assert_or_throw< ProofException< Sentence > >(equal(subst.begin() + 1, subst.end(), stack_it), "Essential hypothesis does not match stack because of wrong variable substitution", err);
             stack_it += subst.size() - 1;
         }
     }
-    assert_or_throw< ProofException< Sentence > >(stack_it == stack.end(), "Essential hypothesis does not match stack because stack is longer", err);
+    gio::assert_or_throw< ProofException< Sentence > >(stack_it == stack.end(), "Essential hypothesis does not match stack because stack is longer", err);
 }
 
 ProofSentenceTraits<Sentence>::SentType ProofSentenceTraits<Sentence>::substitute(const LibType &lib, const ProofSentenceTraits<Sentence>::SentType &templ, const ProofSentenceTraits<Sentence>::SubstMapType &subst_map)

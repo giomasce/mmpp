@@ -58,7 +58,7 @@ protected:
             const Assertion &child_ass = this->lib.get_assertion(label);
             if (!child_ass.is_valid()) {
                 // In line of principle searching in a set would be faster, but since usually hypotheses are not many the vector is probably better
-                assert_or_throw< ProofException< SentType_ > >(find(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end(), label) != this->ass.get_float_hyps().end() ||
+                gio::assert_or_throw< ProofException< SentType_ > >(find(this->ass.get_float_hyps().begin(), this->ass.get_float_hyps().end(), label) != this->ass.get_float_hyps().end() ||
                         find(this->ass.get_ess_hyps().begin(), this->ass.get_ess_hyps().end(), label) != this->ass.get_ess_hyps().end() ||
                         find(this->ass.get_opt_hyps().begin(), this->ass.get_opt_hyps().end(), label) != this->ass.get_opt_hyps().end(),
                                                               "Requested label cannot be used by this theorem");
@@ -78,9 +78,9 @@ protected:
     void final_checks() const
     {
         if (!this->relax_checks) {
-            assert_or_throw< ProofException< SentType_ > >(this->get_stack().size() == 1, "Proof execution did not end with a single element on the stack");
-            assert_or_throw< ProofException< SentType_ > >(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()), "Proof does not prove the thesis");
-            assert_or_throw< ProofException< SentType_ > >(includes(this->ass.get_dists().begin(), this->ass.get_dists().end(),
+            gio::assert_or_throw< ProofException< SentType_ > >(this->get_stack().size() == 1, "Proof execution did not end with a single element on the stack");
+            gio::assert_or_throw< ProofException< SentType_ > >(this->get_stack().at(0) == this->lib.get_sentence(this->ass.get_thesis()), "Proof does not prove the thesis");
+            gio::assert_or_throw< ProofException< SentType_ > >(includes(this->ass.get_dists().begin(), this->ass.get_dists().end(),
                                                                    this->engine.get_dists().begin(), this->engine.get_dists().end()),
                                                           "Distinct variables constraints are too wide");
         }

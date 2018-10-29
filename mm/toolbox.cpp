@@ -492,7 +492,7 @@ std::vector<SymTok> LibraryToolbox::read_sentence(const std::string &in) const
     std::vector< SymTok > res;
     for (auto &tok : toks) {
         auto tok_num = this->get_symbol(tok);
-        assert_or_throw< MMPPException >(tok_num != SymTok{}, "not a symbol");
+        gio::assert_or_throw< MMPPException >(tok_num != SymTok{}, "not a symbol");
         res.push_back(tok_num);
     }
     return res;

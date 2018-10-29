@@ -3,6 +3,8 @@
 #include <vector>
 #include <map>
 
+#include <giolib/assert.h>
+
 #include "library.h"
 #include "utils/utils.h"
 #include "funds.h"
@@ -158,7 +160,7 @@ public:
 protected:
     void process_assertion(const Assertion &child_ass, LabTok label = {})
     {
-        assert_or_throw< ProofException< SentType_ > >(this->stack.size() >= child_ass.get_mand_hyps_num(), "Stack too small to pop hypotheses");
+        gio::assert_or_throw< ProofException< SentType_ > >(this->stack.size() >= child_ass.get_mand_hyps_num(), "Stack too small to pop hypotheses");
         const size_t stack_base = this->stack.size() - child_ass.get_mand_hyps_num();
         //this->dists.clear();
         std::set< std::pair< VarType, VarType > > dists;
@@ -172,7 +174,7 @@ protected:
             assert(this->dists_stack.at(stack_base + i).empty());
             const SymTok subst_type = TraitsType::floating_to_type(this->lib, hyp);
             const SymTok stack_subst_type = TraitsType::sentence_to_type(this->lib, stack_hyp_sent);
-            assert_or_throw< ProofException< SentType_ > >(subst_type == stack_subst_type, "Floating hypothesis does not match stack");
+            gio::assert_or_throw< ProofException< SentType_ > >(subst_type == stack_subst_type, "Floating hypothesis does not match stack");
 #ifdef PROOF_VERBOSE_DEBUG
             if (stack_hyp_sent.size() == 1) {
                 cerr << "[" << this->debug_output << "] Matching an empty sentence" << endl;
@@ -202,7 +204,7 @@ protected:
 
         // Keep track of the distinct variables constraints in the substitution map
         propagate_dists< SentType_ >(child_ass, subst_map, this->lib, dists);
-        assert_or_throw< ProofException< SentType_ > >(has_no_diagonal(dists.begin(), dists.end()), "Distinct variable constraint violated");
+        gio::assert_or_throw< ProofException< SentType_ > >(has_no_diagonal(dists.begin(), dists.end()), "Distinct variable constraint violated");
 
         // Build the thesis
         LabTok thesis = child_ass.get_thesis();

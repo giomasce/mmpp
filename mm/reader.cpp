@@ -26,7 +26,7 @@ void Reader::run () {
             continue;
         }
         if (token[0] == '$') {
-            assert_or_throw< MMPPParsingError >(token.size() == 2, "Dollar sequence with wrong length");
+            gio::assert_or_throw< MMPPParsingError >(token.size() == 2, "Dollar sequence with wrong length");
             char c = token[1];
 
             // Parse scoping blocks
@@ -34,7 +34,7 @@ void Reader::run () {
                 this->stack.emplace_back();
                 continue;
             } else if (c == '}') {
-                assert_or_throw< MMPPParsingError >(!this->stack.empty(), "Unmatched closed scoping block");
+                gio::assert_or_throw< MMPPParsingError >(!this->stack.empty(), "Unmatched closed scoping block");
                 this->stack.pop_back();
                 continue;
             }
@@ -84,7 +84,7 @@ void Reader::run () {
             this->toks.clear();
         } else {
             this->label = this->lib.create_label(token);
-            assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Repeated label detected");
+            gio::assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Repeated label detected");
             //cout << "Found label " << token << endl;
         }
     }
@@ -92,7 +92,7 @@ void Reader::run () {
     this->lib.set_final_stack_frame(this->final_frame);
     this->lib.set_max_number(LabTok(this->number.val()-1));
     this->stack.pop_back();
-    assert_or_throw< MMPPParsingError >(this->stack.empty(), "Unmatched open scoping block");
+    gio::assert_or_throw< MMPPParsingError >(this->stack.empty(), "Unmatched open scoping block");
 
     // Some final operations
     this->parse_t_comment(this->t_comment);
@@ -119,12 +119,12 @@ const StackFrame &Reader::get_final_frame() const
 
 void Reader::parse_c()
 {
-    assert_or_throw< MMPPParsingError >(this->label == LabTok{}, "Undue label in $c statement");
-    assert_or_throw< MMPPParsingError >(this->stack.size() == 1, "Found $c statement when not in top-level scope");
+    gio::assert_or_throw< MMPPParsingError >(this->label == LabTok{}, "Undue label in $c statement");
+    gio::assert_or_throw< MMPPParsingError >(this->stack.size() == 1, "Found $c statement when not in top-level scope");
     for (auto stok : this->toks) {
         SymTok tok = this->lib.create_symbol(stok);
-        assert_or_throw< MMPPParsingError >(!this->check_const(tok), "Symbol already bound in $c statement");
-        assert_or_throw< MMPPParsingError >(!this->check_var(tok), "Symbol already bound in $c statement");
+        gio::assert_or_throw< MMPPParsingError >(!this->check_const(tok), "Symbol already bound in $c statement");
+        gio::assert_or_throw< MMPPParsingError >(!this->check_var(tok), "Symbol already bound in $c statement");
         this->consts.insert(tok);
         this->lib.set_constant(tok, true);
     }
@@ -132,11 +132,11 @@ void Reader::parse_c()
 
 void Reader::parse_v()
 {
-    assert_or_throw< MMPPParsingError >(this->label == LabTok{}, "Undue label in $v statement");
+    gio::assert_or_throw< MMPPParsingError >(this->label == LabTok{}, "Undue label in $v statement");
     for (auto stok : this->toks) {
         SymTok tok = this->lib.create_or_get_symbol(stok);
-        assert_or_throw< MMPPParsingError >(!this->check_const(tok), "Symbol already bound in $v statement");
-        assert_or_throw< MMPPParsingError >(!this->check_var(tok), "Symbol already bound in $v statement");
+        gio::assert_or_throw< MMPPParsingError >(!this->check_const(tok), "Symbol already bound in $v statement");
+        gio::assert_or_throw< MMPPParsingError >(!this->check_var(tok), "Symbol already bound in $v statement");
         this->lib.set_constant(tok, false);
         this->stack.back().vars.insert(tok);
     }
@@ -144,14 +144,14 @@ void Reader::parse_v()
 
 void Reader::parse_f()
 {
-    assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Missing label in $f statement");
-    assert_or_throw< MMPPParsingError >(this->toks.size() == 2, "Found $f statement with wrong length");
+    gio::assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Missing label in $f statement");
+    gio::assert_or_throw< MMPPParsingError >(this->toks.size() == 2, "Found $f statement with wrong length");
     SymTok const_tok = this->lib.get_symbol(this->toks[0]);
     SymTok var_tok = this->lib.get_symbol(this->toks[1]);
-    assert_or_throw< MMPPParsingError >(const_tok != SymTok{}, "First member of a $f statement is not defined");
-    assert_or_throw< MMPPParsingError >(var_tok != SymTok{}, "Second member of a $f statement is not defined");
-    assert_or_throw< MMPPParsingError >(this->check_const(const_tok), "First member of a $f statement is not a constant");
-    assert_or_throw< MMPPParsingError >(this->check_var(var_tok), "Second member of a $f statement is not a variable");
+    gio::assert_or_throw< MMPPParsingError >(const_tok != SymTok{}, "First member of a $f statement is not defined");
+    gio::assert_or_throw< MMPPParsingError >(var_tok != SymTok{}, "Second member of a $f statement is not defined");
+    gio::assert_or_throw< MMPPParsingError >(this->check_const(const_tok), "First member of a $f statement is not a constant");
+    gio::assert_or_throw< MMPPParsingError >(this->check_var(var_tok), "Second member of a $f statement is not a variable");
     this->lib.add_sentence(this->label, { const_tok, var_tok }, SentenceType::FLOATING_HYP);
     this->stack.back().types.push_back(this->label);
     this->stack.back().types_set.insert(this->label);
@@ -159,30 +159,30 @@ void Reader::parse_f()
 
 void Reader::parse_e()
 {
-    assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Missing label in $e statement");
-    assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $e statement");
+    gio::assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Missing label in $e statement");
+    gio::assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $e statement");
     std::vector< SymTok > tmp;
     for (auto &stok : this->toks) {
         SymTok tok = this->lib.get_symbol(stok);
-        assert_or_throw< MMPPParsingError >(tok != SymTok{}, "Symbol in $e statement is not defined");
+        gio::assert_or_throw< MMPPParsingError >(tok != SymTok{}, "Symbol in $e statement is not defined");
         assert(this->check_const(tok) || this->check_var(tok));
         tmp.push_back(tok);
     }
-    assert_or_throw< MMPPParsingError >(this->check_const(tmp[0]), "First symbol of $e statement is not a constant");
+    gio::assert_or_throw< MMPPParsingError >(this->check_const(tmp[0]), "First symbol of $e statement is not a constant");
     this->lib.add_sentence(this->label, tmp, SentenceType::ESSENTIAL_HYP);
     this->stack.back().hyps.push_back(this->label);
 }
 
 void Reader::parse_d()
 {
-    assert_or_throw< MMPPParsingError >(this->label == LabTok{}, "Undue label in $d statement");
+    gio::assert_or_throw< MMPPParsingError >(this->label == LabTok{}, "Undue label in $d statement");
     for (auto it = this->toks.begin(); it != this->toks.end(); it++) {
         SymTok tok1 = this->lib.get_symbol(*it);
-        assert_or_throw< MMPPParsingError >(this->check_var(tok1), "Symbol in $d statement is not a variable");
+        gio::assert_or_throw< MMPPParsingError >(this->check_var(tok1), "Symbol in $d statement is not a variable");
         for (auto it2 = it+1; it2 != this->toks.end(); it2++) {
             SymTok tok2 = this->lib.get_symbol(*it2);
-            assert_or_throw< MMPPParsingError >(this->check_var(tok2), "Symbol in $d statement is not a variable");
-            assert_or_throw< MMPPParsingError >(tok1 != tok2, "Repeated symbol in $d statement");
+            gio::assert_or_throw< MMPPParsingError >(this->check_var(tok2), "Symbol in $d statement is not a variable");
+            gio::assert_or_throw< MMPPParsingError >(tok1 != tok2, "Repeated symbol in $d statement");
             this->stack.back().dists.insert(std::minmax(tok1, tok2));
         }
     }
@@ -196,7 +196,7 @@ void Reader::collect_vars_from_proof(std::set<SymTok> &vars, const std::vector<L
 {
     for (auto &tok : proof) {
         if (this->check_type(tok)) {
-            assert_or_throw< MMPPParsingError >(this->lib.get_sentence(tok).size() == 2);
+            gio::assert_or_throw< MMPPParsingError >(this->lib.get_sentence(tok).size() == 2);
             vars.insert(this->lib.get_sentence(tok).at(1));
         }
     }
@@ -291,16 +291,16 @@ std::set< std::pair< SymTok, SymTok > > Reader::collect_opt_dists(std::set< SymT
 void Reader::parse_a()
 {
     // Usual sanity checks and symbol conversion
-    assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Missing label in $a statement");
-    assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $a statement");
+    gio::assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Missing label in $a statement");
+    gio::assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $a statement");
     std::vector< SymTok > tmp;
     for (auto &stok : this->toks) {
         SymTok tok = this->lib.get_symbol(stok);
-        assert_or_throw< MMPPParsingError >(tok != SymTok{}, "Symbol in $a statement is not defined");
+        gio::assert_or_throw< MMPPParsingError >(tok != SymTok{}, "Symbol in $a statement is not defined");
         assert(this->check_const(tok) || this->check_var(tok));
         tmp.push_back(tok);
     }
-    assert_or_throw< MMPPParsingError >(this->check_const(tmp[0]), "First symbol of $a statement is not a constant");
+    gio::assert_or_throw< MMPPParsingError >(this->check_const(tmp[0]), "First symbol of $a statement is not a constant");
     this->lib.add_sentence(this->label, tmp, SentenceType::AXIOM);
 
     // Collect things
@@ -319,8 +319,8 @@ void Reader::parse_a()
 void Reader::parse_p()
 {
     // Usual sanity checks and symbol conversion
-    assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Missing label in $p statement");
-    assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $p statement");
+    gio::assert_or_throw< MMPPParsingError >(this->label != LabTok{}, "Missing label in $p statement");
+    gio::assert_or_throw< MMPPParsingError >(this->toks.size() >= 1, "Empty $p statement");
     std::vector< SymTok > tmp;
     std::vector< LabTok > proof_labels;
     std::vector< LabTok > proof_refs;
@@ -335,11 +335,11 @@ void Reader::parse_p()
                 continue;
             }
             SymTok tok = this->lib.get_symbol(stok);
-            assert_or_throw< MMPPParsingError >(tok != SymTok{}, "Symbol in $p statement is not defined");
+            gio::assert_or_throw< MMPPParsingError >(tok != SymTok{}, "Symbol in $p statement is not defined");
             assert(this->check_const(tok) || this->check_var(tok));
             tmp.push_back(tok);
         } else {
-            assert_or_throw< MMPPParsingError >(compressed_proof != 3, "Additional tokens in an incomplete proof");
+            gio::assert_or_throw< MMPPParsingError >(compressed_proof != 3, "Additional tokens in an incomplete proof");
             if (compressed_proof == 0) {
                 if (stok == "(") {
                     compressed_proof = 1;
@@ -358,7 +358,7 @@ void Reader::parse_p()
                     continue;
                 } else {
                     LabTok tok = this->lib.get_label(stok);
-                    assert_or_throw< MMPPParsingError >(tok != LabTok{}, "Label in compressed proof in $p statement is not defined");
+                    gio::assert_or_throw< MMPPParsingError >(tok != LabTok{}, "Label in compressed proof in $p statement is not defined");
                     proof_refs.push_back(tok);
                 }
             }
@@ -372,12 +372,12 @@ void Reader::parse_p()
             }
             if (compressed_proof == -1) {
                 LabTok tok = this->lib.get_label(stok);
-                assert_or_throw< MMPPParsingError >(tok != LabTok{}, "Symbol in uncompressed proof in $p statement is not defined");
+                gio::assert_or_throw< MMPPParsingError >(tok != LabTok{}, "Symbol in uncompressed proof in $p statement is not defined");
                 proof_labels.push_back(tok);
             }
         }
     }
-    assert_or_throw< MMPPParsingError >(this->check_const(tmp[0]), "First symbol of $p statement is not a constant");
+    gio::assert_or_throw< MMPPParsingError >(this->check_const(tmp[0]), "First symbol of $p statement is not a constant");
     assert(compressed_proof == -1 || compressed_proof == 2 || compressed_proof == 3);
     this->lib.add_sentence(this->label, tmp, SentenceType::PROPOSITION);
 
@@ -408,7 +408,7 @@ void Reader::parse_p()
         }
         ass.set_proof(proof);
         auto po = ass.get_proof_operator(this->lib);
-        assert_or_throw< MMPPParsingError >(po->check_syntax(), "Syntax check failed for proof of $p statement");
+        gio::assert_or_throw< MMPPParsingError >(po->check_syntax(), "Syntax check failed for proof of $p statement");
         if (this->execute_proofs) {
             auto pe = ass.get_proof_executor< Sentence >(this->lib);
             pe->set_debug_output("executing " + lib.resolve_label(this->label));
@@ -475,15 +475,15 @@ static std::string escape_string_literal(std::string s) {
 }
 
 static std::string decode_string(std::vector< std::pair< bool, std::string > >::const_iterator begin, std::vector< std::pair< bool, std::string > >::const_iterator end, bool escape=false) {
-    assert_or_throw< MMPPParsingError >(distance(begin, end) >= 1);
-    assert_or_throw< MMPPParsingError >(distance(begin, end) % 2 == 1);
+    gio::assert_or_throw< MMPPParsingError >(distance(begin, end) >= 1);
+    gio::assert_or_throw< MMPPParsingError >(distance(begin, end) % 2 == 1);
     for (size_t i = 1; i < (size_t) distance(begin, end); i += 2) {
-        assert_or_throw< MMPPParsingError >(!(begin+i)->first, "Malformed string in $t comment");
-        assert_or_throw< MMPPParsingError >((begin+i)->second == "+", "Malformed string in $t comment");
+        gio::assert_or_throw< MMPPParsingError >(!(begin+i)->first, "Malformed string in $t comment");
+        gio::assert_or_throw< MMPPParsingError >((begin+i)->second == "+", "Malformed string in $t comment");
     }
     std::string value;
     for (size_t i = 0; i < (size_t) std::distance(begin, end); i += 2) {
-        assert_or_throw< MMPPParsingError >((begin+i)->first, "Malformed string in $t comment");
+        gio::assert_or_throw< MMPPParsingError >((begin+i)->first, "Malformed string in $t comment");
         std::string tmp = (begin+i)->second;
         if (escape) {
             tmp = escape_string_literal(tmp);
@@ -498,22 +498,22 @@ void Reader::parse_j_code(const std::vector<std::vector<std::pair<bool, std::str
     ParsingAddendumImpl add;
     this->lib.set_parsing_addendum(add);
     for (auto &tokens : code) {
-        assert_or_throw< MMPPParsingError >(tokens.size() > 0, "empty instruction in $j comment");
-        assert_or_throw< MMPPParsingError >(!tokens.at(0).first, "instruction in $j comment begins with a string");
+        gio::assert_or_throw< MMPPParsingError >(tokens.size() > 0, "empty instruction in $j comment");
+        gio::assert_or_throw< MMPPParsingError >(!tokens.at(0).first, "instruction in $j comment begins with a string");
         const std::string &command = tokens.at(0).second;
         if (command == "syntax") {
-            assert_or_throw< MMPPParsingError >(tokens.size() >= 2, "syntax instruction in $j comment with wrong length");
-            assert_or_throw< MMPPParsingError >(tokens.at(1).first, "malformed syntax instruction in $j comment");
+            gio::assert_or_throw< MMPPParsingError >(tokens.size() >= 2, "syntax instruction in $j comment with wrong length");
+            gio::assert_or_throw< MMPPParsingError >(tokens.at(1).first, "malformed syntax instruction in $j comment");
             SymTok tok1 = this->lib.get_symbol(tokens.at(1).second);
-            assert_or_throw< MMPPParsingError >(tok1 != SymTok{}, "unknown symbol in syntax instruction in $j comment");
+            gio::assert_or_throw< MMPPParsingError >(tok1 != SymTok{}, "unknown symbol in syntax instruction in $j comment");
             SymTok tok2 = tok1;
             if (tokens.size() > 2) {
-                assert_or_throw< MMPPParsingError >(tokens.size() == 4, "syntax instruction in $j comment with wrong length");
-                assert_or_throw< MMPPParsingError >(!tokens.at(2).first, "malformed syntax instruction in $j comment");
-                assert_or_throw< MMPPParsingError >(tokens.at(3).first, "malformed syntax instruction in $j comment");
-                assert_or_throw< MMPPParsingError >(tokens.at(2).second == "as", "malformed syntax instruction in $j comment");
+                gio::assert_or_throw< MMPPParsingError >(tokens.size() == 4, "syntax instruction in $j comment with wrong length");
+                gio::assert_or_throw< MMPPParsingError >(!tokens.at(2).first, "malformed syntax instruction in $j comment");
+                gio::assert_or_throw< MMPPParsingError >(tokens.at(3).first, "malformed syntax instruction in $j comment");
+                gio::assert_or_throw< MMPPParsingError >(tokens.at(2).second == "as", "malformed syntax instruction in $j comment");
                 tok2 = this->lib.get_symbol(tokens.at(3).second);
-                assert_or_throw< MMPPParsingError >(tok2 != SymTok{}, "unknown symbol in syntax instruction in $j comment");
+                gio::assert_or_throw< MMPPParsingError >(tok2 != SymTok{}, "unknown symbol in syntax instruction in $j comment");
             }
             add.syntax[tok1] = tok2;
         } else if (command == "unambiguous") {
@@ -538,8 +538,8 @@ void Reader::parse_j_code(const std::vector<std::vector<std::pair<bool, std::str
 void Reader::parse_t_code(const std::vector< std::vector< std::pair< bool, std::string > > > &code) {
     LibraryAddendumImpl add;
     for (auto &tokens : code) {
-        assert_or_throw< MMPPParsingError >(tokens.size() > 0, "empty instruction in $t comment");
-        assert_or_throw< MMPPParsingError >(!tokens.at(0).first, "instruction in $t comment begins with a string");
+        gio::assert_or_throw< MMPPParsingError >(tokens.size() > 0, "empty instruction in $t comment");
+        gio::assert_or_throw< MMPPParsingError >(!tokens.at(0).first, "instruction in $t comment begins with a string");
         int deftype = 0;
         if (tokens.at(0).second == "htmldef") {
             deftype = 1;
@@ -575,15 +575,15 @@ void Reader::parse_t_code(const std::vector< std::vector< std::pair< bool, std::
             throw new MMPPParsingError("unknown command in $t comment");
         }
         if (deftype != 0) {
-            assert_or_throw< MMPPParsingError >(tokens.size() >= 4, "*def instruction in $t comment with wrong length");
-            assert_or_throw< MMPPParsingError >(tokens.size() % 2 == 0, "*def instruction in $t comment with wrong length");
-            assert_or_throw< MMPPParsingError >(tokens.at(1).first, "malformed *def instruction in $t comment");
-            assert_or_throw< MMPPParsingError >(!tokens.at(2).first, "malformed *def instruction in $t comment");
-            assert_or_throw< MMPPParsingError >(tokens.at(3).first, "malformed *def instruction in $t comment");
-            assert_or_throw< MMPPParsingError >(tokens.at(2).second == "as", "malformed *def instruction in $t comment");
+            gio::assert_or_throw< MMPPParsingError >(tokens.size() >= 4, "*def instruction in $t comment with wrong length");
+            gio::assert_or_throw< MMPPParsingError >(tokens.size() % 2 == 0, "*def instruction in $t comment with wrong length");
+            gio::assert_or_throw< MMPPParsingError >(tokens.at(1).first, "malformed *def instruction in $t comment");
+            gio::assert_or_throw< MMPPParsingError >(!tokens.at(2).first, "malformed *def instruction in $t comment");
+            gio::assert_or_throw< MMPPParsingError >(tokens.at(3).first, "malformed *def instruction in $t comment");
+            gio::assert_or_throw< MMPPParsingError >(tokens.at(2).second == "as", "malformed *def instruction in $t comment");
             std::string value = decode_string(tokens.begin() + 3, tokens.end());
             SymTok tok = this->lib.get_symbol(tokens.at(1).second);
-            assert_or_throw< MMPPParsingError >(tok != SymTok{}, "unknown symbol in *def instruction in $t comment");
+            gio::assert_or_throw< MMPPParsingError >(tok != SymTok{}, "unknown symbol in *def instruction in $t comment");
             if (deftype == 1) {
                 add.htmldefs.resize(std::max(add.htmldefs.size(), (size_t) tok.val()+1));
                 add.htmldefs[tok.val()] = value;
@@ -632,10 +632,10 @@ std::vector<std::vector<std::pair<bool, std::string> > > Reader::parse_comment(c
             } else if (c == '/') {
                 state = 4;
             } else if (c == '"') {
-                assert_or_throw< MMPPParsingError >(token.empty(), "$t string began during token");
+                gio::assert_or_throw< MMPPParsingError >(token.empty(), "$t string began during token");
                 state = 2;
             } else if (c == '\'') {
-                assert_or_throw< MMPPParsingError >(token.empty(), "$t string began during token");
+                gio::assert_or_throw< MMPPParsingError >(token.empty(), "$t string began during token");
                 state = 3;
             } else {
                 token.push_back(c);
@@ -685,14 +685,14 @@ std::vector<std::vector<std::pair<bool, std::string> > > Reader::parse_comment(c
                 code.push_back(tokens);
                 tokens.clear();
             } else {
-                assert_or_throw< MMPPParsingError >(is_mm_whitespace(c), "no whitespace after $t string");
+                gio::assert_or_throw< MMPPParsingError >(is_mm_whitespace(c), "no whitespace after $t string");
             }
             state = 0;
         } else if (state == 7) {
             if (c == '$') {
                 state = 8;
             } else {
-                assert_or_throw< MMPPParsingError >(is_mm_whitespace(c), "where is $t gone?");
+                gio::assert_or_throw< MMPPParsingError >(is_mm_whitespace(c), "where is $t gone?");
             }
         } else if (state == 8) {
             state = 0;

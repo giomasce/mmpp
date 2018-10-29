@@ -51,6 +51,6 @@ int beast_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("beast", beast_main);
+gio_static_block {
+    gio::register_main_function("beast", beast_main);
 }

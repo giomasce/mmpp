@@ -1,6 +1,9 @@
 
 #include <iostream>
 
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #include "mm/reader.h"
 #include "mm/library.h"
 #include "utils/utils.h"
@@ -57,6 +60,6 @@ int unification_loop_main(int argc, char *argv[]) {
     unification_loop();
     return 0;
 }
-static_block {
-    register_main_function("unificator", unification_loop_main);
+gio_static_block {
+    gio::register_main_function("unificator", unification_loop_main);
 }

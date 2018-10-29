@@ -62,24 +62,24 @@ void Workset::init() {
 nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end)
 {
     std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
-    assert_or_throw< SendError >(path_begin != path_end, 404);
+    gio::assert_or_throw< SendError >(path_begin != path_end, 404);
     if (*path_begin == "load") {
         path_begin++;
-        assert_or_throw< SendError >(path_begin == path_end, 404);
+        gio::assert_or_throw< SendError >(path_begin == path_end, 404);
         this->load_library(platform_get_resources_base() / "set.mm", platform_get_resources_base() / "set.mm.cache", "|-");
         nlohmann::json ret = { { "status", "ok" } };
         return ret;
     } else if (*path_begin == "get_stats") {
         path_begin++;
-        assert_or_throw< SendError >(path_begin == path_end, 404);
-        assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+        gio::assert_or_throw< SendError >(path_begin == path_end, 404);
+        gio::assert_or_throw< SendError >(cb.get_method() == "POST", 405);
         throw WaitForPost([this] (const auto &post_data) {
             (void) post_data;
             return this->get_stats();
         });
     } else if (*path_begin == "get_context") {
         path_begin++;
-        assert_or_throw< SendError >(path_begin == path_end, 404);
+        gio::assert_or_throw< SendError >(path_begin == path_end, 404);
         nlohmann::json ret;
         ret["name"] = this->get_name();
         ret["root_step_id"] = this->root_step->get_id();
@@ -96,7 +96,7 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
         return ret;
     } else if (*path_begin == "get_sentence") {
         path_begin++;
-        assert_or_throw< SendError >(path_begin != path_end, 404);
+        gio::assert_or_throw< SendError >(path_begin != path_end, 404);
         auto tok = LabTok(safe_stoi(*path_begin));
         try {
             const Sentence &sent = this->library->get_sentence(tok);
@@ -108,11 +108,11 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
         }
     } else if (*path_begin == "get_assertion") {
         path_begin++;
-        assert_or_throw< SendError >(path_begin != path_end, 404);
+        gio::assert_or_throw< SendError >(path_begin != path_end, 404);
         auto tok = LabTok(safe_stoi(*path_begin));
         try {
             const Assertion &ass = this->library->get_assertion(tok);
-            assert_or_throw< SendError >(ass.is_valid(), 404);
+            gio::assert_or_throw< SendError >(ass.is_valid(), 404);
             nlohmann::json ret;
             ret["assertion"] = jsonize(ass);
             return ret;
@@ -121,8 +121,8 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
         }
     } else if (*path_begin == "destroy") {
         path_begin++;
-        assert_or_throw< SendError >(path_begin == path_end, 404);
-        assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+        gio::assert_or_throw< SendError >(path_begin == path_end, 404);
+        gio::assert_or_throw< SendError >(cb.get_method() == "POST", 405);
         throw WaitForPost([self=this->shared_from_this()] (const auto &post_data) {
             (void) post_data;
             auto res = self->destroy();
@@ -132,8 +132,8 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
         });
     } else if (*path_begin == "queue") {
         path_begin++;
-        assert_or_throw< SendError >(path_begin == path_end, 404);
-        assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+        gio::assert_or_throw< SendError >(path_begin == path_end, 404);
+        gio::assert_or_throw< SendError >(cb.get_method() == "POST", 405);
         throw WaitForPost([this] (const auto &post_data) {
             (void) post_data;
             std::unique_lock< std::mutex > queue_lock(this->queue_mutex);
@@ -153,11 +153,11 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
         });
     } else if (*path_begin == "get_proof_tree") {
         path_begin++;
-        assert_or_throw< SendError >(path_begin != path_end, 404);
+        gio::assert_or_throw< SendError >(path_begin != path_end, 404);
         auto tok = LabTok(safe_stoi(*path_begin));
         try {
             const Assertion &ass = this->library->get_assertion(tok);
-            assert_or_throw< SendError >(ass.is_valid(), 404);
+            gio::assert_or_throw< SendError >(ass.is_valid(), 404);
             const auto &executor = ass.get_proof_executor< Sentence >(*this->library, true);
             executor->execute();
             const auto &proof_tree = executor->get_proof_tree();
@@ -169,8 +169,8 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
         }
     } else if (*path_begin == "set_antidists") {
         path_begin++;
-        assert_or_throw< SendError >(path_begin == path_end, 404);
-        assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+        gio::assert_or_throw< SendError >(path_begin == path_end, 404);
+        gio::assert_or_throw< SendError >(cb.get_method() == "POST", 405);
         throw WaitForPost([this] (const auto &post_data) {
             std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
             std::string antidists_str = safe_at(post_data, "antidists").value;
@@ -194,11 +194,11 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
         });
     } else if (*path_begin == "step") {
         path_begin++;
-        assert_or_throw< SendError >(path_begin != path_end, 404);
+        gio::assert_or_throw< SendError >(path_begin != path_end, 404);
         if (*path_begin == "create") {
             path_begin++;
-            assert_or_throw< SendError >(path_begin == path_end, 404);
-            assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+            gio::assert_or_throw< SendError >(path_begin == path_end, 404);
+            gio::assert_or_throw< SendError >(cb.get_method() == "POST", 405);
             throw WaitForPost([this] (const auto &post_data) {
                 (void) post_data;
                 std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
@@ -209,8 +209,8 @@ nlohmann::json Workset::answer_api1(HTTPCallback &cb, std::vector< std::string >
             });
         } else if (*path_begin == "create_from_dump") {
             path_begin++;
-            assert_or_throw< SendError >(path_begin == path_end, 404);
-            assert_or_throw< SendError >(cb.get_method() == "POST", 405);
+            gio::assert_or_throw< SendError >(path_begin == path_end, 404);
+            gio::assert_or_throw< SendError >(cb.get_method() == "POST", 405);
             throw WaitForPost([this] (const auto &post_data) {
                 std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
                 const auto dump_str = safe_at(post_data, "dump").value;

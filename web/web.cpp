@@ -5,6 +5,9 @@
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem/fstream.hpp>
 
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #if defined(USE_MICROHTTPD)
 #include "httpd_microhttpd.h"
 #endif
@@ -110,22 +113,22 @@ int webmmpp_main_common(int argc, char *argv[], ServerType type) {
 int webmmpp_main(int argc, char*argv[]) {
     return webmmpp_main_common(argc, argv, ServerType::USER);
 }
-static_block {
-    register_main_function("webmmpp", webmmpp_main);
+gio_static_block {
+    gio::register_main_function("webmmpp", webmmpp_main);
 }
 
 int webmmpp_open_main(int argc, char*argv[]) {
     return webmmpp_main_common(argc, argv, ServerType::OPEN);
 }
-static_block {
-    register_main_function("webmmpp_open", webmmpp_open_main);
+gio_static_block {
+    gio::register_main_function("webmmpp_open", webmmpp_open_main);
 }
 
 int webmmpp_docker_main(int argc, char*argv[]) {
     return webmmpp_main_common(argc, argv, ServerType::DOCKER);
 }
-static_block {
-    register_main_function("webmmpp_docker", webmmpp_docker_main);
+gio_static_block {
+    gio::register_main_function("webmmpp_docker", webmmpp_docker_main);
 }
 
 WebEndpoint::WebEndpoint(int port, bool enable_guest_session) :
@@ -371,17 +374,17 @@ nlohmann::json Session::answer_api1(HTTPCallback &cb, std::vector< std::string >
 {
     if (path_begin != path_end && *path_begin == "workset") {
         path_begin++;
-        assert_or_throw< SendError >(path_begin != path_end, 404);
+        gio::assert_or_throw< SendError >(path_begin != path_end, 404);
         if (*path_begin == "create") {
-            assert_or_throw< SendError >(!this->is_constant(), 403);
+            gio::assert_or_throw< SendError >(!this->is_constant(), 403);
             path_begin++;
-            assert_or_throw< SendError >(path_begin == path_end, 404);
+            gio::assert_or_throw< SendError >(path_begin == path_end, 404);
             auto res = this->create_workset();
             nlohmann::json ret = { { "id", res.first } };
             return ret;
         } else if (*path_begin == "list") {
             path_begin++;
-            assert_or_throw< SendError >(path_begin == path_end, 404);
+            gio::assert_or_throw< SendError >(path_begin == path_end, 404);
             nlohmann::json ret = { { "worksets", this->json_list_worksets() } };
             return ret;
         } else {

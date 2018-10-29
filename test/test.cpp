@@ -22,6 +22,9 @@
 
 #define BOOST_TEST_NO_MAIN
 
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #include "test.h"
 #include "utils/utils.h"
 
@@ -34,8 +37,8 @@ int test_main(int argc, char *argv[]) {
     //get_set_mm();
     return boost::unit_test::unit_test_main(&init_unit_test, argc, argv);
 }
-static_block {
-    register_main_function("test", test_main);
+gio_static_block {
+    gio::register_main_function("test", test_main);
 }
 
 #endif

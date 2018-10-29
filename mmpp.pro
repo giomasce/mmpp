@@ -21,6 +21,8 @@ DEFINES += "PROJ_DIR=\"\\\"$$PWD\\\"\""
 CONFIG += c++14
 CONFIG -= app_bundle
 
+INCLUDEPATH += $$PWD/libs/giolib
+
 linux {
     # Compile with gcc
     #QMAKE_CC = gcc

@@ -9,6 +9,10 @@
 #include <unordered_map>
 #include <iostream>
 
+#include <giolib/assert.h>
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #include "parsing/lr.h"
 #include "parsing/earley.h"
 #include "utils/utils.h"
@@ -28,9 +32,9 @@ Token char_tok(char c) { return Token(TokenType::CHAR, c); }
 Token sym_tok(TokenType type) { return Token(type); }
 
 void check_pt(const PT& pt, const TokenType &type, const Rule &label, size_t children_num, const std::string &msg = "invalid arg") {
-    assert_or_throw<std::invalid_argument>(pt.type == sym_tok(type), msg);
-    assert_or_throw<std::invalid_argument>(pt.label == label, msg);
-    assert_or_throw<std::invalid_argument>(pt.children.size() == children_num, msg);
+    gio::assert_or_throw<std::invalid_argument>(pt.type == sym_tok(type), msg);
+    gio::assert_or_throw<std::invalid_argument>(pt.label == label, msg);
+    gio::assert_or_throw<std::invalid_argument>(pt.children.size() == children_num, msg);
 }
 
 char letter_to_char(const ParsingTree<Token, Rule> &pt) {
@@ -288,7 +292,7 @@ std::shared_ptr<const Term> Term::substitute(const std::map<std::string, std::sh
 std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Term> > Term::replace(std::vector<size_t>::const_iterator path_begin, std::vector<size_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const {
     if (path_begin != path_end) {
         auto &idx = *path_begin;
-        assert_or_throw<std::invalid_argument>(idx < this->args.size(), "invalid path");
+        gio::assert_or_throw<std::invalid_argument>(idx < this->args.size(), "invalid path");
         auto new_args = this->args;
         auto res = this->args[idx]->replace(path_begin+1, path_end, term);
         new_args[idx] = res.second;
@@ -358,9 +362,9 @@ std::shared_ptr<const Atom> Atom::substitute(const std::map<std::string, std::sh
 }
 
 std::pair<std::shared_ptr<const Term>, std::shared_ptr<const Atom> > Atom::replace(std::vector<size_t>::const_iterator path_begin, std::vector<size_t>::const_iterator path_end, const std::shared_ptr<const Term> &term) const {
-    assert_or_throw<std::invalid_argument>(path_begin != path_end, "empty path");
+    gio::assert_or_throw<std::invalid_argument>(path_begin != path_end, "empty path");
     auto &idx = *path_begin;
-    assert_or_throw<std::invalid_argument>(idx < this->args.size(), "invalid path");
+    gio::assert_or_throw<std::invalid_argument>(idx < this->args.size(), "invalid path");
     auto new_args = this->args;
     auto res = this->args[idx]->replace(path_begin+1, path_end, term);
     new_args[idx] = res.second;
@@ -480,7 +484,7 @@ std::shared_ptr<const Clause> Clause::resolve(const Clause &other, const std::sh
             found = true;
         }
     }
-    assert_or_throw<std::invalid_argument>(found, "literal does not appear in first clause");
+    gio::assert_or_throw<std::invalid_argument>(found, "literal does not appear in first clause");
 
     // Process second clause
     const auto opp_lit = lit->opposite();
@@ -491,7 +495,7 @@ std::shared_ptr<const Clause> Clause::resolve(const Clause &other, const std::sh
             found = true;
         }
     }
-    assert_or_throw<std::invalid_argument>(found, "opposite literal does not appear in second clause");
+    gio::assert_or_throw<std::invalid_argument>(found, "opposite literal does not appear in second clause");
 
     return Clause::create(new_literals);
 }
@@ -540,7 +544,7 @@ std::pair<std::shared_ptr<const Subst>, std::vector<std::string> > Subst::recons
     auto process_entry = [&subst](const PT &pt) {
         check_pt(pt, TokenType::EXPR, Rule::FUNC_APP_IS_EXPR, 2);
         const auto bind_name = reconstruct_id(pt.children[0]);
-        assert_or_throw<std::invalid_argument>(bind_name == "bind", "invalid subst inference");
+        gio::assert_or_throw<std::invalid_argument>(bind_name == "bind", "invalid subst inference");
         const auto &pt2 = pt.children[1];
         check_pt(pt2, TokenType::EXPR_ARGLIST, Rule::EXPR_AND_ARGLIST_IS_ARGLIST, 2);
         const auto &pt3 = pt2.children[0];
@@ -553,14 +557,14 @@ std::pair<std::shared_ptr<const Subst>, std::vector<std::string> > Subst::recons
         subst[var_name] = Term::reconstruct(pt5.children[0]);
     };
     while (true) {
-        assert_or_throw<std::invalid_argument>(cur->type == sym_tok(TokenType::EXPR_ARGLIST), "invalid subst inference");
+        gio::assert_or_throw<std::invalid_argument>(cur->type == sym_tok(TokenType::EXPR_ARGLIST), "invalid subst inference");
         if (cur->label == Rule::EXPR_IS_ARGLIST) {
-            assert_or_throw<std::invalid_argument>(cur->children.size() == 1, "invalid subst inference");
+            gio::assert_or_throw<std::invalid_argument>(cur->children.size() == 1, "invalid subst inference");
             process_entry(cur->children[0]);
             return {Subst::create(subst), {hyp_name}};
         }
-        assert_or_throw<std::invalid_argument>(cur->label == Rule::EXPR_AND_ARGLIST_IS_ARGLIST, "invalid subst inference");
-        assert_or_throw<std::invalid_argument>(cur->children.size() == 2, "invalid subst inference");
+        gio::assert_or_throw<std::invalid_argument>(cur->label == Rule::EXPR_AND_ARGLIST_IS_ARGLIST, "invalid subst inference");
+        gio::assert_or_throw<std::invalid_argument>(cur->children.size() == 2, "invalid subst inference");
         process_entry(cur->children[0]);
         cur = &cur->children[1];
     }
@@ -633,7 +637,7 @@ uint64_t reconstruct_int(const PT &pt) {
     auto str = reconstruct_id(pt);
     size_t pos;
     uint64_t ret = stoull(str, &pos);
-    assert_or_throw<std::invalid_argument>(pos == str.size(), "invalid characters in numeral");
+    gio::assert_or_throw<std::invalid_argument>(pos == str.size(), "invalid characters in numeral");
     return ret;
 }
 
@@ -645,14 +649,14 @@ std::vector<size_t> reconstruct_path(const PT &pt) {
         ret.push_back(static_cast<size_t>(reconstruct_int(pt.children[0])));
     };
     while (true) {
-        assert_or_throw<std::invalid_argument>(cur->type == sym_tok(TokenType::EXPR_ARGLIST), "invalid arg");
+        gio::assert_or_throw<std::invalid_argument>(cur->type == sym_tok(TokenType::EXPR_ARGLIST), "invalid arg");
         if (cur->label == Rule::EXPR_IS_ARGLIST) {
-            assert_or_throw<std::invalid_argument>(cur->children.size() == 1, "invalid arg");
+            gio::assert_or_throw<std::invalid_argument>(cur->children.size() == 1, "invalid arg");
             process_entry(cur->children[0]);
             return ret;
         }
-        assert_or_throw<std::invalid_argument>(cur->label == Rule::EXPR_AND_ARGLIST_IS_ARGLIST, "invalid arg");
-        assert_or_throw<std::invalid_argument>(cur->children.size() == 2, "invalid arg");
+        gio::assert_or_throw<std::invalid_argument>(cur->label == Rule::EXPR_AND_ARGLIST_IS_ARGLIST, "invalid arg");
+        gio::assert_or_throw<std::invalid_argument>(cur->children.size() == 2, "invalid arg");
         process_entry(cur->children[0]);
         cur = &cur->children[1];
     }
@@ -800,8 +804,8 @@ int parse_tstp_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("parse_tstp", parse_tstp_main);
+gio_static_block {
+    gio::register_main_function("parse_tstp", parse_tstp_main);
 }
 
 struct SplitClauses {
@@ -875,8 +879,8 @@ int parse_tstp_file_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("parse_tstp_file", parse_tstp_file_main);
+gio_static_block {
+    gio::register_main_function("parse_tstp_file", parse_tstp_file_main);
 }
 
 }

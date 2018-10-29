@@ -58,14 +58,14 @@ const UncompressedProof CompressedProofOperator::uncompress()
          * big uncompressed proofs. This is analogous to a "ZIP bomb" and might lead to
          * security problems. Therefore we fail when decompressed data are too long.
          */
-        assert_or_throw< ProofException< Sentence > >(labels.size() < max_decompression_size, "Decompressed proof is too large");
+        gio::assert_or_throw< ProofException< Sentence > >(labels.size() < max_decompression_size, "Decompressed proof is too large");
         const CodeTok &code = this->proof.get_codes().at(i);
         if (code == CodeTok{}) {
             saved.emplace_back(labels.begin() + opening_stack.back(), labels.end());
         } else if (code.val() <= this->ass.get_mand_hyps_num()) {
             LabTok label = this->ass.get_mand_hyp(code.val()-1);
             size_t opening = labels.size();
-            assert_or_throw< ProofException< Sentence > >(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
+            gio::assert_or_throw< ProofException< Sentence > >(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
             for (size_t j = 0; j < this->get_hyp_num(label); j++) {
                 opening = opening_stack.back();
                 opening_stack.pop_back();
@@ -75,7 +75,7 @@ const UncompressedProof CompressedProofOperator::uncompress()
         } else if (code.val() <= this->ass.get_mand_hyps_num() + this->proof.get_refs().size()) {
             LabTok label = this->proof.get_refs().at(code.val()-this->ass.get_mand_hyps_num()-1);
             size_t opening = labels.size();
-            assert_or_throw< ProofException< Sentence > >(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
+            gio::assert_or_throw< ProofException< Sentence > >(opening_stack.size() >= this->get_hyp_num(label), "Stack too small to pop hypotheses");
             for (size_t j = 0; j < this->get_hyp_num(label); j++) {
                 opening = opening_stack.back();
                 opening_stack.pop_back();
@@ -83,14 +83,14 @@ const UncompressedProof CompressedProofOperator::uncompress()
             opening_stack.push_back(opening);
             labels.push_back(label);
         } else {
-            assert_or_throw< ProofException< Sentence > >(code.val() <= this->ass.get_mand_hyps_num() + this->proof.get_refs().size() + saved.size(), "Code too big in compressed proof");
+            gio::assert_or_throw< ProofException< Sentence > >(code.val() <= this->ass.get_mand_hyps_num() + this->proof.get_refs().size() + saved.size(), "Code too big in compressed proof");
             const std::vector< LabTok > &sent = saved.at(code.val()-this->ass.get_mand_hyps_num()-this->proof.get_refs().size()-1);
             size_t opening = labels.size();
             opening_stack.push_back(opening);
             std::copy(sent.begin(), sent.end(), back_inserter(labels));
         }
     }
-    assert_or_throw< ProofException< Sentence > >(opening_stack.size() == 1, "Proof uncompression did not end with a single element on the stack");
+    gio::assert_or_throw< ProofException< Sentence > >(opening_stack.size() == 1, "Proof uncompression did not end with a single element on the stack");
     assert(opening_stack.at(0) == 0);
     return UncompressedProof(labels);
 }
@@ -300,9 +300,9 @@ CodeTok CompressedDecoder::push_char(char c)
     if (is_mm_whitespace(c)) {
         return INVALID_CODE;
     }
-    assert_or_throw< MMPPParsingError >('A' <= c && c <= 'Z', "Invalid character in compressed proof");
+    gio::assert_or_throw< MMPPParsingError >('A' <= c && c <= 'Z', "Invalid character in compressed proof");
     if (c == 'Z') {
-        assert_or_throw< MMPPParsingError >(this->current == 0, "Invalid character Z in compressed proof");
+        gio::assert_or_throw< MMPPParsingError >(this->current == 0, "Invalid character Z in compressed proof");
         return CodeTok{};
     } else if ('A' <= c && c <= 'T') {
         uint32_t res = this->current * 20 + (c - 'A' + 1);
@@ -318,7 +318,7 @@ CodeTok CompressedDecoder::push_char(char c)
 
 std::string CompressedEncoder::push_code(CodeTok x)
 {
-    assert_or_throw< MMPPParsingError >(x != INVALID_CODE);
+    gio::assert_or_throw< MMPPParsingError >(x != INVALID_CODE);
     auto xv = x.val();
     if (xv == 0) {
         return "Z";

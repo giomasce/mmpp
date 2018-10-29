@@ -56,15 +56,6 @@ void toc(const Tic &t, int reps) {
     std::cout << "It took " << usecs << " microseconds to repeat " << reps << " times, which is " << (usecs / reps) << " microsecond per execution." << std::endl;
 }
 
-std::map< std::string, std::function< int(int, char*[]) > > &get_main_functions() {
-    static auto ret = std::make_unique< std::map< std::string, std::function< int(int, char*[]) > > >();
-    return *ret;
-}
-
-void register_main_function(const std::string &name, const std::function< int(int, char*[]) > &main_function) {
-    get_main_functions().insert(make_pair(name, main_function));
-}
-
 class HasherCRC32 final : public Hasher {
 public:
     void update(const char *s, std::size_t n) {

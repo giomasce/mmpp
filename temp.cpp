@@ -6,6 +6,9 @@
 #include <vector>
 #include <string>
 
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #include "mm/setmm.h"
 
 #include "mm/toolbox.h"
@@ -85,8 +88,8 @@ int count_root_type_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("count_root_type", count_root_type_main);
+gio_static_block {
+    gio::register_main_function("count_root_type", count_root_type_main);
 }
 
 int temp_main(int argc, char *argv[]) {
@@ -134,8 +137,8 @@ int temp_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("temp", temp_main);
+gio_static_block {
+    gio::register_main_function("temp", temp_main);
 }
 
 int test_backtrace_main(int argc, char *argv[]) {
@@ -147,8 +150,8 @@ int test_backtrace_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("test_backtrace", test_backtrace_main);
+gio_static_block {
+    gio::register_main_function("test_backtrace", test_backtrace_main);
 }
 
 int test_exception_main(int argc, char *argv[]) {
@@ -162,6 +165,6 @@ int test_exception_main(int argc, char *argv[]) {
     throw "Test exception";
     throw std::string("Test exception");
 }
-static_block {
-    register_main_function("test_exception", test_exception_main);
+gio_static_block {
+    gio::register_main_function("test_exception", test_exception_main);
 }

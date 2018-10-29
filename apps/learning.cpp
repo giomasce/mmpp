@@ -5,6 +5,9 @@
 
 #include <boost/functional/hash.hpp>
 
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #include "mm/setmm.h"
 #include "mm/toolbox.h"
 #include "mm/proof.h"
@@ -67,8 +70,8 @@ int dissector_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("dissector", dissector_main);
+gio_static_block {
+    gio::register_main_function("dissector", dissector_main);
 }
 
 struct ProofStat {
@@ -165,8 +168,8 @@ int proofs_stats_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("proofs_stats", proofs_stats_main);
+gio_static_block {
+    gio::register_main_function("proofs_stats", proofs_stats_main);
 }
 
 void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
@@ -349,6 +352,6 @@ int gen_random_theorems_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("gen_random_theorems", gen_random_theorems_main);
+gio_static_block {
+    gio::register_main_function("gen_random_theorems", gen_random_theorems_main);
 }

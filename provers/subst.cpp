@@ -1,6 +1,9 @@
 
 #include <boost/range/adaptor/reversed.hpp>
 
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #include "subst.h"
 
 #include "mm/ptengine.h"
@@ -514,8 +517,8 @@ int subst_search_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("subst_search", subst_search_main);
+gio_static_block {
+    gio::register_main_function("subst_search", subst_search_main);
 }
 
 std::set< LabTok > get_defless_labels(const LibraryToolbox &tb) {
@@ -765,8 +768,8 @@ int find_bound_vars_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("find_bound_vars", find_bound_vars_main);
+gio_static_block {
+    gio::register_main_function("find_bound_vars", find_bound_vars_main);
 }
 
 ParsingTree< SymTok, LabTok > subst_defs(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb, const std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok >, ParsingTree< SymTok, LabTok > > > &defs) {
@@ -853,8 +856,8 @@ int find_defs_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("find_defs", find_defs_main);
+gio_static_block {
+    gio::register_main_function("find_defs", find_defs_main);
 }
 
 // This is essentially broken and useless code

@@ -1,6 +1,9 @@
 
 #include <z3++.h>
 
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #include "utils/utils.h"
 #include "mm/toolbox.h"
 #include "mm/setmm.h"
@@ -396,6 +399,6 @@ int test_z3_2_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("test_z3_2", test_z3_2_main);
+gio_static_block {
+    gio::register_main_function("test_z3_2", test_z3_2_main);
 }

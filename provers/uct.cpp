@@ -1,6 +1,9 @@
 
 #include <boost/filesystem/fstream.hpp>
 
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #include "uct.h"
 
 #include "utils/utils.h"
@@ -687,6 +690,6 @@ int uct_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("uct", uct_main);
+gio_static_block {
+    gio::register_main_function("uct", uct_main);
 }

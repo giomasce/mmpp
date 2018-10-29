@@ -2,6 +2,9 @@
 
 #include <iostream>
 
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #include "utils/utils.h"
 #include "platform.h"
 
@@ -49,8 +52,8 @@ int thread_test_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("thread_test", thread_test_main);
+gio_static_block {
+    gio::register_main_function("thread_test", thread_test_main);
 }
 
 CoroutineThreadManager::CoroutineThreadManager(size_t thread_num) : running(true), running_coros(0) {

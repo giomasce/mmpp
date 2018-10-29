@@ -1,0 +1,3 @@
+[submodule "libs/giolib"]
+	path = libs/giolib
+	url = https://gitlab.com/giomasce/giolib.git

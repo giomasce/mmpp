@@ -6,6 +6,9 @@
 #include <vector>
 #include <string>
 
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #include "mm/setmm.h"
 #include "mm/toolbox.h"
 #include "mm/proof.h"
@@ -224,6 +227,6 @@ int find_generalizable_theorems_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("generalizable_theorems", find_generalizable_theorems_main);
+gio_static_block {
+    gio::register_main_function("generalizable_theorems", find_generalizable_theorems_main);
 }

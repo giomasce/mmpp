@@ -6,6 +6,9 @@
 
 #include <boost/filesystem.hpp>
 
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #include "platform.h"
 #include "utils/utils.h"
 #include "mm/reader.h"
@@ -155,8 +158,8 @@ int test_one_main(int argc, char *argv[]) {
     std::string filename(argv[1]);
     return verify_database(filename, true) ? 0 : 1;
 }
-static_block {
-    register_main_function("verify_adv", test_one_main);
+gio_static_block {
+    gio::register_main_function("verify_adv", test_one_main);
 }
 
 int test_simple_one_main(int argc, char *argv[]) {
@@ -167,8 +170,8 @@ int test_simple_one_main(int argc, char *argv[]) {
     std::string filename(argv[1]);
     return verify_database(filename, false) ? 0 : 1;
 }
-static_block {
-    register_main_function("verify", test_simple_one_main);
+gio_static_block {
+    gio::register_main_function("verify", test_simple_one_main);
 }
 
 int test_all_main(int argc, char *argv[]) {
@@ -179,7 +182,7 @@ int test_all_main(int argc, char *argv[]) {
 
     return 0;
 }
-static_block {
-    register_main_function("verify_all", test_all_main);
+gio_static_block {
+    gio::register_main_function("verify_all", test_all_main);
 }
 

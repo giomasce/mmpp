@@ -10,6 +10,6 @@ int qt_main(int argc, char *argv[]) {
     w.show();
     return a.exec();
 }
-static_block {
-    register_main_function("qmmpp", qt_main);
+gio_static_block {
+    gio::register_main_function("qmmpp", qt_main);
 }
