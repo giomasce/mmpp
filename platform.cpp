@@ -1,7 +1,7 @@
 
 #include "platform.h"
 
-#if (defined(__linux) || defined(__linux__))
+#ifdef GIO_PLATFORM_LINUX
 
 #include <csignal>
 #include <atomic>
@@ -149,18 +149,9 @@ uint64_t platform_get_current_used_ram( )
     return (size_t)rss * (size_t)sysconf( _SC_PAGESIZE);
 }
 
-#include <cxxabi.h>
+#endif
 
-std::string platform_type_of_current_exception() {
-    int status;
-    auto demangled = abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), nullptr, nullptr, &status);
-    assert(status == 0);
-    std::string ret(demangled);
-    free(demangled);
-    return ret;
-}
-
-#elif (defined(__APPLE__) && defined(__MACH__))
+#ifdef GIO_PLATFORM_MACOS
 
 #include <csignal>
 #include <atomic>
@@ -292,18 +283,9 @@ uint64_t platform_get_current_used_ram( )
     }
 }
 
-#include <cxxabi.h>
+#endif
 
-std::string platform_type_of_current_exception() {
-    int status;
-    auto demangled = abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), nullptr, nullptr, &status);
-    assert(status == 0);
-    std::string ret(demangled);
-    free(demangled);
-    return ret;
-}
-
-#elif (defined(_WIN32))
+#ifdef GIO_PLATFORM_WIN32
 
 #include <future>
 #include <iostream>
@@ -420,41 +402,8 @@ std::string platform_type_of_current_exception() {
     return "";
 }
 
-#else
-#error Current platform is not supported. Please add support in plaftorm.cpp.
 #endif
 
-#ifdef STACKTRACE_USE_BACKWARD
-
-PlatformStackTrace platform_get_stack_trace() {
-    backward::StackTrace ret;
-    ret.load_here();
-    return ret;
-}
-
-void platform_dump_stack_trace(std::ostream &st, const backward::StackTrace &stacktrace) {
-    backward::Printer p;
-    p.snippet = true;
-    p.color_mode = backward::ColorMode::always;
-    p.address = true;
-    p.object = false;
-    p.print(stacktrace, st);
-    st.flush();
-}
-
-static backward::SignalHandling sh;
-
-#endif
-
-#ifdef STACKTRACE_USE_BOOST
-
-PlatformStackTrace platform_get_stack_trace() {
-    return boost::stacktrace::stacktrace();
-}
-
-void platform_dump_stack_trace(std::ostream &str, const PlatformStackTrace &trace) {
-    str << "Stack trace (more recent call first)" << std::endl;
-    str << trace;
-}
-
+#ifdef GIO_PLATFORM_UNKNOWN
+#error Current platform is not supported.
 #endif

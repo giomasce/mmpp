@@ -203,7 +203,6 @@ HEADERS += \
     provers/subst.h \
     mm/setmm.h \
     test/test.h \
-    libs/backward.h \
     mm/mmutils.h \
     provers/tstp/tstp_parser.h
 

@@ -125,20 +125,3 @@ std::string HashSink::get_digest()
 {
     return this->hasher->get_digest();
 }
-
-void default_exception_handler(std::exception_ptr ptr)
-{
-    try {
-        if (ptr) {
-            std::rethrow_exception(ptr);
-        }
-    } catch (const char* &e) {
-        std::cerr << "Exception of type char*: " << e << std::endl;
-    } catch (const std::string &e) {
-        std::cerr << "Exception of type std::string: " << e << std::endl;
-    } catch (const std::exception &e) {
-        std::cerr << "Exception of dynamic type " << boost::typeindex::type_id_runtime(e).pretty_name() << ": " << e.what() << std::endl;
-    } catch (...) {
-        std::cerr << "Exception of unmanaged type " << platform_type_of_current_exception() << std::endl;
-    }
-}

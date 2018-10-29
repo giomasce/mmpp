@@ -10,6 +10,8 @@
 #include <atomic>
 #include <queue>
 
+#include <giolib/exception.h>
+
 #include "platform.h"
 #include "utils.h"
 
@@ -49,7 +51,7 @@ private:
                 throw;
             } catch (...) {
                 std::cerr << "Coroutine filed with exception" << std::endl;
-                default_exception_handler(std::current_exception());
+                gio::default_exception_handler(std::current_exception());
             }
         });
     }

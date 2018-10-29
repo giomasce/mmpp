@@ -29,8 +29,6 @@
 
 const size_t DEFAULT_STACK_SIZE = 8*1024*1024;
 
-extern bool mmpp_abort;
-
 std::string size_to_string(uint64_t size);
 
 struct Tic {
@@ -135,8 +133,6 @@ extern std::ostream cnull;
 
 template< typename T >
 using Generator = coroutine_pull< T >;
-
-void default_exception_handler(std::exception_ptr ptr);
 
 template<typename T>
 struct istream_begin_end {

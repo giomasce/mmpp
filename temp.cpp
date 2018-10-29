@@ -140,31 +140,3 @@ int temp_main(int argc, char *argv[]) {
 gio_static_block {
     gio::register_main_function("temp", temp_main);
 }
-
-int test_backtrace_main(int argc, char *argv[]) {
-    (void) argc;
-    (void) argv;
-
-    auto stacktrace = platform_get_stack_trace();
-    platform_dump_stack_trace(std::cout, stacktrace);
-
-    return 0;
-}
-gio_static_block {
-    gio::register_main_function("test_backtrace", test_backtrace_main);
-}
-
-int test_exception_main(int argc, char *argv[]) {
-    (void) argc;
-    (void) argv;
-
-    throw std::vector< std::pair< int, double > >();
-    throw std::runtime_error("Test reason");
-    throw std::runtime_error("Test what");
-    throw 22;
-    throw "Test exception";
-    throw std::string("Test exception");
-}
-gio_static_block {
-    gio::register_main_function("test_exception", test_exception_main);
-}
