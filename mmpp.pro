@@ -18,7 +18,7 @@ CONFIG += link_pkgconfig
 
 DEFINES += "PROJ_DIR=\"\\\"$$PWD\\\"\""
 
-CONFIG += c++14
+CONFIG += c++1z
 CONFIG -= app_bundle
 
 INCLUDEPATH += $$PWD/libs/giolib
