@@ -102,7 +102,7 @@ void convert_to_tstp(const ParsingTree< SymTok, LabTok > &pt, std::ostream &st, 
             st << ")";
         }
     } else {
-        throw MMPPException("Unknown syntax construct");
+        throw std::runtime_error("Unknown syntax construct");
     }
 }
 
@@ -193,7 +193,7 @@ struct ReconstructFOF {
             }
             return pt;
         } else {
-            throw MMPPException("Unknown syntax construct");
+            throw std::runtime_error("Unknown syntax construct");
         }
     }
 };

@@ -327,7 +327,7 @@ private:
     void check_stack_underflow()
     {
         if (!this->checkpoints.empty() && this->stack.size() < std::get<0>(this->checkpoints.back())) {
-            throw MMPPException("Checkpointed context exited without committing or rolling back");
+            throw std::runtime_error("Checkpointed context exited without committing or rolling back");
         }
     }
 

@@ -159,7 +159,7 @@ int test_exception_main(int argc, char *argv[]) {
     (void) argv;
 
     throw std::vector< std::pair< int, double > >();
-    throw MMPPException("Test reason");
+    throw std::runtime_error("Test reason");
     throw std::runtime_error("Test what");
     throw 22;
     throw "Test exception";

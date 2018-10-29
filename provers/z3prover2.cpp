@@ -325,7 +325,7 @@ z3::expr convert_to_z3(const ParsingTree< SymTok, LabTok > &pt, const LibraryToo
         auto func = ctx.function(tb.resolve_symbol(tb.get_var_lab_to_sym(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))).label)).c_str(), sorts, ctx.bool_sort());
         return func(args);
     } else {
-        throw MMPPException("Unknown syntax construct");
+        throw std::runtime_error("Unknown syntax construct");
     }
 }
 

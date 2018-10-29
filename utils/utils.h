@@ -31,18 +31,6 @@ const size_t DEFAULT_STACK_SIZE = 8*1024*1024;
 
 extern bool mmpp_abort;
 
-class MMPPException {
-public:
-    MMPPException(const std::string &reason="");
-    const std::string &get_reason() const;
-    const PlatformStackTrace &get_stacktrace() const;
-    void print_stacktrace(std::ostream &st) const;
-
-private:
-    std::string reason;
-    PlatformStackTrace stacktrace;
-};
-
 std::string size_to_string(uint64_t size);
 
 struct Tic {

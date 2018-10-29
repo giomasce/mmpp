@@ -17,26 +17,6 @@ std::string size_to_string(uint64_t size) {
     return stream.str();
 }
 
-MMPPException::MMPPException(const std::string &reason) : reason(reason), stacktrace(platform_get_stack_trace()) {
-    if (mmpp_abort) {
-        std::cerr << "Exception with message: " << reason << std::endl;
-        this->print_stacktrace(std::cerr);
-        abort();
-    }
-}
-
-const std::string &MMPPException::get_reason() const {
-    return this->reason;
-}
-
-const PlatformStackTrace &MMPPException::get_stacktrace() const {
-    return this->stacktrace;
-}
-
-void MMPPException::print_stacktrace(std::ostream &st) const {
-    platform_dump_stack_trace(st, this->get_stacktrace());
-}
-
 Tic tic() {
     Tic t;
     t.begin = std::chrono::steady_clock::now();

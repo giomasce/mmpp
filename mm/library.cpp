@@ -18,7 +18,7 @@ SymTok LibraryImpl::create_symbol(std::string s)
     assert(is_valid_symbol(s));
     SymTok res = this->syms.create(s);
     if (res == SymTok{}) {
-        throw MMPPException("creating an already existing symbol");
+        throw std::runtime_error("creating an already existing symbol");
     }
     return res;
 }
@@ -35,7 +35,7 @@ LabTok LibraryImpl::create_label(std::string s)
     assert(is_valid_label(s));
     auto res = this->labels.create(s);
     if (res == LabTok{}) {
-        throw MMPPException("creating an already existing label");
+        throw std::runtime_error("creating an already existing label");
     }
     //cerr << "Resizing from " << this->assertions.size() << " to " << res+1 << endl;
     this->sentences.resize(res.val()+1);

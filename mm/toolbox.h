@@ -358,7 +358,7 @@ public:
     {
         const size_t &index = prover.index;
         if (index >= this->instance_registered_provers.size() || !this->instance_registered_provers[index].valid) {
-            throw MMPPException("cannot modify const object");
+            throw std::runtime_error("cannot modify const object");
         }
         const RegisteredProverInstanceData &inst_data = this->instance_registered_provers[index];
 
@@ -377,7 +377,7 @@ public:
         if (res.empty()) {
             std::cerr << std::string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string() << std::endl;
         }
-        gio::assert_or_throw< MMPPException >(!res.empty(), std::string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
+        gio::assert_or_throw< std::runtime_error >(!res.empty(), std::string("Could not find the template assertion: ") + this->print_sentence(templ_thesis).to_string());
         const auto &res1 = res[0];
         return [=](Engine &engine){
             RegisteredProverInstanceData inst_data(res1);

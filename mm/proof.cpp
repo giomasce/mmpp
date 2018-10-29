@@ -246,9 +246,9 @@ const CompressedProof UncompressedProofOperator::compress(CompressionStrategy st
         sents.clear();
         compress_unwind_proof_tree_phase2(tree, label_map, refs, sents, dupl_sents, dupl_sents_map, codes, code_idx);
     } else if (strategy == CS_BACKREFS_ON_IDENTICAL_TREE) {
-        throw MMPPException("Strategy not implemented yet");
+        throw std::runtime_error("Strategy not implemented yet");
     } else {
-        throw MMPPException("Strategy does not exist");
+        throw std::runtime_error("Strategy does not exist");
     }
     return CompressedProof(refs, codes);
 }

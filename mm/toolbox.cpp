@@ -494,7 +494,7 @@ std::vector<SymTok> LibraryToolbox::read_sentence(const std::string &in) const
     std::vector< SymTok > res;
     for (auto &tok : toks) {
         auto tok_num = this->get_symbol(tok);
-        gio::assert_or_throw< MMPPException >(tok_num != SymTok{}, "not a symbol");
+        gio::assert_or_throw< std::runtime_error >(tok_num != SymTok{}, "not a symbol");
         res.push_back(tok_num);
     }
     return res;
@@ -1010,7 +1010,7 @@ void LibraryToolbox::compute_sentences_parsing()
         const Sentence &sent = this->get_sentence(label);
         auto pt = this->parse_sentence(sent.begin()+1, sent.end(), this->get_parsing_addendum().get_syntax().at(sent[0]));
         if (pt.label == LabTok{}) {
-            throw MMPPException("Failed to parse a sentence in the library");
+            throw std::runtime_error("Failed to parse a sentence in the library");
         }
         this->parsed_sents.resize(label.val()+1);
         this->parsed_sents[label.val()] = pt;
@@ -1032,7 +1032,7 @@ LabTok LibraryToolbox::get_registered_prover_label(const RegisteredProver &prove
 {
     const size_t &index = prover.index;
     if (index >= this->instance_registered_provers.size() || !this->instance_registered_provers[index].valid) {
-        throw MMPPException("cannot modify const object");
+        throw std::runtime_error("cannot modify const object");
     }
     const RegisteredProverInstanceData &inst_data = this->instance_registered_provers[index];
     return inst_data.label;
@@ -1109,7 +1109,7 @@ void LibraryToolbox::compute_registered_prover(size_t index, bool exception_on_f
         auto unification = this->unify_assertion(templ_hyps_sent, templ_thesis_sent, true);
         if (unification.empty()) {
             if (exception_on_failure) {
-                throw MMPPException("Could not find the template assertion");
+                throw std::runtime_error("Could not find the template assertion");
             } else {
                 std::cerr << "Could not find a template assertion for:" << std::endl;
                 for (const auto &hyp : data.templ_hyps) {
