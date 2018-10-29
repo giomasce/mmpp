@@ -165,5 +165,3 @@ void default_exception_handler(std::exception_ptr ptr)
         std::cerr << "Exception of unmanaged type " << platform_type_of_current_exception() << std::endl;
     }
 }
-
-virtual_enable_shared_from_this_base::~virtual_enable_shared_from_this_base() {}

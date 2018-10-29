@@ -6,6 +6,8 @@
 #include <list>
 #include <unordered_map>
 
+#include <giolib/memory.h>
+
 #include "utils/utils.h"
 #include "utils/backref_registry.h"
 #include "mm/toolbox.h"
@@ -58,12 +60,12 @@ public:
     }
 };
 
-class Step : public enable_create< Step >, public StrategyManager
+class Step : public gio::enable_create< Step >, public StrategyManager
 {
 public:
     ~Step();
     size_t get_id();
-    const std::vector<SafeWeakPtr<Step> > &get_children();
+    const std::vector<gio::safe_weak_ptr<Step> > &get_children();
     const Sentence get_sentence();
     const ParsingTree<SymTok, LabTok> get_parsing_tree();
     bool get_did_not_parse();
@@ -108,9 +110,9 @@ private:
 
     //BackreferenceToken< Step, Workset > token;
     size_t id;
-    SafeWeakPtr< Workset > workset;
+    gio::safe_weak_ptr< Workset > workset;
     bool do_not_search;
-    std::vector< SafeWeakPtr< Step > > children;
+    std::vector< gio::safe_weak_ptr< Step > > children;
     std::weak_ptr< Step > parent;
     std::recursive_mutex global_mutex;
     std::list< std::weak_ptr< StepOperationsListener > > listeners;

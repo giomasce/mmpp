@@ -4,6 +4,8 @@
 #include <mutex>
 #include <unordered_map>
 
+#include <giolib/memory.h>
+
 #include "libs/json.h"
 
 class Session;
@@ -72,7 +74,7 @@ typename Container::mapped_type safe_at(Container &cont, const typename Containe
     }
 }
 
-class Session : public enable_create< Session >{
+class Session : public gio::enable_create< Session >{
 public:
     nlohmann::json answer_api1(HTTPCallback &cb, std::vector< std::string >::const_iterator path_begin, std::vector< std::string >::const_iterator path_end);
     bool is_constant();

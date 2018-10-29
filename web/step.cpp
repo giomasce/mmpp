@@ -206,7 +206,7 @@ size_t Step::get_id()
     return this->id;
 }
 
-const std::vector<SafeWeakPtr<Step> > &Step::get_children()
+const std::vector<gio::safe_weak_ptr<Step> > &Step::get_children()
 {
     std::unique_lock< std::recursive_mutex > lock(this->global_mutex);
     return this->children;
@@ -304,7 +304,7 @@ bool Step::orphan()
     }
     std::unique_lock< std::recursive_mutex > parent_lock(strong_parent->global_mutex);
     auto &pchildren = strong_parent->children;
-    auto it = find_if(pchildren.begin(), pchildren.end(), [this](const SafeWeakPtr< Step > &s)->bool { return s.lock().get() == this; });
+    auto it = find_if(pchildren.begin(), pchildren.end(), [this](const gio::safe_weak_ptr< Step > &s)->bool { return s.lock().get() == this; });
     assert(it != pchildren.end());
     size_t idx = it - pchildren.begin();
 

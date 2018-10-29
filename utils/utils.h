@@ -84,55 +84,6 @@ std::string hash_object(const T &obj) {
     return hasher.get_digest();
 }
 
-// From https://stackoverflow.com/a/41485014/807307
-template<typename S>
-struct enable_make final : public S
-{
-    template<typename... T>
-    enable_make(T&&... t)
-        : S(std::forward<T>(t)...)
-    {
-    }
-};
-
-// From https://stackoverflow.com/a/15550262/807307
-struct virtual_enable_shared_from_this_base : std::enable_shared_from_this<virtual_enable_shared_from_this_base> {
-    virtual ~virtual_enable_shared_from_this_base();
-};
-
-template<typename T>
-struct virtual_enable_shared_from_this : public virtual virtual_enable_shared_from_this_base {
-    std::shared_ptr<T> shared_from_this() {
-        return std::dynamic_pointer_cast<T>(virtual_enable_shared_from_this_base::shared_from_this());
-    }
-    std::shared_ptr<const T> shared_from_this() const {
-        return std::dynamic_pointer_cast<const T>(virtual_enable_shared_from_this_base::shared_from_this());
-    }
-    std::weak_ptr<T> weak_from_this() {
-        return this->shared_from_this();
-    }
-    std::weak_ptr<const T> weak_from_this() const {
-        return this->shared_from_this();
-    }
-};
-
-template< typename T >
-struct enable_create : public virtual_enable_shared_from_this< T > {
-    template< typename... Args >
-    static std::shared_ptr< T > create(Args&&... args) {
-        std::shared_ptr< enable_make< T > > pointer = std::make_shared< enable_make< T > >(std::forward< Args >(args)...);
-        std::static_pointer_cast< enable_create< T > >(pointer)->init();
-        return pointer;
-    }
-
-    // Would this be somehow helpful?
-/*public:
-    virtual ~enable_create() {}*/
-
-protected:
-    virtual void init() {}
-};
-
 // Taken from https://stackoverflow.com/a/45046349/807307 and adapted
 static std::mutex mtx_cout;
 struct acout
@@ -190,31 +141,6 @@ public:
 
 private:
     std::function< void() > finally;
-};
-
-template< class T >
-class SafeWeakPtr : public std::weak_ptr< T > {
-public:
-    constexpr SafeWeakPtr() noexcept : std::weak_ptr< T >() {
-    }
-
-    template< class U >
-    SafeWeakPtr(const std::shared_ptr< U > &r) noexcept : std::weak_ptr< T >(r) {
-    }
-
-    template< class U >
-    SafeWeakPtr(const std::weak_ptr< U > &r) noexcept : std::weak_ptr< T >(r) {
-    }
-
-    template< class U >
-    SafeWeakPtr(const SafeWeakPtr< U > &r) noexcept : std::weak_ptr< T >(r) {
-    }
-
-    std::shared_ptr< T > lock() const noexcept {
-        auto strong = this->std::weak_ptr<T>::lock();
-        assert(strong);
-        return strong;
-    }
 };
 
 extern std::ostream cnull;

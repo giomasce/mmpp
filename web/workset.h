@@ -4,6 +4,8 @@
 #include <memory>
 #include <unordered_map>
 
+#include <giolib/memory.h>
+
 class Workset;
 
 #include "web/web.h"
@@ -12,7 +14,7 @@ class Workset;
 #include "mm/toolbox.h"
 #include "utils/threadmanager.h"
 
-class Workset : public enable_create< Workset > {
+class Workset : public gio::enable_create< Workset > {
 public:
     // Emulate the behaviour of a map
     typedef size_t key_type;

@@ -244,7 +244,7 @@ VisitResult SentenceNode::visit()
 #endif
                 auto strong_parent = this->get_parent().lock();
                 this->children.push_back(StepNode::create(this->uct, this->weak_from_this(), ass.get_thesis(), subst_map,
-                                                          strong_parent ? strong_parent->get_open_vars() : std::map< LabTok, SafeWeakPtr< StepNode > >{}));
+                                                          strong_parent ? strong_parent->get_open_vars() : std::map< LabTok, gio::safe_weak_ptr< StepNode > >{}));
                 created_child = true;
                 break;
             }
@@ -467,12 +467,12 @@ void StepNode::replay_proof(CheckpointedProofEngine &engine) const
     engine.process_label(this->label);
 }
 
-const std::map<LabTok, SafeWeakPtr<StepNode> > &StepNode::get_open_vars() const
+const std::map<LabTok, gio::safe_weak_ptr<StepNode> > &StepNode::get_open_vars() const
 {
     return this->open_vars;
 }
 
-StepNode::StepNode(std::weak_ptr<UCTProver> uct, std::weak_ptr<SentenceNode> parent, LabTok label, const SubstMap2<SymTok, LabTok> &const_subst_map, const std::map<LabTok, SafeWeakPtr<StepNode> > &open_vars)
+StepNode::StepNode(std::weak_ptr<UCTProver> uct, std::weak_ptr<SentenceNode> parent, LabTok label, const SubstMap2<SymTok, LabTok> &const_subst_map, const std::map<LabTok, gio::safe_weak_ptr<StepNode> > &open_vars)
     : uct(uct), parent(parent), label(label), const_subst_map(const_subst_map), open_vars(open_vars) {
 #ifdef LOG_UCT
     //visit_log() << this << ": Constructing StepNode" << std::endl;
