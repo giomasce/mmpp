@@ -202,7 +202,7 @@ template<typename Tag>
 class TTrue;
 
 template<>
-class TTrue<PropTag> : public TTrueBase<PropTag>, public gio::enable_create<TTrue<PropTag>> {
+class TTrue<PropTag> : public TTrueBase<PropTag>, public gio::virtual_enable_create<TTrue<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
     ptwff<Tag> imp_not_form() const override;
@@ -221,7 +221,7 @@ private:
 };
 
 template<>
-class TTrue<PredTag> : public TTrueBase<PredTag>, public gio::enable_create<TTrue<PredTag>> {
+class TTrue<PredTag> : public TTrueBase<PredTag>, public gio::virtual_enable_create<TTrue<PredTag>> {
 protected:
     using TTrueBase<PredTag>::TTrueBase;
 };
@@ -245,7 +245,7 @@ template<typename Tag>
 class TFalse;
 
 template<>
-class TFalse<PropTag> : public TFalseBase<PropTag>, public gio::enable_create<TFalse<PropTag>> {
+class TFalse<PropTag> : public TFalseBase<PropTag>, public gio::virtual_enable_create<TFalse<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
     ptwff<Tag> imp_not_form() const override;
@@ -264,7 +264,7 @@ private:
 };
 
 template<>
-class TFalse<PredTag> : public TFalseBase<PredTag>, public gio::enable_create<TFalse<PredTag>> {
+class TFalse<PredTag> : public TFalseBase<PredTag>, public gio::virtual_enable_create<TFalse<PredTag>> {
 protected:
     using TFalseBase<PredTag>::TFalseBase;
 };
@@ -273,7 +273,7 @@ template<typename Tag>
 class TVar;
 
 template<>
-class TVar<PropTag> : public TWff0<PropTag>, public gio::enable_create< TVar<PropTag> > {
+class TVar<PropTag> : public TWff0<PropTag>, public gio::virtual_enable_create< TVar<PropTag> > {
     friend ptwff<Tag> wff_from_pt<Tag>(const ParsingTree<SymTok, LabTok> &pt, const LibraryToolbox &tb);
 public:
     typedef ParsingTree2< SymTok, LabTok > NameType;
@@ -338,7 +338,7 @@ template<typename Tag>
 class TNot;
 
 template<>
-class TNot<PropTag> : public TNotBase<PropTag>, public gio::enable_create<TNot<PropTag>> {
+class TNot<PropTag> : public TNotBase<PropTag>, public gio::virtual_enable_create<TNot<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
     ptwff<Tag> imp_not_form() const override;
@@ -358,7 +358,7 @@ private:
 };
 
 template<>
-class TNot<PredTag> : public TNotBase<PredTag>, public gio::enable_create<TNot<PredTag>> {
+class TNot<PredTag> : public TNotBase<PredTag>, public gio::virtual_enable_create<TNot<PredTag>> {
 protected:
     using TNotBase<PredTag>::TNotBase;
 };
@@ -391,7 +391,7 @@ template<typename Tag>
 class TImp;
 
 template<>
-class TImp<PropTag> : public TImpBase<PropTag>, public gio::enable_create<TImp<PropTag>> {
+class TImp<PropTag> : public TImpBase<PropTag>, public gio::virtual_enable_create<TImp<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
     ptwff<Tag> imp_not_form() const override;
@@ -412,7 +412,7 @@ private:
 };
 
 template<>
-class TImp<PredTag> : public TImpBase<PredTag>, public gio::enable_create<TImp<PredTag>> {
+class TImp<PredTag> : public TImpBase<PredTag>, public gio::virtual_enable_create<TImp<PredTag>> {
 protected:
     using TImpBase<PredTag>::TImpBase;
 };
@@ -436,7 +436,7 @@ template<typename Tag>
 class TBiimp;
 
 template<>
-class TBiimp<PropTag> : public TBiimpBase<PropTag>, public gio::enable_create<TBiimp<PropTag>> {
+class TBiimp<PropTag> : public TBiimpBase<PropTag>, public gio::virtual_enable_create<TBiimp<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
     ptwff<Tag> imp_not_form() const override;
@@ -457,7 +457,7 @@ private:
 };
 
 template<>
-class TBiimp<PredTag> : public TBiimpBase<PredTag>, public gio::enable_create<TBiimp<PredTag>> {
+class TBiimp<PredTag> : public TBiimpBase<PredTag>, public gio::virtual_enable_create<TBiimp<PredTag>> {
 protected:
     using TBiimpBase<PredTag>::TBiimpBase;
 };
@@ -481,7 +481,7 @@ template<typename Tag>
 class TAnd;
 
 template<>
-class TAnd<PropTag> : public TAndBase<PropTag>, public gio::enable_create<TAnd<PropTag>> {
+class TAnd<PropTag> : public TAndBase<PropTag>, public gio::virtual_enable_create<TAnd<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
     ptwff<Tag> imp_not_form() const override;
@@ -501,7 +501,7 @@ private:
 };
 
 template<>
-class TAnd<PredTag> : public TAndBase<PredTag>, public gio::enable_create<TAnd<PredTag>> {
+class TAnd<PredTag> : public TAndBase<PredTag>, public gio::virtual_enable_create<TAnd<PredTag>> {
 protected:
     using TAndBase<PredTag>::TAndBase;
 };
@@ -525,7 +525,7 @@ template<typename Tag>
 class TOr;
 
 template<>
-class TOr<PropTag> : public TOrBase<PropTag>, public gio::enable_create<TOr<PropTag>> {
+class TOr<PropTag> : public TOrBase<PropTag>, public gio::virtual_enable_create<TOr<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
     ptwff<Tag> imp_not_form() const override;
@@ -545,7 +545,7 @@ private:
 };
 
 template<>
-class TOr<PredTag> : public TOrBase<PredTag>, public gio::enable_create<TOr<PredTag>> {
+class TOr<PredTag> : public TOrBase<PredTag>, public gio::virtual_enable_create<TOr<PredTag>> {
 protected:
     using TOrBase<PredTag>::TOrBase;
 };
@@ -569,7 +569,7 @@ template<typename Tag>
 class TNand;
 
 template<>
-class TNand<PropTag> : public TNandBase<PropTag>, public gio::enable_create<TNand<PropTag>> {
+class TNand<PropTag> : public TNandBase<PropTag>, public gio::virtual_enable_create<TNand<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
     ptwff<Tag> imp_not_form() const override;
@@ -589,7 +589,7 @@ private:
 };
 
 template<>
-class TNand<PredTag> : public TNandBase<PredTag>, public gio::enable_create<TNand<PredTag>> {
+class TNand<PredTag> : public TNandBase<PredTag>, public gio::virtual_enable_create<TNand<PredTag>> {
 protected:
     using TNandBase<PredTag>::TNandBase;
 };
@@ -613,7 +613,7 @@ template<typename Tag>
 class TXor;
 
 template<>
-class TXor<PropTag> : public TXorBase<PropTag>, public gio::enable_create<TXor<PropTag>> {
+class TXor<PropTag> : public TXorBase<PropTag>, public gio::virtual_enable_create<TXor<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
     ptwff<Tag> imp_not_form() const override;
@@ -634,7 +634,7 @@ private:
 };
 
 template<>
-class TXor<PredTag> : public TXorBase<PredTag>, public gio::enable_create<TXor<PredTag>> {
+class TXor<PredTag> : public TXorBase<PredTag>, public gio::virtual_enable_create<TXor<PredTag>> {
 protected:
     using TXorBase<PredTag>::TXorBase;
 };
@@ -658,7 +658,7 @@ template<typename Tag>
 class TAnd3;
 
 template<>
-class TAnd3<PropTag> : public TAnd3Base<PropTag>, public gio::enable_create<TAnd3<PropTag>> {
+class TAnd3<PropTag> : public TAnd3Base<PropTag>, public gio::virtual_enable_create<TAnd3<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
     ptwff<Tag> imp_not_form() const override;
@@ -681,7 +681,7 @@ private:
 };
 
 template<>
-class TAnd3<PredTag> : public TAnd3Base<PredTag>, public gio::enable_create<TAnd3<PredTag>> {
+class TAnd3<PredTag> : public TAnd3Base<PredTag>, public gio::virtual_enable_create<TAnd3<PredTag>> {
 protected:
     using TAnd3Base<PredTag>::TAnd3Base;
 };
@@ -705,7 +705,7 @@ template<typename Tag>
 class TOr3;
 
 template<>
-class TOr3<PropTag> : public TOr3Base<PropTag>, public gio::enable_create<TOr3<PropTag>> {
+class TOr3<PropTag> : public TOr3Base<PropTag>, public gio::virtual_enable_create<TOr3<PropTag>> {
 public:
     void get_tseitin_form(CNForm<Tag> &cnf, const LibraryToolbox &tb, const TWff<Tag> &glob_ctx) const override;
     ptwff<Tag> imp_not_form() const override;
@@ -728,7 +728,7 @@ private:
 };
 
 template<>
-class TOr3<PredTag> : public TOr3Base<PredTag>, public gio::enable_create<TOr3<PredTag>> {
+class TOr3<PredTag> : public TOr3Base<PredTag>, public gio::virtual_enable_create<TOr3<PredTag>> {
 protected:
     using TOr3Base<PredTag>::TOr3Base;
 };
@@ -755,7 +755,7 @@ template<typename Tag>
 class TForall;
 
 template<>
-class TForall<PredTag> : public TWffQuant<PredTag>, public gio::enable_create<TForall<PredTag>> {
+class TForall<PredTag> : public TWffQuant<PredTag>, public gio::virtual_enable_create<TForall<PredTag>> {
     friend ptwff<PredTag> wff_from_pt_int<PredTag>(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
@@ -773,7 +773,7 @@ template<typename Tag>
 class TExists;
 
 template<>
-class TExists<PredTag> : public TWffQuant<PredTag>, public gio::enable_create<TExists<PredTag>> {
+class TExists<PredTag> : public TWffQuant<PredTag>, public gio::virtual_enable_create<TExists<PredTag>> {
     friend ptwff<PredTag> wff_from_pt_int<PredTag>(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb);
 public:
     std::string to_string() const override;
@@ -791,7 +791,7 @@ template<typename Tag>
 class TTerm;
 
 template<>
-class TTerm<PredTag> : public TWff0<PredTag>, public gio::enable_create<TTerm<PredTag>> {
+class TTerm<PredTag> : public TWff0<PredTag>, public gio::virtual_enable_create<TTerm<PredTag>> {
 public:
     std::string to_string() const override;
     bool operator==(const TWff<Tag> &x) const override;

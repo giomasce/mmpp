@@ -21,7 +21,7 @@ void StepStrategy::maybe_report_result(std::shared_ptr< StepStrategy > strategy,
     }
 }
 
-class FailingStrategyResult : public StepStrategyResult, public gio::enable_create< FailingStrategyResult > {
+class FailingStrategyResult : public StepStrategyResult, public gio::virtual_enable_create< FailingStrategyResult > {
 protected:
     FailingStrategyResult() {}
 
@@ -51,7 +51,7 @@ void FailingStrategy::operator()(Yielder &yield) {
     this->maybe_report_result(this->shared_from_this(), FailingStrategyResult::create());
 }
 
-struct UnificationStrategyResult : public StepStrategyResult, public gio::enable_create< UnificationStrategyResult > {
+struct UnificationStrategyResult : public StepStrategyResult, public gio::virtual_enable_create< UnificationStrategyResult > {
     UnificationStrategyResult(const LibraryToolbox &toolbox) : toolbox(toolbox) {}
 
     bool get_success() const {
@@ -124,7 +124,7 @@ void UnificationStrategy::operator()(Yielder &yield) {
     }
 }
 
-struct WffStrategyResult : public StepStrategyResult, public gio::enable_create< WffStrategyResult > {
+struct WffStrategyResult : public StepStrategyResult, public gio::virtual_enable_create< WffStrategyResult > {
     WffStrategyResult(const LibraryToolbox &toolbox) : toolbox(toolbox) {}
 
     bool get_success() const {
@@ -201,7 +201,7 @@ void WffStrategy::operator()(Yielder &yield)
     }
 }
 
-struct UctStrategyResult : public StepStrategyResult, public gio::enable_create< UctStrategyResult > {
+struct UctStrategyResult : public StepStrategyResult, public gio::virtual_enable_create< UctStrategyResult > {
     UctStrategyResult() {}
 
     bool get_success() const {

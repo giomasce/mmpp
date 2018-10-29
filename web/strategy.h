@@ -53,21 +53,21 @@ protected:
     const LibraryToolbox &toolbox;
 };
 
-class FailingStrategy : public StepStrategy, public gio::enable_create< FailingStrategy > {
+class FailingStrategy : public StepStrategy, public gio::virtual_enable_create< FailingStrategy > {
     using StepStrategy::StepStrategy;
 
 public:
     void operator()(Yielder &yield);
 };
 
-class UnificationStrategy : public StepStrategy, public gio::enable_create< UnificationStrategy > {
+class UnificationStrategy : public StepStrategy, public gio::virtual_enable_create< UnificationStrategy > {
     using StepStrategy::StepStrategy;
 
 public:
     void operator()(Yielder &yield);
 };
 
-class WffStrategy : public StepStrategy, public gio::enable_create< WffStrategy > {
+class WffStrategy : public StepStrategy, public gio::virtual_enable_create< WffStrategy > {
 public:
     enum SubStrategy {
         SUBSTRATEGY_WFF,
@@ -79,7 +79,7 @@ private:
     SubStrategy substrategy;
 };
 
-class UctStrategy : public StepStrategy, public gio::enable_create< UctStrategy > {
+class UctStrategy : public StepStrategy, public gio::virtual_enable_create< UctStrategy > {
     using StepStrategy::StepStrategy;
 
 public:

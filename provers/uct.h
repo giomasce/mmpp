@@ -27,7 +27,7 @@ enum VisitResult {
     DEAD,
 };
 
-class UCTProver : public gio::enable_create< UCTProver > {
+class UCTProver : public gio::virtual_enable_create< UCTProver > {
 public:
     VisitResult visit();
     const std::vector< ParsingTree2< SymTok, LabTok > > &get_hypotheses() const;
@@ -60,7 +60,7 @@ private:
     std::vector< std::function< void() > > children_callbacks;
 };
 
-class SentenceNode : public gio::enable_create< SentenceNode > {
+class SentenceNode : public gio::virtual_enable_create< SentenceNode > {
 public:
     VisitResult visit();
     float get_value();
@@ -90,7 +90,7 @@ private:
     boost::range::joined_range< const std::vector< LabTok >, const std::vector< LabTok > >::iterator ass_it;
 };
 
-class StepNode : public gio::enable_create< StepNode > {
+class StepNode : public gio::virtual_enable_create< StepNode > {
 public:
     VisitResult visit();
     float get_value() const;

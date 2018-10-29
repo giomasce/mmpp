@@ -14,7 +14,7 @@ class Workset;
 #include "mm/toolbox.h"
 #include "utils/threadmanager.h"
 
-class Workset : public gio::enable_create< Workset > {
+class Workset : public gio::virtual_enable_create< Workset > {
 public:
     // Emulate the behaviour of a map
     typedef size_t key_type;

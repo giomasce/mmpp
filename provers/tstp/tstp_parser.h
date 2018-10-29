@@ -161,7 +161,7 @@ enum class Rule {
 
 typedef ParsingTree<Token, Rule> PT;
 
-class Term : public gio::enable_create<Term> {
+class Term : public gio::virtual_enable_create<Term> {
 public:
     static std::shared_ptr<const Term> reconstruct(const PT &pt);
 
@@ -178,7 +178,7 @@ private:
     std::vector<std::shared_ptr<const Term>> args;
 };
 
-class Atom : public gio::enable_create<Atom> {
+class Atom : public gio::virtual_enable_create<Atom> {
 public:
     static std::pair<bool, std::shared_ptr<const Atom>> reconstruct(const PT &pt);
 
@@ -195,7 +195,7 @@ private:
     std::vector<std::shared_ptr<const Term>> args;
 };
 
-class Literal : public gio::enable_create<Literal> {
+class Literal : public gio::virtual_enable_create<Literal> {
 public:
     static std::shared_ptr<const Literal> reconstruct(const PT &pt);
 
@@ -213,7 +213,7 @@ private:
     std::shared_ptr<const Atom> atom;
 };
 
-class Clause : public gio::enable_create<Clause> {
+class Clause : public gio::virtual_enable_create<Clause> {
 public:
     static std::shared_ptr<const Clause> reconstruct(const PT &pt);
 
@@ -242,7 +242,7 @@ public:
     virtual std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const = 0;
 };
 
-class Axiom : public Inference, public gio::enable_create<Axiom> {
+class Axiom : public Inference, public gio::virtual_enable_create<Axiom> {
 public:
     std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
 
@@ -253,7 +253,7 @@ private:
     std::shared_ptr<const Clause> clause;
 };
 
-class Assume : public Inference, public gio::enable_create<Assume> {
+class Assume : public Inference, public gio::virtual_enable_create<Assume> {
 public:
     std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
 
@@ -264,7 +264,7 @@ private:
     std::shared_ptr<const Literal> literal;
 };
 
-class Subst : public Inference, public gio::enable_create<Subst> {
+class Subst : public Inference, public gio::virtual_enable_create<Subst> {
 public:
     std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
 
@@ -277,7 +277,7 @@ private:
     std::map<std::string, std::shared_ptr<const Term>> subst;
 };
 
-class Resolve : public Inference, public gio::enable_create<Resolve> {
+class Resolve : public Inference, public gio::virtual_enable_create<Resolve> {
 public:
     std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
 
@@ -290,7 +290,7 @@ private:
     std::shared_ptr<const Literal> literal;
 };
 
-class Refl : public Inference, public gio::enable_create<Refl> {
+class Refl : public Inference, public gio::virtual_enable_create<Refl> {
 public:
     std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
 
@@ -303,7 +303,7 @@ private:
     std::shared_ptr<const Term> term;
 };
 
-class Equality : public Inference, public gio::enable_create<Equality> {
+class Equality : public Inference, public gio::virtual_enable_create<Equality> {
 public:
     std::shared_ptr<const Clause> compute_thesis(const std::vector<std::shared_ptr<const Clause>> &hyps) const;
 

@@ -60,7 +60,7 @@ public:
     }
 };
 
-class Step : public gio::enable_create< Step >, public StrategyManager
+class Step : public gio::virtual_enable_create< Step >, public StrategyManager
 {
 public:
     ~Step();
