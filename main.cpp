@@ -3,8 +3,6 @@
 #include <string>
 #include <cstring>
 
-#include <boost/filesystem.hpp>
-
 #include <giolib/static_block.h>
 #include <giolib/main.h>
 
@@ -12,10 +10,6 @@
 #include "platform.h"
 
 bool mmpp_abort = false;
-
-//const string DEFAULT_MAIN_FUNCTION = "mmpp_test_z3";
-//const string DEFAULT_MAIN_FUNCTION = "mmpp_test_setmm";
-const std::string DEFAULT_MAIN_FUNCTION = "mmpp";
 
 [[noreturn]] void terminator() {
     std::cerr << "Program terminated\n";
