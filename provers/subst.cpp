@@ -3,6 +3,7 @@
 
 #include <giolib/static_block.h>
 #include <giolib/main.h>
+#include <giolib/containers.h>
 
 #include "subst.h"
 
@@ -191,7 +192,7 @@ std::pair< bool, bool > search_theorem(const LibraryToolbox &tb, const std::vect
         found = true;
         VectorMap< SymTok, Sentence > subst(std::get<2>(res[0]).begin(), std::get<2>(res[0]).end());
         auto dists = propagate_dists< Sentence >(tb.get_assertion(std::get<0>(res[0])), subst, tb);
-        if (!is_included(dists.begin(), dists.end(), acceptable_dists.begin(), acceptable_dists.end())) {
+        if (!gio::is_included(dists.begin(), dists.end(), acceptable_dists.begin(), acceptable_dists.end())) {
             std::cout << "     It has (excessive) DISTINCT VARIABLES provisions!" << std::endl;
             has_dists = true;
         }
@@ -832,7 +833,7 @@ ParsingTree< SymTok, LabTok > subst_defs(const ParsingTree< SymTok, LabTok > &pt
         ParsingTree< SymTok, LabTok > ret;
         ret.type = pt.type;
         ret.label = pt.label;
-        ret.children = vector_map(pt.children.begin(), pt.children.end(), [&tb,&defs](const auto &x) { return subst_defs(x, tb, defs); });
+        ret.children = gio::vector_map(pt.children.begin(), pt.children.end(), [&tb,&defs](const auto &x) { return subst_defs(x, tb, defs); });
         return ret;
     }
 }

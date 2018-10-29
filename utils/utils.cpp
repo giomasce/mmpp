@@ -37,13 +37,6 @@ void MMPPException::print_stacktrace(std::ostream &st) const {
     platform_dump_stack_trace(st, this->get_stacktrace());
 }
 
-bool starts_with(std::string a, std::string b) {
-    if (b.size() > a.size()) {
-        return false;
-    }
-    return std::equal(b.begin(), b.end(), a.begin());
-}
-
 Tic tic() {
     Tic t;
     t.begin = std::chrono::steady_clock::now();

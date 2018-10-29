@@ -1,6 +1,8 @@
 
 #include <boost/filesystem/fstream.hpp>
 
+#include <giolib/containers.h>
+
 #include "toolbox.h"
 #include "utils/utils.h"
 #include "old/unification.h"
@@ -656,10 +658,10 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
             }
             VectorMap< SymTok, Sentence > subst3(subst2.begin(), subst2.end());
             auto dists = propagate_dists< Sentence >(ass, subst3, *self);
-            if (!has_no_diagonal(dists.begin(), dists.end())) {
+            if (!gio::has_no_diagonal(dists.begin(), dists.end())) {
                 continue;
             }
-            if (!is_disjoint(dists.begin(), dists.end(), antidists.begin(), antidists.end())) {
+            if (!gio::is_disjoint(dists.begin(), dists.end(), antidists.begin(), antidists.end())) {
                 continue;
             }
             ret.emplace_back(ass.get_thesis(), perm, subst2);

@@ -1,4 +1,6 @@
 
+#include <giolib/containers.h>
+
 #include "strategy.h"
 #include "provers/wff.h"
 #include "provers/wffblock.h"
@@ -220,8 +222,8 @@ struct UctStrategyResult : public StepStrategyResult, public enable_create< UctS
     }
 
     bool prove(CheckpointedProofEngine &engine, const std::vector< std::shared_ptr< StepStrategyCallback > > &children) const {
-        this->prover->set_children_callbacks(vector_map(children.begin(), children.end(),
-                                                        [](auto x) -> std::function< void() > { return [x]() { x->prove(); }; }));
+        this->prover->set_children_callbacks(gio::vector_map(children.begin(), children.end(),
+                                                             [](auto x) -> std::function< void() > { return [x]() { x->prove(); }; }));
         this->prover->replay_proof(engine);
         return true;
     }
@@ -241,8 +243,8 @@ void UctStrategy::operator()(Yielder &yield)
     });
 
     auto thesis = pt_to_pt2(this->data->pt_thesis);
-    auto hyps = vector_map(this->data->pt_hypotheses.begin(), this->data->pt_hypotheses.end(),
-                           [](const auto &x) { return pt_to_pt2(x); });
+    auto hyps = gio::vector_map(this->data->pt_hypotheses.begin(), this->data->pt_hypotheses.end(),
+                                [](const auto &x) { return pt_to_pt2(x); });
     result->prover = UCTProver::create(this->toolbox, thesis, hyps, this->data->lab_antidists);
     result->visits_num = 0;
 

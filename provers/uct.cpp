@@ -3,6 +3,7 @@
 
 #include <giolib/static_block.h>
 #include <giolib/main.h>
+#include <giolib/containers.h>
 
 #include "uct.h"
 
@@ -380,10 +381,10 @@ bool SentenceNode::check_subst_map(const SubstMap2<SymTok, LabTok> &subst_map, c
     const auto &tb = strong_uct->get_toolbox();
     const auto &antidists = strong_uct->get_antidists();
     auto dists = propagate_dists< ParsingTree2< SymTok, LabTok > >(ass, subst_map, tb);
-    if (!has_no_diagonal(dists.begin(), dists.end())) {
+    if (!gio::has_no_diagonal(dists.begin(), dists.end())) {
         return false;
     }
-    if (!is_disjoint(dists.begin(), dists.end(), antidists.begin(), antidists.end())) {
+    if (!gio::is_disjoint(dists.begin(), dists.end(), antidists.begin(), antidists.end())) {
         return false;
     }
     return true;

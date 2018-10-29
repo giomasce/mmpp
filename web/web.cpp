@@ -7,6 +7,7 @@
 
 #include <giolib/static_block.h>
 #include <giolib/main.h>
+#include <giolib/containers.h>
 
 #if defined(USE_MICROHTTPD)
 #include "httpd_microhttpd.h"
@@ -167,7 +168,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
     std::string ticket_url = "/ticket/";
     const std::string &url = cb.get_url();
     const std::string &method = cb.get_method();
-    if (method == "GET" && starts_with(url, ticket_url)) {
+    if (method == "GET" && gio::starts_with(url, ticket_url)) {
         std::unique_lock< std::mutex > lock(this->sessions_mutex);
         std::string ticket = std::string(url.begin() + ticket_url.size(), url.end());
         if (this->session_tickets.find(ticket) != this->session_tickets.end()) {
@@ -207,7 +208,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
     if (SERVE_STATIC_FILES) {
         std::string static_url = "/static/";
         boost::filesystem::path static_dir = boost::filesystem::canonical(platform_get_resources_base() / "static");
-        if (method == "GET" && starts_with(url, static_url)) {
+        if (method == "GET" && gio::starts_with(url, static_url)) {
             boost::filesystem::path filename = platform_get_resources_base() / std::string(url.begin(), url.end());
             // First we have to check if the file exists, because canonical() requires it
             if (!boost::filesystem::exists(filename)) {
@@ -301,7 +302,7 @@ void WebEndpoint::answer(HTTPCallback &cb)
 
     // Serve API requests
     std::string api_url = "/api/1/";
-    if (starts_with(url, api_url)) {
+    if (gio::starts_with(url, api_url)) {
         boost::char_separator< char > sep("/");
         boost::tokenizer< boost::char_separator< char > > tokens(url.begin() + api_url.size(), url.end(), sep);
         const std::vector< std::string > path(tokens.begin(), tokens.end());

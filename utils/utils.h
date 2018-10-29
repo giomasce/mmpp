@@ -53,7 +53,6 @@ private:
 };
 
 std::string size_to_string(uint64_t size);
-bool starts_with(std::string a, std::string b);
 
 struct Tic {
     std::chrono::steady_clock::time_point begin;
@@ -240,70 +239,8 @@ typename std::vector< T >::reference enlarge_and_set(std::vector< T > &v, typena
 
 extern std::ostream cnull;
 
-template< typename UnaryOperation, typename InputIt >
-auto vector_map(InputIt from, InputIt to, UnaryOperation op) -> std::vector< decltype(op(*from)) > {
-    std::vector< decltype(op(*from)) > ret;
-    std::transform(from, to, std::back_inserter(ret), op);
-    return ret;
-}
-
 template< typename T >
 using Generator = coroutine_pull< T >;
-
-template< typename It1, typename It2 >
-bool is_disjoint(It1 from1, It1 to1, It2 from2, It2 to2) {
-    while (true) {
-        if (from1 == to1) {
-            return true;
-        }
-        if (from2 == to2) {
-            return true;
-        }
-        if (*from1 < *from2) {
-            ++from1;
-            continue;
-        }
-        if (*from2 < *from1) {
-            ++from2;
-            continue;
-        }
-        return false;
-    }
-}
-
-template< typename It1, typename It2 >
-bool is_included(It1 from1, It1 to1, It2 from2, It2 to2) {
-    while (true) {
-        if (from1 == to1) {
-            return true;
-        }
-        if (from2 == to2) {
-            return false;
-        }
-        if (*from1 < *from2) {
-            return false;
-        }
-        if (*from2 < *from1) {
-            ++from2;
-            continue;
-        }
-        ++from1;
-        ++from2;
-    }
-}
-
-template< typename It >
-bool has_no_diagonal(It from, It end) {
-    while (true) {
-        if (from == end) {
-            return true;
-        }
-        if (from->first == from->second) {
-            return false;
-        }
-        ++from;
-    }
-}
 
 void default_exception_handler(std::exception_ptr ptr);
 

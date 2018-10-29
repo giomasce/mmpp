@@ -4,6 +4,7 @@
 #include <map>
 
 #include <giolib/assert.h>
+#include <giolib/containers.h>
 
 #include "library.h"
 #include "utils/utils.h"
@@ -204,7 +205,7 @@ protected:
 
         // Keep track of the distinct variables constraints in the substitution map
         propagate_dists< SentType_ >(child_ass, subst_map, this->lib, dists);
-        gio::assert_or_throw< ProofException< SentType_ > >(has_no_diagonal(dists.begin(), dists.end()), "Distinct variable constraint violated");
+        gio::assert_or_throw< ProofException< SentType_ > >(gio::has_no_diagonal(dists.begin(), dists.end()), "Distinct variable constraint violated");
 
         // Build the thesis
         LabTok thesis = child_ass.get_thesis();
