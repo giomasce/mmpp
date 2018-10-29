@@ -7,6 +7,8 @@
 #include <cstddef>
 #include <type_traits>
 
+#include <giolib/containers.h>
+
 #include "parsing/parser.h"
 #include "utils/utils.h"
 
@@ -220,10 +222,10 @@ public:
     std::shared_ptr<const Clause> resolve(const Clause &other, const std::shared_ptr<const Literal> &lit) const;
 
 protected:
-    explicit Clause(const std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>> &literals);
+    explicit Clause(const std::set<std::shared_ptr<const Literal>, gio::star_less<std::shared_ptr<const Literal>>> &literals);
 
 private:
-    std::set<std::shared_ptr<const Literal>, star_less<std::shared_ptr<const Literal>>> literals;
+    std::set<std::shared_ptr<const Literal>, gio::star_less<std::shared_ptr<const Literal>>> literals;
 };
 
 // See https://stackoverflow.com/q/53022868/807307

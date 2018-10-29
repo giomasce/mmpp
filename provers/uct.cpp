@@ -263,7 +263,7 @@ VisitResult SentenceNode::visit()
 #ifdef LOG_UCT
         //visit_log() << "Visiting a random child" << std::endl;
 #endif
-        child_it = random_choose(this->children.begin(), this->children.end(), rand);
+        child_it = gio::random_choose(this->children.begin(), this->children.end(), rand);
     }
     auto child = *child_it;
     this->total_children_value -= child->get_value();
@@ -423,7 +423,7 @@ VisitResult StepNode::visit()
 #ifdef LOG_UCT
     //visit_log() << "Later visit, let us visit a random child" << std::endl;
 #endif
-    size_t i = static_cast< size_t >(random_choose(this->active_children.begin(), this->active_children.end(), rand) - this->active_children.begin());
+    size_t i = static_cast< size_t >(gio::random_choose(this->active_children.begin(), this->active_children.end(), rand) - this->active_children.begin());
     return this->visit_child(i);
 }
 

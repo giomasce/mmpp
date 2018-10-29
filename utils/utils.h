@@ -27,15 +27,6 @@
 
 #include "platform.h"
 
-/* A template struct without specializations: useful for checking variable types
- * (for example when there is automatic type deduction).
- * For example, if you declare
- *   TD< decltype(x) > x1;
- * the error message will probably mention the type of x.
- */
-template< typename T >
-struct TD;
-
 const size_t DEFAULT_STACK_SIZE = 8*1024*1024;
 
 extern bool mmpp_abort;
@@ -226,17 +217,6 @@ public:
     }
 };
 
-template< class It, class URBG >
-It random_choose(It first, It last, URBG &&g) {
-    return first + std::uniform_int_distribution< size_t >(0, (last - first) - 1)(g);
-}
-
-template< typename T >
-typename std::vector< T >::reference enlarge_and_set(std::vector< T > &v, typename std::vector< T >::size_type pos) {
-    v.resize(std::max(v.size(), pos+1));
-    return v[pos];
-}
-
 extern std::ostream cnull;
 
 template< typename T >
@@ -257,11 +237,4 @@ struct istream_begin_end {
     }
 
     std::istream &s;
-};
-
-template<typename T>
-struct star_less {
-    constexpr bool operator()(const T &x, const T &y) const {
-        return *x < *y;
-    }
 };

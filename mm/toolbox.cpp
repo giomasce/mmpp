@@ -806,10 +806,10 @@ void LibraryToolbox::compute_type_correspondance()
         assert(sent.size() == 2);
         const SymTok type_sym = sent[0];
         const SymTok var_sym = sent[1];
-        enlarge_and_set(this->var_lab_to_sym, var_lab.val()) = var_sym;
-        enlarge_and_set(this->var_sym_to_lab, var_sym.val()) = var_lab;
-        enlarge_and_set(this->var_lab_to_type_sym, var_lab.val()) = type_sym;
-        enlarge_and_set(this->var_sym_to_type_sym, var_sym.val()) = type_sym;
+        gio::enlarge_and_set(this->var_lab_to_sym, var_lab.val()) = var_sym;
+        gio::enlarge_and_set(this->var_sym_to_lab, var_sym.val()) = var_lab;
+        gio::enlarge_and_set(this->var_lab_to_type_sym, var_lab.val()) = type_sym;
+        gio::enlarge_and_set(this->var_sym_to_type_sym, var_sym.val()) = type_sym;
     }
 }
 

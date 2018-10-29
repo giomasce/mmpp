@@ -2,6 +2,8 @@
 
 #include <mutex>
 
+#include <giolib/containers.h>
+
 TempGenerator::TempGenerator(const Library &lib) : lib(lib),
     temp_syms(SymTok((SymTok::val_type) lib.get_symbols_num()+1)), temp_labs(LabTok((LabTok::val_type) lib.get_labels_num()+1)),
     syms_base(lib.get_symbols_num()+1), labs_base(lib.get_labels_num()+1)
@@ -26,10 +28,10 @@ void TempGenerator::create_temp_var(SymTok type_sym)
     // Add the variables to a few structures
     //this->derivations.at(type_sym).push_back(pair< LabTok, vector< SymTok > >(lab, { sym }));
     this->ders_by_label[lab] = std::pair< SymTok, std::vector< SymTok > >(type_sym, { sym });
-    enlarge_and_set(this->var_lab_to_sym, lab.val() - this->labs_base) = sym;
-    enlarge_and_set(this->var_sym_to_lab, sym.val() - this->syms_base) = lab;
-    enlarge_and_set(this->var_lab_to_type_sym, lab.val() - this->labs_base) = type_sym;
-    enlarge_and_set(this->var_sym_to_type_sym, sym.val() - this->syms_base) = type_sym;
+    gio::enlarge_and_set(this->var_lab_to_sym, lab.val() - this->labs_base) = sym;
+    gio::enlarge_and_set(this->var_sym_to_lab, sym.val() - this->syms_base) = lab;
+    gio::enlarge_and_set(this->var_lab_to_type_sym, lab.val() - this->labs_base) = type_sym;
+    gio::enlarge_and_set(this->var_sym_to_type_sym, sym.val() - this->syms_base) = type_sym;
 
     // And insert it to the free list
     this->free_temp_vars[type_sym].push_back(std::make_pair(lab, sym));
