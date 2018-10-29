@@ -196,7 +196,7 @@ void Reader::collect_vars_from_proof(std::set<SymTok> &vars, const std::vector<L
 {
     for (auto &tok : proof) {
         if (this->check_type(tok)) {
-            gio::assert_or_throw< MMPPParsingError >(this->lib.get_sentence(tok).size() == 2);
+            gio::assert_or_throw< MMPPParsingError >(this->lib.get_sentence(tok).size() == 2, "Type has wrong size");
             vars.insert(this->lib.get_sentence(tok).at(1));
         }
     }
@@ -475,8 +475,8 @@ static std::string escape_string_literal(std::string s) {
 }
 
 static std::string decode_string(std::vector< std::pair< bool, std::string > >::const_iterator begin, std::vector< std::pair< bool, std::string > >::const_iterator end, bool escape=false) {
-    gio::assert_or_throw< MMPPParsingError >(distance(begin, end) >= 1);
-    gio::assert_or_throw< MMPPParsingError >(distance(begin, end) % 2 == 1);
+    gio::assert_or_throw< MMPPParsingError >(distance(begin, end) >= 1, "Malformed string in $t comment");
+    gio::assert_or_throw< MMPPParsingError >(distance(begin, end) % 2 == 1, "Malformed string in $t comment");
     for (size_t i = 1; i < (size_t) distance(begin, end); i += 2) {
         gio::assert_or_throw< MMPPParsingError >(!(begin+i)->first, "Malformed string in $t comment");
         gio::assert_or_throw< MMPPParsingError >((begin+i)->second == "+", "Malformed string in $t comment");

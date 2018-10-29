@@ -152,9 +152,6 @@ void default_exception_handler(std::exception_ptr ptr)
         if (ptr) {
             std::rethrow_exception(ptr);
         }
-    } catch (const MMPPException &e) {
-        std::cerr << "Exception of type MMPPException: " << e.get_reason() << std::endl;
-        platform_dump_stack_trace(std::cerr, e.get_stacktrace());
     } catch (const char* &e) {
         std::cerr << "Exception of type char*: " << e << std::endl;
     } catch (const std::string &e) {

@@ -318,7 +318,7 @@ CodeTok CompressedDecoder::push_char(char c)
 
 std::string CompressedEncoder::push_code(CodeTok x)
 {
-    gio::assert_or_throw< MMPPParsingError >(x != INVALID_CODE);
+    gio::assert_or_throw< MMPPParsingError >(x != INVALID_CODE, "Illegally pushing invalid code");
     auto xv = x.val();
     if (xv == 0) {
         return "Z";

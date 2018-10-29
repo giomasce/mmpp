@@ -93,8 +93,8 @@ typedef std::vector< LabTok > Procedure;
 // See https://stackoverflow.com/a/27443191
 const CodeTok INVALID_CODE = CodeTok(std::numeric_limits< CodeTok::val_type >::max());
 
-class MMPPParsingError : public MMPPException {
-    using MMPPException::MMPPException;
+class MMPPParsingError : public std::runtime_error {
+    using std::runtime_error::runtime_error;
 };
 
 void collect_variables(const Sentence &sent, const std::function< bool(SymTok) > &is_var, std::set< SymTok > &vars);

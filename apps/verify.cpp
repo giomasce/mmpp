@@ -64,10 +64,6 @@ bool verify_database(boost::filesystem::path filename, bool advanced_tests) {
             std::cout << "Skipping advanced tests" << std::endl;
         }
 
-    } catch (const MMPPException &e) {
-        std::cout << "An exception with message '" << e.get_reason() << "' was thrown!" << std::endl;
-        e.print_stacktrace(std::cout);
-        success = false;
     } catch (const ProofException< Sentence > &e) {
         std::cout << "An exception with message '" << e.get_reason() << "' was thrown!" << std::endl;
         success = false;
