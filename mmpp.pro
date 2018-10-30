@@ -149,7 +149,8 @@ SOURCES += \
     mm/setmm.cpp \
     test/test_wff.cpp \
     mm/mmutils.cpp \
-    provers/tstp/tstp_parser.cpp
+    provers/tstp/tstp_parser.cpp \
+    provers/z3prover3.cpp
 
 HEADERS += \
     pch.h \
@@ -204,7 +205,8 @@ HEADERS += \
     mm/setmm.h \
     test/test.h \
     mm/mmutils.h \
-    provers/tstp/tstp_parser.h
+    provers/tstp/tstp_parser.h \
+    provers/z3prover3.h
 
 DISTFILES += \
     README.md \

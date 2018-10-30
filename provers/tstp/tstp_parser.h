@@ -9,6 +9,7 @@
 
 #include <giolib/containers.h>
 #include <giolib/memory.h>
+#include <giolib/utils.h>
 
 #include "parsing/parser.h"
 #include "utils/utils.h"
@@ -228,13 +229,6 @@ protected:
 private:
     std::set<std::shared_ptr<const Literal>, gio::star_less<std::shared_ptr<const Literal>>> literals;
 };
-
-// See https://stackoverflow.com/q/53022868/807307
-template<typename T, typename = decltype(std::declval<T>().print_to(std::declval<std::ostream&>()))>
-std::ostream &operator<<(std::ostream &s, const T &t) {
-    t.print_to(s);
-    return s;
-}
 
 class Inference {
 public:

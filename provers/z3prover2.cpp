@@ -7,43 +7,9 @@
 #include "utils/utils.h"
 #include "mm/toolbox.h"
 #include "mm/setmm.h"
+#include "z3prover3.h"
 
 //#define VERBOSE_Z3
-
-unsigned expr_get_num_bound(const z3::expr &e) {
-    assert(e.is_quantifier());
-    unsigned num = Z3_get_quantifier_num_bound(e.ctx(), e);
-    e.check_error();
-    return num;
-}
-
-z3::symbol expr_get_quantifier_bound_name(const z3::expr &e, unsigned i) {
-    assert(e.is_quantifier());
-    Z3_symbol sym = Z3_get_quantifier_bound_name(e.ctx(), e, i);
-    e.check_error();
-    return z3::symbol(e.ctx(), sym);
-}
-
-z3::sort expr_get_quantifier_bound_sort(const z3::expr &e, unsigned i) {
-    assert(e.is_quantifier());
-    Z3_sort sort = Z3_get_quantifier_bound_sort(e.ctx(), e, i);
-    e.check_error();
-    return z3::sort(e.ctx(), sort);
-}
-
-bool expr_is_quantifier_forall(const z3::expr &e) {
-    assert(e.is_quantifier());
-    Z3_bool is_forall = Z3_is_quantifier_forall(e.ctx(), e);
-    e.check_error();
-    return static_cast< bool >(is_forall);
-}
-
-unsigned expr_get_var_index(const z3::expr &e) {
-    assert(e.is_var());
-    unsigned idx = Z3_get_index_value(e.ctx(), e);
-    e.check_error();
-    return idx;
-}
 
 /* So far this procedure is not correct, because it does not address very important
  * mismatches between the two languages of Z3 and Metamath: in Z3 function applications,
@@ -171,18 +137,18 @@ ParsingTree< SymTok, LabTok > expr_to_pt(const z3::expr &e, const LibraryToolbox
             throw "Cannot handle this formula";
         }
     } else if (e.is_quantifier()) {
-        for (unsigned i = 0; i < expr_get_num_bound(e); i++) {
-            bound_var_stack.push_back(expr_get_quantifier_bound_name(e, i));
+        for (unsigned i = 0; i < gio::mmpp::z3prover::expr_get_num_bound(e); i++) {
+            bound_var_stack.push_back(gio::mmpp::z3prover::expr_get_quantifier_bound_name(e, i));
         }
         ParsingTree< SymTok, LabTok > ret = expr_to_pt(e.body(), tb, bound_var_stack);
         ParsingTree< SymTok, LabTok > templ;
-        if (expr_is_quantifier_forall(e)) {
+        if (gio::mmpp::z3prover::expr_is_quantifier_forall(e)) {
             templ = tb.parse_sentence(tb.read_sentence("wff A. x ph"));
         } else {
             templ = tb.parse_sentence(tb.read_sentence("wff E. x ph"));
         }
         assert(templ.label != LabTok{});
-        for (unsigned i = 0; i < expr_get_num_bound(e); i++) {
+        for (unsigned i = 0; i < gio::mmpp::z3prover::expr_get_num_bound(e); i++) {
             SubstMap< SymTok, LabTok > subst;
             subst[tb.get_var_sym_to_lab(tb.get_symbol("x"))].type = tb.get_symbol("set");
             auto sym = tb.get_symbol(bound_var_stack.back().str());
@@ -196,7 +162,7 @@ ParsingTree< SymTok, LabTok > expr_to_pt(const z3::expr &e, const LibraryToolbox
     } else if (e.is_var()) {
         ParsingTree< SymTok, LabTok > ret;
         SubstMap< SymTok, LabTok > subst;
-        unsigned idx = expr_get_var_index(e);
+        unsigned idx = gio::mmpp::z3prover::expr_get_var_index(e);
         auto z3sym = bound_var_stack.at(bound_var_stack.size() - 1 - idx);
         ret = tb.parse_sentence(tb.read_sentence("class x"));
         assert(ret.label != LabTok{});
@@ -389,8 +355,8 @@ int test_z3_2_main(int argc, char *argv[]) {
         }
 
         auto proof = s.proof();
-        //std::cout << "Proof:" << std::endl << proof << std::endl;
-        scan_proof(proof, tb);
+        std::cout << "Proof:" << std::endl << proof << std::endl;
+        //scan_proof(proof, tb);
 
         std::cout << std::endl;
     } catch (z3::exception &e) {
