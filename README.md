@@ -13,19 +13,17 @@ nice introductory material.
 ## Building `mmpp`
 
 At the moment the codes support building on Linux, Windows and
-macOS. Most of the code is actually standard C++14, with a few
+macOS. Most of the code is actually standard C++17, with a few
 multiplatform libraries. The few platform specific code is essentially
 concentrated in the file `platform.cpp`. If you want to add support
-for a new platform, you basically have to start from there. Eventually
-I could begin using C++17 features, as soon as the advantages appear
-to outweigh the compatibility loss.
+for a new platform, you have to start from there.
 
 That said, all main development happens on Linux, so in general that
 is expected to be supported better than the other platforms.
 
 Beside the standard C++ library, the code depends on the Boost
 collection of libraries. If you use `webmmpp` you will also need
-libmicrohttpd and the TypeScript to JavaScript transpiler `tsc`. If
+`libmicrohttpd` and the TypeScript to JavaScript transpiler `tsc`. If
 you use the proving routines depending on Z3, you will also need
 libz3. In any case, you need `qmake` to generate the build script.
 
@@ -41,9 +39,9 @@ this is usually as hard as giving this command to a terminal:
     sudo apt-get install git build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev node-typescript binutils-dev pkg-config
 
 Other Linux distributions will require some similar command, depending
-on the distribution package manager. You need GCC version at least 5,
-which for Debian and Ubuntu was introduced respectively in stretch and
-in xenial. If your distribution is older than that and you cannot or
+on the distribution package manager. You need GCC version at least 7,
+which for Debian and Ubuntu was introduced respectively in buster and
+in artful. If your distribution is older than that and you cannot or
 do not want to upgrade, then I suggest to either use a virtual machine
 or a container, or to use an external repository; Ubuntu users can
 benefit from [this
@@ -56,7 +54,7 @@ is some problem.
 Then you create a new direcory for the build and run `qmake` and then
 `make` there:
 
-    git clone https://github.com/giomasce/mmpp.git
+    git clone --recursive https://github.com/giomasce/mmpp.git
     cd mmpp
     mkdir build
     cd build
@@ -101,14 +99,14 @@ need to add it manually to your terminal path:
 Then you need to close and reopen the terminal (to use the new path)
 and you can use the same commands as Linux:
 
-    git clone https://github.com/giomasce/mmpp.git
+    git clone --recursive https://github.com/giomasce/mmpp.git
     cd mmpp
     mkdir build
     cd build
     qmake ..
     make
 
-The executable will be in `mmpp.app/Contents/MacOS/mmpp`.
+This will create the main executable `mmpp` in the build directory.
 
 To compile the JavaScript files:
 
@@ -200,16 +198,17 @@ in `c:/Boost`. This path is again hardcoded in `mmpp.pro`.
 Ok, we are finally at the point where we can compile `mmpp`. Open Qt
 Creator from the Windows starter screen and click "New project". Then
 select "Import project" and "Git clone". Insert
-"https://github.com/giomasce/mmpp.git" as repository and then wait for
-the clone to finish. If all the installation above went correctly, Qt
-Creator will automatically propose to configure the project with the
-"Desktop Qt MSVC2017 64 bit" kit, which you can accept. If it does not
-propore any kit, then probably you have to check that you installed
-all the development tools appropriately. Once the project is
-configured, you can build it via the "Build" menu. By default Qt
-Creator will build in "Debug" mode, which, as the name says, is useful
-for debugging, but it is rather slow. I suggest you to move to
-"Release" mode, except for when you really need to debug the program.
+"https://github.com/giomasce/mmpp.git" as repository, mark the
+"Recursive" check and then wait for the clone to finish. If all the
+installation above went correctly, Qt Creator will automatically
+propose to configure the project with the "Desktop Qt MSVC2017 64 bit"
+kit, which you can accept. If it does not propore any kit, then
+probably you have to check that you installed all the development
+tools appropriately. Once the project is configured, you can build it
+via the "Build" menu. By default Qt Creator will build in "Debug"
+mode, which, as the name says, is useful for debugging, but it is
+rather slow. I suggest you to move to "Release" mode, except for when
+you really need to debug the program.
 
 Even after having compiled `mmpp`, if you try to run it it will abort
 with an error saying that `libz3.dll` is not available. In order to
