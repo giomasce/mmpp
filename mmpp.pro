@@ -97,6 +97,11 @@ QMAKE_CXXFLAGS_RELEASE *= -Og
 #QMAKE_CXXFLAGS += -march=native -mtune=native -flto
 #QMAKE_LFLAGS += -march=native -mtune=native -flto
 
+# Enable loop vectorization
+#QMAKE_CFLAGS += -ftree-vectorize -ftree-vectorizer-verbose=2
+#QMAKE_CXXFLAGS += -ftree-vectorize -ftree-vectorizer-verbose=2
+#QMAKE_LFLAGS += -ftree-vectorize -ftree-vectorizer-verbose=2
+
 # Undefined behavior checking (for GCC and LLVM)
 #QMAKE_CFLAGS += -fsanitize=undefined -fno-sanitize-recover=all
 #QMAKE_CXXFLAGS += -fsanitize=undefined -fno-sanitize-recover=all
