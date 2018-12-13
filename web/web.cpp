@@ -1,4 +1,12 @@
 
+#include <giolib/platform.h>
+
+#ifdef GIO_PLATFORM_WIN32
+// Windows headers are broken and complain if they are imported in the "wrong" order
+#include <WinSock2.h>
+#include <Windows.h>
+#endif
+
 #include <iostream>
 #include <random>
 
