@@ -8,6 +8,7 @@
 #include <giolib/static_block.h>
 #include <giolib/main.h>
 #include <giolib/containers.h>
+#include <giolib/platform_utils.h>
 
 #if defined(USE_MICROHTTPD)
 #include "httpd_microhttpd.h"
@@ -17,7 +18,6 @@
 #include "memory.h"
 #include "utils/utils.h"
 #include "web.h"
-#include "platform.h"
 
 const bool SERVE_STATIC_FILES = true;
 const bool PUBLICLY_SERVE_STATIC_FILES = true;
@@ -88,7 +88,7 @@ int webmmpp_main_common(int argc, char *argv[], ServerType type) {
         std::string ticket_id = endpoint.create_session_and_ticket();
         if (type == ServerType::USER) {
             std::string browser_url = "http://127.0.0.1:" + std::to_string(port) + "/ticket/" + ticket_id;
-            platform_open_browser(browser_url);
+            gio::open_browser(browser_url);
             std::cout << "A browser session was spawned; if you cannot see it, go to " << browser_url << std::endl;
         } else {
             std::string browser_url = "http://DOCKER_ADDRESS:" + std::to_string(port) + "/ticket/" + ticket_id;

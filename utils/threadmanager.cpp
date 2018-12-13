@@ -4,9 +4,9 @@
 
 #include <giolib/static_block.h>
 #include <giolib/main.h>
+#include <giolib/platform_utils.h>
 
 #include "utils/utils.h"
-#include "platform.h"
 
 std::vector< std::shared_ptr< Coroutine > > coroutines;
 
@@ -59,12 +59,12 @@ gio_static_block {
 CoroutineThreadManager::CoroutineThreadManager(size_t thread_num) : running(true), running_coros(0) {
     for (size_t i = 0; i < thread_num; i++) {
         this->threads.emplace_back([this,i]() {
-            platform_set_current_thread_name(std::string("CTM-") + std::to_string(i));
+            gio::set_current_thread_name(std::string("CTM-") + std::to_string(i));
             this->thread_fn();
         });
     }
     this->timed_thread = std::make_unique< std::thread >([this]() {
-        platform_set_current_thread_name("CTM-timed");
+        gio::set_current_thread_name("CTM-timed");
         this->timed_fn();
     });
 }
@@ -114,7 +114,7 @@ std::tuple<unsigned, size_t, size_t> CoroutineThreadManager::get_stats()
 }
 
 void CoroutineThreadManager::thread_fn() {
-    platform_set_current_thread_low_priority();
+    gio::set_current_thread_low_priority();
     while (this->running) {
         CoroutineRuntimeData tmp;
         if (dequeue_coroutine(tmp)) {

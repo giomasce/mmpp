@@ -2,12 +2,13 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <giolib/proc_stats.h>
+
 #include "libs/json.h"
 
 #include "mm/reader.h"
 #include "mm/engine.h"
 #include "mm/proof.h"
-#include "platform.h"
 #include "jsonize.h"
 
 static unsigned safe_hardware_concurrency() noexcept {
@@ -34,8 +35,8 @@ std::shared_ptr<Step> Workset::create_step(bool do_no_search)
 nlohmann::json Workset::get_stats()
 {
     nlohmann::json ret = nlohmann::json::object();
-    ret["current_used_ram"] = size_to_string(platform_get_current_used_ram());
-    ret["peak_used_ram"] = size_to_string(platform_get_peak_used_ram());
+    ret["current_used_ram"] = size_to_string(gio::get_used_memory());
+    ret["peak_used_ram"] = size_to_string(gio::get_peak_memory());
     auto ctm_stats = this->thread_manager->get_stats();
     ret["running_coros"] = std::get<0>(ctm_stats);
     ret["queued_coros"] = std::get<1>(ctm_stats);

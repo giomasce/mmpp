@@ -7,6 +7,7 @@
 #include <giolib/main.h>
 #include <giolib/exception.h>
 #include <giolib/crash.h>
+#include <giolib/proc_stats.h>
 
 #include "utils/utils.h"
 #include "platform.h"
@@ -17,7 +18,7 @@
 int main(int argc, char *argv[]) {
     gio::install_exception_handler();
     gio::install_crash_handler();
-    platform_set_max_ram(4 * 1024 * 1024 * 1024LL);
+    gio::set_memory_limit(4 * 1024 * 1024 * 1024LL);
     return gio::main(argc, argv);
 }
 

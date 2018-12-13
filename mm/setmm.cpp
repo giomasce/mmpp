@@ -1,8 +1,9 @@
 
 #include "setmm.h"
 
+#include <giolib/proc_stats.h>
+
 #include "mm/reader.h"
-#include "platform.h"
 #include "utils/utils.h"
 
 SetMmImpl::SetMmImpl(const boost::filesystem::path &filename, const boost::filesystem::path &cache_filename)
@@ -15,9 +16,9 @@ SetMmImpl::SetMmImpl(const boost::filesystem::path &filename, const boost::files
     tpb.finished();
     this->lib = new LibraryImpl(p.get_library());
     std::shared_ptr< ToolboxCache > cache = std::make_shared< FileToolboxCache >(cache_filename);
-    std::cout << "Memory usage after loading the library: " << size_to_string(platform_get_current_used_ram()) << std::endl;
+    std::cout << "Memory usage after loading the library: " << size_to_string(gio::get_used_memory()) << std::endl;
     this->tb = new LibraryToolbox(*this->lib, "|-", cache);
-    std::cout << "Memory usage after creating the toolbox: " << size_to_string(platform_get_current_used_ram()) << std::endl;
+    std::cout << "Memory usage after creating the toolbox: " << size_to_string(gio::get_used_memory()) << std::endl;
     std::cout << "The library has " << this->lib->get_symbols_num() << " symbols and " << this->lib->get_labels_num() << " labels" << std::endl << std::endl;
 }
 

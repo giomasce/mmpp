@@ -8,8 +8,8 @@
 
 #include <giolib/static_block.h>
 #include <giolib/main.h>
+#include <giolib/proc_stats.h>
 
-#include "platform.h"
 #include "utils/utils.h"
 #include "mm/reader.h"
 #include "mm/proof.h"
@@ -17,14 +17,14 @@
 bool verify_database(boost::filesystem::path filename, bool advanced_tests) {
     bool success = true;
     try {
-        std::cout << "Memory usage when starting: " << size_to_string(platform_get_current_used_ram()) << std::endl;
+        std::cout << "Memory usage when starting: " << size_to_string(gio::get_used_memory()) << std::endl;
         FileTokenizer ft(filename);
         Reader p(ft, true, true);
         std::cout << "Reading library and executing all proofs..." << std::endl;
         p.run();
         LibraryImpl lib = p.get_library();
         std::cout << "Library has " << lib.get_symbols_num() << " symbols and " << lib.get_labels_num() << " labels" << std::endl;
-        std::cout << "Memory usage after loading: " << size_to_string(platform_get_current_used_ram()) << std::endl;
+        std::cout << "Memory usage after loading: " << size_to_string(gio::get_used_memory()) << std::endl;
 
         if (advanced_tests) {
             std::cout << "Compressing all proofs and executing again..." << std::endl;
