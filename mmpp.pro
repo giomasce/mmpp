@@ -155,7 +155,8 @@ SOURCES += \
     test/test_wff.cpp \
     mm/mmutils.cpp \
     provers/tstp/tstp_parser.cpp \
-    provers/z3prover3.cpp
+    provers/z3prover3.cpp \
+    provers/z3resolver.cpp
 
 HEADERS += \
     pch.h \
@@ -211,7 +212,8 @@ HEADERS += \
     test/test.h \
     mm/mmutils.h \
     provers/tstp/tstp_parser.h \
-    provers/z3prover3.h
+    provers/z3prover3.h \
+    provers/z3resolver.h
 
 DISTFILES += \
     README.md \

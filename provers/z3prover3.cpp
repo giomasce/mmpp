@@ -12,6 +12,7 @@
 #include "utils/utils.h"
 #include "mm/toolbox.h"
 #include "mm/setmm.h"
+#include "z3resolver.h"
 
 namespace gio::mmpp::z3prover {
 
@@ -48,50 +49,6 @@ unsigned expr_get_var_index(const z3::expr &e) {
     unsigned idx = Z3_get_index_value(e.ctx(), e);
     e.check_error();
     return idx;
-}
-
-std::string get_inference_str(unsigned x) {
-    switch (x) {
-    case Z3_OP_PR_ASSERTED: return "Z3_OP_PR_ASSERTED";
-    case Z3_OP_PR_GOAL: return "Z3_OP_PR_GOAL";
-    case Z3_OP_PR_MODUS_PONENS: return "Z3_OP_PR_MODUS_PONENS";
-    case Z3_OP_PR_REFLEXIVITY: return "Z3_OP_PR_REFLEXIVITY";
-    case Z3_OP_PR_SYMMETRY: return "Z3_OP_PR_SYMMETRY";
-    case Z3_OP_PR_TRANSITIVITY: return "Z3_OP_PR_TRANSITIVITY";
-    case Z3_OP_PR_TRANSITIVITY_STAR: return "Z3_OP_PR_TRANSITIVITY_STAR";
-    case Z3_OP_PR_MONOTONICITY: return "Z3_OP_PR_MONOTONICITY";
-    case Z3_OP_PR_QUANT_INTRO: return "Z3_OP_PR_QUANT_INTRO";
-    case Z3_OP_PR_DISTRIBUTIVITY: return "Z3_OP_PR_DISTRIBUTIVITY";
-    case Z3_OP_PR_AND_ELIM: return "Z3_OP_PR_AND_ELIM";
-    case Z3_OP_PR_NOT_OR_ELIM: return "Z3_OP_PR_NOT_OR_ELIM";
-    case Z3_OP_PR_REWRITE: return "Z3_OP_PR_REWRITE";
-    case Z3_OP_PR_REWRITE_STAR: return "Z3_OP_PR_REWRITE_STAR";
-    case Z3_OP_PR_PULL_QUANT: return "Z3_OP_PR_PULL_QUANT";
-    case Z3_OP_PR_PULL_QUANT_STAR: return "Z3_OP_PR_PULL_QUANT_STAR";
-    case Z3_OP_PR_PUSH_QUANT: return "Z3_OP_PR_PUSH_QUANT";
-    case Z3_OP_PR_ELIM_UNUSED_VARS: return "Z3_OP_PR_ELIM_UNUSED_VARS";
-    case Z3_OP_PR_DER: return "Z3_OP_PR_DER";
-    case Z3_OP_PR_QUANT_INST: return "Z3_OP_PR_QUANT_INST";
-    case Z3_OP_PR_HYPOTHESIS: return "Z3_OP_PR_HYPOTHESIS";
-    case Z3_OP_PR_LEMMA: return "Z3_OP_PR_LEMMA";
-    case Z3_OP_PR_UNIT_RESOLUTION: return "Z3_OP_PR_UNIT_RESOLUTION";
-    case Z3_OP_PR_IFF_TRUE: return "Z3_OP_PR_IFF_TRUE";
-    case Z3_OP_PR_IFF_FALSE: return "Z3_OP_PR_IFF_FALSE";
-    case Z3_OP_PR_COMMUTATIVITY: return "Z3_OP_PR_COMMUTATIVITY";
-    case Z3_OP_PR_DEF_AXIOM: return "Z3_OP_PR_DEF_AXIOM";
-    case Z3_OP_PR_DEF_INTRO: return "Z3_OP_PR_DEF_INTRO";
-    case Z3_OP_PR_APPLY_DEF: return "Z3_OP_PR_APPLY_DEF";
-    case Z3_OP_PR_IFF_OEQ: return "Z3_OP_PR_IFF_OEQ";
-    case Z3_OP_PR_NNF_POS: return "Z3_OP_PR_NNF_POS";
-    case Z3_OP_PR_NNF_NEG: return "Z3_OP_PR_NNF_NEG";
-    case Z3_OP_PR_NNF_STAR: return "Z3_OP_PR_NNF_STAR";
-    case Z3_OP_PR_CNF_STAR: return "Z3_OP_PR_CNF_STAR";
-    case Z3_OP_PR_SKOLEMIZE: return "Z3_OP_PR_SKOLEMIZE";
-    case Z3_OP_PR_MODUS_PONENS_OEQ: return "Z3_OP_PR_MODUS_PONENS_OEQ";
-    case Z3_OP_PR_TH_LEMMA: return "Z3_OP_PR_TH_LEMMA";
-    case Z3_OP_PR_HYPER_RESOLVE: return "Z3_OP_PR_HYPER_RESOLVE";
-    default: return "(unknown)";
-    }
 }
 
 class Formula {
