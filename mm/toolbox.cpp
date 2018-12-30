@@ -969,7 +969,7 @@ void LibraryToolbox::compute_parser_initialization()
         }
     }
     if (!loaded) {
-        std::cerr << "No or invalide parser cache found; re-initializing parser..." << std::endl;
+        std::cerr << "No or invalid parser cache found; re-initializing parser..." << std::endl;
         this->parser->initialize();
         if (this->cache != nullptr) {
             this->cache->set_digest(ders_digest);
