@@ -75,9 +75,9 @@ win32 {
     DEFINES += BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE
     DEFINES += NOMINMAX
     #DEFINES += BOOST_LIB_DIAGNOSTIC
-    QMAKE_CXXFLAGS += /I c:\Boost\include\boost-1_66 /I c:\libs /wd4250 /wd4200 /Zi /std:c++17
+    QMAKE_CXXFLAGS += /I c:\local\boost_1_69_0 /I c:\libs /wd4250 /wd4200 /Zi /std:c++17
     QMAKE_LFLAGS += /STACK:8388608 /DEBUG:FULL
-    QMAKE_LIBS += /LIBPATH:c:\Boost\lib /LIBPATH:c:\libs
+    QMAKE_LIBS += /LIBPATH:c:\local\boost_1_69_0\lib64-msvc-14.1 /LIBPATH:c:\libs
     CONFIG += console
 }
 
