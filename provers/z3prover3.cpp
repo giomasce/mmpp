@@ -414,8 +414,8 @@ int test_z3_3_main(int argc, char *argv[]) {
     z3::expr x = c.constant("x", sets);
     z3::expr y = c.constant("y", sets);
     z3::func_decl p = c.function("p", sets, sets, bools);
-    //z3::expr conj = implies(exists(x, forall(y, p(x,y))), forall(y, exists(x, p(x,y))));
-    z3::expr conj = implies(forall(y, exists(x, p(x,y))), exists(x, forall(y, p(x,y))));
+    z3::expr conj = implies(exists(x, forall(y, p(x,y))), forall(y, exists(x, p(x,y))));
+    //z3::expr conj = implies(forall(y, exists(x, p(x,y))), exists(x, forall(y, p(x,y))));
     s.add(!conj);
 
     /*z3::expr x      = c.int_const("x");
