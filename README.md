@@ -119,11 +119,10 @@ This is unfortunately more complicated! I find installing things on
 Windows really unfriendly, and there is no shortcut like Homebrew on
 macOS: you really need a lot of time, manual downloads and clicks. And
 at times it is even complicated to understand which are the right
-clicks. This is how I managed to get `mmpp` to compile on Windows 8 on
-64 bits with Visual Studio Community 2017. I had also tried Windows 7,
-but could not get around an error when installing C++ runtime
-components. I have not tried any other Windows or Visual Studio
-version.
+clicks. This is how I managed to get `mmpp` to compile on Windows 8
+and Windows 10, both on 64 bits, with Visual Studio Community 2017. I
+had also tried Windows 7, but could not get around an error when
+installing C++ runtime components.
 
 First you have to download [Visual Studio Community
 2017](http://www.visualstudio.com/) and run the installer. In the
@@ -151,7 +150,7 @@ can always leave the default setting. You finally have all the
 development tools installed, congratulations! But the path is still
 long: we have to install library dependencies.
 
-Let us begin with
+Let us continue with
 [libmicrohttpd](https://www.gnu.org/software/libmicrohttpd/). Go to
 the website and download the binary Windows release, which in the form
 of a ZIP file. Extract the content of the archive and then copy the
@@ -170,30 +169,13 @@ that `c:/libs` directly contains `libz3.lib`, `z3.h` and the other
 files, not the directories `bin` and `include`).
 
 Finally, you need to install
-[Boost](http://www.boost.org/users/download/), which is quite possibly
-the most difficult and time-consuming step. Go to the website and
-download the package, in ZIP or 7z format (Windows integrated
-extractor is terribly slow; consider installing
-[7z](https://www.7-zip.org/) and using it to unarchive Boost). Bad
-news is that this time you have to build from the sources. There are
-some prebuilt packages for Windows, but unfortunately none targets
-MSVC 2017, so they are not usable in our case. Compiling Boost for
-Windows is not completely trivial: I hope these instructions work for
-you; if they do not, please check out the [upstream
-documentation](http://www.boost.org/doc/libs/1_66_0/more/getting_started/windows.html).
-
-Once you have unpacked the Boost distribution, using the Windows
-starter screen open "x86 Native Tools Command Prompt for VS 2017",
-which is basically the usual cmd shell with the right path to use
-Visual Studio tools (including the C++ compiler). Go to the directory
-where you have unpacked Boost and give these commands:
-
-    bootstrap
-    b2           # This will take a lot of time
-    b2 install   # This will take less time, but still something
-
-The last command will cause Boost headers and binaries to be installed
-in `c:/Boost`. This path is again hardcoded in `mmpp.pro`.
+[Boost](http://www.boost.org/users/download/): from the website
+download page, reach the Windows builds download page. Select the
+latest Boost version, then download the installer for MSVC 14.1 (which
+is the actual version number of Visual C++ 2017) and for 64 bits
+processors. Click again the "Next" button until you reach the end. By
+default, Boost files are installed in `c:/local/boost_VERSION_NUMBER`,
+which is again hardcoded in `mmpp.pro`.
 
 Ok, we are finally at the point where we can compile `mmpp`. Open Qt
 Creator from the Windows starter screen and click "New project". Then
