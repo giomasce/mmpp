@@ -1,0 +1,28 @@
+
+image: giomasce/testenv
+
+variables:
+  GIT_STRATEGY: fetch
+  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_DEPTH: "3"
+
+before_script:
+  - cat /proc/cpuinfo
+  - cat /proc/meminfo
+  - apt-get update
+  - apt-get install -y --no-upgrade eatmydata
+
+stages:
+  - test
+
+test:
+  stage: test
+  script:
+    - eatmydata apt-get install -y --no-upgrade build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev node-typescript binutils-dev pkg-config wget
+    - wget -q -O resources/set.mm https://github.com/metamath/set.mm/raw/5a9df0830db5701b46d11ebdcdbbdcc610a273a8/set.mm
+    - tsc -p resources/static/ts
+    - mkdir build
+    - cd build
+    - qmake ..
+    - make -j $(nproc)
+    - time ./mmpp test
