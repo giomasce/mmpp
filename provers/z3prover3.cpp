@@ -13,6 +13,7 @@
 #include "mm/toolbox.h"
 #include "mm/setmm.h"
 #include "z3resolver.h"
+#include "fof.h"
 
 namespace gio::mmpp::z3prover {
 
@@ -51,231 +52,8 @@ unsigned expr_get_var_index(const z3::expr &e) {
     return idx;
 }
 
-class Formula {
-public:
-    virtual ~Formula() = default;
-    virtual void print_to(std::ostream &s) const {
-        s << "formula";
-    }
-
-protected:
-    Formula() = default;
-};
-
-class Uninterpreted : public Formula, public gio::virtual_enable_create<Uninterpreted> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << this->name;
-        if (!this->args.empty()) {
-            s << "(";
-            bool first = true;
-            for (const auto &arg : this->args) {
-                if (!first) {
-                    s << ", ";
-                }
-                first = false;
-                s << *arg;
-            }
-            s << ")";
-        }
-    }
-
-protected:
-    Uninterpreted(const std::string &name, const std::vector<std::shared_ptr<const Formula>> &args) : name(name), args(args) {}
-
-private:
-    std::string name;
-    std::vector<std::shared_ptr<const Formula>> args;
-};
-
-class True : public Formula, public gio::virtual_enable_create<True> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "⊤";
-    }
-
-protected:
-    True() {}
-};
-
-class False : public Formula, public gio::virtual_enable_create<False> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "⊥";
-    }
-
-protected:
-    False() {}
-};
-
-class Equal : public Formula, public gio::virtual_enable_create<Equal> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "=" << *this->y << ")";
-    }
-
-protected:
-    Equal(const std::shared_ptr<const Formula> &x, const std::shared_ptr<const Formula> &y) : x(x), y(y) {}
-
-private:
-    std::shared_ptr<const Formula> x;
-    std::shared_ptr<const Formula> y;
-};
-
-class Distinct : public Formula, public gio::virtual_enable_create<Distinct> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "≠" << *this->y << ")";
-    }
-
-protected:
-    Distinct(const std::shared_ptr<const Formula> &x, const std::shared_ptr<const Formula> &y) : x(x), y(y) {}
-
-private:
-    std::shared_ptr<const Formula> x;
-    std::shared_ptr<const Formula> y;
-};
-
-class And : public Formula, public gio::virtual_enable_create<And> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "∧" << *this->y << ")";
-    }
-
-protected:
-    And(const std::shared_ptr<const Formula> &x, const std::shared_ptr<const Formula> &y) : x(x), y(y) {}
-
-private:
-    std::shared_ptr<const Formula> x;
-    std::shared_ptr<const Formula> y;
-};
-
-class Or : public Formula, public gio::virtual_enable_create<Or> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "∨" << *this->y << ")";
-    }
-
-protected:
-    Or(const std::shared_ptr<const Formula> &x, const std::shared_ptr<const Formula> &y) : x(x), y(y) {}
-
-private:
-    std::shared_ptr<const Formula> x;
-    std::shared_ptr<const Formula> y;
-};
-
-class Iff : public Formula, public gio::virtual_enable_create<Iff> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "⇔" << *this->y << ")";
-    }
-
-protected:
-    Iff(const std::shared_ptr<const Formula> &x, const std::shared_ptr<const Formula> &y) : x(x), y(y) {}
-
-private:
-    std::shared_ptr<const Formula> x;
-    std::shared_ptr<const Formula> y;
-};
-
-class Xor : public Formula, public gio::virtual_enable_create<Xor> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "⊻" << *this->y << ")";
-    }
-
-protected:
-    Xor(const std::shared_ptr<const Formula> &x, const std::shared_ptr<const Formula> &y) : x(x), y(y) {}
-
-private:
-    std::shared_ptr<const Formula> x;
-    std::shared_ptr<const Formula> y;
-};
-
-class Not : public Formula, public gio::virtual_enable_create<Not> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "¬" << *this->x;
-    }
-
-protected:
-    Not(const std::shared_ptr<const Formula> &x) : x(x) {}
-
-private:
-    std::shared_ptr<const Formula> x;
-};
-
-class Implies : public Formula, public gio::virtual_enable_create<Implies> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "⇒" << *this->y << ")";
-    }
-
-protected:
-    Implies(const std::shared_ptr<const Formula> &x, const std::shared_ptr<const Formula> &y) : x(x), y(y) {}
-
-private:
-    std::shared_ptr<const Formula> x;
-    std::shared_ptr<const Formula> y;
-};
-
-class Oeq : public Formula, public gio::virtual_enable_create<Oeq> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "≈" << *this->y << ")";
-    }
-
-protected:
-    Oeq(const std::shared_ptr<const Formula> &x, const std::shared_ptr<const Formula> &y) : x(x), y(y) {}
-
-private:
-    std::shared_ptr<const Formula> x;
-    std::shared_ptr<const Formula> y;
-};
-
-class Forall : public Formula, public gio::virtual_enable_create<Forall> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "∀" << this->var << " " << *this->x;
-    }
-
-protected:
-    Forall(const std::string &var, const std::shared_ptr<const Formula> &x) : var(var), x(x) {}
-
-private:
-    std::string var;
-    std::shared_ptr<const Formula> x;
-};
-
-class Exists : public Formula, public gio::virtual_enable_create<Exists> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "∃" << this->var << " " << *this->x;
-    }
-
-protected:
-    Exists(const std::string &var, const std::shared_ptr<const Formula> &x) : var(var), x(x) {}
-
-private:
-    std::string var;
-    std::shared_ptr<const Formula> x;
-};
-
-class Variable : public Formula, public gio::virtual_enable_create<Variable> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << this->name;
-    }
-
-protected:
-    Variable(const std::string &name) : name(name) {}
-
-private:
-    std::string name;
-};
-
 struct FormulaRecostructor {
-    std::shared_ptr<const Formula> operator()(const z3::expr &expr) {
+    std::shared_ptr<const gio::mmpp::provers::fof::FOF> operator()(const z3::expr &expr) {
         if (expr.is_app()) {
             auto decl = expr.decl();
             auto num_args = expr.num_args();
@@ -287,43 +65,43 @@ struct FormulaRecostructor {
             switch (kind) {
             case Z3_OP_TRUE:
                 assert_or_throw<gio::debug_exception>(num_args == 0);
-                return True::create();
+                return gio::mmpp::provers::fof::True::create();
             case Z3_OP_FALSE:
                 assert_or_throw<gio::debug_exception>(num_args == 0);
-                return False::create();
+                return gio::mmpp::provers::fof::False::create();
             case Z3_OP_EQ:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return Equal::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return gio::mmpp::provers::fof::Equal::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
             case Z3_OP_DISTINCT:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return Distinct::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return gio::mmpp::provers::fof::Distinct::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
             case Z3_OP_AND:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return And::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return gio::mmpp::provers::fof::And::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
             case Z3_OP_OR:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return Or::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return gio::mmpp::provers::fof::Or::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
             case Z3_OP_IFF:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return Iff::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return gio::mmpp::provers::fof::Iff::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
             case Z3_OP_XOR:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return Xor::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return gio::mmpp::provers::fof::Xor::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
             case Z3_OP_NOT:
                 assert_or_throw<gio::debug_exception>(num_args == 1);
-                return Not::create(this->operator()(expr.arg(0)));
+                return gio::mmpp::provers::fof::Not::create(this->operator()(expr.arg(0)));
             case Z3_OP_IMPLIES:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return Implies::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return gio::mmpp::provers::fof::Implies::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
             case Z3_OP_OEQ:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return Oeq::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return gio::mmpp::provers::fof::Oeq::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
             case Z3_OP_UNINTERPRETED: {
-                std::vector<std::shared_ptr<const Formula>> args;
+                std::vector<std::shared_ptr<const gio::mmpp::provers::fof::FOF>> args;
                 for (unsigned i = 0; i < num_args; i++) {
                     args.push_back(this->operator()(expr.arg(i)));
                 }
-                return Uninterpreted::create(decl.name().str(), std::move(args)); }
+                return gio::mmpp::provers::fof::Uninterpreted::create(decl.name().str(), std::move(args)); }
             default:
                 throw gio::debug_exception(kind);
             }
@@ -335,9 +113,9 @@ struct FormulaRecostructor {
             bool is_forall = expr_is_quantifier_forall(expr);
             for (unsigned i = 0; i < expr_get_num_bound(expr); i++) {
                 if (is_forall) {
-                    ret = Forall::create(this->bound_var_stack.back().str(), ret);
+                    ret = gio::mmpp::provers::fof::Forall::create(gio::mmpp::provers::fof::Variable::create(this->bound_var_stack.back().str()), ret);
                 } else {
-                    ret = Exists::create(this->bound_var_stack.back().str(), ret);
+                    ret = gio::mmpp::provers::fof::Exists::create(gio::mmpp::provers::fof::Variable::create(this->bound_var_stack.back().str()), ret);
                 }
                 this->bound_var_stack.pop_back();
             }
@@ -350,7 +128,7 @@ struct FormulaRecostructor {
             } else {
                 name = this->bound_var_stack.at(this->bound_var_stack.size() - 1 - idx).str();
             }
-            return Variable::create(name);
+            return gio::mmpp::provers::fof::Variable::create(name);
         } else {
             throw gio::debug_exception(expr);
         }
