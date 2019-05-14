@@ -125,7 +125,7 @@ ParsingTree< SymTok, LabTok > expr_to_pt(const z3::expr &e, const LibraryToolbox
                 ret = tb.parse_sentence(tb.read_sentence("class x"));
                 assert(ret.label != LabTok{});
                 SubstMap< SymTok, LabTok > subst;
-                subst[tb.get_var_sym_to_lab(tb.get_symbol("x"))].type = tb.get_symbol("set");
+                subst[tb.get_var_sym_to_lab(tb.get_symbol("x"))].type = tb.get_symbol("setvar");
                 auto sym = tb.get_symbol(decl.name().str());
                 assert(sym != SymTok{});
                 subst[tb.get_var_sym_to_lab(tb.get_symbol("x"))].label = tb.get_var_sym_to_lab(sym);
@@ -150,7 +150,7 @@ ParsingTree< SymTok, LabTok > expr_to_pt(const z3::expr &e, const LibraryToolbox
         assert(templ.label != LabTok{});
         for (unsigned i = 0; i < gio::mmpp::z3prover::expr_get_num_bound(e); i++) {
             SubstMap< SymTok, LabTok > subst;
-            subst[tb.get_var_sym_to_lab(tb.get_symbol("x"))].type = tb.get_symbol("set");
+            subst[tb.get_var_sym_to_lab(tb.get_symbol("x"))].type = tb.get_symbol("setvar");
             auto sym = tb.get_symbol(bound_var_stack.back().str());
             assert(sym != SymTok{});
             subst[tb.get_var_sym_to_lab(tb.get_symbol("x"))].label = tb.get_var_sym_to_lab(sym);
@@ -166,7 +166,7 @@ ParsingTree< SymTok, LabTok > expr_to_pt(const z3::expr &e, const LibraryToolbox
         auto z3sym = bound_var_stack.at(bound_var_stack.size() - 1 - idx);
         ret = tb.parse_sentence(tb.read_sentence("class x"));
         assert(ret.label != LabTok{});
-        subst[tb.get_var_sym_to_lab(tb.get_symbol("x"))].type = tb.get_symbol("set");
+        subst[tb.get_var_sym_to_lab(tb.get_symbol("x"))].type = tb.get_symbol("setvar");
         auto sym = tb.get_symbol(z3sym.str());
         assert(sym != SymTok{});
         subst[tb.get_var_sym_to_lab(tb.get_symbol("x"))].label = tb.get_var_sym_to_lab(sym);
@@ -337,7 +337,7 @@ int test_z3_2_main(int argc, char *argv[]) {
         auto pt = tb.parse_sentence(tb.read_sentence("|- ( ( ( y = z -> ( ( x = y -> ph ) /\\ E. x ( x = y /\\ ph ) ) ) /\\ E. y ( y = z /\\ ( ( x = y -> ph ) /\\ E. x ( x = y /\\ ph ) ) ) ) <-> ( ( y = z -> ( ( x = z -> ph ) /\\ E. x ( x = z /\\ ph ) ) ) /\\ E. y ( y = z /\\ ( ( x = z -> ph ) /\\ E. x ( x = z /\\ ph ) ) ) ) )"));
         //auto pt = tb.parse_sentence(tb.read_sentence("|- A. x x = x"));
         std::set< LabTok > set_vars;
-        collect_variables(pt, std::function< bool(LabTok) >([&tb](auto x) { return tb.get_standard_is_var()(x) && tb.get_var_lab_to_type_sym(x) == tb.get_symbol("set"); }), set_vars);
+        collect_variables(pt, std::function< bool(LabTok) >([&tb](auto x) { return tb.get_standard_is_var()(x) && tb.get_var_lab_to_type_sym(x) == tb.get_symbol("setvar"); }), set_vars);
         z3::expr thesis = convert_to_z3(pt, tb, set_vars, sets, c);
         std::vector< z3::symbol > tmp;
         auto pt_thesis = expr_to_pt(thesis, tb, tmp);

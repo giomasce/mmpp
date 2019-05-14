@@ -123,7 +123,7 @@ int convert_to_tstp_main(int argc, char *argv[]) {
     pt.validate(tb.get_validation_rule());
 
     std::set< LabTok > set_vars;
-    collect_variables(pt, std::function< bool(LabTok) >([&tb](auto x) { return tb.get_standard_is_var()(x) && tb.get_var_lab_to_type_sym(x) == tb.get_symbol("set"); }), set_vars);
+    collect_variables(pt, std::function< bool(LabTok) >([&tb](auto x) { return tb.get_standard_is_var()(x) && tb.get_var_lab_to_type_sym(x) == tb.get_symbol("setvar"); }), set_vars);
 
     std::cout << "fof(1,conjecture,";
     convert_to_tstp(pt, std::cout, tb, set_vars);
@@ -158,7 +158,7 @@ struct ReconstructFOF {
         if (is_quant) {
             LabTok var = subst.at(tb.get_var_sym_to_lab(tb.get_symbol("x"))).label;
             assert(this->open_vars.find(var) == this->open_vars.end());
-            LabTok new_var = tb.new_temp_var(tb.get_symbol("set")).first;
+            LabTok new_var = tb.new_temp_var(tb.get_symbol("setvar")).first;
             this->open_vars[var] = new_var;
             this->quants.push_back(std::make_pair(new_var, forall ^ neg_depth));
             auto ret = this->find_params(subst.at(tb.get_var_sym_to_lab(tb.get_symbol("ph"))), neg_depth);

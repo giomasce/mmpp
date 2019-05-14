@@ -527,9 +527,19 @@ void Reader::parse_j_code(const std::vector<std::vector<std::pair<bool, std::str
         } else if (command == "justification") {
         } else if (command == "condequality") {
         } else if (command == "equality") {
+        } else if (command == "bound") {
+        } else if (command == "natded_init") {
+        } else if (command == "natded_assume") {
+        } else if (command == "natded_weak") {
+        } else if (command == "natded_cut") {
+        } else if (command == "natded_true") {
+        } else if (command == "natded_imp") {
+        } else if (command == "natded_and") {
+        } else if (command == "natded_or") {
+        } else if (command == "natded_not") {
         } else {
             //cerr << "Uknown command " << tokens.at(0).second << endl;
-            throw MMPPParsingError("unknown command in $j comment");
+            throw MMPPParsingError("unknown command " + command + " in $j comment");
         }
     }
     this->lib.set_parsing_addendum(add);

@@ -52,12 +52,14 @@ std::ostream &operator<<(std::ostream &os, const SentencePrinter &sp)
         } else if (sp.style == SentencePrinter::STYLE_ANSI_COLORS_SET_MM) {
             if (sp.tb.get_standard_is_var_sym()(tok)) {
                 std::string type_str = sp.tb.resolve_symbol(sp.tb.get_var_sym_to_type_sym(tok));
-                if (type_str == "set") {
+                if (type_str == "setvar") {
                     os << "\033[91m";
                 } else if (type_str == "class") {
                     os << "\033[35m";
                 } else if (type_str == "wff") {
                     os << "\033[94m";
+                } else {
+                    throw std::runtime_error("Unknown type");
                 }
             } else {
                 //os << "\033[37m";

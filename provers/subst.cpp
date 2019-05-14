@@ -21,7 +21,7 @@ std::map< SymTok, std::tuple< LabTok, LabTok, LabTok > > compute_equalities(cons
 
 std::map< SymTok, std::pair< SymTok, LabTok > > compute_type_adaptors(const LibraryToolbox &tb) {
     std::map< SymTok, std::pair< SymTok, LabTok > > ret;
-    ret.insert(std::make_pair(tb.get_symbol("set"), std::make_pair(tb.get_symbol("class"), tb.get_label("cv"))));
+    ret.insert(std::make_pair(tb.get_symbol("setvar"), std::make_pair(tb.get_symbol("class"), tb.get_label("cv"))));
     return ret;
 }
 
@@ -139,7 +139,7 @@ ParsingTree< SymTok, LabTok > create_equality_pt(const LibraryToolbox &tb, const
 
 ParsingTree< SymTok, LabTok > create_not_free_pt(const LibraryToolbox &tb, const std::map< SymTok, std::tuple< LabTok, LabTok, LabTok > > &equalities, const std::map< SymTok, std::pair< SymTok, LabTok > > &adaptors,
                                                  const ParsingTree< SymTok, LabTok > &pt1, const ParsingTree< SymTok, LabTok > &pt2) {
-    assert(pt1.type == tb.get_symbol("set"));
+    assert(pt1.type == tb.get_symbol("setvar"));
     auto it = equalities.find(pt2.type);
     if (it != equalities.end()) {
         ParsingTree< SymTok, LabTok > ret;
@@ -678,7 +678,7 @@ static void compute_bound_vars_internal(const ParsingTree< SymTok, LabTok > &pt,
         for (const auto &dep : it->second) {
             auto var_idx = dep.first;
             auto term_idx = dep.second;
-            assert(pt.children.at(var_idx).type == tb.get_symbol("set"));
+            assert(pt.children.at(var_idx).type == tb.get_symbol("setvar"));
             auto var_lab = pt.children.at(var_idx).label;
             auto var_it = std::find(vars.begin(), vars.end(), var_lab);
             if (var_it == vars.end()) {
@@ -688,7 +688,7 @@ static void compute_bound_vars_internal(const ParsingTree< SymTok, LabTok > &pt,
             std::set< LabTok > vars2;
             collect_variables(pt.children.at(term_idx), tb.get_standard_is_var(), vars2);
             for (size_t i = 0; i < vars.size(); i++) {
-                if (tb.get_var_lab_to_type_sym(vars[i]) == tb.get_symbol("set")) {
+                if (tb.get_var_lab_to_type_sym(vars[i]) == tb.get_symbol("setvar")) {
                     continue;
                 }
                 if (vars2.find(vars[i]) == vars2.end()) {
@@ -713,13 +713,13 @@ std::map< LabTok, std::set< std::pair< size_t, size_t > > > compute_bound_vars(c
     for (const auto label : defless_bound) {
         auto &pt = tb.get_parsed_sent(label);
         assert(pt.children.size() == 2);
-        if (pt.children[0].type == tb.get_symbol("set")) {
-            assert(pt.children[0].type == tb.get_symbol("set"));
+        if (pt.children[0].type == tb.get_symbol("setvar")) {
+            assert(pt.children[0].type == tb.get_symbol("setvar"));
             assert(pt.children[1].type == tb.get_symbol("wff"));
             bound_vars[label].insert(std::make_pair(0, 1));
         } else {
             assert(pt.children[0].type == tb.get_symbol("wff"));
-            assert(pt.children[1].type == tb.get_symbol("set"));
+            assert(pt.children[1].type == tb.get_symbol("setvar"));
             bound_vars[label].insert(std::make_pair(1, 0));
         }
     }
