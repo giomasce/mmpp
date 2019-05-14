@@ -18,11 +18,13 @@ stages:
 test:
   stage: test
   script:
-    - eatmydata apt-get install -y --no-upgrade build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev node-typescript binutils-dev pkg-config wget
+    - eatmydata apt-get install -y --no-upgrade build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev node-typescript binutils-dev pkg-config wget git
     - wget -q -O resources/set.mm https://github.com/metamath/set.mm/raw/develop/set.mm
+    - git clone https://github.com/giomasce/metamath-test.git resources/metamath-test
     - tsc -p resources/static/ts
     - mkdir build
     - cd build
     - qmake ..
     - make -j $(nproc)
     - time ./mmpp test
+    - time ./mmpp verify_all
