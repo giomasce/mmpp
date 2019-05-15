@@ -54,6 +54,45 @@ unsigned expr_get_var_index(const z3::expr &e) {
 
 struct FormulaRecostructor {
     std::shared_ptr<const gio::mmpp::provers::fof::FOF> operator()(const z3::expr &expr) {
+        return this->reconstruct_formula(expr);
+    }
+
+    std::shared_ptr<const gio::mmpp::provers::fof::FOT> reconstruct_term(const z3::expr &expr) {
+        using namespace gio::mmpp::provers::fof;
+        if (expr.is_app()) {
+            auto decl = expr.decl();
+            auto num_args = expr.num_args();
+            auto arity = decl.arity();
+            auto kind = decl.decl_kind();
+
+            gio::assert_or_throw<gio::debug_exception>(arity == num_args, std::make_pair(arity, num_args));
+
+            switch (kind) {
+            case Z3_OP_UNINTERPRETED: {
+                std::vector<std::shared_ptr<const FOT>> args;
+                for (unsigned i = 0; i < num_args; i++) {
+                    args.push_back(this->reconstruct_term(expr.arg(i)));
+                }
+                return Functor::create(decl.name().str(), std::move(args)); }
+            default:
+                throw gio::debug_exception(kind);
+            }
+        } else if (expr.is_var()) {
+            unsigned idx = expr_get_var_index(expr);
+            std::string name;
+            if (idx == 0 && this->bound_var_stack.empty()) {
+                name = "•";
+            } else {
+                name = this->bound_var_stack.at(this->bound_var_stack.size() - 1 - idx).str();
+            }
+            return Variable::create(name);
+        } else {
+            throw gio::debug_exception(expr);
+        }
+    }
+
+    std::shared_ptr<const gio::mmpp::provers::fof::FOF> reconstruct_formula(const z3::expr &expr) {
+        using namespace gio::mmpp::provers::fof;
         if (expr.is_app()) {
             auto decl = expr.decl();
             auto num_args = expr.num_args();
@@ -65,43 +104,43 @@ struct FormulaRecostructor {
             switch (kind) {
             case Z3_OP_TRUE:
                 assert_or_throw<gio::debug_exception>(num_args == 0);
-                return gio::mmpp::provers::fof::True::create();
+                return True::create();
             case Z3_OP_FALSE:
                 assert_or_throw<gio::debug_exception>(num_args == 0);
-                return gio::mmpp::provers::fof::False::create();
+                return False::create();
             case Z3_OP_EQ:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return gio::mmpp::provers::fof::Equal::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return Equal::create(this->reconstruct_term(expr.arg(0)), this->reconstruct_term(expr.arg(1)));
             case Z3_OP_DISTINCT:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return gio::mmpp::provers::fof::Distinct::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return Distinct::create(this->reconstruct_term(expr.arg(0)), this->reconstruct_term(expr.arg(1)));
             case Z3_OP_AND:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return gio::mmpp::provers::fof::And::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return And::create(this->reconstruct_formula(expr.arg(0)), this->reconstruct_formula(expr.arg(1)));
             case Z3_OP_OR:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return gio::mmpp::provers::fof::Or::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return Or::create(this->reconstruct_formula(expr.arg(0)), this->reconstruct_formula(expr.arg(1)));
             case Z3_OP_IFF:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return gio::mmpp::provers::fof::Iff::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return Iff::create(this->reconstruct_formula(expr.arg(0)), this->reconstruct_formula(expr.arg(1)));
             case Z3_OP_XOR:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return gio::mmpp::provers::fof::Xor::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return Xor::create(this->reconstruct_formula(expr.arg(0)), this->reconstruct_formula(expr.arg(1)));
             case Z3_OP_NOT:
                 assert_or_throw<gio::debug_exception>(num_args == 1);
-                return gio::mmpp::provers::fof::Not::create(this->operator()(expr.arg(0)));
+                return Not::create(this->reconstruct_formula(expr.arg(0)));
             case Z3_OP_IMPLIES:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return gio::mmpp::provers::fof::Implies::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return Implies::create(this->reconstruct_formula(expr.arg(0)), this->reconstruct_formula(expr.arg(1)));
             case Z3_OP_OEQ:
                 assert_or_throw<gio::debug_exception>(num_args == 2);
-                return gio::mmpp::provers::fof::Oeq::create(this->operator()(expr.arg(0)), this->operator()(expr.arg(1)));
+                return Oeq::create(this->reconstruct_formula(expr.arg(0)), this->reconstruct_formula(expr.arg(1)));
             case Z3_OP_UNINTERPRETED: {
-                std::vector<std::shared_ptr<const gio::mmpp::provers::fof::FOF>> args;
+                std::vector<std::shared_ptr<const FOT>> args;
                 for (unsigned i = 0; i < num_args; i++) {
-                    args.push_back(this->operator()(expr.arg(i)));
+                    args.push_back(this->reconstruct_term(expr.arg(i)));
                 }
-                return gio::mmpp::provers::fof::Uninterpreted::create(decl.name().str(), std::move(args)); }
+                return Predicate::create(decl.name().str(), std::move(args)); }
             default:
                 throw gio::debug_exception(kind);
             }
@@ -109,26 +148,17 @@ struct FormulaRecostructor {
             for (unsigned i = 0; i < expr_get_num_bound(expr); i++) {
                 this->bound_var_stack.push_back(expr_get_quantifier_bound_name(expr, i));
             }
-            auto ret = this->operator()(expr.body());
+            auto ret = this->reconstruct_formula(expr.body());
             bool is_forall = expr_is_quantifier_forall(expr);
             for (unsigned i = 0; i < expr_get_num_bound(expr); i++) {
                 if (is_forall) {
-                    ret = gio::mmpp::provers::fof::Forall::create(gio::mmpp::provers::fof::Variable::create(this->bound_var_stack.back().str()), ret);
+                    ret = Forall::create(Variable::create(this->bound_var_stack.back().str()), ret);
                 } else {
-                    ret = gio::mmpp::provers::fof::Exists::create(gio::mmpp::provers::fof::Variable::create(this->bound_var_stack.back().str()), ret);
+                    ret = Exists::create(Variable::create(this->bound_var_stack.back().str()), ret);
                 }
                 this->bound_var_stack.pop_back();
             }
             return ret;
-        } else if (expr.is_var()) {
-            unsigned idx = expr_get_var_index(expr);
-            std::string name;
-            if (idx == 0 && this->bound_var_stack.empty()) {
-                name = "•";
-            } else {
-                name = this->bound_var_stack.at(this->bound_var_stack.size() - 1 - idx).str();
-            }
-            return gio::mmpp::provers::fof::Variable::create(name);
         } else {
             throw gio::debug_exception(expr);
         }

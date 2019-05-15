@@ -8,20 +8,43 @@
 #include "mm/setmm.h"
 #include "fof.h"
 
+typedef std::shared_ptr<const gio::mmpp::provers::fof::FOT> term;
 typedef std::shared_ptr<const gio::mmpp::provers::fof::FOF> formula;
 typedef std::pair<std::vector<formula>, std::vector<formula>> sequent;
+
+term parse_gapt_term(std::istream &is) {
+    using namespace gio::mmpp::provers::fof;
+    std::string type;
+    is >> type;
+    if (type == "var") {
+        std::string name;
+        is >> name;
+        return Variable::create(name);
+    } else if (type == "unint") {
+        std::string name;
+        size_t num;
+        is >> name >> num;
+        std::vector<term> args;
+        for (size_t i = 0; i < num; i++) {
+            args.push_back(parse_gapt_term(is));
+        }
+        return Functor::create(name, args);
+    } else {
+        throw std::runtime_error("invalid formula type " + type);
+    }
+}
 
 formula parse_gapt_formula(std::istream &is) {
     using namespace gio::mmpp::provers::fof;
     std::string type;
     is >> type;
     if (type == "exists") {
-        auto var = std::dynamic_pointer_cast<const Variable>(parse_gapt_formula(is));
+        auto var = std::dynamic_pointer_cast<const Variable>(parse_gapt_term(is));
         gio::assert_or_throw<std::runtime_error>(bool(var), "missing variable after quantifier");
         auto body = parse_gapt_formula(is);
         return Exists::create(var, body);
     } else if (type == "forall") {
-        auto var = std::dynamic_pointer_cast<const Variable>(parse_gapt_formula(is));
+        auto var = std::dynamic_pointer_cast<const Variable>(parse_gapt_term(is));
         gio::assert_or_throw<std::runtime_error>(bool(var), "missing variable after quantifier");
         auto body = parse_gapt_formula(is);
         return Forall::create(var, body);
@@ -48,15 +71,11 @@ formula parse_gapt_formula(std::istream &is) {
         std::string name;
         size_t num;
         is >> name >> num;
-        std::vector<std::shared_ptr<const FOF>> args;
+        std::vector<term> args;
         for (size_t i = 0; i < num; i++) {
-            args.push_back(parse_gapt_formula(is));
+            args.push_back(parse_gapt_term(is));
         }
-        return Uninterpreted::create(name, args);
-    } else if (type == "var") {
-        std::string name;
-        is >> name;
-        return Variable::create(name);
+        return Predicate::create(name, args);
     } else {
         throw std::runtime_error("invalid formula type " + type);
     }
@@ -130,13 +149,13 @@ private:
 
 class ExistsIntroRule : public NDProof, public gio::virtual_enable_create<ExistsIntroRule> {
 protected:
-    ExistsIntroRule(const sequent &thesis, const formula &form, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &var, const formula &term, const proof &subproof)
-        : NDProof(thesis), form(form), var(var), term(term), subproof(subproof) {}
+    ExistsIntroRule(const sequent &thesis, const formula &form, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &var, const term &subst_term, const proof &subproof)
+        : NDProof(thesis), form(form), var(var), subst_term(subst_term), subproof(subproof) {}
 
 private:
     formula form;
     std::shared_ptr<const gio::mmpp::provers::fof::Variable> var;
-    formula term;
+    term subst_term;
     std::shared_ptr<const NDProof> subproof;
 };
 
@@ -172,11 +191,11 @@ private:
 
 class ForallElimRule : public NDProof, public gio::virtual_enable_create<ForallElimRule> {
 protected:
-    ForallElimRule(const sequent &thesis, const formula &term, const proof &subproof)
-        : NDProof(thesis), term(term), subproof(subproof) {}
+    ForallElimRule(const sequent &thesis, const term &subst_term, const proof &subproof)
+        : NDProof(thesis), subst_term(subst_term), subproof(subproof) {}
 
 private:
-    formula term;
+    term subst_term;
     proof subproof;
 };
 
@@ -298,7 +317,7 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
     } else if (type == "ExistsElim") {
         ssize_t idx;
         is >> idx;
-        auto eigenvar = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_formula(is));
+        auto eigenvar = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_term(is));
         gio::assert_or_throw<std::invalid_argument>(bool(eigenvar), "missing eigenvariable");
         auto left_proof = parse_gapt_proof(is);
         auto right_proof = parse_gapt_proof(is);
@@ -312,9 +331,9 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
         return LogicalAxiom::create(thesis, form);
     } else if (type == "ExistsIntro") {
         auto form = parse_gapt_formula(is);
-        auto var = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_formula(is));
+        auto var = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_term(is));
         gio::assert_or_throw<std::invalid_argument>(bool(var), "missing substitution variable");
-        auto term = parse_gapt_formula(is);
+        auto term = parse_gapt_term(is);
         auto subproof = parse_gapt_proof(is);
         return ExistsIntroRule::create(thesis, form, var, term, subproof);
     } else if (type == "ImpIntro") {
@@ -331,13 +350,13 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
         auto subproof = parse_gapt_proof(is);
         return BottomElimRule::create(thesis, form, subproof);
     } else if (type == "ForallElim") {
-        auto term = parse_gapt_formula(is);
+        auto term = parse_gapt_term(is);
         auto subproof = parse_gapt_proof(is);
         return ForallElimRule::create(thesis, term, subproof);
     } else if (type == "ForallIntro") {
-        auto var = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_formula(is));
+        auto var = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_term(is));
         gio::assert_or_throw<std::invalid_argument>(bool(var), "missing quantified variable");
-        auto eigenvar = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_formula(is));
+        auto eigenvar = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_term(is));
         gio::assert_or_throw<std::invalid_argument>(bool(eigenvar), "missing eigenvariable");
         auto subproof = parse_gapt_proof(is);
         return ForallIntroRule::create(thesis, var, eigenvar, subproof);
