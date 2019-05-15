@@ -2,6 +2,9 @@
 #include <boost/beast.hpp>
 #include <boost/asio/ip/tcp.hpp>
 
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #include "httpd_beast.h"
 
 #include "utils/utils.h"

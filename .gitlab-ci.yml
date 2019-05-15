@@ -22,6 +22,10 @@ test:
     - wget -q -O resources/set.mm https://github.com/metamath/set.mm/raw/develop/set.mm
     - git clone https://github.com/giomasce/metamath-test.git resources/metamath-test
     - tsc -p resources/static/ts
+    - sed -i -e 's|^USE_QT = .*$|USE_QT = true|' mmpp.pro
+    - sed -i -e 's|^USE_MICROHTTPD = .*$|USE_MICROHTTPD = true|' mmpp.pro
+    - sed -i -e 's|^USE_BEAST = .*$|USE_BEAST = true|' mmpp.pro
+    - sed -i -e 's|^USE_Z3 = .*$|USE_Z3 = true|' mmpp.pro
     - mkdir build
     - cd build
     - qmake ..

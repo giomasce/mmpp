@@ -1,6 +1,9 @@
 
 #include <QApplication>
 
+#include <giolib/static_block.h>
+#include <giolib/main.h>
+
 #include "utils/utils.h"
 #include "mainwindow.h"
 
