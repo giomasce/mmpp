@@ -11,6 +11,7 @@
 typedef std::shared_ptr<const gio::mmpp::provers::fof::FOT> term;
 typedef std::shared_ptr<const gio::mmpp::provers::fof::FOF> formula;
 typedef std::pair<std::vector<formula>, std::vector<formula>> sequent;
+typedef std::pair<std::vector<formula>, formula> ndsequent;
 
 term parse_gapt_term(std::istream &is) {
     using namespace gio::mmpp::provers::fof;
@@ -96,6 +97,17 @@ sequent parse_gapt_sequent(std::istream &is) {
     return std::make_pair(ants, succs);
 }
 
+ndsequent parse_gapt_ndsequent(std::istream &is) {
+    sequent seq = parse_gapt_sequent(is);
+    if (seq.second.size() != 1) {
+        throw std::invalid_argument("sequent does not have exactly one succedent");
+    }
+    ndsequent ret;
+    ret.first = std::move(seq.first);
+    ret.second = std::move(seq.second.front());
+    return ret;
+}
+
 void print_sequent(std::ostream &os, const sequent &seq) {
     using namespace gio;
     bool first = true;
@@ -121,26 +133,53 @@ void print_sequent(std::ostream &os, const sequent &seq) {
     }
 }
 
+void print_ndsequent(std::ostream &os, const ndsequent &seq) {
+    using namespace gio;
+    bool first = true;
+    for (const auto &ant : seq.first) {
+        if (!first) {
+            os << ", ";
+        }
+        os << *ant;
+    }
+    if (!seq.first.empty()) {
+        os << ' ';
+    }
+    os << "⊢ ";
+    os << *seq.second;
+}
+
 class NDProof {
 public:
     virtual ~NDProof() = default;
+
     virtual void print_to(std::ostream &s) const {
         s << "NDProof for ";
-        print_sequent(s, this->thesis);
+        print_ndsequent(s, this->thesis);
+    }
+
+    virtual bool check() const {
+        throw std::runtime_error("not implemented in " + boost::typeindex::type_id_runtime(*this).pretty_name());
+    }
+
+    const ndsequent &get_thesis() const {
+        return this->thesis;
     }
 
 protected:
-    NDProof(const sequent &thesis) : thesis(thesis) {}
+    NDProof(const ndsequent &thesis) : thesis(thesis) {}
 
 private:
-    sequent thesis;
+    ndsequent thesis;
 };
 
 typedef std::shared_ptr<const NDProof> proof;
 
 class LogicalAxiom : public NDProof, public gio::virtual_enable_create<LogicalAxiom> {
+public:
+
 protected:
-    LogicalAxiom(const sequent &thesis, const formula &form)
+    LogicalAxiom(const ndsequent &thesis, const formula &form)
         : NDProof(thesis), form(form) {}
 
 private:
@@ -149,7 +188,7 @@ private:
 
 class ExistsIntroRule : public NDProof, public gio::virtual_enable_create<ExistsIntroRule> {
 protected:
-    ExistsIntroRule(const sequent &thesis, const formula &form, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &var, const term &subst_term, const proof &subproof)
+    ExistsIntroRule(const ndsequent &thesis, const formula &form, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &var, const term &subst_term, const proof &subproof)
         : NDProof(thesis), form(form), var(var), subst_term(subst_term), subproof(subproof) {}
 
 private:
@@ -160,8 +199,23 @@ private:
 };
 
 class ImpIntroRule : public NDProof, public gio::virtual_enable_create<ImpIntroRule> {
+public:
+    bool check() const override {
+        using namespace gio::mmpp::provers::fof;
+        if (!this->subproof->check()) return false;
+        const auto &th = this->get_thesis();
+        const auto &sub_th = this->subproof->get_thesis();
+        const auto &suc = th.second->mapped_dynamic_cast<const Implies>();
+        if (!suc) return false;
+        if (sub_th.first.size() < 1) return false;
+        if (!gio::eq_cmp(fof_cmp())(*suc->get_right(), *sub_th.second)) return false;
+        if (!gio::eq_cmp(fof_cmp())(*suc->get_left(), *sub_th.first.front())) return false;
+        if (!gio::is_equal(sub_th.first.begin()+1, sub_th.first.end(), th.first.begin(), th.first.end(), gio::star_cmp<fof_cmp>())) return false;
+        return true;
+    }
+
 protected:
-    ImpIntroRule(const sequent &thesis, ssize_t ant_idx, const proof &subproof)
+    ImpIntroRule(const ndsequent &thesis, ssize_t ant_idx, const proof &subproof)
         : NDProof(thesis), ant_idx(ant_idx), subproof(subproof) {}
 
 private:
@@ -171,7 +225,7 @@ private:
 
 class WeakeningRule : public NDProof, public gio::virtual_enable_create<WeakeningRule> {
 protected:
-    WeakeningRule(const sequent &thesis, const formula &form, const proof &subproof)
+    WeakeningRule(const ndsequent &thesis, const formula &form, const proof &subproof)
         : NDProof(thesis), form(form), subproof(subproof) {}
 
 private:
@@ -181,7 +235,7 @@ private:
 
 class BottomElimRule : public NDProof, public gio::virtual_enable_create<BottomElimRule> {
 protected:
-    BottomElimRule(const sequent &thesis, const formula &form, const proof &subproof)
+    BottomElimRule(const ndsequent &thesis, const formula &form, const proof &subproof)
         : NDProof(thesis), form(form), subproof(subproof) {}
 
 private:
@@ -191,7 +245,7 @@ private:
 
 class ForallElimRule : public NDProof, public gio::virtual_enable_create<ForallElimRule> {
 protected:
-    ForallElimRule(const sequent &thesis, const term &subst_term, const proof &subproof)
+    ForallElimRule(const ndsequent &thesis, const term &subst_term, const proof &subproof)
         : NDProof(thesis), subst_term(subst_term), subproof(subproof) {}
 
 private:
@@ -201,7 +255,7 @@ private:
 
 class AndElim1Rule : public NDProof, public gio::virtual_enable_create<AndElim1Rule> {
 protected:
-    AndElim1Rule(const sequent &thesis, const proof &subproof)
+    AndElim1Rule(const ndsequent &thesis, const proof &subproof)
         : NDProof(thesis), subproof(subproof) {}
 
 private:
@@ -210,7 +264,7 @@ private:
 
 class AndElim2Rule : public NDProof, public gio::virtual_enable_create<AndElim2Rule> {
 protected:
-    AndElim2Rule(const sequent &thesis, const proof &subproof)
+    AndElim2Rule(const ndsequent &thesis, const proof &subproof)
         : NDProof(thesis), subproof(subproof) {}
 
 private:
@@ -219,7 +273,7 @@ private:
 
 class ForallIntroRule : public NDProof, public gio::virtual_enable_create<ForallIntroRule> {
 protected:
-    ForallIntroRule(const sequent &thesis, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &var, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &eigenvar, const proof &subproof)
+    ForallIntroRule(const ndsequent &thesis, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &var, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &eigenvar, const proof &subproof)
         : NDProof(thesis), var(var), eigenvar(eigenvar), subproof(subproof) {}
 
 private:
@@ -229,7 +283,7 @@ private:
 
 class NegElimRule : public NDProof, public gio::virtual_enable_create<NegElimRule> {
 protected:
-    NegElimRule(const sequent &thesis, const proof &left_proof, const proof &right_proof)
+    NegElimRule(const ndsequent &thesis, const proof &left_proof, const proof &right_proof)
         : NDProof(thesis), left_proof(left_proof), right_proof(right_proof) {}
 
 private:
@@ -238,7 +292,7 @@ private:
 
 class ImpElimRule : public NDProof, public gio::virtual_enable_create<ImpElimRule> {
 protected:
-    ImpElimRule(const sequent &thesis, const proof &left_proof, const proof &right_proof)
+    ImpElimRule(const ndsequent &thesis, const proof &left_proof, const proof &right_proof)
         : NDProof(thesis), left_proof(left_proof), right_proof(right_proof) {}
 
 private:
@@ -246,8 +300,24 @@ private:
 };
 
 class AndIntroRule : public NDProof, public gio::virtual_enable_create<AndIntroRule> {
+public:
+    bool check() const override {
+        using namespace gio::mmpp::provers::fof;
+        if (!this->left_proof->check()) return false;
+        if (!this->right_proof->check()) return false;
+        const auto &th = this->get_thesis();
+        const auto &left_th = this->left_proof->get_thesis();
+        const auto &right_th = this->right_proof->get_thesis();
+        const auto &suc = th.second->mapped_dynamic_cast<const And>();
+        if (!suc) return false;
+        if (!gio::eq_cmp(fof_cmp())(*suc->get_left(), *left_th.second)) return false;
+        if (!gio::eq_cmp(fof_cmp())(*suc->get_right(), *right_th.second)) return false;
+        if (!gio::is_union(left_th.first.begin(), left_th.first.end(), right_th.first.begin(), left_th.first.end(), th.first.begin(), th.first.end(), gio::star_cmp<fof_cmp>())) return false;
+        return true;
+    }
+
 protected:
-    AndIntroRule(const sequent &thesis, const proof &left_proof, const proof &right_proof)
+    AndIntroRule(const ndsequent &thesis, const proof &left_proof, const proof &right_proof)
         : NDProof(thesis), left_proof(left_proof), right_proof(right_proof) {}
 
 private:
@@ -256,7 +326,7 @@ private:
 
 class ExistsElimRule : public NDProof, public gio::virtual_enable_create<ExistsElimRule> {
 protected:
-    ExistsElimRule(const sequent &thesis, ssize_t idx, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &eigenvar, const proof &left_proof, const proof &right_proof)
+    ExistsElimRule(const ndsequent &thesis, ssize_t idx, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &eigenvar, const proof &left_proof, const proof &right_proof)
         : NDProof(thesis), idx(idx), eigenvar(eigenvar), left_proof(left_proof), right_proof(right_proof) {}
 
 private:
@@ -267,7 +337,7 @@ private:
 
 class ContractionRule : public NDProof, public gio::virtual_enable_create<ContractionRule> {
 protected:
-    ContractionRule(const sequent &thesis, ssize_t idx1, ssize_t idx2, const proof &subproof)
+    ContractionRule(const ndsequent &thesis, ssize_t idx1, ssize_t idx2, const proof &subproof)
         : NDProof(thesis), idx1(idx1), idx2(idx2), subproof(subproof) {}
 
 private:
@@ -277,7 +347,7 @@ private:
 
 class ExcludedMiddleRule : public NDProof, public gio::virtual_enable_create<ExcludedMiddleRule> {
 protected:
-    ExcludedMiddleRule(const sequent &thesis, ssize_t left_idx, ssize_t right_idx, const proof &left_proof, const proof &right_proof)
+    ExcludedMiddleRule(const ndsequent &thesis, ssize_t left_idx, ssize_t right_idx, const proof &left_proof, const proof &right_proof)
         : NDProof(thesis), left_idx(left_idx), right_idx(right_idx), left_proof(left_proof), right_proof(right_proof) {}
 
 private:
@@ -286,7 +356,7 @@ private:
 };
 
 std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
-    auto thesis = parse_gapt_sequent(is);
+    auto thesis = parse_gapt_ndsequent(is);
     std::string type;
     is >> type;
     if (type == "ExcludedMiddle") {
@@ -377,6 +447,8 @@ int read_gapt_main(int argc, char *argv[]) {
 
     auto proof = parse_gapt_proof(std::cin);
     std::cout << *proof << "\n";
+    bool valid = proof->check();
+    gio::assert_or_throw<std::runtime_error>(valid, "invalid proof!");
 
     return 0;
 }

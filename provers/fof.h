@@ -223,141 +223,108 @@ private:
     std::shared_ptr<const FOT> y;
 };
 
-class And : public FOF, public gio::virtual_enable_create<And>, public inheritance_impl<And, fof_inheritance> {
+template<typename T>
+class FOF2 : public FOF {
 public:
     void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "∧" << *this->y << ")";
+        s << "(" << *this->left << this->get_symbol() << *this->right << ")";
     }
 
-    static bool compare(const And &x, const And &y) {
-        if (fof_cmp()(*x.x, *y.x)) { return true; }
-        if (fof_cmp()(*y.x, *x.x)) { return false; }
-        return fof_cmp()(*x.y, *y.y);
+    const std::shared_ptr<const FOF> &get_left() const {
+        return this->left;
+    }
+
+    const std::shared_ptr<const FOF> &get_right() const {
+        return this->right;
+    }
+
+    static bool compare(const T &x, const T &y) {
+        if (fof_cmp()(*x.left, *y.left)) { return true; }
+        if (fof_cmp()(*y.left, *x.left)) { return false; }
+        return fof_cmp()(*x.right, *y.right);
     }
 
 protected:
-    And(const std::shared_ptr<const FOF> &x, const std::shared_ptr<const FOF> &y) : x(x), y(y) {}
+    FOF2(const std::shared_ptr<const FOF> &left, const std::shared_ptr<const FOF> &right) : left(left), right(right) {}
+    virtual const std::string &get_symbol() const = 0;
 
-private:
-    std::shared_ptr<const FOF> x;
-    std::shared_ptr<const FOF> y;
+    std::shared_ptr<const FOF> left;
+    std::shared_ptr<const FOF> right;
 };
 
-class Or : public FOF, public gio::virtual_enable_create<Or>, public inheritance_impl<Or, fof_inheritance> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "∨" << *this->y << ")";
-    }
-
-    static bool compare(const Or &x, const Or &y) {
-        if (fof_cmp()(*x.x, *y.x)) { return true; }
-        if (fof_cmp()(*y.x, *x.x)) { return false; }
-        return fof_cmp()(*x.y, *y.y);
-    }
-
+class And : public FOF2<And>, public gio::virtual_enable_create<And>, public inheritance_impl<And, fof_inheritance> {
+    using FOF2::FOF2;
 protected:
-    Or(const std::shared_ptr<const FOF> &x, const std::shared_ptr<const FOF> &y) : x(x), y(y) {}
-
-private:
-    std::shared_ptr<const FOF> x;
-    std::shared_ptr<const FOF> y;
+    virtual const std::string &get_symbol() const override final {
+        static const std::string symbol = "∧";
+        return symbol;
+    }
 };
 
-class Iff : public FOF, public gio::virtual_enable_create<Iff>, public inheritance_impl<Iff, fof_inheritance> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "⇔" << *this->y << ")";
-    }
-
-    static bool compare(const Iff &x, const Iff &y) {
-        if (fof_cmp()(*x.x, *y.x)) { return true; }
-        if (fof_cmp()(*y.x, *x.x)) { return false; }
-        return fof_cmp()(*x.y, *y.y);
-    }
-
+class Or : public FOF2<Or>, public gio::virtual_enable_create<Or>, public inheritance_impl<Or, fof_inheritance> {
+    using FOF2::FOF2;
 protected:
-    Iff(const std::shared_ptr<const FOF> &x, const std::shared_ptr<const FOF> &y) : x(x), y(y) {}
-
-private:
-    std::shared_ptr<const FOF> x;
-    std::shared_ptr<const FOF> y;
+    virtual const std::string &get_symbol() const override final {
+        static const std::string symbol = "∨";
+        return symbol;
+    }
 };
 
-class Xor : public FOF, public gio::virtual_enable_create<Xor>, public inheritance_impl<Xor, fof_inheritance> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "⊻" << *this->y << ")";
-    }
-
-    static bool compare(const Xor &x, const Xor &y) {
-        if (fof_cmp()(*x.x, *y.x)) { return true; }
-        if (fof_cmp()(*y.x, *x.x)) { return false; }
-        return fof_cmp()(*x.y, *y.y);
-    }
-
+class Iff : public FOF2<Iff>, public gio::virtual_enable_create<Iff>, public inheritance_impl<Iff, fof_inheritance> {
+    using FOF2::FOF2;
 protected:
-    Xor(const std::shared_ptr<const FOF> &x, const std::shared_ptr<const FOF> &y) : x(x), y(y) {}
+    virtual const std::string &get_symbol() const override final {
+        static const std::string symbol = "⇔";
+        return symbol;
+    }
+};
 
-private:
-    std::shared_ptr<const FOF> x;
-    std::shared_ptr<const FOF> y;
+class Xor : public FOF2<Xor>, public gio::virtual_enable_create<Xor>, public inheritance_impl<Xor, fof_inheritance> {
+    using FOF2::FOF2;
+protected:
+    virtual const std::string &get_symbol() const override final {
+        static const std::string symbol = "⊻";
+        return symbol;
+    }
 };
 
 class Not : public FOF, public gio::virtual_enable_create<Not>, public inheritance_impl<Not, fof_inheritance> {
 public:
     void print_to(std::ostream &s) const override {
-        s << "¬" << *this->x;
+        s << "¬" << *this->arg;
+    }
+
+    const std::shared_ptr<const FOF> &get_arg() const {
+        return this->arg;
     }
 
     static bool compare(const Not &x, const Not &y) {
-        return fof_cmp()(*x.x, *y.x);
+        return fof_cmp()(*x.arg, *y.arg);
     }
 
 protected:
-    Not(const std::shared_ptr<const FOF> &x) : x(x) {}
+    Not(const std::shared_ptr<const FOF> &arg) : arg(arg) {}
 
 private:
-    std::shared_ptr<const FOF> x;
+    std::shared_ptr<const FOF> arg;
 };
 
-class Implies : public FOF, public gio::virtual_enable_create<Implies>, public inheritance_impl<Implies, fof_inheritance> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "⇒" << *this->y << ")";
-    }
-
-    static bool compare(const Implies &x, const Implies &y) {
-        if (fof_cmp()(*x.x, *y.x)) { return true; }
-        if (fof_cmp()(*y.x, *x.x)) { return false; }
-        return fof_cmp()(*x.y, *y.y);
-    }
-
+class Implies : public FOF2<Implies>, public gio::virtual_enable_create<Implies>, public inheritance_impl<Implies, fof_inheritance> {
+    using FOF2::FOF2;
 protected:
-    Implies(const std::shared_ptr<const FOF> &x, const std::shared_ptr<const FOF> &y) : x(x), y(y) {}
-
-private:
-    std::shared_ptr<const FOF> x;
-    std::shared_ptr<const FOF> y;
+    virtual const std::string &get_symbol() const override final {
+        static const std::string symbol = "⇒";
+        return symbol;
+    }
 };
 
-class Oeq : public FOF, public gio::virtual_enable_create<Oeq>, public inheritance_impl<Oeq, fof_inheritance> {
-public:
-    void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "≈" << *this->y << ")";
-    }
-
-    static bool compare(const Oeq &x, const Oeq &y) {
-        if (fof_cmp()(*x.x, *y.x)) { return true; }
-        if (fof_cmp()(*y.x, *x.x)) { return false; }
-        return fof_cmp()(*x.y, *y.y);
-    }
-
+class Oeq : public FOF2<Oeq>, public gio::virtual_enable_create<Oeq>, public inheritance_impl<Oeq, fof_inheritance> {
+    using FOF2::FOF2;
 protected:
-    Oeq(const std::shared_ptr<const FOF> &x, const std::shared_ptr<const FOF> &y) : x(x), y(y) {}
-
-private:
-    std::shared_ptr<const FOF> x;
-    std::shared_ptr<const FOF> y;
+    virtual const std::string &get_symbol() const override final {
+        static const std::string symbol = "≈";
+        return symbol;
+    }
 };
 
 class Forall : public FOF, public gio::virtual_enable_create<Forall>, public inheritance_impl<Forall, fof_inheritance> {
