@@ -9,9 +9,7 @@ namespace gio::mmpp::provers::fof {
 class FOF {
 public:
     virtual ~FOF() = default;
-    virtual void print_to(std::ostream &s) const {
-        s << "formula";
-    }
+    virtual void print_to(std::ostream &s) const = 0;
 
 protected:
     FOF() = default;
@@ -204,7 +202,7 @@ private:
 class Forall : public FOF, public gio::virtual_enable_create<Forall> {
 public:
     void print_to(std::ostream &s) const override {
-        s << "∀" << this->var << " " << *this->x;
+        s << "∀" << *this->var << " " << *this->x;
     }
 
 protected:
@@ -218,7 +216,7 @@ private:
 class Exists : public FOF, public gio::virtual_enable_create<Exists> {
 public:
     void print_to(std::ostream &s) const override {
-        s << "∃" << this->var << " " << *this->x;
+        s << "∃" << *this->var << " " << *this->x;
     }
 
 protected:

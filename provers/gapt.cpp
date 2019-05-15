@@ -77,11 +77,37 @@ sequent parse_gapt_sequent(std::istream &is) {
     return std::make_pair(ants, succs);
 }
 
+void print_sequent(std::ostream &os, const sequent &seq) {
+    using namespace gio;
+    bool first = true;
+    for (const auto &ant : seq.first) {
+        if (!first) {
+            os << ", ";
+        }
+        os << *ant;
+    }
+    if (!seq.first.empty()) {
+        os << ' ';
+    }
+    os << "⊢";
+    if (!seq.second.empty()) {
+        os << ' ';
+    }
+    first = true;
+    for (const auto &suc : seq.second) {
+        if (!first) {
+            os << ", ";
+        }
+        os << *suc;
+    }
+}
+
 class NDProof {
 public:
     virtual ~NDProof() = default;
     virtual void print_to(std::ostream &s) const {
-        s << "NDProof";
+        s << "NDProof for ";
+        print_sequent(s, this->thesis);
     }
 
 protected:
@@ -141,6 +167,16 @@ protected:
 
 private:
     formula form;
+    proof subproof;
+};
+
+class ForallElimRule : public NDProof, public gio::virtual_enable_create<ForallElimRule> {
+protected:
+    ForallElimRule(const sequent &thesis, const formula &term, const proof &subproof)
+        : NDProof(thesis), term(term), subproof(subproof) {}
+
+private:
+    formula term;
     proof subproof;
 };
 
@@ -294,6 +330,10 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
         auto form = parse_gapt_formula(is);
         auto subproof = parse_gapt_proof(is);
         return BottomElimRule::create(thesis, form, subproof);
+    } else if (type == "ForallElim") {
+        auto term = parse_gapt_formula(is);
+        auto subproof = parse_gapt_proof(is);
+        return ForallElimRule::create(thesis, term, subproof);
     } else if (type == "ForallIntro") {
         auto var = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_formula(is));
         gio::assert_or_throw<std::invalid_argument>(bool(var), "missing quantified variable");
