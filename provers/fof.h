@@ -26,6 +26,7 @@ struct fot_cmp {
 class FOT : public inheritance_base<fot_inheritance> {
 public:
     virtual void print_to(std::ostream &s) const = 0;
+    virtual bool has_free_var(const std::string &name) const = 0;
 
 protected:
     FOT() = default;
@@ -49,6 +50,13 @@ public:
         }
     }
 
+    bool has_free_var(const std::string &name) const override {
+        for (const auto &arg : this->args) {
+            if (arg->has_free_var(name)) return true;
+        }
+        return false;
+    }
+
     static bool compare(const Functor &x, const Functor &y) {
         if (x.name < y.name) { return true; }
         if (y.name < x.name) { return false; }
@@ -69,6 +77,14 @@ class Variable : public FOT, public gio::virtual_enable_create<Variable>, public
 public:
     void print_to(std::ostream &s) const override {
         s << this->name;
+    }
+
+    bool has_free_var(const std::string &name) const override {
+        return name == this->name;
+    }
+
+    const std::string &get_name() const {
+        return this->name;
     }
 
     static bool compare(const Variable &x, const Variable &y) {
@@ -112,6 +128,7 @@ struct fof_cmp {
 class FOF : public inheritance_base<fof_inheritance> {
 public:
     virtual void print_to(std::ostream &s) const = 0;
+    virtual bool has_free_var(const std::string &name) const = 0;
 
 protected:
     FOF() = default;
@@ -133,6 +150,13 @@ public:
             }
             s << ")";
         }
+    }
+
+    bool has_free_var(const std::string &name) const override {
+        for (const auto &arg : this->args) {
+            if (arg->has_free_var(name)) return true;
+        }
+        return false;
     }
 
     static bool compare(const Predicate &x, const Predicate &y) {
@@ -157,6 +181,11 @@ public:
         s << "⊤";
     }
 
+    bool has_free_var(const std::string &name) const override {
+        (void) name;
+        return false;
+    }
+
     static bool compare(const True &x, const True &y) {
         (void) x;
         (void) y;
@@ -173,6 +202,11 @@ public:
         s << "⊥";
     }
 
+    bool has_free_var(const std::string &name) const override {
+        (void) name;
+        return false;
+    }
+
     static bool compare(const False &x, const False &y) {
         (void) x;
         (void) y;
@@ -186,41 +220,49 @@ protected:
 class Equal : public FOF, public gio::virtual_enable_create<Equal>, public inheritance_impl<Equal, fof_inheritance> {
 public:
     void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "=" << *this->y << ")";
+        s << "(" << *this->left << "=" << *this->right << ")";
+    }
+
+    bool has_free_var(const std::string &name) const override {
+        return this->left->has_free_var(name) || this->right->has_free_var(name);
     }
 
     static bool compare(const Equal &x, const Equal &y) {
-        if (fot_cmp()(*x.x, *y.x)) { return true; }
-        if (fot_cmp()(*y.x, *x.x)) { return false; }
-        return fot_cmp()(*x.y, *y.y);
+        if (fot_cmp()(*x.left, *y.left)) { return true; }
+        if (fot_cmp()(*y.left, *x.left)) { return false; }
+        return fot_cmp()(*x.right, *y.right);
     }
 
 protected:
-    Equal(const std::shared_ptr<const FOT> &x, const std::shared_ptr<const FOT> &y) : x(x), y(y) {}
+    Equal(const std::shared_ptr<const FOT> &x, const std::shared_ptr<const FOT> &y) : left(x), right(y) {}
 
 private:
-    std::shared_ptr<const FOT> x;
-    std::shared_ptr<const FOT> y;
+    std::shared_ptr<const FOT> left;
+    std::shared_ptr<const FOT> right;
 };
 
 class Distinct : public FOF, public gio::virtual_enable_create<Distinct>, public inheritance_impl<Distinct, fof_inheritance> {
 public:
     void print_to(std::ostream &s) const override {
-        s << "(" << *this->x << "≠" << *this->y << ")";
+        s << "(" << *this->left << "≠" << *this->right << ")";
+    }
+
+    bool has_free_var(const std::string &name) const override {
+        return this->left->has_free_var(name) || this->right->has_free_var(name);
     }
 
     static bool compare(const Distinct &x, const Distinct &y) {
-        if (fot_cmp()(*x.x, *y.x)) { return true; }
-        if (fot_cmp()(*y.x, *x.x)) { return false; }
-        return fot_cmp()(*x.y, *y.y);
+        if (fot_cmp()(*x.left, *y.left)) { return true; }
+        if (fot_cmp()(*y.left, *x.left)) { return false; }
+        return fot_cmp()(*x.right, *y.right);
     }
 
 protected:
-    Distinct(const std::shared_ptr<const FOT> &x, const std::shared_ptr<const FOT> &y) : x(x), y(y) {}
+    Distinct(const std::shared_ptr<const FOT> &x, const std::shared_ptr<const FOT> &y) : left(x), right(y) {}
 
 private:
-    std::shared_ptr<const FOT> x;
-    std::shared_ptr<const FOT> y;
+    std::shared_ptr<const FOT> left;
+    std::shared_ptr<const FOT> right;
 };
 
 template<typename T>
@@ -228,6 +270,10 @@ class FOF2 : public FOF {
 public:
     void print_to(std::ostream &s) const override {
         s << "(" << *this->left << this->get_symbol() << *this->right << ")";
+    }
+
+    bool has_free_var(const std::string &name) const override {
+        return this->left->has_free_var(name) || this->right->has_free_var(name);
     }
 
     const std::shared_ptr<const FOF> &get_left() const {
@@ -294,6 +340,10 @@ public:
         s << "¬" << *this->arg;
     }
 
+    bool has_free_var(const std::string &name) const override {
+        return this->arg->has_free_var(name);
+    }
+
     const std::shared_ptr<const FOF> &get_arg() const {
         return this->arg;
     }
@@ -330,41 +380,51 @@ protected:
 class Forall : public FOF, public gio::virtual_enable_create<Forall>, public inheritance_impl<Forall, fof_inheritance> {
 public:
     void print_to(std::ostream &s) const override {
-        s << "∀" << *this->var << " " << *this->x;
+        s << "∀" << *this->var << " " << *this->arg;
+    }
+
+    bool has_free_var(const std::string &name) const override {
+        if (this->var->get_name() == name) return false;
+        return this->arg->has_free_var(name);
     }
 
     static bool compare(const Forall &x, const Forall &y) {
         if (fot_cmp()(*x.var, *y.var)) { return true; }
         if (fot_cmp()(*y.var, *x.var)) { return false; }
-        return fof_cmp()(*x.x, *y.x);
+        return fof_cmp()(*x.arg, *y.arg);
     }
 
 protected:
-    Forall(const std::shared_ptr<const Variable> &var, const std::shared_ptr<const FOF> &x) : var(var), x(x) {}
+    Forall(const std::shared_ptr<const Variable> &var, const std::shared_ptr<const FOF> &x) : var(var), arg(x) {}
 
 private:
     std::shared_ptr<const Variable> var;
-    std::shared_ptr<const FOF> x;
+    std::shared_ptr<const FOF> arg;
 };
 
 class Exists : public FOF, public gio::virtual_enable_create<Exists>, public inheritance_impl<Exists, fof_inheritance> {
 public:
     void print_to(std::ostream &s) const override {
-        s << "∃" << *this->var << " " << *this->x;
+        s << "∃" << *this->var << " " << *this->arg;
+    }
+
+    bool has_free_var(const std::string &name) const override {
+        if (this->var->get_name() == name) return false;
+        return this->arg->has_free_var(name);
     }
 
     static bool compare(const Exists &x, const Exists &y) {
         if (fot_cmp()(*x.var, *y.var)) { return true; }
         if (fot_cmp()(*y.var, *x.var)) { return false; }
-        return fof_cmp()(*x.x, *y.x);
+        return fof_cmp()(*x.arg, *y.arg);
     }
 
 protected:
-    Exists(const std::shared_ptr<const Variable> &var, const std::shared_ptr<const FOF> &x) : var(var), x(x) {}
+    Exists(const std::shared_ptr<const Variable> &var, const std::shared_ptr<const FOF> &x) : var(var), arg(x) {}
 
 private:
     std::shared_ptr<const Variable> var;
-    std::shared_ptr<const FOF> x;
+    std::shared_ptr<const FOF> arg;
 };
 
 }
