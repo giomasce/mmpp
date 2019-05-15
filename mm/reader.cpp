@@ -528,6 +528,7 @@ void Reader::parse_j_code(const std::vector<std::vector<std::pair<bool, std::str
         } else if (command == "condequality") {
         } else if (command == "equality") {
         } else if (command == "bound") {
+        } else if (command == "free_var") {
         } else if (command == "natded_init") {
         } else if (command == "natded_assume") {
         } else if (command == "natded_weak") {
