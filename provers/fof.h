@@ -27,6 +27,7 @@ class FOT : public inheritance_base<fot_inheritance> {
 public:
     virtual void print_to(std::ostream &s) const = 0;
     virtual bool has_free_var(const std::string &name) const = 0;
+    virtual std::shared_ptr<const FOT> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const = 0;
 
 protected:
     FOT() = default;
@@ -57,6 +58,18 @@ public:
         return false;
     }
 
+    std::shared_ptr<const FOT> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override {
+        std::vector<std::shared_ptr<const FOT>> new_args;
+        for (const auto &arg : this->args) {
+            new_args.push_back(arg->replace(var_name, term));
+        }
+        if (new_args == this->args) {
+            return this->virtual_enable_create<Functor>::shared_from_this();
+        } else {
+            return Functor::create(this->name, new_args);
+        }
+    }
+
     static bool compare(const Functor &x, const Functor &y) {
         if (x.name < y.name) { return true; }
         if (y.name < x.name) { return false; }
@@ -81,6 +94,14 @@ public:
 
     bool has_free_var(const std::string &name) const override {
         return name == this->name;
+    }
+
+    std::shared_ptr<const FOT> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override {
+        if (var_name == this->name) {
+            return term;
+        } else {
+            return this->virtual_enable_create<Variable>::shared_from_this();
+        }
     }
 
     const std::string &get_name() const {
@@ -129,6 +150,7 @@ class FOF : public inheritance_base<fof_inheritance> {
 public:
     virtual void print_to(std::ostream &s) const = 0;
     virtual bool has_free_var(const std::string &name) const = 0;
+    virtual std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const = 0;
 
 protected:
     FOF() = default;
@@ -159,6 +181,18 @@ public:
         return false;
     }
 
+    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override {
+        std::vector<std::shared_ptr<const FOT>> new_args;
+        for (const auto &arg : this->args) {
+            new_args.push_back(arg->replace(var_name, term));
+        }
+        if (new_args == this->args) {
+            return this->virtual_enable_create<Predicate>::shared_from_this();
+        } else {
+            return Predicate::create(this->name, new_args);
+        }
+    }
+
     static bool compare(const Predicate &x, const Predicate &y) {
         if (x.name < y.name) { return true; }
         if (y.name < x.name) { return false; }
@@ -186,6 +220,12 @@ public:
         return false;
     }
 
+    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override {
+        (void) var_name;
+        (void) term;
+        return this->virtual_enable_create<True>::shared_from_this();
+    }
+
     static bool compare(const True &x, const True &y) {
         (void) x;
         (void) y;
@@ -207,6 +247,12 @@ public:
         return false;
     }
 
+    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override {
+        (void) var_name;
+        (void) term;
+        return this->virtual_enable_create<False>::shared_from_this();
+    }
+
     static bool compare(const False &x, const False &y) {
         (void) x;
         (void) y;
@@ -225,6 +271,16 @@ public:
 
     bool has_free_var(const std::string &name) const override {
         return this->left->has_free_var(name) || this->right->has_free_var(name);
+    }
+
+    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override {
+        auto new_left = this->left->replace(var_name, term);
+        auto new_right = this->right->replace(var_name, term);
+        if (new_left == this->left && new_right == this->right) {
+            return this->virtual_enable_create<Equal>::shared_from_this();
+        } else {
+            return Equal::create(new_left, new_right);
+        }
     }
 
     static bool compare(const Equal &x, const Equal &y) {
@@ -251,6 +307,16 @@ public:
         return this->left->has_free_var(name) || this->right->has_free_var(name);
     }
 
+    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override {
+        auto new_left = this->left->replace(var_name, term);
+        auto new_right = this->right->replace(var_name, term);
+        if (new_left == this->left && new_right == this->right) {
+            return this->virtual_enable_create<Distinct>::shared_from_this();
+        } else {
+            return Distinct::create(new_left, new_right);
+        }
+    }
+
     static bool compare(const Distinct &x, const Distinct &y) {
         if (fot_cmp()(*x.left, *y.left)) { return true; }
         if (fot_cmp()(*y.left, *x.left)) { return false; }
@@ -266,7 +332,7 @@ private:
 };
 
 template<typename T>
-class FOF2 : public FOF {
+class FOF2 : public FOF, public virtual_enable_shared_from_this<FOF2<T>> {
 public:
     void print_to(std::ostream &s) const override {
         s << "(" << *this->left << this->get_symbol() << *this->right << ")";
@@ -274,6 +340,16 @@ public:
 
     bool has_free_var(const std::string &name) const override {
         return this->left->has_free_var(name) || this->right->has_free_var(name);
+    }
+
+    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override {
+        auto new_left = this->left->replace(var_name, term);
+        auto new_right = this->right->replace(var_name, term);
+        if (new_left == this->left && new_right == this->right) {
+            return this->virtual_enable_shared_from_this<FOF2<T>>::shared_from_this();
+        } else {
+            return T::create(new_left, new_right);
+        }
     }
 
     const std::shared_ptr<const FOF> &get_left() const {
@@ -344,6 +420,15 @@ public:
         return this->arg->has_free_var(name);
     }
 
+    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override {
+        auto new_arg = this->arg->replace(var_name, term);
+        if (new_arg == this->arg) {
+            return this->virtual_enable_create<Not>::shared_from_this();
+        } else {
+            return Not::create(new_arg);
+        }
+    }
+
     const std::shared_ptr<const FOF> &get_arg() const {
         return this->arg;
     }
@@ -388,6 +473,20 @@ public:
         return this->arg->has_free_var(name);
     }
 
+    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override {
+        if (var_name == this->var->get_name()) {
+            // Easy case: we do not have to do anything when replacing the quantified variable
+            return this->virtual_enable_create<Forall>::shared_from_this();
+        }
+        gio::assert_or_throw<std::runtime_error>(!term->has_free_var(this->var->get_name()), "replacement would cause variable capture");
+        auto new_arg = this->arg->replace(var_name, term);
+        if (new_arg == this->arg) {
+            return this->virtual_enable_create<Forall>::shared_from_this();
+        } else {
+            return Forall::create(this->var, new_arg);
+        }
+    }
+
     static bool compare(const Forall &x, const Forall &y) {
         if (fot_cmp()(*x.var, *y.var)) { return true; }
         if (fot_cmp()(*y.var, *x.var)) { return false; }
@@ -411,6 +510,20 @@ public:
     bool has_free_var(const std::string &name) const override {
         if (this->var->get_name() == name) return false;
         return this->arg->has_free_var(name);
+    }
+
+    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override {
+        if (var_name == this->var->get_name()) {
+            // Easy case: we do not have to do anything when replacing the quantified variable
+            return this->virtual_enable_create<Exists>::shared_from_this();
+        }
+        gio::assert_or_throw<std::runtime_error>(!term->has_free_var(this->var->get_name()), "replacement would cause variable capture");
+        auto new_arg = this->arg->replace(var_name, term);
+        if (new_arg == this->arg) {
+            return this->virtual_enable_create<Exists>::shared_from_this();
+        } else {
+            return Exists::create(this->var, new_arg);
+        }
     }
 
     static bool compare(const Exists &x, const Exists &y) {
