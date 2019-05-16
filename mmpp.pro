@@ -159,7 +159,8 @@ SOURCES += \
     provers/tstp/tstp_parser.cpp \
     provers/z3prover3.cpp \
     provers/z3resolver.cpp \
-    provers/gapt.cpp
+    provers/gapt.cpp \
+    provers/fof.cpp
 
 HEADERS += \
     pch.h \
