@@ -773,17 +773,22 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
     auto thesis = parse_gapt_ndsequent(is);
     std::string type;
     is >> type;
-    if (type == "ExcludedMiddle") {
-        ssize_t left_idx, right_idx;
-        is >> left_idx >> right_idx;
-        auto left_proof = parse_gapt_proof(is);
-        auto right_proof = parse_gapt_proof(is);
-        return ExcludedMiddleRule::create(thesis, left_idx, right_idx, left_proof, right_proof);
+    if (type == "LogicalAxiom") {
+        auto form = parse_gapt_formula(is);
+        return LogicalAxiom::create(thesis, form);
+    } else if (type == "Weakening") {
+        auto form = parse_gapt_formula(is);
+        auto subproof = parse_gapt_proof(is);
+        return WeakeningRule::create(thesis, form, subproof);
     } else if (type == "Contraction") {
         ssize_t idx1, idx2;
         is >> idx1 >> idx2;
         auto subproof = parse_gapt_proof(is);
         return ContractionRule::create(thesis, idx1, idx2, subproof);
+    } else if (type == "AndIntro") {
+        auto left_proof = parse_gapt_proof(is);
+        auto right_proof = parse_gapt_proof(is);
+        return AndIntroRule::create(thesis, left_proof, right_proof);
     } else if (type == "AndElim1") {
         auto subproof = parse_gapt_proof(is);
         return AndElim1Rule::create(thesis, subproof);
@@ -809,10 +814,37 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
         auto left_proof = parse_gapt_proof(is);
         auto right_proof = parse_gapt_proof(is);
         return NegElimRule::create(thesis, left_proof, right_proof);
-    } else if (type == "AndIntro") {
+    } else if (type == "ImpIntro") {
+        ssize_t ant_idx;
+        is >> ant_idx;
+        auto subproof = parse_gapt_proof(is);
+        return ImpIntroRule::create(thesis, ant_idx, subproof);
+    } else if (type == "ImpElim") {
         auto left_proof = parse_gapt_proof(is);
         auto right_proof = parse_gapt_proof(is);
-        return AndIntroRule::create(thesis, left_proof, right_proof);
+        return ImpElimRule::create(thesis, left_proof, right_proof);
+    } else if (type == "BottomElim") {
+        auto form = parse_gapt_formula(is);
+        auto subproof = parse_gapt_proof(is);
+        return BottomElimRule::create(thesis, form, subproof);
+    } else if (type == "ForallIntro") {
+        auto var = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_term(is));
+        gio::assert_or_throw<std::invalid_argument>(bool(var), "missing quantified variable");
+        auto eigenvar = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_term(is));
+        gio::assert_or_throw<std::invalid_argument>(bool(eigenvar), "missing eigenvariable");
+        auto subproof = parse_gapt_proof(is);
+        return ForallIntroRule::create(thesis, var, eigenvar, subproof);
+    } else if (type == "ForallElim") {
+        auto term = parse_gapt_term(is);
+        auto subproof = parse_gapt_proof(is);
+        return ForallElimRule::create(thesis, term, subproof);
+    } else if (type == "ExistsIntro") {
+        auto form = parse_gapt_formula(is);
+        auto var = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_term(is));
+        gio::assert_or_throw<std::invalid_argument>(bool(var), "missing substitution variable");
+        auto term = parse_gapt_term(is);
+        auto subproof = parse_gapt_proof(is);
+        return ExistsIntroRule::create(thesis, form, var, term, subproof);
     } else if (type == "ExistsElim") {
         ssize_t idx;
         is >> idx;
@@ -821,44 +853,6 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
         auto left_proof = parse_gapt_proof(is);
         auto right_proof = parse_gapt_proof(is);
         return ExistsElimRule::create(thesis, idx, eigenvar, left_proof, right_proof);
-    } else if (type == "ImpElim") {
-        auto left_proof = parse_gapt_proof(is);
-        auto right_proof = parse_gapt_proof(is);
-        return ImpElimRule::create(thesis, left_proof, right_proof);
-    } else if (type == "LogicalAxiom") {
-        auto form = parse_gapt_formula(is);
-        return LogicalAxiom::create(thesis, form);
-    } else if (type == "ExistsIntro") {
-        auto form = parse_gapt_formula(is);
-        auto var = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_term(is));
-        gio::assert_or_throw<std::invalid_argument>(bool(var), "missing substitution variable");
-        auto term = parse_gapt_term(is);
-        auto subproof = parse_gapt_proof(is);
-        return ExistsIntroRule::create(thesis, form, var, term, subproof);
-    } else if (type == "ImpIntro") {
-        ssize_t ant_idx;
-        is >> ant_idx;
-        auto subproof = parse_gapt_proof(is);
-        return ImpIntroRule::create(thesis, ant_idx, subproof);
-    } else if (type == "Weakening") {
-        auto form = parse_gapt_formula(is);
-        auto subproof = parse_gapt_proof(is);
-        return WeakeningRule::create(thesis, form, subproof);
-    } else if (type == "BottomElim") {
-        auto form = parse_gapt_formula(is);
-        auto subproof = parse_gapt_proof(is);
-        return BottomElimRule::create(thesis, form, subproof);
-    } else if (type == "ForallElim") {
-        auto term = parse_gapt_term(is);
-        auto subproof = parse_gapt_proof(is);
-        return ForallElimRule::create(thesis, term, subproof);
-    } else if (type == "ForallIntro") {
-        auto var = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_term(is));
-        gio::assert_or_throw<std::invalid_argument>(bool(var), "missing quantified variable");
-        auto eigenvar = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_term(is));
-        gio::assert_or_throw<std::invalid_argument>(bool(eigenvar), "missing eigenvariable");
-        auto subproof = parse_gapt_proof(is);
-        return ForallIntroRule::create(thesis, var, eigenvar, subproof);
     } else if (type == "EqualityIntro") {
         auto t = parse_gapt_term(is);
         return EqualityIntroRule::create(thesis, t);
@@ -869,6 +863,12 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
         auto left_proof = parse_gapt_proof(is);
         auto right_proof = parse_gapt_proof(is);
         return EqualityElimRule::create(thesis, var, form, left_proof, right_proof);
+    } else if (type == "ExcludedMiddle") {
+        ssize_t left_idx, right_idx;
+        is >> left_idx >> right_idx;
+        auto left_proof = parse_gapt_proof(is);
+        auto right_proof = parse_gapt_proof(is);
+        return ExcludedMiddleRule::create(thesis, left_idx, right_idx, left_proof, right_proof);
     } else {
         throw std::runtime_error("invalid proof type " + type);
     }
