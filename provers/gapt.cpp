@@ -65,6 +65,10 @@ formula parse_gapt_formula(std::istream &is) {
     } else if (type == "not") {
         auto arg = parse_gapt_formula(is);
         return Not::create(arg);
+    } else if (type == "equal") {
+        auto left = parse_gapt_term(is);
+        auto right = parse_gapt_term(is);
+        return Equal::create(left, right);
     } else if (type == "false") {
         return False::create();
     } else if (type == "true") {
@@ -290,7 +294,7 @@ public:
         const auto &th = this->get_thesis();
         const auto &left_th = this->left_proof->get_thesis();
         const auto &right_th = this->right_proof->get_thesis();
-        const auto &suc = th.second->mapped_dynamic_cast<const And>();
+        const auto suc = th.second->mapped_dynamic_cast<const And>();
         if (!suc) return false;
         if (!gio::eq_cmp(fof_cmp())(*suc->get_left(), *left_th.second)) return false;
         if (!gio::eq_cmp(fof_cmp())(*suc->get_right(), *right_th.second)) return false;
@@ -314,7 +318,7 @@ public:
         if (!this->subproof->check()) return false;
         const auto &th = this->get_thesis();
         const auto &sub_th = this->subproof->get_thesis();
-        const auto &ant = sub_th.second->mapped_dynamic_cast<const And>();
+        const auto ant = sub_th.second->mapped_dynamic_cast<const And>();
         if (!ant) return false;
         if (!gio::eq_cmp(fof_cmp())(*ant->get_left(), *th.second)) return false;
         if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
@@ -337,7 +341,7 @@ public:
         if (!this->subproof->check()) return false;
         const auto &th = this->get_thesis();
         const auto &sub_th = this->subproof->get_thesis();
-        const auto &ant = sub_th.second->mapped_dynamic_cast<const And>();
+        const auto ant = sub_th.second->mapped_dynamic_cast<const And>();
         if (!ant) return false;
         if (!gio::eq_cmp(fof_cmp())(*ant->get_right(), *th.second)) return false;
         if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
@@ -353,6 +357,90 @@ private:
     proof subproof;
 };
 
+class OrIntro1Rule : public NDProof, public gio::virtual_enable_create<OrIntro1Rule> {
+public:
+    bool check() const override {
+        using namespace gio::mmpp::provers::fof;
+        if (!this->subproof->check()) return false;
+        const auto &th = this->get_thesis();
+        const auto &sub_th = this->subproof->get_thesis();
+        if (!gio::eq_cmp(fof_cmp())(*std::static_pointer_cast<const FOF>(Or::create(sub_th.second, this->disjunct)), *th.second)) return false;
+        if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
+                           th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
+        return true;
+    }
+
+protected:
+    OrIntro1Rule(const ndsequent &thesis, const formula &disjunct, const proof &subproof)
+        : NDProof(thesis), disjunct(disjunct), subproof(subproof) {}
+
+private:
+    formula disjunct;
+    proof subproof;
+};
+
+class OrIntro2Rule : public NDProof, public gio::virtual_enable_create<OrIntro2Rule> {
+public:
+    bool check() const override {
+        using namespace gio::mmpp::provers::fof;
+        if (!this->subproof->check()) return false;
+        const auto &th = this->get_thesis();
+        const auto &sub_th = this->subproof->get_thesis();
+        if (!gio::eq_cmp(fof_cmp())(*std::static_pointer_cast<const FOF>(Or::create(this->disjunct, sub_th.second)), *th.second)) return false;
+        if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
+                           th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
+        return true;
+    }
+
+protected:
+    OrIntro2Rule(const ndsequent &thesis, const formula &disjunct, const proof &subproof)
+        : NDProof(thesis), disjunct(disjunct), subproof(subproof) {}
+
+private:
+    formula disjunct;
+    proof subproof;
+};
+
+class OrElimRule : public NDProof, public gio::virtual_enable_create<OrElimRule> {
+public:
+    bool check() const override {
+        using namespace gio::mmpp::provers::fof;
+        if (!this->left_proof->check()) return false;
+        if (!this->middle_proof->check()) return false;
+        if (!this->right_proof->check()) return false;
+        const auto &th = this->get_thesis();
+        const auto &left_th = this->left_proof->get_thesis();
+        const auto &middle_th = this->middle_proof->get_thesis();
+        const auto &right_th = this->right_proof->get_thesis();
+        bool valid;
+        size_t middle_idx, right_idx;
+        std::tie(valid, middle_idx) = decode_idx(this->middle_idx, false);
+        if (!valid) return false;
+        if (middle_idx >= middle_th.first.size()) return false;
+        std::tie(valid, right_idx) = decode_idx(this->right_idx, false);
+        if (!valid) return false;
+        if (right_idx >= right_th.first.size()) return false;
+        if (!gio::eq_cmp(fof_cmp())(*left_th.second, *std::static_pointer_cast<const FOF>(Or::create(middle_th.first[middle_idx], right_th.first[right_idx])))) return false;
+        if (!gio::eq_cmp(fof_cmp())(*th.second, *middle_th.second)) return false;
+        if (!gio::eq_cmp(fof_cmp())(*th.second, *right_th.second)) return false;
+        if (!gio::is_union3(left_th.first.begin(), left_th.first.end(),
+                            gio::skipping_iterator(middle_th.first.begin(), middle_th.first.end(), {middle_idx}),
+                            gio::skipping_iterator(middle_th.first.end(), middle_th.first.end(), {}),
+                            gio::skipping_iterator(right_th.first.begin(), right_th.first.end(), {right_idx}),
+                            gio::skipping_iterator(right_th.first.end(), right_th.first.end(), {}),
+                            th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
+        return true;
+    }
+
+protected:
+    OrElimRule(const ndsequent &thesis, ssize_t middle_idx, ssize_t right_idx, const proof &left_proof, const proof &middle_proof, const proof &right_proof)
+        : NDProof(thesis), middle_idx(middle_idx), right_idx(right_idx), left_proof(left_proof), middle_proof(middle_proof), right_proof(right_proof) {}
+
+private:
+    ssize_t middle_idx, right_idx;
+    proof left_proof, middle_proof, right_proof;
+};
+
 class NegElimRule : public NDProof, public gio::virtual_enable_create<NegElimRule> {
 public:
     bool check() const override {
@@ -362,7 +450,7 @@ public:
         const auto &th = this->get_thesis();
         const auto &left_th = this->left_proof->get_thesis();
         const auto &right_th = this->right_proof->get_thesis();
-        const auto &neg = left_th.second->mapped_dynamic_cast<const Not>();
+        const auto neg = left_th.second->mapped_dynamic_cast<const Not>();
         if (!neg) return false;
         if (!gio::eq_cmp(fof_cmp())(*neg->get_arg(), *right_th.second)) return false;
         if (!gio::eq_cmp(fof_cmp())(*th.second, *std::static_pointer_cast<const FOF>(False::create()))) return false;
@@ -370,6 +458,7 @@ public:
                            th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
     }
+
 protected:
     NegElimRule(const ndsequent &thesis, const proof &left_proof, const proof &right_proof)
         : NDProof(thesis), left_proof(left_proof), right_proof(right_proof) {}
@@ -390,7 +479,7 @@ public:
         std::tie(valid, ant_idx) = decode_idx(this->ant_idx, false);
         if (!valid) return false;
         if (ant_idx >= sub_th.first.size()) return false;
-        const auto &suc = th.second->mapped_dynamic_cast<const Implies>();
+        const auto suc = th.second->mapped_dynamic_cast<const Implies>();
         if (!suc) return false;
         if (sub_th.first.size() < 1) return false;
         if (!gio::eq_cmp(fof_cmp())(*suc->get_left(), *sub_th.first[ant_idx])) return false;
@@ -419,7 +508,7 @@ public:
         const auto &th = this->get_thesis();
         const auto &left_th = this->left_proof->get_thesis();
         const auto &right_th = this->right_proof->get_thesis();
-        const auto &imp = left_th.second->mapped_dynamic_cast<const Implies>();
+        const auto imp = left_th.second->mapped_dynamic_cast<const Implies>();
         if (!imp) return false;
         if (!gio::eq_cmp(fof_cmp())(*imp->get_left(), *right_th.second)) return false;
         if (!gio::eq_cmp(fof_cmp())(*imp->get_right(), *th.second)) return false;
@@ -466,7 +555,7 @@ public:
         if (!this->subproof->check()) return false;
         const auto &th = this->get_thesis();
         const auto &sub_th = this->subproof->get_thesis();
-        const auto &all = th.second->mapped_dynamic_cast<const Forall>();
+        const auto all = th.second->mapped_dynamic_cast<const Forall>();
         if (!all) return false;
         const auto &var = all->get_var();
         if (!gio::eq_cmp(fot_cmp())(*var, *this->var)) return false;
@@ -498,7 +587,7 @@ public:
         if (!this->subproof->check()) return false;
         const auto &th = this->get_thesis();
         const auto &sub_th = this->subproof->get_thesis();
-        const auto &all = sub_th.second->mapped_dynamic_cast<const Forall>();
+        const auto all = sub_th.second->mapped_dynamic_cast<const Forall>();
         if (!all) return false;
         const auto &var = all->get_var();
         if (!gio::eq_cmp(fof_cmp())(*all->get_arg()->replace(var->get_name(), this->subst_term), *th.second)) return false;
@@ -523,7 +612,7 @@ public:
         if (!this->subproof->check()) return false;
         const auto &th = this->get_thesis();
         const auto &sub_th = this->subproof->get_thesis();
-        const auto &ex = th.second->mapped_dynamic_cast<const Exists>();
+        const auto ex = th.second->mapped_dynamic_cast<const Exists>();
         if (!ex) return false;
         const auto &var = ex->get_var();
         if (!gio::eq_cmp(fot_cmp())(*var, *this->var)) return false;
@@ -559,7 +648,7 @@ public:
         std::tie(valid, idx) = decode_idx(this->idx, false);
         if (!valid) return false;
         if (idx >= right_th.first.size()) return false;
-        const auto &ex = left_th.second->mapped_dynamic_cast<const Exists>();
+        const auto ex = left_th.second->mapped_dynamic_cast<const Exists>();
         if (!ex) return false;
         const auto &var = ex->get_var();
         for (const auto &ant : gio::iterator_pair(gio::skipping_iterator(right_th.first.begin(), right_th.first.end(), {idx}),
@@ -589,6 +678,58 @@ private:
     proof left_proof, right_proof;
 };
 
+class EqualityIntroRule : public NDProof, public gio::virtual_enable_create<EqualityIntroRule> {
+public:
+    bool check() const override {
+        using namespace gio::mmpp::provers::fof;
+        const auto &th = this->get_thesis();
+        if (!th.first.empty()) return false;
+        if (!gio::eq_cmp(fof_cmp())(*th.second, *std::static_pointer_cast<const FOF>(Equal::create(this->t, this->t)))) return false;
+        return true;
+    }
+
+protected:
+    EqualityIntroRule(const ndsequent &thesis, const term &t)
+        : NDProof(thesis), t(t) {}
+
+private:
+    term t;
+};
+
+class EqualityElimRule : public NDProof, public gio::virtual_enable_create<EqualityElimRule> {
+public:
+    bool check() const override {
+        using namespace gio::mmpp::provers::fof;
+        if (!this->left_proof->check()) return false;
+        if (!this->right_proof->check()) return false;
+        const auto &th = this->get_thesis();
+        const auto &left_th = this->left_proof->get_thesis();
+        const auto &right_th = this->right_proof->get_thesis();
+        const auto eq = left_th.second->mapped_dynamic_cast<const Equal>();
+        if (!eq) return false;
+        // The equality might be used in a sense or in the other, and we don't know it, so we have to check both possibilities
+        bool ok_direct = true;
+        bool ok_inverted = true;
+        if (!gio::eq_cmp(fof_cmp())(*right_th.second, *this->form->replace(this->var->get_name(), eq->get_left()))) ok_direct = false;
+        if (!gio::eq_cmp(fof_cmp())(*th.second, *this->form->replace(this->var->get_name(), eq->get_right()))) ok_direct = false;
+        if (!gio::eq_cmp(fof_cmp())(*right_th.second, *this->form->replace(this->var->get_name(), eq->get_right()))) ok_inverted = false;
+        if (!gio::eq_cmp(fof_cmp())(*th.second, *this->form->replace(this->var->get_name(), eq->get_left()))) ok_inverted = false;
+        if (!ok_direct && !ok_inverted) return false;
+        if (!gio::is_union(left_th.first.begin(), left_th.first.end(), right_th.first.begin(), right_th.first.end(),
+                           th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
+        return true;
+    }
+
+protected:
+    EqualityElimRule(const ndsequent &thesis, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &var, const formula &form, const proof &left_proof, const proof &right_proof)
+        : NDProof(thesis), var(var), form(form), left_proof(left_proof), right_proof(right_proof) {}
+
+private:
+    std::shared_ptr<const gio::mmpp::provers::fof::Variable> var;
+    formula form;
+    proof left_proof, right_proof;
+};
+
 class ExcludedMiddleRule : public NDProof, public gio::virtual_enable_create<ExcludedMiddleRule> {
 public:
     bool check() const override {
@@ -608,7 +749,7 @@ public:
         if (right_idx >= right_th.first.size()) return false;
         if (!gio::eq_cmp(fof_cmp())(*left_th.second, *right_th.second)) return false;
         if (!gio::eq_cmp(fof_cmp())(*left_th.second, *th.second)) return false;
-        const auto &absurd = right_th.first[right_idx]->mapped_dynamic_cast<const Not>();
+        const auto absurd = right_th.first[right_idx]->mapped_dynamic_cast<const Not>();
         if (!absurd) return false;
         if (!gio::eq_cmp(fof_cmp())(*absurd->get_arg(), *left_th.first[left_idx])) return false;
         if (!gio::is_union(gio::skipping_iterator(left_th.first.begin(), left_th.first.end(), {left_idx}),
@@ -649,6 +790,21 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
     } else if (type == "AndElim2") {
         auto subproof = parse_gapt_proof(is);
         return AndElim2Rule::create(thesis, subproof);
+    } else if (type == "OrIntro1") {
+        auto disjunct = parse_gapt_formula(is);
+        auto subproof = parse_gapt_proof(is);
+        return OrIntro1Rule::create(thesis, disjunct, subproof);
+    } else if (type == "OrIntro2") {
+        auto disjunct = parse_gapt_formula(is);
+        auto subproof = parse_gapt_proof(is);
+        return OrIntro2Rule::create(thesis, disjunct, subproof);
+    } else if (type == "OrElim") {
+        ssize_t middle_idx, right_idx;
+        is >> middle_idx >> right_idx;
+        auto left_proof = parse_gapt_proof(is);
+        auto middle_proof = parse_gapt_proof(is);
+        auto right_proof = parse_gapt_proof(is);
+        return OrElimRule::create(thesis, middle_idx, right_idx, left_proof, middle_proof, right_proof);
     } else if (type == "NegElim") {
         auto left_proof = parse_gapt_proof(is);
         auto right_proof = parse_gapt_proof(is);
@@ -703,6 +859,16 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
         gio::assert_or_throw<std::invalid_argument>(bool(eigenvar), "missing eigenvariable");
         auto subproof = parse_gapt_proof(is);
         return ForallIntroRule::create(thesis, var, eigenvar, subproof);
+    } else if (type == "EqualityIntro") {
+        auto t = parse_gapt_term(is);
+        return EqualityIntroRule::create(thesis, t);
+    } else if (type == "EqualityElim") {
+        auto var = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_term(is));
+        gio::assert_or_throw<std::invalid_argument>(bool(var), "missing substitution variable");
+        auto form = parse_gapt_formula(is);
+        auto left_proof = parse_gapt_proof(is);
+        auto right_proof = parse_gapt_proof(is);
+        return EqualityElimRule::create(thesis, var, form, left_proof, right_proof);
     } else {
         throw std::runtime_error("invalid proof type " + type);
     }

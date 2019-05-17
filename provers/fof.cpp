@@ -183,6 +183,14 @@ std::shared_ptr<const FOF> Equal::replace(const std::string &var_name, const std
     }
 }
 
+const std::shared_ptr<const FOT> &Equal::get_left() const {
+    return this->left;
+}
+
+const std::shared_ptr<const FOT> &Equal::get_right() const {
+    return this->right;
+}
+
 bool Equal::compare(const Equal &x, const Equal &y) {
     if (fot_cmp()(*x.left, *y.left)) { return true; }
     if (fot_cmp()(*y.left, *x.left)) { return false; }

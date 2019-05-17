@@ -142,6 +142,8 @@ public:
     void print_to(std::ostream &s) const override;
     bool has_free_var(const std::string &name) const override;
     std::shared_ptr<const FOF> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const override;
+    const std::shared_ptr<const FOT> &get_left() const;
+    const std::shared_ptr<const FOT> &get_right() const;
     static bool compare(const Equal &x, const Equal &y);
 
 protected:
