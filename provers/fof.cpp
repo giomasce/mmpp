@@ -26,7 +26,7 @@ bool Functor::has_free_var(const std::string &name) const {
     return false;
 }
 
-std::shared_ptr<const FOT> Functor::replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const {
+std::shared_ptr<const FOT> Functor::replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
     std::vector<std::shared_ptr<const FOT>> new_args;
     for (const auto &arg : this->args) {
         new_args.push_back(arg->replace(var_name, term));
@@ -56,7 +56,7 @@ bool Variable::has_free_var(const std::string &name) const {
     return name == this->name;
 }
 
-std::shared_ptr<const FOT> Variable::replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const {
+std::shared_ptr<const FOT> Variable::replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
     if (var_name == this->name) {
         return term;
     } else {
@@ -97,7 +97,7 @@ bool Predicate::has_free_var(const std::string &name) const {
     return false;
 }
 
-std::shared_ptr<const FOF> Predicate::replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const {
+std::shared_ptr<const FOF> Predicate::replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
     std::vector<std::shared_ptr<const FOT>> new_args;
     for (const auto &arg : this->args) {
         new_args.push_back(arg->replace(var_name, term));
@@ -128,7 +128,7 @@ bool True::has_free_var(const std::string &name) const {
     return false;
 }
 
-std::shared_ptr<const FOF> True::replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const {
+std::shared_ptr<const FOF> True::replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
     (void) var_name;
     (void) term;
     return this->virtual_enable_create<True>::shared_from_this();
@@ -151,7 +151,7 @@ bool False::has_free_var(const std::string &name) const {
     return false;
 }
 
-std::shared_ptr<const FOF> False::replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const {
+std::shared_ptr<const FOF> False::replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
     (void) var_name;
     (void) term;
     return this->virtual_enable_create<False>::shared_from_this();
@@ -173,7 +173,7 @@ bool Equal::has_free_var(const std::string &name) const {
     return this->left->has_free_var(name) || this->right->has_free_var(name);
 }
 
-std::shared_ptr<const FOF> Equal::replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const {
+std::shared_ptr<const FOF> Equal::replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
     auto new_left = this->left->replace(var_name, term);
     auto new_right = this->right->replace(var_name, term);
     if (new_left == this->left && new_right == this->right) {
@@ -199,7 +199,7 @@ bool Distinct::has_free_var(const std::string &name) const {
     return this->left->has_free_var(name) || this->right->has_free_var(name);
 }
 
-std::shared_ptr<const FOF> Distinct::replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const {
+std::shared_ptr<const FOF> Distinct::replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
     auto new_left = this->left->replace(var_name, term);
     auto new_right = this->right->replace(var_name, term);
     if (new_left == this->left && new_right == this->right) {
@@ -228,7 +228,7 @@ bool FOF2<T>::has_free_var(const std::string &name) const {
 }
 
 template<typename T>
-std::shared_ptr<const FOF> FOF2<T>::replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const {
+std::shared_ptr<const FOF> FOF2<T>::replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
     auto new_left = this->left->replace(var_name, term);
     auto new_right = this->right->replace(var_name, term);
     if (new_left == this->left && new_right == this->right) {
@@ -286,7 +286,7 @@ bool Not::has_free_var(const std::string &name) const {
     return this->arg->has_free_var(name);
 }
 
-std::shared_ptr<const FOF> Not::replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const {
+std::shared_ptr<const FOF> Not::replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
     auto new_arg = this->arg->replace(var_name, term);
     if (new_arg == this->arg) {
         return this->virtual_enable_create<Not>::shared_from_this();
@@ -324,7 +324,7 @@ bool Forall::has_free_var(const std::string &name) const {
     return this->arg->has_free_var(name);
 }
 
-std::shared_ptr<const FOF> Forall::replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const {
+std::shared_ptr<const FOF> Forall::replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
     if (var_name == this->var->get_name()) {
         // Easy case: we do not have to do anything when replacing the quantified variable
         return this->virtual_enable_create<Forall>::shared_from_this();
@@ -336,6 +336,14 @@ std::shared_ptr<const FOF> Forall::replace(const std::string &var_name, std::sha
     } else {
         return Forall::create(this->var, new_arg);
     }
+}
+
+const std::shared_ptr<const Variable> &Forall::get_var() const {
+    return this->var;
+}
+
+const std::shared_ptr<const FOF> &Forall::get_arg() const {
+    return this->arg;
 }
 
 bool Forall::compare(const Forall &x, const Forall &y) {
@@ -355,7 +363,7 @@ bool Exists::has_free_var(const std::string &name) const {
     return this->arg->has_free_var(name);
 }
 
-std::shared_ptr<const FOF> Exists::replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const {
+std::shared_ptr<const FOF> Exists::replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
     if (var_name == this->var->get_name()) {
         // Easy case: we do not have to do anything when replacing the quantified variable
         return this->virtual_enable_create<Exists>::shared_from_this();
@@ -367,6 +375,14 @@ std::shared_ptr<const FOF> Exists::replace(const std::string &var_name, std::sha
     } else {
         return Exists::create(this->var, new_arg);
     }
+}
+
+const std::shared_ptr<const Variable> &Exists::get_var() const {
+    return this->var;
+}
+
+const std::shared_ptr<const FOF> &Exists::get_arg() const {
+    return this->arg;
 }
 
 bool Exists::compare(const Exists &x, const Exists &y) {

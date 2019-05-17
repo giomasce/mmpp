@@ -27,7 +27,7 @@ class FOT : public inheritance_base<fot_inheritance> {
 public:
     virtual void print_to(std::ostream &s) const = 0;
     virtual bool has_free_var(const std::string &name) const = 0;
-    virtual std::shared_ptr<const FOT> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const = 0;
+    virtual std::shared_ptr<const FOT> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const = 0;
 
 protected:
     FOT() = default;
@@ -37,7 +37,7 @@ class Functor : public FOT, public gio::virtual_enable_create<Functor>, public i
 public:
     void print_to(std::ostream &s) const override;
     bool has_free_var(const std::string &name) const override;
-    std::shared_ptr<const FOT> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override;
+    std::shared_ptr<const FOT> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const override;
     static bool compare(const Functor &x, const Functor &y);
 
 protected:
@@ -52,7 +52,7 @@ class Variable : public FOT, public gio::virtual_enable_create<Variable>, public
 public:
     void print_to(std::ostream &s) const override;
     bool has_free_var(const std::string &name) const override;
-    std::shared_ptr<const FOT> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override;
+    std::shared_ptr<const FOT> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const override;
     const std::string &get_name() const;
     static bool compare(const Variable &x, const Variable &y);
 
@@ -94,7 +94,7 @@ class FOF : public inheritance_base<fof_inheritance> {
 public:
     virtual void print_to(std::ostream &s) const = 0;
     virtual bool has_free_var(const std::string &name) const = 0;
-    virtual std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const = 0;
+    virtual std::shared_ptr<const FOF> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const = 0;
 
 protected:
     FOF() = default;
@@ -104,7 +104,7 @@ class Predicate : public FOF, public gio::virtual_enable_create<Predicate>, publ
 public:
     void print_to(std::ostream &s) const override;
     bool has_free_var(const std::string &name) const override;
-    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override;
+    std::shared_ptr<const FOF> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const override;
     static bool compare(const Predicate &x, const Predicate &y);
 
 protected:
@@ -119,7 +119,7 @@ class True : public FOF, public gio::virtual_enable_create<True>, public inherit
 public:
     void print_to(std::ostream &s) const override;
     bool has_free_var(const std::string &name) const override;
-    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override;
+    std::shared_ptr<const FOF> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const override;
     static bool compare(const True &x, const True &y);
 
 protected:
@@ -130,7 +130,7 @@ class False : public FOF, public gio::virtual_enable_create<False>, public inher
 public:
     void print_to(std::ostream &s) const override;
     bool has_free_var(const std::string &name) const override;
-    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override;
+    std::shared_ptr<const FOF> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const override;
     static bool compare(const False &x, const False &y);
 
 protected:
@@ -141,7 +141,7 @@ class Equal : public FOF, public gio::virtual_enable_create<Equal>, public inher
 public:
     void print_to(std::ostream &s) const override;
     bool has_free_var(const std::string &name) const override;
-    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override;
+    std::shared_ptr<const FOF> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const override;
     static bool compare(const Equal &x, const Equal &y);
 
 protected:
@@ -156,7 +156,7 @@ class Distinct : public FOF, public gio::virtual_enable_create<Distinct>, public
 public:
     void print_to(std::ostream &s) const override;
     bool has_free_var(const std::string &name) const override;
-    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override;
+    std::shared_ptr<const FOF> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const override;
     static bool compare(const Distinct &x, const Distinct &y);
 
 protected:
@@ -172,7 +172,7 @@ class FOF2 : public FOF, public virtual_enable_shared_from_this<FOF2<T>> {
 public:
     void print_to(std::ostream &s) const override;
     bool has_free_var(const std::string &name) const override;
-    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override;
+    std::shared_ptr<const FOF> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const override;
     const std::shared_ptr<const FOF> &get_left() const;
     const std::shared_ptr<const FOF> &get_right() const;
     static bool compare(const T &x, const T &y);
@@ -213,7 +213,7 @@ class Not : public FOF, public gio::virtual_enable_create<Not>, public inheritan
 public:
     void print_to(std::ostream &s) const override;
     bool has_free_var(const std::string &name) const override;
-    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override;
+    std::shared_ptr<const FOF> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const override;
     const std::shared_ptr<const FOF> &get_arg() const;
     static bool compare(const Not &x, const Not &y);
 
@@ -240,7 +240,9 @@ class Forall : public FOF, public gio::virtual_enable_create<Forall>, public inh
 public:
     void print_to(std::ostream &s) const override;
     bool has_free_var(const std::string &name) const override;
-    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override;
+    std::shared_ptr<const FOF> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const override;
+    const std::shared_ptr<const Variable> &get_var() const;
+    const std::shared_ptr<const FOF> &get_arg() const;
     static bool compare(const Forall &x, const Forall &y);
 
 protected:
@@ -255,7 +257,9 @@ class Exists : public FOF, public gio::virtual_enable_create<Exists>, public inh
 public:
     void print_to(std::ostream &s) const override;
     bool has_free_var(const std::string &name) const override;
-    std::shared_ptr<const FOF> replace(const std::string &var_name, std::shared_ptr<const FOT> &term) const override;
+    std::shared_ptr<const FOF> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const override;
+    const std::shared_ptr<const Variable> &get_var() const;
+    const std::shared_ptr<const FOF> &get_arg() const;
     static bool compare(const Exists &x, const Exists &y);
 
 protected:
