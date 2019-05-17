@@ -187,7 +187,6 @@ public:
     }
 
     virtual bool check() const {
-        //return true;
         throw std::runtime_error("not implemented in " + boost::typeindex::type_id_runtime(*this).pretty_name());
     }
 
@@ -223,67 +222,6 @@ private:
     formula form;
 };
 
-class ExistsIntroRule : public NDProof, public gio::virtual_enable_create<ExistsIntroRule> {
-public:
-    bool check() const override {
-        using namespace gio::mmpp::provers::fof;
-        if (!this->subproof->check()) return false;
-        const auto &th = this->get_thesis();
-        const auto &sub_th = this->subproof->get_thesis();
-        const auto &ex = th.second->mapped_dynamic_cast<const Exists>();
-        if (!ex) return false;
-        const auto &var = ex->get_var();
-        if (!gio::eq_cmp(fot_cmp())(*var, *this->var)) return false;
-        if (!gio::eq_cmp(fof_cmp())(*ex->get_arg(), *this->form)) return false;
-        if (!gio::eq_cmp(fof_cmp())(*ex->get_arg()->replace(var->get_name(), this->subst_term), *sub_th.second)) return false;
-        if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
-                           th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
-        return true;
-    }
-
-protected:
-    ExistsIntroRule(const ndsequent &thesis, const formula &form, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &var, const term &subst_term, const proof &subproof)
-        : NDProof(thesis), form(form), var(var), subst_term(subst_term), subproof(subproof) {}
-
-private:
-    formula form;
-    std::shared_ptr<const gio::mmpp::provers::fof::Variable> var;
-    term subst_term;
-    std::shared_ptr<const NDProof> subproof;
-};
-
-class ImpIntroRule : public NDProof, public gio::virtual_enable_create<ImpIntroRule> {
-public:
-    bool check() const override {
-        using namespace gio::mmpp::provers::fof;
-        if (!this->subproof->check()) return false;
-        const auto &th = this->get_thesis();
-        const auto &sub_th = this->subproof->get_thesis();
-        size_t ant_idx;
-        bool valid;
-        std::tie(valid, ant_idx) = decode_idx(this->ant_idx, false);
-        if (!valid) return false;
-        if (ant_idx >= sub_th.first.size()) return false;
-        const auto &suc = th.second->mapped_dynamic_cast<const Implies>();
-        if (!suc) return false;
-        if (sub_th.first.size() < 1) return false;
-        if (!gio::eq_cmp(fof_cmp())(*suc->get_left(), *sub_th.first[ant_idx])) return false;
-        if (!gio::eq_cmp(fof_cmp())(*suc->get_right(), *sub_th.second)) return false;
-        if (!gio::is_equal(gio::skipping_iterator(sub_th.first.begin(), sub_th.first.end(), {ant_idx}),
-                           gio::skipping_iterator(sub_th.first.end(), sub_th.first.end(), {}),
-                           th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
-        return true;
-    }
-
-protected:
-    ImpIntroRule(const ndsequent &thesis, ssize_t ant_idx, const proof &subproof)
-        : NDProof(thesis), ant_idx(ant_idx), subproof(subproof) {}
-
-private:
-    ssize_t ant_idx;
-    proof subproof;
-};
-
 class WeakeningRule : public NDProof, public gio::virtual_enable_create<WeakeningRule> {
 public:
     bool check() const override {
@@ -308,52 +246,65 @@ private:
     proof subproof;
 };
 
-class BottomElimRule : public NDProof, public gio::virtual_enable_create<BottomElimRule> {
+class ContractionRule : public NDProof, public gio::virtual_enable_create<ContractionRule> {
 public:
     bool check() const override {
         using namespace gio::mmpp::provers::fof;
         if (!this->subproof->check()) return false;
         const auto &th = this->get_thesis();
         const auto &sub_th = this->subproof->get_thesis();
-        if (!gio::eq_cmp(fof_cmp())(*sub_th.second, *std::static_pointer_cast<const FOF>(False::create()))) return false;
-        if (!gio::eq_cmp(fof_cmp())(*th.second, *this->form)) return false;
-        if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
-                           th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
+        bool valid;
+        size_t contr_idx1, contr_idx2;
+        std::tie(valid, contr_idx1) = decode_idx(this->contr_idx1, false);
+        if (!valid) return false;
+        if (contr_idx1 >= sub_th.first.size()) return false;
+        std::tie(valid, contr_idx2) = decode_idx(this->contr_idx2, false);
+        if (!valid) return false;
+        if (contr_idx2 >= sub_th.first.size()) return false;
+        if (th.first.size() < 1) return false;
+        if (sub_th.first.size() < 2) return false;
+        if (!gio::eq_cmp(fof_cmp())(*th.second, *sub_th.second)) return false;
+        if (!gio::eq_cmp(fof_cmp())(*th.first.front(), *sub_th.first[contr_idx1])) return false;
+        if (!gio::eq_cmp(fof_cmp())(*th.first.front(), *sub_th.first[contr_idx2])) return false;
+        if (!gio::is_equal(gio::skipping_iterator(sub_th.first.begin(), sub_th.first.end(), {contr_idx1, contr_idx2}),
+                           gio::skipping_iterator(sub_th.first.end(), sub_th.first.end(), {}),
+                           th.first.begin()+1, th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
     }
 
 protected:
-    BottomElimRule(const ndsequent &thesis, const formula &form, const proof &subproof)
-        : NDProof(thesis), form(form), subproof(subproof) {}
+    ContractionRule(const ndsequent &thesis, ssize_t contr_idx1, ssize_t contr_idx2, const proof &subproof)
+        : NDProof(thesis), contr_idx1(contr_idx1), contr_idx2(contr_idx2), subproof(subproof) {}
 
 private:
-    formula form;
+    ssize_t contr_idx1, contr_idx2;
     proof subproof;
 };
 
-class ForallElimRule : public NDProof, public gio::virtual_enable_create<ForallElimRule> {
+class AndIntroRule : public NDProof, public gio::virtual_enable_create<AndIntroRule> {
 public:
     bool check() const override {
         using namespace gio::mmpp::provers::fof;
-        if (!this->subproof->check()) return false;
+        if (!this->left_proof->check()) return false;
+        if (!this->right_proof->check()) return false;
         const auto &th = this->get_thesis();
-        const auto &sub_th = this->subproof->get_thesis();
-        const auto &all = sub_th.second->mapped_dynamic_cast<const Forall>();
-        if (!all) return false;
-        const auto &var = all->get_var();
-        if (!gio::eq_cmp(fof_cmp())(*all->get_arg()->replace(var->get_name(), this->subst_term), *th.second)) return false;
-        if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
+        const auto &left_th = this->left_proof->get_thesis();
+        const auto &right_th = this->right_proof->get_thesis();
+        const auto &suc = th.second->mapped_dynamic_cast<const And>();
+        if (!suc) return false;
+        if (!gio::eq_cmp(fof_cmp())(*suc->get_left(), *left_th.second)) return false;
+        if (!gio::eq_cmp(fof_cmp())(*suc->get_right(), *right_th.second)) return false;
+        if (!gio::is_union(left_th.first.begin(), left_th.first.end(), right_th.first.begin(), right_th.first.end(),
                            th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
     }
 
 protected:
-    ForallElimRule(const ndsequent &thesis, const term &subst_term, const proof &subproof)
-        : NDProof(thesis), subst_term(subst_term), subproof(subproof) {}
+    AndIntroRule(const ndsequent &thesis, const proof &left_proof, const proof &right_proof)
+        : NDProof(thesis), left_proof(left_proof), right_proof(right_proof) {}
 
 private:
-    term subst_term;
-    proof subproof;
+    proof left_proof, right_proof;
 };
 
 class AndElim1Rule : public NDProof, public gio::virtual_enable_create<AndElim1Rule> {
@@ -402,6 +353,112 @@ private:
     proof subproof;
 };
 
+class NegElimRule : public NDProof, public gio::virtual_enable_create<NegElimRule> {
+public:
+    bool check() const override {
+        using namespace gio::mmpp::provers::fof;
+        if (!this->left_proof->check()) return false;
+        if (!this->right_proof->check()) return false;
+        const auto &th = this->get_thesis();
+        const auto &left_th = this->left_proof->get_thesis();
+        const auto &right_th = this->right_proof->get_thesis();
+        const auto &neg = left_th.second->mapped_dynamic_cast<const Not>();
+        if (!neg) return false;
+        if (!gio::eq_cmp(fof_cmp())(*neg->get_arg(), *right_th.second)) return false;
+        if (!gio::eq_cmp(fof_cmp())(*th.second, *std::static_pointer_cast<const FOF>(False::create()))) return false;
+        if (!gio::is_union(left_th.first.begin(), left_th.first.end(), right_th.first.begin(), right_th.first.end(),
+                           th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
+        return true;
+    }
+protected:
+    NegElimRule(const ndsequent &thesis, const proof &left_proof, const proof &right_proof)
+        : NDProof(thesis), left_proof(left_proof), right_proof(right_proof) {}
+
+private:
+    proof left_proof, right_proof;
+};
+
+class ImpIntroRule : public NDProof, public gio::virtual_enable_create<ImpIntroRule> {
+public:
+    bool check() const override {
+        using namespace gio::mmpp::provers::fof;
+        if (!this->subproof->check()) return false;
+        const auto &th = this->get_thesis();
+        const auto &sub_th = this->subproof->get_thesis();
+        size_t ant_idx;
+        bool valid;
+        std::tie(valid, ant_idx) = decode_idx(this->ant_idx, false);
+        if (!valid) return false;
+        if (ant_idx >= sub_th.first.size()) return false;
+        const auto &suc = th.second->mapped_dynamic_cast<const Implies>();
+        if (!suc) return false;
+        if (sub_th.first.size() < 1) return false;
+        if (!gio::eq_cmp(fof_cmp())(*suc->get_left(), *sub_th.first[ant_idx])) return false;
+        if (!gio::eq_cmp(fof_cmp())(*suc->get_right(), *sub_th.second)) return false;
+        if (!gio::is_equal(gio::skipping_iterator(sub_th.first.begin(), sub_th.first.end(), {ant_idx}),
+                           gio::skipping_iterator(sub_th.first.end(), sub_th.first.end(), {}),
+                           th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
+        return true;
+    }
+
+protected:
+    ImpIntroRule(const ndsequent &thesis, ssize_t ant_idx, const proof &subproof)
+        : NDProof(thesis), ant_idx(ant_idx), subproof(subproof) {}
+
+private:
+    ssize_t ant_idx;
+    proof subproof;
+};
+
+class ImpElimRule : public NDProof, public gio::virtual_enable_create<ImpElimRule> {
+public:
+    bool check() const override {
+        using namespace gio::mmpp::provers::fof;
+        if (!this->left_proof->check()) return false;
+        if (!this->right_proof->check()) return false;
+        const auto &th = this->get_thesis();
+        const auto &left_th = this->left_proof->get_thesis();
+        const auto &right_th = this->right_proof->get_thesis();
+        const auto &imp = left_th.second->mapped_dynamic_cast<const Implies>();
+        if (!imp) return false;
+        if (!gio::eq_cmp(fof_cmp())(*imp->get_left(), *right_th.second)) return false;
+        if (!gio::eq_cmp(fof_cmp())(*imp->get_right(), *th.second)) return false;
+        if (!gio::is_union(left_th.first.begin(), left_th.first.end(), right_th.first.begin(), right_th.first.end(),
+                           th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
+        return true;
+    }
+
+protected:
+    ImpElimRule(const ndsequent &thesis, const proof &left_proof, const proof &right_proof)
+        : NDProof(thesis), left_proof(left_proof), right_proof(right_proof) {}
+
+private:
+    proof left_proof, right_proof;
+};
+
+class BottomElimRule : public NDProof, public gio::virtual_enable_create<BottomElimRule> {
+public:
+    bool check() const override {
+        using namespace gio::mmpp::provers::fof;
+        if (!this->subproof->check()) return false;
+        const auto &th = this->get_thesis();
+        const auto &sub_th = this->subproof->get_thesis();
+        if (!gio::eq_cmp(fof_cmp())(*sub_th.second, *std::static_pointer_cast<const FOF>(False::create()))) return false;
+        if (!gio::eq_cmp(fof_cmp())(*th.second, *this->form)) return false;
+        if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
+                           th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
+        return true;
+    }
+
+protected:
+    BottomElimRule(const ndsequent &thesis, const formula &form, const proof &subproof)
+        : NDProof(thesis), form(form), subproof(subproof) {}
+
+private:
+    formula form;
+    proof subproof;
+};
+
 class ForallIntroRule : public NDProof, public gio::virtual_enable_create<ForallIntroRule> {
 public:
     bool check() const override {
@@ -434,81 +491,58 @@ private:
     proof subproof;
 };
 
-class NegElimRule : public NDProof, public gio::virtual_enable_create<NegElimRule> {
+class ForallElimRule : public NDProof, public gio::virtual_enable_create<ForallElimRule> {
 public:
     bool check() const override {
         using namespace gio::mmpp::provers::fof;
-        if (!this->left_proof->check()) return false;
-        if (!this->right_proof->check()) return false;
+        if (!this->subproof->check()) return false;
         const auto &th = this->get_thesis();
-        const auto &left_th = this->left_proof->get_thesis();
-        const auto &right_th = this->right_proof->get_thesis();
-        const auto &neg = left_th.second->mapped_dynamic_cast<const Not>();
-        if (!neg) return false;
-        if (!gio::eq_cmp(fof_cmp())(*neg->get_arg(), *right_th.second)) return false;
-        if (!gio::eq_cmp(fof_cmp())(*th.second, *std::static_pointer_cast<const FOF>(False::create()))) return false;
-        if (!gio::is_union(left_th.first.begin(), left_th.first.end(), right_th.first.begin(), right_th.first.end(),
+        const auto &sub_th = this->subproof->get_thesis();
+        const auto &all = sub_th.second->mapped_dynamic_cast<const Forall>();
+        if (!all) return false;
+        const auto &var = all->get_var();
+        if (!gio::eq_cmp(fof_cmp())(*all->get_arg()->replace(var->get_name(), this->subst_term), *th.second)) return false;
+        if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
                            th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
     }
+
 protected:
-    NegElimRule(const ndsequent &thesis, const proof &left_proof, const proof &right_proof)
-        : NDProof(thesis), left_proof(left_proof), right_proof(right_proof) {}
+    ForallElimRule(const ndsequent &thesis, const term &subst_term, const proof &subproof)
+        : NDProof(thesis), subst_term(subst_term), subproof(subproof) {}
 
 private:
-    proof left_proof, right_proof;
+    term subst_term;
+    proof subproof;
 };
 
-class ImpElimRule : public NDProof, public gio::virtual_enable_create<ImpElimRule> {
+class ExistsIntroRule : public NDProof, public gio::virtual_enable_create<ExistsIntroRule> {
 public:
     bool check() const override {
         using namespace gio::mmpp::provers::fof;
-        if (!this->left_proof->check()) return false;
-        if (!this->right_proof->check()) return false;
+        if (!this->subproof->check()) return false;
         const auto &th = this->get_thesis();
-        const auto &left_th = this->left_proof->get_thesis();
-        const auto &right_th = this->right_proof->get_thesis();
-        const auto &imp = left_th.second->mapped_dynamic_cast<const Implies>();
-        if (!imp) return false;
-        if (!gio::eq_cmp(fof_cmp())(*imp->get_left(), *right_th.second)) return false;
-        if (!gio::eq_cmp(fof_cmp())(*imp->get_right(), *th.second)) return false;
-        if (!gio::is_union(left_th.first.begin(), left_th.first.end(), right_th.first.begin(), right_th.first.end(),
+        const auto &sub_th = this->subproof->get_thesis();
+        const auto &ex = th.second->mapped_dynamic_cast<const Exists>();
+        if (!ex) return false;
+        const auto &var = ex->get_var();
+        if (!gio::eq_cmp(fot_cmp())(*var, *this->var)) return false;
+        if (!gio::eq_cmp(fof_cmp())(*ex->get_arg(), *this->form)) return false;
+        if (!gio::eq_cmp(fof_cmp())(*ex->get_arg()->replace(var->get_name(), this->subst_term), *sub_th.second)) return false;
+        if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
                            th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
     }
 
 protected:
-    ImpElimRule(const ndsequent &thesis, const proof &left_proof, const proof &right_proof)
-        : NDProof(thesis), left_proof(left_proof), right_proof(right_proof) {}
+    ExistsIntroRule(const ndsequent &thesis, const formula &form, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &var, const term &subst_term, const proof &subproof)
+        : NDProof(thesis), form(form), var(var), subst_term(subst_term), subproof(subproof) {}
 
 private:
-    proof left_proof, right_proof;
-};
-
-class AndIntroRule : public NDProof, public gio::virtual_enable_create<AndIntroRule> {
-public:
-    bool check() const override {
-        using namespace gio::mmpp::provers::fof;
-        if (!this->left_proof->check()) return false;
-        if (!this->right_proof->check()) return false;
-        const auto &th = this->get_thesis();
-        const auto &left_th = this->left_proof->get_thesis();
-        const auto &right_th = this->right_proof->get_thesis();
-        const auto &suc = th.second->mapped_dynamic_cast<const And>();
-        if (!suc) return false;
-        if (!gio::eq_cmp(fof_cmp())(*suc->get_left(), *left_th.second)) return false;
-        if (!gio::eq_cmp(fof_cmp())(*suc->get_right(), *right_th.second)) return false;
-        if (!gio::is_union(left_th.first.begin(), left_th.first.end(), right_th.first.begin(), right_th.first.end(),
-                           th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
-        return true;
-    }
-
-protected:
-    AndIntroRule(const ndsequent &thesis, const proof &left_proof, const proof &right_proof)
-        : NDProof(thesis), left_proof(left_proof), right_proof(right_proof) {}
-
-private:
-    proof left_proof, right_proof;
+    formula form;
+    std::shared_ptr<const gio::mmpp::provers::fof::Variable> var;
+    term subst_term;
+    std::shared_ptr<const NDProof> subproof;
 };
 
 class ExistsElimRule : public NDProof, public gio::virtual_enable_create<ExistsElimRule> {
@@ -553,41 +587,6 @@ private:
     ssize_t idx;
     std::shared_ptr<const gio::mmpp::provers::fof::Variable> eigenvar;
     proof left_proof, right_proof;
-};
-
-class ContractionRule : public NDProof, public gio::virtual_enable_create<ContractionRule> {
-public:
-    bool check() const override {
-        using namespace gio::mmpp::provers::fof;
-        if (!this->subproof->check()) return false;
-        const auto &th = this->get_thesis();
-        const auto &sub_th = this->subproof->get_thesis();
-        bool valid;
-        size_t contr_idx1, contr_idx2;
-        std::tie(valid, contr_idx1) = decode_idx(this->contr_idx1, false);
-        if (!valid) return false;
-        if (contr_idx1 >= sub_th.first.size()) return false;
-        std::tie(valid, contr_idx2) = decode_idx(this->contr_idx2, false);
-        if (!valid) return false;
-        if (contr_idx2 >= sub_th.first.size()) return false;
-        if (th.first.size() < 1) return false;
-        if (sub_th.first.size() < 2) return false;
-        if (!gio::eq_cmp(fof_cmp())(*th.second, *sub_th.second)) return false;
-        if (!gio::eq_cmp(fof_cmp())(*th.first.front(), *sub_th.first[contr_idx1])) return false;
-        if (!gio::eq_cmp(fof_cmp())(*th.first.front(), *sub_th.first[contr_idx2])) return false;
-        if (!gio::is_equal(gio::skipping_iterator(sub_th.first.begin(), sub_th.first.end(), {contr_idx1, contr_idx2}),
-                           gio::skipping_iterator(sub_th.first.end(), sub_th.first.end(), {}),
-                           th.first.begin()+1, th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
-        return true;
-    }
-
-protected:
-    ContractionRule(const ndsequent &thesis, ssize_t contr_idx1, ssize_t contr_idx2, const proof &subproof)
-        : NDProof(thesis), contr_idx1(contr_idx1), contr_idx2(contr_idx2), subproof(subproof) {}
-
-private:
-    ssize_t contr_idx1, contr_idx2;
-    proof subproof;
 };
 
 class ExcludedMiddleRule : public NDProof, public gio::virtual_enable_create<ExcludedMiddleRule> {
