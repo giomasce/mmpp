@@ -42,6 +42,18 @@ tsc:
     - eatmydata apt-get install -y --no-upgrade node-typescript
     - tsc -p resources/static/ts
 
+scala:
+  stage: build
+  script:
+    - eatmydata apt-get install -y --no-upgrade scala
+    - cd gapt
+    - ./download_gapt.sh
+    - ./compile.sh
+  artifacts:
+    paths:
+      - gapt/gapt-2.14.jar
+      - gapt/*.class
+
 test:
   stage: test
   script:
@@ -55,3 +67,20 @@ verify_all:
     - eatmydata apt-get install -y --no-upgrade build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev binutils-dev git
     - git clone https://github.com/giomasce/metamath-test.git resources/metamath-test
     - time ./artifacts/mmpp verify_all
+
+gapt:
+  stage: test
+  script:
+    - eatmydata apt-get install -y --no-upgrade build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev binutils-dev git scala prover9
+    - cd gapt
+    - "time ./run.sh ':- ?x (f(x) -> !y f(y))' > gapt1"
+    - "time ./run.sh '!x f(x) -> g :- ?x (f(x) -> g)' > gapt2"
+    - "time ./run.sh '(f -> g) | (f -> h) :- f -> (g | h)' > gapt3"
+    - "time ./run.sh '!X !Y !Z (mult(X, mult(Y, Z))=mult(mult(X, Y), Z)), !X (mult(X, e)=X) :- (!X (mult(X, X)=e))->(!X !Y (mult(X, Y)=mult(Y, X)))' > gapt4"
+    - "time ./run.sh ':- ((?x !y (f(x) <-> f(y))) <-> ((?x (g(x)) <-> (!y g(y))))) <-> ((?x !y (g(x) <-> g(y))) <-> ((?x (f(x)) <-> (!y f(y)))))' > gapt5"
+    - cd ..
+    - "time ./artifacts/mmpp read_gapt < gapt/gapt1"
+    - "time ./artifacts/mmpp read_gapt < gapt/gapt2"
+    - "time ./artifacts/mmpp read_gapt < gapt/gapt3"
+    - "time ./artifacts/mmpp read_gapt < gapt/gapt4"
+    - "time ./artifacts/mmpp read_gapt < gapt/gapt5"
