@@ -1,6 +1,8 @@
 
 #include "fof.h"
 
+#include <giolib/utils.h>
+
 namespace gio::mmpp::provers::fof {
 
 void Functor::print_to(std::ostream &s) const {
@@ -38,12 +40,28 @@ std::shared_ptr<const FOT> Functor::replace(const std::string &var_name, const s
     }
 }
 
+std::pair<std::set<std::string>, std::map<std::string, size_t> > FOT::collect_vars_functs() const {
+    std::pair<std::set<std::string>, std::map<std::string, size_t>> ret;
+    this->collect_vars_functs(ret);
+    return ret;
+}
+
 bool Functor::compare(const Functor &x, const Functor &y) {
     if (x.name < y.name) { return true; }
     if (y.name < x.name) { return false; }
     return std::lexicographical_compare(x.args.begin(), x.args.end(), y.args.begin(), y.args.end(), [](const auto &x, const auto &y) {
         return fot_cmp()(*x, *y);
     });
+}
+
+void Functor::collect_vars_functs(std::pair<std::set<std::string>, std::map<std::string, size_t> > &vars_functs) const {
+    auto res = vars_functs.second.insert(std::make_pair(this->name, this->args.size()));
+    if (res.first->second != this->args.size()) {
+        throw std::runtime_error(gio_make_string("functor " << this->name << " has different arities " << res.first->second << " and " << this->args.size()));
+    }
+    for (const auto &arg : this->args) {
+        arg->collect_vars_functs(vars_functs);
+    }
 }
 
 Functor::Functor(const std::string &name, const std::vector<std::shared_ptr<const FOT> > &args) : name(name), args(args) {}
@@ -64,6 +82,10 @@ std::shared_ptr<const FOT> Variable::replace(const std::string &var_name, const 
     }
 }
 
+void Variable::collect_vars_functs(std::pair<std::set<std::string>, std::map<std::string, size_t> > &vars_functs) const {
+    vars_functs.first.insert(this->name);
+}
+
 const std::string &Variable::get_name() const {
     return this->name;
 }
@@ -73,6 +95,12 @@ bool Variable::compare(const Variable &x, const Variable &y) {
 }
 
 Variable::Variable(const std::string &name) : name(name) {}
+
+std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t> > FOF::collect_vars_functs_preds() const {
+    std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t>> ret;
+    this->collect_vars_functs_preds(ret);
+    return ret;
+}
 
 void Predicate::print_to(std::ostream &s) const {
     s << this->name;
@@ -109,6 +137,19 @@ std::shared_ptr<const FOF> Predicate::replace(const std::string &var_name, const
     }
 }
 
+void Predicate::collect_vars_functs_preds(std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t> > &vars_functs_preds) const {
+    std::pair<std::set<std::string>, std::map<std::string, size_t>> vars_functs;
+    for (const auto &arg : this->args) {
+        arg->collect_vars_functs(vars_functs);
+    }
+    std::get<0>(vars_functs_preds).merge(vars_functs.first);
+    std::get<1>(vars_functs_preds).merge(vars_functs.second);
+    auto res = std::get<2>(vars_functs_preds).insert(std::make_pair(this->name, this->args.size()));
+    if (res.first->second != this->args.size()) {
+        throw std::runtime_error(gio_make_string("predicate " << this->name << " has different arities " << res.first->second << " and " << this->args.size()));
+    }
+}
+
 bool Predicate::compare(const Predicate &x, const Predicate &y) {
     if (x.name < y.name) { return true; }
     if (y.name < x.name) { return false; }
@@ -134,6 +175,10 @@ std::shared_ptr<const FOF> True::replace(const std::string &var_name, const std:
     return this->virtual_enable_create<True>::shared_from_this();
 }
 
+void True::collect_vars_functs_preds(std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t> > &vars_functs_preds) const {
+    (void) vars_functs_preds;
+}
+
 bool True::compare(const True &x, const True &y) {
     (void) x;
     (void) y;
@@ -155,6 +200,10 @@ std::shared_ptr<const FOF> False::replace(const std::string &var_name, const std
     (void) var_name;
     (void) term;
     return this->virtual_enable_create<False>::shared_from_this();
+}
+
+void False::collect_vars_functs_preds(std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t> > &vars_functs_preds) const {
+    (void) vars_functs_preds;
 }
 
 bool False::compare(const False &x, const False &y) {
@@ -181,6 +230,15 @@ std::shared_ptr<const FOF> Equal::replace(const std::string &var_name, const std
     } else {
         return Equal::create(new_left, new_right);
     }
+}
+
+void Equal::collect_vars_functs_preds(std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t> > &vars_functs_preds) const {
+    auto left_vars_functs = this->left->collect_vars_functs();
+    std::get<0>(vars_functs_preds).merge(left_vars_functs.first);
+    std::get<1>(vars_functs_preds).merge(left_vars_functs.second);
+    auto right_vars_functs = this->right->collect_vars_functs();
+    std::get<0>(vars_functs_preds).merge(right_vars_functs.first);
+    std::get<1>(vars_functs_preds).merge(right_vars_functs.second);
 }
 
 const std::shared_ptr<const FOT> &Equal::get_left() const {
@@ -217,6 +275,15 @@ std::shared_ptr<const FOF> Distinct::replace(const std::string &var_name, const 
     }
 }
 
+void Distinct::collect_vars_functs_preds(std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t> > &vars_functs_preds) const {
+    auto left_vars_functs = this->left->collect_vars_functs();
+    std::get<0>(vars_functs_preds).merge(left_vars_functs.first);
+    std::get<1>(vars_functs_preds).merge(left_vars_functs.second);
+    auto right_vars_functs = this->right->collect_vars_functs();
+    std::get<0>(vars_functs_preds).merge(right_vars_functs.first);
+    std::get<1>(vars_functs_preds).merge(right_vars_functs.second);
+}
+
 bool Distinct::compare(const Distinct &x, const Distinct &y) {
     if (fot_cmp()(*x.left, *y.left)) { return true; }
     if (fot_cmp()(*y.left, *x.left)) { return false; }
@@ -244,6 +311,12 @@ std::shared_ptr<const FOF> FOF2<T>::replace(const std::string &var_name, const s
     } else {
         return T::create(new_left, new_right);
     }
+}
+
+template<typename T>
+void FOF2<T>::collect_vars_functs_preds(std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t> > &vars_functs_preds) const {
+    this->left->collect_vars_functs_preds(vars_functs_preds);
+    this->right->collect_vars_functs_preds(vars_functs_preds);
 }
 
 template<typename T>
@@ -303,6 +376,10 @@ std::shared_ptr<const FOF> Not::replace(const std::string &var_name, const std::
     }
 }
 
+void Not::collect_vars_functs_preds(std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t> > &vars_functs_preds) const {
+    this->arg->collect_vars_functs_preds(vars_functs_preds);
+}
+
 const std::shared_ptr<const FOF> &Not::get_arg() const {
     return this->arg;
 }
@@ -346,6 +423,11 @@ std::shared_ptr<const FOF> Forall::replace(const std::string &var_name, const st
     }
 }
 
+void Forall::collect_vars_functs_preds(std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t> > &vars_functs_preds) const {
+    std::get<0>(vars_functs_preds).insert(this->var->get_name());
+    this->arg->collect_vars_functs_preds(vars_functs_preds);
+}
+
 const std::shared_ptr<const Variable> &Forall::get_var() const {
     return this->var;
 }
@@ -383,6 +465,11 @@ std::shared_ptr<const FOF> Exists::replace(const std::string &var_name, const st
     } else {
         return Exists::create(this->var, new_arg);
     }
+}
+
+void Exists::collect_vars_functs_preds(std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t> > &vars_functs_preds) const {
+    std::get<0>(vars_functs_preds).insert(this->var->get_name());
+    this->arg->collect_vars_functs_preds(vars_functs_preds);
 }
 
 const std::shared_ptr<const Variable> &Exists::get_var() const {

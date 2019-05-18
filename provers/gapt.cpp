@@ -5,6 +5,7 @@
 #include <giolib/static_block.h>
 #include <giolib/utils.h>
 #include <giolib/containers.h>
+#include <giolib/std_printers.h>
 
 #include "mm/setmm.h"
 #include "fof.h"
@@ -190,8 +191,23 @@ public:
         print_ndsequent(s, this->thesis);
     }
 
-    virtual bool check() const {
-        throw std::runtime_error("not implemented in " + boost::typeindex::type_id_runtime(*this).pretty_name());
+    virtual bool check() const = 0;
+    virtual std::vector<std::shared_ptr<const NDProof>> get_subproofs() const = 0;
+
+    std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t>> collect_vars_functs_preds() const {
+        std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t>> ret;
+        this->collect_vars_functs_preds(ret);
+        return ret;
+    }
+
+    void collect_vars_functs_preds(std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t>> &vars_functs_preds) const {
+        for (const auto &ant : this->thesis.first) {
+            ant->collect_vars_functs_preds(vars_functs_preds);
+        }
+        this->thesis.second->collect_vars_functs_preds(vars_functs_preds);
+        for (const auto &subproof : this->get_subproofs()) {
+            subproof->collect_vars_functs_preds(vars_functs_preds);
+        }
     }
 
     const ndsequent &get_thesis() const {
@@ -218,6 +234,10 @@ public:
         return true;
     }
 
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {};
+    }
+
 protected:
     LogicalAxiom(const ndsequent &thesis, const formula &form)
         : NDProof(thesis), form(form) {}
@@ -239,6 +259,10 @@ public:
         if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
                            th.first.begin()+1, th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
+    }
+
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->subproof};
     }
 
 protected:
@@ -276,6 +300,10 @@ public:
         return true;
     }
 
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->subproof};
+    }
+
 protected:
     ContractionRule(const ndsequent &thesis, ssize_t contr_idx1, ssize_t contr_idx2, const proof &subproof)
         : NDProof(thesis), contr_idx1(contr_idx1), contr_idx2(contr_idx2), subproof(subproof) {}
@@ -303,6 +331,10 @@ public:
         return true;
     }
 
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->left_proof, this->right_proof};
+    }
+
 protected:
     AndIntroRule(const ndsequent &thesis, const proof &left_proof, const proof &right_proof)
         : NDProof(thesis), left_proof(left_proof), right_proof(right_proof) {}
@@ -324,6 +356,10 @@ public:
         if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
                            th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
+    }
+
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->subproof};
     }
 
 protected:
@@ -349,6 +385,10 @@ public:
         return true;
     }
 
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->subproof};
+    }
+
 protected:
     AndElim2Rule(const ndsequent &thesis, const proof &subproof)
         : NDProof(thesis), subproof(subproof) {}
@@ -368,6 +408,10 @@ public:
         if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
                            th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
+    }
+
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->subproof};
     }
 
 protected:
@@ -390,6 +434,10 @@ public:
         if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
                            th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
+    }
+
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->subproof};
     }
 
 protected:
@@ -432,6 +480,10 @@ public:
         return true;
     }
 
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->left_proof, this->middle_proof, this->right_proof};
+    }
+
 protected:
     OrElimRule(const ndsequent &thesis, ssize_t middle_idx, ssize_t right_idx, const proof &left_proof, const proof &middle_proof, const proof &right_proof)
         : NDProof(thesis), middle_idx(middle_idx), right_idx(right_idx), left_proof(left_proof), middle_proof(middle_proof), right_proof(right_proof) {}
@@ -457,6 +509,10 @@ public:
         if (!gio::is_union(left_th.first.begin(), left_th.first.end(), right_th.first.begin(), right_th.first.end(),
                            th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
+    }
+
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->left_proof, this->right_proof};
     }
 
 protected:
@@ -490,6 +546,10 @@ public:
         return true;
     }
 
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->subproof};
+    }
+
 protected:
     ImpIntroRule(const ndsequent &thesis, ssize_t ant_idx, const proof &subproof)
         : NDProof(thesis), ant_idx(ant_idx), subproof(subproof) {}
@@ -517,6 +577,10 @@ public:
         return true;
     }
 
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->left_proof, this->right_proof};
+    }
+
 protected:
     ImpElimRule(const ndsequent &thesis, const proof &left_proof, const proof &right_proof)
         : NDProof(thesis), left_proof(left_proof), right_proof(right_proof) {}
@@ -537,6 +601,10 @@ public:
         if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
                            th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
+    }
+
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->subproof};
     }
 
 protected:
@@ -571,6 +639,10 @@ public:
         return true;
     }
 
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->subproof};
+    }
+
 protected:
     ForallIntroRule(const ndsequent &thesis, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &var, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &eigenvar, const proof &subproof)
         : NDProof(thesis), var(var), eigenvar(eigenvar), subproof(subproof) {}
@@ -594,6 +666,10 @@ public:
         if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
                            th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
+    }
+
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->subproof};
     }
 
 protected:
@@ -621,6 +697,10 @@ public:
         if (!gio::is_equal(sub_th.first.begin(), sub_th.first.end(),
                            th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
+    }
+
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->subproof};
     }
 
 protected:
@@ -668,6 +748,10 @@ public:
         return true;
     }
 
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->left_proof, this->right_proof};
+    }
+
 protected:
     ExistsElimRule(const ndsequent &thesis, ssize_t idx, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &eigenvar, const proof &left_proof, const proof &right_proof)
         : NDProof(thesis), idx(idx), eigenvar(eigenvar), left_proof(left_proof), right_proof(right_proof) {}
@@ -686,6 +770,10 @@ public:
         if (!th.first.empty()) return false;
         if (!gio::eq_cmp(fof_cmp())(*th.second, *std::static_pointer_cast<const FOF>(Equal::create(this->t, this->t)))) return false;
         return true;
+    }
+
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {};
     }
 
 protected:
@@ -718,6 +806,10 @@ public:
         if (!gio::is_union(left_th.first.begin(), left_th.first.end(), right_th.first.begin(), right_th.first.end(),
                            th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
+    }
+
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->left_proof, this->right_proof};
     }
 
 protected:
@@ -758,6 +850,10 @@ public:
                            gio::skipping_iterator(right_th.first.end(), right_th.first.end(), {}),
                            th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
         return true;
+    }
+
+    std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override {
+        return {this->left_proof, this->right_proof};
     }
 
 protected:
@@ -876,6 +972,7 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
 
 int read_gapt_main(int argc, char *argv[]) {
     using namespace gio;
+    using namespace gio::std_printers;
 
     (void) argc;
     (void) argv;
@@ -888,6 +985,9 @@ int read_gapt_main(int argc, char *argv[]) {
     std::cout << *proof << "\n";
     bool valid = proof->check();
     gio::assert_or_throw<std::runtime_error>(valid, "invalid proof!");
+
+    auto vars_functs_preds = proof->collect_vars_functs_preds();
+    std::cout << vars_functs_preds << "\n";
 
     return 0;
 }
