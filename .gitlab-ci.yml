@@ -13,15 +13,13 @@ before_script:
   - apt-get install -y --no-upgrade eatmydata
 
 stages:
+  - build
   - test
 
-test:
-  stage: test
+build:
+  stage: build
   script:
-    - eatmydata apt-get install -y --no-upgrade build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev node-typescript binutils-dev pkg-config wget git
-    - wget -q -O resources/set.mm https://github.com/metamath/set.mm/raw/develop/set.mm
-    - git clone https://github.com/giomasce/metamath-test.git resources/metamath-test
-    - tsc -p resources/static/ts
+    - eatmydata apt-get install -y --no-upgrade build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev binutils-dev pkg-config wget git
     - sed -i -e 's|^USE_QT = .*$|USE_QT = true|' mmpp.pro
     - sed -i -e 's|^USE_MICROHTTPD = .*$|USE_MICROHTTPD = true|' mmpp.pro
     - sed -i -e 's|^USE_BEAST = .*$|USE_BEAST = true|' mmpp.pro
@@ -30,5 +28,30 @@ test:
     - cd build
     - qmake ..
     - make -j $(nproc)
-    - time ./mmpp test
-    - time ./mmpp verify_all
+    - cd ..
+    - mkdir artifacts
+    - cp build/mmpp artifacts
+    - strip artifacts/mmpp
+  artifacts:
+    paths:
+      - artifacts
+
+tsc:
+  stage: build
+  script:
+    - eatmydata apt-get install -y --no-upgrade node-typescript
+    - tsc -p resources/static/ts
+
+test:
+  stage: test
+  script:
+    - eatmydata apt-get install -y --no-upgrade build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev binutils-dev wget
+    - wget -q -O resources/set.mm https://github.com/metamath/set.mm/raw/develop/set.mm
+    - time ./artifacts/mmpp test
+
+verify_all:
+  stage: test
+  script:
+    - eatmydata apt-get install -y --no-upgrade build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev binutils-dev git
+    - git clone https://github.com/giomasce/metamath-test.git resources/metamath-test
+    - time ./artifacts/mmpp verify_all
