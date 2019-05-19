@@ -2,7 +2,7 @@
 #include "test/test.h"
 #include "provers/wff.h"
 #include "provers/wffsat.h"
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 
 #ifdef ENABLE_TEST_CODE
 

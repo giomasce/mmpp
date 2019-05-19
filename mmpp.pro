@@ -153,14 +153,14 @@ SOURCES += \
     apps/resolver.cpp \
     provers/subst.cpp \
     apps/verify.cpp \
-    mm/setmm.cpp \
     test/test_wff.cpp \
     mm/mmutils.cpp \
     provers/tstp/tstp_parser.cpp \
     provers/z3prover3.cpp \
     provers/z3resolver.cpp \
     provers/gapt.cpp \
-    provers/fof.cpp
+    provers/fof.cpp \
+    mm/setmm_loader.cpp
 
 HEADERS += \
     pch.h \
@@ -212,14 +212,14 @@ HEADERS += \
     provers/wffblock.h \
     provers/wffsat.h \
     provers/subst.h \
-    mm/setmm.h \
     test/test.h \
     mm/mmutils.h \
     provers/tstp/tstp_parser.h \
     provers/z3prover3.h \
     provers/z3resolver.h \
     provers/gapt.h \
-    provers/fof.h
+    provers/fof.h \
+    mm/setmm_loader.h
 
 DISTFILES += \
     README.md \

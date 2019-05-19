@@ -9,7 +9,7 @@
 #include <giolib/static_block.h>
 #include <giolib/main.h>
 
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 #include "mm/toolbox.h"
 #include "mm/proof.h"
 #include "parsing/unif.h"

@@ -13,7 +13,7 @@
 #include "utils/utils.h"
 #include "parsing/lr.h"
 #include "parsing/earley.h"
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 #include "mm/mmutils.h"
 #include "parsing/unif.h"
 

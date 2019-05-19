@@ -1,7 +1,7 @@
 
 #include <iostream>
 
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 #include "parsing/earley.h"
 #include "parsing/lr.h"
 #include "test.h"

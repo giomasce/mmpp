@@ -9,7 +9,7 @@
 #include "utils/utils.h"
 #include "mm/toolbox.h"
 #include "platform.h"
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 
 void unification_loop() {
     auto &data = get_set_mm();

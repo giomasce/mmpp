@@ -6,7 +6,7 @@
 
 #include "utils/utils.h"
 #include "mm/toolbox.h"
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 #include "z3prover3.h"
 
 //#define VERBOSE_Z3

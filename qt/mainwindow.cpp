@@ -8,7 +8,7 @@
 #include "qt/prooftreemodel.h"
 
 #include "platform.h"
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),

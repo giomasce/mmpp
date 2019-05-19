@@ -6,7 +6,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 #include "test/test.h"
 
 //#define OLD_UNIFICATION_VERBOSE

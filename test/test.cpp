@@ -28,7 +28,7 @@
 #include "test.h"
 #include "utils/utils.h"
 
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 
 #ifdef ENABLE_TEST_CODE
 

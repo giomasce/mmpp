@@ -8,7 +8,7 @@
 #include "subst.h"
 
 #include "mm/ptengine.h"
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 #include "mm/mmutils.h"
 #include "utils/utils.h"
 

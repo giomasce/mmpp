@@ -7,7 +7,7 @@
 #include <giolib/containers.h>
 #include <giolib/std_printers.h>
 
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 #include "fof.h"
 
 typedef std::shared_ptr<const gio::mmpp::provers::fof::FOT> term;

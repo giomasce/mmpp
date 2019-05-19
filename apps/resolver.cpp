@@ -6,7 +6,7 @@
 
 #include "mm/library.h"
 #include "utils/utils.h"
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 
 int resolver_main(int argc, char *argv[]) {
     if (argc == 1) {

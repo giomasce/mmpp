@@ -11,7 +11,7 @@
 
 #include "utils/utils.h"
 #include "mm/toolbox.h"
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 #include "z3resolver.h"
 #include "fof.h"
 

@@ -7,7 +7,7 @@
 #include "mm/reader.h"
 #include "utils/utils.h"
 #include "platform.h"
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 #include "test/test.h"
 
 //#define VERBOSE_Z3

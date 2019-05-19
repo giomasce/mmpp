@@ -8,7 +8,7 @@
 #include "uct.h"
 
 #include "utils/utils.h"
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 #include "platform.h"
 #include "mm/proof.h"
 #include "mm/ptengine.h"

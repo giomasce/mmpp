@@ -6,7 +6,7 @@
 #include "mm/toolbox.h"
 #include "mm/reader.h"
 #include "htmldelegate.h"
-#include "mm/setmm.h"
+#include "mm/setmm_loader.h"
 
 struct Context {
     const ExtendedLibrary *lib = NULL;
