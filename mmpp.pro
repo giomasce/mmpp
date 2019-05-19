@@ -219,7 +219,8 @@ HEADERS += \
     provers/z3resolver.h \
     provers/gapt.h \
     provers/fof.h \
-    mm/setmm_loader.h
+    mm/setmm_loader.h \
+    provers/setmm.h
 
 DISTFILES += \
     README.md \
