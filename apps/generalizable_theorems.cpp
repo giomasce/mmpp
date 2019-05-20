@@ -18,7 +18,7 @@
 class Reactor {
 public:
     Reactor(LibraryToolbox &tb, size_t hyps_num) :
-        tb(tb), is_var(tb.get_standard_is_var()), unificator(this->is_var)
+        tb(tb), tsa(tb), is_var(tb.get_standard_is_var()), unificator(this->is_var)
     {
         this->hypotheses.reserve(hyps_num);
         for (size_t i = 0; i < hyps_num; i++) {
@@ -54,14 +54,14 @@ public:
     }
 
     bool process_parsing_tree(const ParsingTree< SymTok, LabTok > &pt) {
-        this->stack.push_back(tb.refresh_parsing_tree(pt));
+        this->stack.push_back(tb.refresh_parsing_tree(pt, this->tsa));
         return true;
     }
 
     bool process_assertion(const Assertion &ass) {
         ParsingTree< SymTok, LabTok > thesis;
         std::vector< ParsingTree< SymTok, LabTok > > hyps;
-        std::tie(hyps, thesis) = tb.refresh_assertion(ass);
+        std::tie(hyps, thesis) = tb.refresh_assertion(ass, this->tsa);
         assert(stack.size() >= hyps.size());
         for (size_t i = 0; i < hyps.size(); i++) {
             this->unificator.add_parsing_trees(this->stack[this->stack.size()-hyps.size()+i], hyps[i]);
@@ -107,6 +107,7 @@ public:
 
 private:
     LibraryToolbox &tb;
+    temp_stacked_allocator tsa;
     const std::function< bool(LabTok) > &is_var;
     BilateralUnificator< SymTok, LabTok > unificator;
     std::vector< ParsingTree< SymTok, LabTok > > stack;
@@ -119,6 +120,7 @@ void find_generalizable_theorems() {
     auto &data = get_set_mm();
     auto &lib = data.lib;
     auto &tb = data.tb;
+    temp_stacked_allocator tsa(tb);
 
     for (const Assertion &ass : lib.get_assertions()) {
     //while (true) {
@@ -129,7 +131,7 @@ void find_generalizable_theorems() {
         if (ass.is_modif_disc() || ass.is_usage_disc()) {
             continue;
         }
-        tb.new_temp_var_frame();
+        tsa.new_temp_var_frame();
 
         auto po = ass.get_proof_operator(tb);
         auto proof = po->uncompress();
@@ -215,7 +217,7 @@ void find_generalizable_theorems() {
             std::cout << std::endl;
         }
 
-        tb.release_temp_var_frame();
+        tsa.release_temp_var_frame();
     }
 }
 

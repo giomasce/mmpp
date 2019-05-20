@@ -32,6 +32,7 @@ public:
     VisitResult visit();
     const std::vector< ParsingTree2< SymTok, LabTok > > &get_hypotheses() const;
     const LibraryToolbox &get_toolbox() const;
+    temp_allocator &get_temp_allocator();
     std::ranlux48 &get_rand();
     const std::set<std::pair<LabTok, LabTok> > &get_antidists() const;
     void replay_proof(CheckpointedProofEngine &engine) const;
@@ -52,6 +53,7 @@ private:
     std::shared_ptr< SentenceNode > root;
     std::set< std::pair< LabTok, LabTok > > antidists;
     const LibraryToolbox &tb;
+    temp_stacked_allocator tsa;
     ParsingTree2< SymTok, LabTok > thesis;
     std::vector< ParsingTree2< SymTok, LabTok > > hypotheses;
     std::unordered_map< LabTok, std::vector< LabTok > > root_useful_asses;

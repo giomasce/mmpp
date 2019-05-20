@@ -212,6 +212,7 @@ int subst_search_main(int argc, char *argv[]) {
     auto &data = get_set_mm();
     //auto &lib = data.lib;
     auto &tb = data.tb;
+    temp_stacked_allocator tsa(tb);
 
     auto &ders = tb.get_derivations();
     auto equalities = compute_equalities(tb);
@@ -224,9 +225,9 @@ int subst_search_main(int argc, char *argv[]) {
     for (const auto &der : ders) {
         const auto type = der.first;
         for (const auto &der2 : der.second) {
-            tb.new_temp_var_frame();
-            Finally f1([&tb]() {
-                tb.release_temp_var_frame();
+            tsa.new_temp_var_frame();
+            Finally f1([&tsa]() {
+                tsa.release_temp_var_frame();
             });
 
             const auto label = der2.first;
@@ -284,12 +285,12 @@ int subst_search_main(int argc, char *argv[]) {
                     if (var_types.find(var_type) != var_types.end()) {
                         auto bound_data_it = this_bound_data.second.find(current_pos);
                         if (bound_data_it != this_bound_data.second.end()) {
-                            auto pt_var = create_temp_var_pt(tb, var_type);
+                            auto pt_var = create_temp_var_pt(tb, tsa, var_type);
                             pt_left.children.push_back(pt_var);
                             pt_right.children.push_back(pt_var);
                         } else {
-                            auto pt_var1 = create_temp_var_pt(tb, var_type);
-                            auto pt_var2 = create_temp_var_pt(tb, var_type);
+                            auto pt_var1 = create_temp_var_pt(tb, tsa, var_type);
+                            auto pt_var2 = create_temp_var_pt(tb, tsa, var_type);
                             if (current_pos == this_bound_data.first) {
                                 hyp_body_idx = pts_eq_hyps.size();
                             }
@@ -350,7 +351,7 @@ int subst_search_main(int argc, char *argv[]) {
                     this_found = true;
                 }
 
-                auto pt_ded_var = create_temp_var_pt(tb, tb.get_turnstile_alias());
+                auto pt_ded_var = create_temp_var_pt(tb, tsa, tb.get_turnstile_alias());
                 auto pt_ded_thesis = create_implication_pt(tb, pt_ded_var, pt_equal);
                 std::vector< std::pair< SymTok, ParsingTree< SymTok, LabTok > > > pts_ded_hyps;
                 for (const auto &pt : pts_eq_hyps) {
@@ -402,9 +403,9 @@ int subst_search_main(int argc, char *argv[]) {
                             if (var_types.find(var_type) != var_types.end()) {
                                 ParsingTree< SymTok, LabTok > pt_var1;
                                 ParsingTree< SymTok, LabTok > pt_var2;
-                                pt_var1 = create_temp_var_pt(tb, var_type);
+                                pt_var1 = create_temp_var_pt(tb, tsa, var_type);
                                 if (i == j) {
-                                    pt_var2 = create_temp_var_pt(tb, var_type);
+                                    pt_var2 = create_temp_var_pt(tb, tsa, var_type);
                                     pt_hyp = create_equality_pt(tb, equalities, adaptors, pt_var1, pt_var2);
                                 } else {
                                     pt_var2 = pt_var1;
@@ -458,7 +459,7 @@ int subst_search_main(int argc, char *argv[]) {
                             this_local_found = true;
                         }
 
-                        ParsingTree< SymTok, LabTok > pt_ph = create_temp_var_pt(tb, tb.get_turnstile_alias());
+                        ParsingTree< SymTok, LabTok > pt_ph = create_temp_var_pt(tb, tsa, tb.get_turnstile_alias());
                         ParsingTree< SymTok, LabTok > pt_hypd = create_implication_pt(tb, pt_ph, pt_hyp);
                         ParsingTree< SymTok, LabTok > pt_thesisd = create_implication_pt(tb, pt_ph, pt_thesis);
                         std::cout << "   Deduction form" << std::endl;
@@ -470,9 +471,9 @@ int subst_search_main(int argc, char *argv[]) {
                     } else if (false) {  //(rule[i] == var_type) {
                         if (false) {
                             std::cout << " * Search for a not-free rule for " << tb.resolve_symbol(rule[i]) << " in position " << i << std::endl;
-                            tb.new_temp_var_frame();
-                            Finally f([&tb]() {
-                                tb.release_temp_var_frame();
+                            tsa.new_temp_var_frame();
+                            Finally f([&tsa]() {
+                                tsa.release_temp_var_frame();
                             });
                             ParsingTree< SymTok, LabTok > pt_body;
                             pt_body.label = label;
@@ -482,7 +483,7 @@ int subst_search_main(int argc, char *argv[]) {
                             for (unsigned j = 0; j < rule.size(); j++) {
                                 if (ders.find(rule[j]) != ders.end()) {
                                     ParsingTree< SymTok, LabTok > pt_var2;
-                                    auto var = tb.new_temp_var(rule[j]);
+                                    auto var = tsa.new_temp_var(rule[j]);
                                     pt_var2.label = var.first;
                                     pt_var2.type = rule[j];
                                     pt_body.children.push_back(pt_var2);
@@ -546,6 +547,8 @@ std::set< LabTok > get_defless_labels(const LibraryToolbox &tb) {
 }
 
 std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok >, ParsingTree< SymTok, LabTok > > > compute_defs(const LibraryToolbox &tb) {
+    temp_stacked_allocator tsa(tb);
+
     auto &ders = tb.get_derivations();
 
     auto equalities = compute_equalities(tb);
@@ -577,19 +580,19 @@ std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok
             }
             //std::cout << "Considering derivation " << tb.resolve_label(label) <<" for type " << tb.resolve_symbol(type) << " with rule " << tb.print_sentence(rule) << std::endl;
 
-            tb.new_temp_var_frame();
-            Finally f([&tb]() {
-                tb.release_temp_var_frame();
+            tsa.new_temp_var_frame();
+            Finally f([&tsa]() {
+                tsa.release_temp_var_frame();
             });
             ParsingTree< SymTok, LabTok > pt_right;
             pt_right.type = type;
-            pt_right.label = tb.new_temp_var(type).first;
+            pt_right.label = tsa.new_temp_var(type).first;
             ParsingTree< SymTok, LabTok > pt_left;
             pt_left.type = type;
             pt_left.label = label;
             for (const auto sym : rule) {
                 if (ders.find(sym) != ders.end()) {
-                    auto temp_var = tb.new_temp_var(sym);
+                    auto temp_var = tsa.new_temp_var(sym);
                     ParsingTree< SymTok, LabTok > pt_var;
                     pt_var.type = sym;
                     pt_var.label = temp_var.first;
@@ -773,7 +776,7 @@ gio_static_block {
     gio::register_main_function("find_bound_vars", find_bound_vars_main);
 }
 
-ParsingTree< SymTok, LabTok > subst_defs(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb, const std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok >, ParsingTree< SymTok, LabTok > > > &defs) {
+ParsingTree< SymTok, LabTok > subst_defs(const ParsingTree< SymTok, LabTok > &pt, const LibraryToolbox &tb, temp_allocator &ta, const std::map< LabTok, std::tuple< LabTok, std::vector< LabTok >, std::vector< LabTok >, ParsingTree< SymTok, LabTok > > > &defs) {
     auto it = defs.find(pt.label);
     if (it != defs.end()) {
         // In most cases we can use the general procedure, substituting the definition
@@ -788,10 +791,10 @@ ParsingTree< SymTok, LabTok > subst_defs(const ParsingTree< SymTok, LabTok > &pt
         for (const auto var : fresh_vars) {
             auto &new_var = subst_map[var];
             new_var.type = tb.get_var_lab_to_type_sym(var);
-            new_var.label = tb.new_temp_var(new_var.type).first;
+            new_var.label = ta.new_temp_var(new_var.type).first;
         }
         ParsingTree< SymTok, LabTok > ret = substitute(def_body, tb.get_standard_is_var(), subst_map);
-        return subst_defs(ret, tb, defs);
+        return subst_defs(ret, tb, ta, defs);
     } else if (pt.label == tb.get_label("wcel")) {
         // Class/set membership requires special handling
         assert(pt.children.size() == 2);
@@ -803,12 +806,12 @@ ParsingTree< SymTok, LabTok > subst_defs(const ParsingTree< SymTok, LabTok > &pt
             subst_map[pt_clel.children.at(0).children.at(0).label] = pt.children.at(0);
             subst_map[pt_clel.children.at(0).children.at(1).label] = pt.children.at(1);
             ParsingTree< SymTok, LabTok > ret = substitute(pt_clel.children.at(1), tb.get_standard_is_var(), subst_map);
-            return subst_defs(ret, tb, defs);
+            return subst_defs(ret, tb, ta, defs);
         }
 
         // Now we can assume the left-hand operand is a set, where no substitution can be made.
         // We thus continue substituting in the right-hand side.
-        auto pt_right = subst_defs(pt.children.at(1), tb, defs);
+        auto pt_right = subst_defs(pt.children.at(1), tb, ta, defs);
 
         // If we obtained a class abstraction, then we can use df-clab
         if (pt_right.label == tb.get_label(("cab"))) {
@@ -818,7 +821,7 @@ ParsingTree< SymTok, LabTok > subst_defs(const ParsingTree< SymTok, LabTok > &pt
             subst_map[pt_clab.children.at(0).children.at(1).children.at(0).label] = pt_right.children.at(0);
             subst_map[pt_clab.children.at(0).children.at(1).children.at(1).label] = pt_right.children.at(1);
             ParsingTree< SymTok, LabTok > ret = substitute(pt_clab.children.at(1), tb.get_standard_is_var(), subst_map);
-            return subst_defs(ret, tb, defs);
+            return subst_defs(ret, tb, ta, defs);
         }
 
         // In all the other cases we have either a set (in which case the notation is primitive) or a class variable (and we cannot do anything about it)
@@ -833,7 +836,7 @@ ParsingTree< SymTok, LabTok > subst_defs(const ParsingTree< SymTok, LabTok > &pt
         ParsingTree< SymTok, LabTok > ret;
         ret.type = pt.type;
         ret.label = pt.label;
-        ret.children = gio::vector_map(pt.children.begin(), pt.children.end(), [&tb,&defs](const auto &x) { return subst_defs(x, tb, defs); });
+        ret.children = gio::vector_map(pt.children.begin(), pt.children.end(), [&tb,&ta,&defs](const auto &x) { return subst_defs(x, tb, ta, defs); });
         return ret;
     }
 }
@@ -845,13 +848,14 @@ int find_defs_main(int argc, char *argv[]) {
     auto &data = get_set_mm();
     //auto &lib = data.lib;
     auto &tb = data.tb;
+    temp_stacked_allocator tsa(tb);
 
     auto defs = compute_defs(tb);
 
     auto pt = tb.parse_sentence(tb.read_sentence("wff E. x ( x = _V /\\ A e. B /\\ ( ph <-> ps ) )"));
     //auto pt = tb.parse_sentence(tb.read_sentence("wff ( ph /\\ ps /\\ ch )"));
     pt.validate(tb.get_validation_rule());
-    auto pt_defs = subst_defs(pt, tb, defs);
+    auto pt_defs = subst_defs(pt, tb, tsa, defs);
     pt_defs.validate(tb.get_validation_rule());
     std::cout << tb.print_sentence(pt) << std::endl << "becomes" << std::endl << tb.print_sentence(pt_defs) << std::endl;
 

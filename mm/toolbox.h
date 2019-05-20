@@ -128,10 +128,16 @@ private:
     LRParser< SymTok, LabTok >::CachedData lr_parser_data;
 };
 
+class temp_allocator {
+public:
+    virtual ~temp_allocator() = default;
+    virtual std::pair<LabTok, SymTok> new_temp_var(SymTok type) = 0;
+};
+
 class LibraryToolbox : public Library
 {
 public:
-    explicit LibraryToolbox(const ExtendedLibrary &lib, std::string turnstile, std::shared_ptr< ToolboxCache > cache = NULL);
+    explicit LibraryToolbox(const ExtendedLibrary &lib, std::string turnstile, std::shared_ptr< ToolboxCache > cache = nullptr);
 private:
     void compute_everything();
     std::shared_ptr< ToolboxCache > cache;
@@ -448,20 +454,19 @@ private:
 public:
     std::pair< LabTok, SymTok > new_temp_var(SymTok type_sym) const;
     LabTok new_temp_label(std::string name) const;
-    void new_temp_var_frame() const;
-    void release_temp_var_frame() const;
+    void release_temp_var(LabTok lab) const;
 private:
     std::unique_ptr< TempGenerator > temp_generator;
 
     // Replace variables with fresh new ones
 public:
-    std::pair< std::vector< ParsingTree< SymTok, LabTok > >, ParsingTree< SymTok, LabTok > > refresh_assertion(const Assertion &ass) const;
-    std::pair< std::vector< ParsingTree2< SymTok, LabTok > >, ParsingTree2< SymTok, LabTok > > refresh_assertion2(const Assertion &ass) const;
-    ParsingTree< SymTok, LabTok > refresh_parsing_tree(const ParsingTree< SymTok, LabTok > &pt) const;
-    ParsingTree2<SymTok, LabTok> refresh_parsing_tree2(const ParsingTree2< SymTok, LabTok > &pt) const;
-    std::pair<SubstMap<SymTok, LabTok>, std::set<LabTok> > build_refreshing_subst_map(const std::set< LabTok > &vars) const;
-    SimpleSubstMap2< SymTok, LabTok > build_refreshing_subst_map2(const std::set< LabTok > &vars) const;
-    std::pair<SubstMap2<SymTok, LabTok>, std::set<LabTok> > build_refreshing_full_subst_map2(const std::set< LabTok > &vars) const;
+    std::pair< std::vector< ParsingTree< SymTok, LabTok > >, ParsingTree< SymTok, LabTok > > refresh_assertion(const Assertion &ass, temp_allocator &ta) const;
+    std::pair< std::vector< ParsingTree2< SymTok, LabTok > >, ParsingTree2< SymTok, LabTok > > refresh_assertion2(const Assertion &ass, temp_allocator &ta) const;
+    ParsingTree< SymTok, LabTok > refresh_parsing_tree(const ParsingTree< SymTok, LabTok > &pt, temp_allocator &ta) const;
+    ParsingTree2<SymTok, LabTok> refresh_parsing_tree2(const ParsingTree2< SymTok, LabTok > &pt, temp_allocator &ta) const;
+    std::pair<SubstMap<SymTok, LabTok>, std::set<LabTok> > build_refreshing_subst_map(const std::set< LabTok > &vars, temp_allocator &ta) const;
+    SimpleSubstMap2< SymTok, LabTok > build_refreshing_subst_map2(const std::set< LabTok > &vars, temp_allocator &ta) const;
+    std::pair<SubstMap2<SymTok, LabTok>, std::set<LabTok> > build_refreshing_full_subst_map2(const std::set< LabTok > &vars, temp_allocator &ta) const;
 
     // Misc
 public:
@@ -580,3 +585,16 @@ Prover< Engine > checked_prover(Prover< Engine > prover, size_t hyp_num, typenam
         return res;
     };
 }
+
+class temp_stacked_allocator : public temp_allocator {
+public:
+    temp_stacked_allocator(const LibraryToolbox &tb);
+    ~temp_stacked_allocator();
+    std::pair<LabTok, SymTok> new_temp_var(SymTok type_sym);
+    void new_temp_var_frame();
+    void release_temp_var_frame();
+
+private:
+    std::vector<std::vector<LabTok>> stack;
+    const LibraryToolbox &tb;
+};

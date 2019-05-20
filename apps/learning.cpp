@@ -179,6 +179,7 @@ void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
                   const std::vector< const Assertion* > &useful_asses,
                   const ParsingTree2< SymTok, LabTok > &final_thesis,
                   LibraryToolbox &tb,
+                  temp_stacked_allocator &tsa,
                   size_t depth,
                   const std::function< void(const ParsingTree2< SymTok, LabTok >&, const std::vector< ParsingTree2< SymTok, LabTok > >&, const std::vector< LabTok >&, LibraryToolbox&)> &callback) {
     if (depth == 0 || hyps_pos == open_hyps.size()) {
@@ -196,13 +197,13 @@ void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
         }
         callback(thesis, hyps, steps, tb);
     } else {
-        gen_theorems(unif, open_hyps, steps, hyps_pos+1, useful_asses, final_thesis, tb, depth, callback);
+        gen_theorems(unif, open_hyps, steps, hyps_pos+1, useful_asses, final_thesis, tb, tsa, depth, callback);
         for (const auto assp : useful_asses) {
-            tb.new_temp_var_frame();
+            tsa.new_temp_var_frame();
             const Assertion &ass = *assp;
             ParsingTree2< SymTok, LabTok > thesis;
             std::vector< ParsingTree2< SymTok, LabTok > > hyps;
-            tie(hyps, thesis) = tb.refresh_assertion2(ass);
+            tie(hyps, thesis) = tb.refresh_assertion2(ass, tsa);
             auto unif2 = unif;
             auto steps2 = steps;
             unif2.add_parsing_trees2(open_hyps[hyps_pos], thesis);
@@ -212,9 +213,9 @@ void gen_theorems(const BilateralUnificator< SymTok, LabTok > &unif,
                 auto open_hyps2 = open_hyps;
                 open_hyps2.erase(open_hyps2.begin() + hyps_pos);
                 open_hyps2.insert(open_hyps2.end(), hyps.begin(), hyps.end());
-                gen_theorems(unif2, open_hyps2, steps2, hyps_pos, useful_asses, final_thesis, tb, depth-1, callback);
+                gen_theorems(unif2, open_hyps2, steps2, hyps_pos, useful_asses, final_thesis, tb, tsa, depth-1, callback);
             }
-            tb.release_temp_var_frame();
+            tsa.release_temp_var_frame();
         }
     }
 }
@@ -249,6 +250,7 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     auto &lib = data.lib;
     auto &tb = data.tb;
     auto standard_is_var = tb.get_standard_is_var();
+    temp_stacked_allocator tsa(tb);
 
     //string target_label_str(argv[1]);
     //LabTok target_label = lib.get_label(target_label_str);
@@ -295,13 +297,13 @@ int gen_random_theorems_main(int argc, char *argv[]) {
     BilateralUnificator< SymTok, LabTok > unif(is_var);
     std::vector< ParsingTree2< SymTok, LabTok > > open_hyps;
     LabTok th_label;
-    std::tie(th_label, std::ignore) = tb.new_temp_var(tb.get_turnstile_alias());
+    std::tie(th_label, std::ignore) = tsa.new_temp_var(tb.get_turnstile_alias());
     ParsingTree2< SymTok, LabTok > final_thesis = var_parsing_tree(th_label, tb.get_turnstile_alias());
     final_thesis = target_pt;
     open_hyps.push_back(final_thesis);
     std::vector< LabTok > steps;
 
-    gen_theorems(unif, open_hyps, steps, 0, useful_asses, final_thesis, tb, 2, print_theorem);
+    gen_theorems(unif, open_hyps, steps, 0, useful_asses, final_thesis, tb, tsa, 2, print_theorem);
     return 0;
 
     for (size_t i = 0; i < 5; i++) {
@@ -322,7 +324,7 @@ int gen_random_theorems_main(int argc, char *argv[]) {
             }
             ParsingTree2< SymTok, LabTok > thesis;
             std::vector< ParsingTree2< SymTok, LabTok > > hyps;
-            tie(hyps, thesis) = tb.refresh_assertion2(ass);
+            tie(hyps, thesis) = tb.refresh_assertion2(ass, tsa);
             auto unif2 = unif;
             unif2.add_parsing_trees2(open_hyps[hyp_idx], thesis);
             if (unif2.unify2().first) {

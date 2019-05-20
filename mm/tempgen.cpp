@@ -1,14 +1,27 @@
 #include "tempgen.h"
 
+#include <iostream>
 #include <mutex>
 
 #include <giolib/containers.h>
 
 TempGenerator::TempGenerator(const Library &lib) : lib(lib),
-    temp_syms(SymTok((SymTok::val_type) lib.get_symbols_num()+1)), temp_labs(LabTok((LabTok::val_type) lib.get_labels_num()+1)),
+    temp_syms(SymTok(static_cast<SymTok::val_type>(lib.get_symbols_num())+1)), temp_labs(LabTok(static_cast<LabTok::val_type>(lib.get_labels_num())+1)),
     syms_base(lib.get_symbols_num()+1), labs_base(lib.get_labels_num()+1)
 {
     assert(this->lib.is_immutable());
+}
+
+TempGenerator::~TempGenerator()
+{
+    size_t alloc_num = this->var_lab_to_sym.size();
+    size_t dealloc_num = 0;
+    for (const auto &free_tv : this->free_temp_vars) {
+        dealloc_num += free_tv.second.size();
+    }
+    if (alloc_num != dealloc_num) {
+        std::cerr << alloc_num - dealloc_num << " temporaries were allocated but never deallocated\n";
+    }
 }
 
 void TempGenerator::create_temp_var(SymTok type_sym)
@@ -34,7 +47,7 @@ void TempGenerator::create_temp_var(SymTok type_sym)
     gio::enlarge_and_set(this->var_sym_to_type_sym, sym.val() - this->syms_base) = type_sym;
 
     // And insert it to the free list
-    this->free_temp_vars[type_sym].push_back(std::make_pair(lab, sym));
+    this->free_temp_vars[type_sym].push_back(lab);
 }
 
 std::pair<LabTok, SymTok> TempGenerator::new_temp_var(SymTok type_sym)
@@ -44,10 +57,17 @@ std::pair<LabTok, SymTok> TempGenerator::new_temp_var(SymTok type_sym)
     if (this->free_temp_vars[type_sym].empty()) {
         this->create_temp_var(type_sym);
     }
-    auto ret = this->free_temp_vars[type_sym].back();
-    this->used_temp_vars[type_sym].push_back(ret);
+    auto lab = this->free_temp_vars[type_sym].back();
     this->free_temp_vars[type_sym].pop_back();
-    return ret;
+    return std::make_pair(lab, this->var_lab_to_sym.at(lab.val() - this->labs_base));
+}
+
+void TempGenerator::release_temp_var(LabTok lab)
+{
+    std::unique_lock<std::mutex> lock(this->global_mutex);
+
+    auto type_sym = this->var_lab_to_type_sym.at(lab.val() - this->labs_base);
+    this->free_temp_vars[type_sym].push_back(lab);
 }
 
 LabTok TempGenerator::new_temp_label(std::string name)
@@ -63,7 +83,7 @@ LabTok TempGenerator::new_temp_label(std::string name)
     return tok;
 }
 
-void TempGenerator::new_temp_var_frame()
+/*void TempGenerator::new_temp_var_frame()
 {
     std::unique_lock< std::mutex > lock(this->global_mutex);
 
@@ -94,7 +114,7 @@ void TempGenerator::release_temp_var_frame()
         used_vars.resize(pos);
     }
     this->temp_vars_stack.pop_back();
-}
+}*/
 
 SymTok TempGenerator::get_symbol(std::string s)
 {

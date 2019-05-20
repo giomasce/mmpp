@@ -12,10 +12,12 @@
 class TempGenerator {
 public:
     TempGenerator(const Library &lib);
-    std::pair< LabTok, SymTok > new_temp_var(SymTok type_sym);
+    ~TempGenerator();
+    std::pair<LabTok, SymTok> new_temp_var(SymTok type_sym);
+    void release_temp_var(LabTok lab);
     LabTok new_temp_label(std::string name);
-    void new_temp_var_frame();
-    void release_temp_var_frame();
+    //void new_temp_var_frame();
+    //void release_temp_var_frame();
 
     // Library-like interface
     SymTok get_symbol(std::string s);
@@ -48,9 +50,7 @@ private:
     StringCache< LabTok > temp_labs;
     std::size_t syms_base;
     std::size_t labs_base;
-    std::map< SymTok, std::vector< std::pair< LabTok, SymTok > > > free_temp_vars;
-    std::map< SymTok, std::vector< std::pair< LabTok, SymTok > > > used_temp_vars;
-    std::vector< std::map< SymTok, size_t > > temp_vars_stack;
+    std::map<SymTok, std::vector<LabTok>> free_temp_vars;
 
     std::vector< LabTok > var_sym_to_lab;
     std::vector< SymTok > var_lab_to_sym;

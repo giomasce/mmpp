@@ -277,7 +277,7 @@ const std::unordered_map<LabTok, std::vector<LabTok> > &LibraryToolbox::get_imp_
 }
 
 // FIXME Deduplicate with refresh_parsing_tree()
-std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok> > LibraryToolbox::refresh_assertion(const Assertion &ass) const
+std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok> > LibraryToolbox::refresh_assertion(const Assertion &ass, temp_allocator &ta) const
 {
     // Collect all variables
     std::set< LabTok > var_labs;
@@ -290,7 +290,7 @@ std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok>
     }
 
     // Build a substitution map
-    SubstMap< SymTok, LabTok > subst = this->build_refreshing_subst_map(var_labs).first;
+    SubstMap< SymTok, LabTok > subst = this->build_refreshing_subst_map(var_labs, ta).first;
 
     // Substitute and return
     ParsingTree< SymTok, LabTok > thesis_new_pt = ::substitute(thesis_pt, is_var, subst);
@@ -302,7 +302,7 @@ std::pair<std::vector<ParsingTree<SymTok, LabTok> >, ParsingTree<SymTok, LabTok>
     return std::make_pair(hyps_new_pts, thesis_new_pt);
 }
 
-std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTok> > LibraryToolbox::refresh_assertion2(const Assertion &ass) const
+std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTok> > LibraryToolbox::refresh_assertion2(const Assertion &ass, temp_allocator &ta) const
 {
     // Collect all variables
     std::set< LabTok > var_labs;
@@ -315,7 +315,7 @@ std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTo
     }
 
     // Build a substitution map
-    SimpleSubstMap2< SymTok, LabTok > subst = this->build_refreshing_subst_map2(var_labs);
+    SimpleSubstMap2< SymTok, LabTok > subst = this->build_refreshing_subst_map2(var_labs, ta);
 
     // Substitute and return
     ParsingTree2< SymTok, LabTok > thesis_new_pt = ::substitute2_simple(thesis_pt, is_var, subst);
@@ -327,7 +327,7 @@ std::pair<std::vector<ParsingTree2<SymTok, LabTok> >, ParsingTree2<SymTok, LabTo
     return std::make_pair(hyps_new_pts, thesis_new_pt);
 }
 
-ParsingTree<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree(const ParsingTree<SymTok, LabTok> &pt) const
+ParsingTree<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree(const ParsingTree<SymTok, LabTok> &pt, temp_allocator &ta) const
 {
     // Collect all variables
     std::set< LabTok > var_labs;
@@ -335,13 +335,13 @@ ParsingTree<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree(const ParsingTr
     collect_variables(pt, is_var, var_labs);
 
     // Build a substitution map
-    SubstMap< SymTok, LabTok > subst = this->build_refreshing_subst_map(var_labs).first;
+    SubstMap< SymTok, LabTok > subst = this->build_refreshing_subst_map(var_labs, ta).first;
 
     // Substitute and return
     return ::substitute(pt, is_var, subst);
 }
 
-ParsingTree2<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree2(const ParsingTree2<SymTok, LabTok> &pt) const
+ParsingTree2<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree2(const ParsingTree2<SymTok, LabTok> &pt, temp_allocator &ta) const
 {
     // Collect all variables
     std::set< LabTok > var_labs;
@@ -349,20 +349,20 @@ ParsingTree2<SymTok, LabTok> LibraryToolbox::refresh_parsing_tree2(const Parsing
     collect_variables2(pt, is_var, var_labs);
 
     // Build a substitution map
-    SimpleSubstMap2< SymTok, LabTok > subst = this->build_refreshing_subst_map2(var_labs);
+    SimpleSubstMap2< SymTok, LabTok > subst = this->build_refreshing_subst_map2(var_labs, ta);
 
     // Substitute and return
     return ::substitute2_simple(pt, is_var, subst);
 }
 
-std::pair< SubstMap<SymTok, LabTok>, std::set< LabTok > > LibraryToolbox::build_refreshing_subst_map(const std::set<LabTok> &vars) const
+std::pair< SubstMap<SymTok, LabTok>, std::set< LabTok > > LibraryToolbox::build_refreshing_subst_map(const std::set<LabTok> &vars, temp_allocator &ta) const
 {
     SubstMap< SymTok, LabTok > subst;
     std::set< LabTok > new_vars;
     for (const auto &var : vars) {
         SymTok type_sym = this->get_sentence(var).at(0);
         LabTok new_lab;
-        std::tie(new_lab, std::ignore) = this->new_temp_var(type_sym);
+        std::tie(new_lab, std::ignore) = ta.new_temp_var(type_sym);
         new_vars.insert(new_lab);
         ParsingTree< SymTok, LabTok > new_pt;
         new_pt.label = new_lab;
@@ -372,21 +372,21 @@ std::pair< SubstMap<SymTok, LabTok>, std::set< LabTok > > LibraryToolbox::build_
     return std::make_pair(subst, new_vars);
 }
 
-SimpleSubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map2(const std::set<LabTok> &vars) const
+SimpleSubstMap2<SymTok, LabTok> LibraryToolbox::build_refreshing_subst_map2(const std::set<LabTok> &vars, temp_allocator &ta) const
 {
     SimpleSubstMap2< SymTok, LabTok > subst;
     for (const auto &var : vars) {
         SymTok type_sym = this->get_sentence(var).at(0);
         LabTok new_lab;
-        std::tie(new_lab, std::ignore) = this->new_temp_var(type_sym);
+        std::tie(new_lab, std::ignore) = ta.new_temp_var(type_sym);
         subst[var] = new_lab;
     }
     return subst;
 }
 
-std::pair< SubstMap2<SymTok, LabTok>, std::set< LabTok > > LibraryToolbox::build_refreshing_full_subst_map2(const std::set<LabTok> &vars) const
+std::pair< SubstMap2<SymTok, LabTok>, std::set< LabTok > > LibraryToolbox::build_refreshing_full_subst_map2(const std::set<LabTok> &vars, temp_allocator &ta) const
 {
-    auto tmp = this->build_refreshing_subst_map(vars);
+    auto tmp = this->build_refreshing_subst_map(vars, ta);
     return std::make_pair(subst_to_subst2(tmp.first), tmp.second);
 }
 
@@ -1136,14 +1136,9 @@ LabTok LibraryToolbox::new_temp_label(std::string name) const
     return this->temp_generator->new_temp_label(name);
 }
 
-void LibraryToolbox::new_temp_var_frame() const
+void LibraryToolbox::release_temp_var(LabTok lab) const
 {
-    return this->temp_generator->new_temp_var_frame();
-}
-
-void LibraryToolbox::release_temp_var_frame() const
-{
-    return this->temp_generator->release_temp_var_frame();
+    this->temp_generator->release_temp_var(lab);
 }
 
 std::string SentencePrinter::to_string() const
@@ -1210,4 +1205,31 @@ Prover<ProofEngine> trivial_prover(LabTok label) {
         e.process_label(label);
         return true;
     };
+}
+
+temp_stacked_allocator::temp_stacked_allocator(const LibraryToolbox &tb) : tb(tb) {
+    this->new_temp_var_frame();
+}
+
+temp_stacked_allocator::~temp_stacked_allocator() {
+    while (!this->stack.empty()) {
+        this->release_temp_var_frame();
+    }
+}
+
+std::pair<LabTok, SymTok> temp_stacked_allocator::new_temp_var(SymTok type_sym) {
+    auto ret = this->tb.new_temp_var(type_sym);
+    this->stack.back().push_back(ret.first);
+    return ret;
+}
+
+void temp_stacked_allocator::new_temp_var_frame() {
+    this->stack.emplace_back();
+}
+
+void temp_stacked_allocator::release_temp_var_frame() {
+    for (const auto &lab : this->stack.back()) {
+        tb.release_temp_var(lab);
+    }
+    this->stack.pop_back();
 }

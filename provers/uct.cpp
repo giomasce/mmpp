@@ -87,6 +87,10 @@ const LibraryToolbox &UCTProver::get_toolbox() const {
     return this->tb;
 }
 
+temp_allocator &UCTProver::get_temp_allocator() {
+    return this->tsa;
+}
+
 std::ranlux48 &UCTProver::get_rand() {
     return this->rand;
 }
@@ -102,7 +106,7 @@ void UCTProver::replay_proof(CheckpointedProofEngine &engine) const
 }
 
 UCTProver::UCTProver(const LibraryToolbox &tb, const ParsingTree2<SymTok, LabTok> &thesis, const std::vector<ParsingTree2<SymTok, LabTok> > &hypotheses, const std::set<std::pair<LabTok, LabTok> > &antidists)
-    : antidists(antidists), tb(tb), thesis(thesis), hypotheses(hypotheses), rand(2204) {
+    : antidists(antidists), tb(tb), tsa(tb), thesis(thesis), hypotheses(hypotheses), rand(2204) {
 #ifdef LOG_UCT
     //visit_log() << this << ": Constructing UCTProver" << endl;
 #endif
@@ -519,7 +523,7 @@ VisitResult StepNode::create_children()
     auto &tb = strong_uct->get_toolbox();
 
     std::set< LabTok > new_vars;
-    std::tie(this->unconst_subst_map, new_vars) = tb.build_refreshing_full_subst_map2(tb.get_assertion_unconst_vars()[this->label.val()]);
+    std::tie(this->unconst_subst_map, new_vars) = tb.build_refreshing_full_subst_map2(tb.get_assertion_unconst_vars()[this->label.val()], strong_uct->get_temp_allocator());
     for (const auto &new_var : new_vars) {
         bool res;
         std::tie(std::ignore, res) = this->open_vars.insert(std::make_pair(new_var, this->weak_from_this()));
@@ -686,7 +690,7 @@ int uct_main(int argc, char *argv[]) {
 #endif
             break;
         }
-        while (std::cin.get() != '\n') {}
+        //while (std::cin.get() != '\n') {}
     }
 
     return 0;

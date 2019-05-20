@@ -10,8 +10,8 @@ ParsingTree< SymTok, LabTok > create_var_pt(const LibraryToolbox &tb, SymTok var
     return ret;
 }
 
-ParsingTree< SymTok, LabTok > create_temp_var_pt(const LibraryToolbox &tb, SymTok type) {
-    auto var_data = tb.new_temp_var(type);
+ParsingTree< SymTok, LabTok > create_temp_var_pt(const LibraryToolbox &tb, temp_allocator &ta, SymTok type) {
+    auto var_data = ta.new_temp_var(type);
     return create_var_pt(tb, var_data.second);
 }
 
