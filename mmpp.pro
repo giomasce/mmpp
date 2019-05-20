@@ -220,7 +220,8 @@ HEADERS += \
     provers/gapt.h \
     provers/fof.h \
     mm/setmm_loader.h \
-    provers/setmm.h
+    provers/setmm.h \
+    provers/fof_to_mm.h
 
 DISTFILES += \
     README.md \

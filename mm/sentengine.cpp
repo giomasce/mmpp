@@ -103,6 +103,12 @@ bool ProofSentenceTraits<Sentence>::is_variable(const LibType &lib, ProofSentenc
     return !lib.is_constant(var);
 }
 
+Sentence ProofSentenceTraits<Sentence>::sentence_to_subst(const LibType &lib, const SentType &sent)
+{
+    (void) lib;
+    return sent;
+}
+
 ProofSentenceTraits<Sentence>::SentGenerator::SentGenerator(const Library &lib, const Sentence &sent) : sentence(sent) {
     (void) lib;
 }

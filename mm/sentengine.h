@@ -37,6 +37,7 @@ struct ProofSentenceTraits< Sentence > final {
     static SentType substitute(const LibType &lib, const SentType &templ, const SubstMapType &subst_map);
     static SentGenerator get_variable_iterator(const LibType &lib, const SentType &sent);
     static bool is_variable(const LibType &lib, VarType var);
+    static Sentence sentence_to_subst(const LibType &lib, const SentType &sent);
 };
 
 extern template class VectorMap< SymTok, Sentence >;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "engine.h"
 #include "funds.h"
 #include "parsing/parser.h"
@@ -9,7 +11,7 @@
 
 template<>
 struct ProofSentenceTraits< ParsingTree2< SymTok, LabTok > > final {
-    typedef ParsingTree2< SymTok, LabTok > SentType;
+    typedef std::pair<SymTok, ParsingTree2< SymTok, LabTok >> SentType;
     typedef SubstMap2< SymTok, LabTok > SubstMapType;
     typedef LabTok VarType;
     typedef LibraryToolbox LibType;
@@ -28,12 +30,12 @@ struct ProofSentenceTraits< ParsingTree2< SymTok, LabTok > > final {
 
     class PTGenerator {
     public:
-        PTGenerator(const SentType &sent);
+        PTGenerator(const ParsingTree2<SymTok, LabTok> &sent);
         PTIterator begin() const;
         PTIterator end() const;
 
     private:
-        const SentType &sent;
+        const ParsingTree2<SymTok, LabTok> &sent;
     };
 
     static VarType sym_to_var(const LibType &lib, SymTok sym);
@@ -41,11 +43,12 @@ struct ProofSentenceTraits< ParsingTree2< SymTok, LabTok > > final {
     static VarType floating_to_var(const LibType &lib, LabTok label);
     static SymTok floating_to_type(const LibType &lib, LabTok label);
     static SymTok sentence_to_type(const LibType &lib, const SentType &sent);
-    static const SentType &get_sentence(const LibType &lib, LabTok label);
+    static const SentType get_sentence(const LibType &lib, LabTok label);
     static void check_match(const LibType &lib, LabTok label, const SentType &stack, const SentType &templ, const SubstMapType &subst_map);
     static SentType substitute(const LibType &lib, const SentType &templ, const SubstMapType &subst_map);
-    static PTGenerator get_variable_iterator(const LibType &lib, const SentType &sent);
+    static PTGenerator get_variable_iterator(const LibType &lib, const ParsingTree2<SymTok, LabTok> &sent);
     static bool is_variable(const LibType &lib, VarType var);
+    static ParsingTree2<SymTok, LabTok> sentence_to_subst(const LibType &lib, const SentType &sent);
 };
 
 extern template class VectorMap< SymTok, ParsingTree2< SymTok, LabTok > >;
@@ -56,3 +59,5 @@ extern template struct ProofTree< ParsingTree2< SymTok, LabTok > >;
 extern template class ProofEngineBase< ParsingTree2< SymTok, LabTok > >;
 extern template class CreativeProofEngineImpl< ParsingTree2< SymTok, LabTok > >;
 extern template class ProofEngineImpl< ParsingTree2< SymTok, LabTok > >;
+
+ParsingTree2<SymTok, LabTok> prover_to_pt2(const LibraryToolbox &tb, const Prover<CheckpointedProofEngine> &type_prover);

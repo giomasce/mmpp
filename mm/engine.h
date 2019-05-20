@@ -182,8 +182,7 @@ protected:
             }
 #endif
             const VarType subst_var = TraitsType::floating_to_var(this->lib, hyp);
-            const SentType &subst_sent = stack_hyp_sent;
-            auto res = subst_map.insert(std::make_pair(subst_var, subst_sent));
+            auto res = subst_map.insert(std::make_pair(subst_var, TraitsType::sentence_to_subst(this->lib, stack_hyp_sent)));
             assert(res.second);
 #ifdef PROOF_VERBOSE_DEBUG
             cerr << "    Hypothesis:     " << print_sentence(hyp_sent, this->lib) << endl << "      matched with: " << print_sentence(stack_hyp_sent, this->lib) << endl;
@@ -347,6 +346,7 @@ private:
 
 class ProofEngine {
 public:
+    virtual ~ProofEngine() = default;
     virtual void process_label(const LabTok label) = 0;
 };
 

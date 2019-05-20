@@ -11,13 +11,7 @@ template<typename Tag>
 ParsingTree2<SymTok, LabTok> TWffBase<Tag>::to_parsing_tree(const LibraryToolbox &tb) const
 {
     auto type_prover = this->get_type_prover(tb);
-    CreativeProofEngineImpl< ParsingTree2< SymTok, LabTok > > engine(tb, false);
-    bool res = type_prover(engine);
-    assert(res);
-#ifdef NDEBUG
-    (void) res;
-#endif
-    return engine.get_stack().back();
+    return prover_to_pt2(tb, type_prover);
 }
 
 template<typename Tag>
