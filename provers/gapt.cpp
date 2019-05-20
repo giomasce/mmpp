@@ -1,6 +1,8 @@
 
 #include "gapt.h"
 
+#include <type_traits>
+
 #include <giolib/main.h>
 #include <giolib/static_block.h>
 #include <giolib/utils.h>
@@ -15,6 +17,7 @@ typedef std::shared_ptr<const gio::mmpp::provers::fof::FOT> term;
 typedef std::shared_ptr<const gio::mmpp::provers::fof::FOF> formula;
 typedef std::pair<std::vector<formula>, std::vector<formula>> sequent;
 typedef std::pair<std::vector<formula>, formula> ndsequent;
+typedef std::make_signed_t<size_t> idx_t;
 
 term parse_gapt_term(std::istream &is) {
     using namespace gio::mmpp::provers::fof;
@@ -159,7 +162,7 @@ void print_ndsequent(std::ostream &os, const ndsequent &seq) {
     os << *seq.second;
 }
 
-static std::pair<bool, size_t> decode_idx(ssize_t idx, bool is_suc) {
+static std::pair<bool, size_t> decode_idx(idx_t idx, bool is_suc) {
     // This should be implemented properly with boost::safe_numerics
     size_t ret;
     if (idx >= 0) {
@@ -167,7 +170,7 @@ static std::pair<bool, size_t> decode_idx(ssize_t idx, bool is_suc) {
             return std::make_pair(false, 0);
         }
         ret = static_cast<size_t>(idx);
-        if (static_cast<ssize_t>(ret) != idx) {
+        if (static_cast<idx_t>(ret) != idx) {
             return std::make_pair(false, 0);
         }
     } else {
@@ -175,7 +178,7 @@ static std::pair<bool, size_t> decode_idx(ssize_t idx, bool is_suc) {
             return std::make_pair(false, 0);
         }
         ret = static_cast<size_t>(-idx);
-        if (static_cast<ssize_t>(ret) != -idx) {
+        if (static_cast<idx_t>(ret) != -idx) {
             return std::make_pair(false, 0);
         }
         ret--;
@@ -306,11 +309,11 @@ public:
     }
 
 protected:
-    ContractionRule(const ndsequent &thesis, ssize_t contr_idx1, ssize_t contr_idx2, const proof &subproof)
+    ContractionRule(const ndsequent &thesis, idx_t contr_idx1, idx_t contr_idx2, const proof &subproof)
         : NDProof(thesis), contr_idx1(contr_idx1), contr_idx2(contr_idx2), subproof(subproof) {}
 
 private:
-    ssize_t contr_idx1, contr_idx2;
+    idx_t contr_idx1, contr_idx2;
     proof subproof;
 };
 
@@ -486,11 +489,11 @@ public:
     }
 
 protected:
-    OrElimRule(const ndsequent &thesis, ssize_t middle_idx, ssize_t right_idx, const proof &left_proof, const proof &middle_proof, const proof &right_proof)
+    OrElimRule(const ndsequent &thesis, idx_t middle_idx, idx_t right_idx, const proof &left_proof, const proof &middle_proof, const proof &right_proof)
         : NDProof(thesis), middle_idx(middle_idx), right_idx(right_idx), left_proof(left_proof), middle_proof(middle_proof), right_proof(right_proof) {}
 
 private:
-    ssize_t middle_idx, right_idx;
+    idx_t middle_idx, right_idx;
     proof left_proof, middle_proof, right_proof;
 };
 
@@ -552,11 +555,11 @@ public:
     }
 
 protected:
-    ImpIntroRule(const ndsequent &thesis, ssize_t ant_idx, const proof &subproof)
+    ImpIntroRule(const ndsequent &thesis, idx_t ant_idx, const proof &subproof)
         : NDProof(thesis), ant_idx(ant_idx), subproof(subproof) {}
 
 private:
-    ssize_t ant_idx;
+    idx_t ant_idx;
     proof subproof;
 };
 
@@ -754,11 +757,11 @@ public:
     }
 
 protected:
-    ExistsElimRule(const ndsequent &thesis, ssize_t idx, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &eigenvar, const proof &left_proof, const proof &right_proof)
+    ExistsElimRule(const ndsequent &thesis, idx_t idx, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &eigenvar, const proof &left_proof, const proof &right_proof)
         : NDProof(thesis), idx(idx), eigenvar(eigenvar), left_proof(left_proof), right_proof(right_proof) {}
 
 private:
-    ssize_t idx;
+    idx_t idx;
     std::shared_ptr<const gio::mmpp::provers::fof::Variable> eigenvar;
     proof left_proof, right_proof;
 };
@@ -858,11 +861,11 @@ public:
     }
 
 protected:
-    ExcludedMiddleRule(const ndsequent &thesis, ssize_t left_idx, ssize_t right_idx, const proof &left_proof, const proof &right_proof)
+    ExcludedMiddleRule(const ndsequent &thesis, idx_t left_idx, idx_t right_idx, const proof &left_proof, const proof &right_proof)
         : NDProof(thesis), left_idx(left_idx), right_idx(right_idx), left_proof(left_proof), right_proof(right_proof) {}
 
 private:
-    ssize_t left_idx, right_idx;
+    idx_t left_idx, right_idx;
     proof left_proof, right_proof;
 };
 
@@ -878,7 +881,7 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
         auto subproof = parse_gapt_proof(is);
         return WeakeningRule::create(thesis, form, subproof);
     } else if (type == "Contraction") {
-        ssize_t idx1, idx2;
+        idx_t idx1, idx2;
         is >> idx1 >> idx2;
         auto subproof = parse_gapt_proof(is);
         return ContractionRule::create(thesis, idx1, idx2, subproof);
@@ -901,7 +904,7 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
         auto subproof = parse_gapt_proof(is);
         return OrIntro2Rule::create(thesis, disjunct, subproof);
     } else if (type == "OrElim") {
-        ssize_t middle_idx, right_idx;
+        idx_t middle_idx, right_idx;
         is >> middle_idx >> right_idx;
         auto left_proof = parse_gapt_proof(is);
         auto middle_proof = parse_gapt_proof(is);
@@ -912,7 +915,7 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
         auto right_proof = parse_gapt_proof(is);
         return NegElimRule::create(thesis, left_proof, right_proof);
     } else if (type == "ImpIntro") {
-        ssize_t ant_idx;
+        idx_t ant_idx;
         is >> ant_idx;
         auto subproof = parse_gapt_proof(is);
         return ImpIntroRule::create(thesis, ant_idx, subproof);
@@ -943,7 +946,7 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
         auto subproof = parse_gapt_proof(is);
         return ExistsIntroRule::create(thesis, form, var, term, subproof);
     } else if (type == "ExistsElim") {
-        ssize_t idx;
+        idx_t idx;
         is >> idx;
         auto eigenvar = std::dynamic_pointer_cast<const gio::mmpp::provers::fof::Variable>(parse_gapt_term(is));
         gio::assert_or_throw<std::invalid_argument>(bool(eigenvar), "missing eigenvariable");
@@ -961,7 +964,7 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
         auto right_proof = parse_gapt_proof(is);
         return EqualityElimRule::create(thesis, var, form, left_proof, right_proof);
     } else if (type == "ExcludedMiddle") {
-        ssize_t left_idx, right_idx;
+        idx_t left_idx, right_idx;
         is >> left_idx >> right_idx;
         auto left_proof = parse_gapt_proof(is);
         auto right_proof = parse_gapt_proof(is);
