@@ -9,6 +9,7 @@
 
 #include "mm/setmm_loader.h"
 #include "fof.h"
+#include "fof_to_mm.h"
 
 typedef std::shared_ptr<const gio::mmpp::provers::fof::FOT> term;
 typedef std::shared_ptr<const gio::mmpp::provers::fof::FOF> formula;
@@ -973,13 +974,14 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
 int read_gapt_main(int argc, char *argv[]) {
     using namespace gio;
     using namespace gio::std_printers;
+    using namespace gio::mmpp::provers::fof;
 
     (void) argc;
     (void) argv;
 
-    //auto &data = get_set_mm();
+    auto &data = get_set_mm();
     //auto &lib = data.lib;
-    //auto &tb = data.tb;
+    auto &tb = data.tb;
 
     auto proof = parse_gapt_proof(std::cin);
     std::cout << *proof << "\n";
@@ -988,6 +990,10 @@ int read_gapt_main(int argc, char *argv[]) {
 
     auto vars_functs_preds = proof->collect_vars_functs_preds();
     std::cout << vars_functs_preds << "\n";
+
+    fof_to_mm_ctx ctx(tb);
+    /*auto pt = ctx.convert(proof->get_thesis().second);
+    std::cout << tb.print_sentence(pt) << "\n";*/
 
     return 0;
 }

@@ -160,7 +160,8 @@ SOURCES += \
     provers/z3resolver.cpp \
     provers/gapt.cpp \
     provers/fof.cpp \
-    mm/setmm_loader.cpp
+    mm/setmm_loader.cpp \
+    provers/fof_to_mm.cpp
 
 HEADERS += \
     pch.h \

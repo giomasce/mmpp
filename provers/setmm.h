@@ -12,10 +12,14 @@ static const std::string VAR = "setvar";
 static const std::string WFF = "wff";
 
 const RegisteredProver true_trp = LibraryToolbox::register_prover({}, "wff T.");
+const RegisteredProver false_trp = LibraryToolbox::register_prover({}, "wff F.");
 
-ParsingTree<SymTok, LabTok> build_true(const LibraryToolbox &tb) {
-    auto prover = tb.build_registered_prover(true_trp, {}, {});
-    return pt2_to_pt(prover_to_pt2(tb, prover));
+Prover<CheckpointedProofEngine> build_true_prover(const LibraryToolbox &tb) {
+    return tb.build_registered_prover(true_trp, {}, {});
+}
+
+Prover<CheckpointedProofEngine> build_false_prover(const LibraryToolbox &tb) {
+    return tb.build_registered_prover(false_trp, {}, {});
 }
 
 }
