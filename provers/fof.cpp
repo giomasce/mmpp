@@ -2,6 +2,14 @@
 #include "fof.h"
 
 #include <giolib/utils.h>
+#include <giolib/platform.h>
+
+// On macOS std::set::merge is too recent, so I fallback to content copying for the moment
+#ifdef GIO_PLATFORM_MACOS
+#define MERGE(x, y) ((x).insert((y).begin(), (y).end()))
+#else
+#define MERGE(x, y) ((x).merge(y))
+#endif
 
 namespace gio::mmpp::provers::fof {
 
@@ -142,8 +150,8 @@ void Predicate::collect_vars_functs_preds(std::tuple<std::set<std::string>, std:
     for (const auto &arg : this->args) {
         arg->collect_vars_functs(vars_functs);
     }
-    std::get<0>(vars_functs_preds).merge(vars_functs.first);
-    std::get<1>(vars_functs_preds).merge(vars_functs.second);
+    MERGE(std::get<0>(vars_functs_preds), vars_functs.first);
+    MERGE(std::get<1>(vars_functs_preds), vars_functs.second);
     auto res = std::get<2>(vars_functs_preds).insert(std::make_pair(this->name, this->args.size()));
     if (res.first->second != this->args.size()) {
         throw std::runtime_error(gio_make_string("predicate " << this->name << " has different arities " << res.first->second << " and " << this->args.size()));
@@ -234,11 +242,11 @@ std::shared_ptr<const FOF> Equal::replace(const std::string &var_name, const std
 
 void Equal::collect_vars_functs_preds(std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t> > &vars_functs_preds) const {
     auto left_vars_functs = this->left->collect_vars_functs();
-    std::get<0>(vars_functs_preds).merge(left_vars_functs.first);
-    std::get<1>(vars_functs_preds).merge(left_vars_functs.second);
+    MERGE(std::get<0>(vars_functs_preds), left_vars_functs.first);
+    MERGE(std::get<1>(vars_functs_preds), left_vars_functs.second);
     auto right_vars_functs = this->right->collect_vars_functs();
-    std::get<0>(vars_functs_preds).merge(right_vars_functs.first);
-    std::get<1>(vars_functs_preds).merge(right_vars_functs.second);
+    MERGE(std::get<0>(vars_functs_preds), right_vars_functs.first);
+    MERGE(std::get<1>(vars_functs_preds), right_vars_functs.second);
 }
 
 const std::shared_ptr<const FOT> &Equal::get_left() const {
@@ -277,11 +285,11 @@ std::shared_ptr<const FOF> Distinct::replace(const std::string &var_name, const 
 
 void Distinct::collect_vars_functs_preds(std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t> > &vars_functs_preds) const {
     auto left_vars_functs = this->left->collect_vars_functs();
-    std::get<0>(vars_functs_preds).merge(left_vars_functs.first);
-    std::get<1>(vars_functs_preds).merge(left_vars_functs.second);
+    MERGE(std::get<0>(vars_functs_preds), left_vars_functs.first);
+    MERGE(std::get<1>(vars_functs_preds), left_vars_functs.second);
     auto right_vars_functs = this->right->collect_vars_functs();
-    std::get<0>(vars_functs_preds).merge(right_vars_functs.first);
-    std::get<1>(vars_functs_preds).merge(right_vars_functs.second);
+    MERGE(std::get<0>(vars_functs_preds), right_vars_functs.first);
+    MERGE(std::get<1>(vars_functs_preds), right_vars_functs.second);
 }
 
 bool Distinct::compare(const Distinct &x, const Distinct &y) {
