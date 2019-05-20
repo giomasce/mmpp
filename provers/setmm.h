@@ -7,19 +7,18 @@
 
 namespace gio::mmpp::setmm {
 
-static const std::string CLASS = "class";
-static const std::string VAR = "setvar";
-static const std::string WFF = "wff";
+extern const std::string CLASS;
+extern const std::string SETVAR;
+extern const std::string WFF;
 
-const RegisteredProver true_trp = LibraryToolbox::register_prover({}, "wff T.");
-const RegisteredProver false_trp = LibraryToolbox::register_prover({}, "wff F.");
+SymTok class_sym(const LibraryToolbox &tb);
+SymTok setvar_sym(const LibraryToolbox &tb);
+SymTok wff_sym(const LibraryToolbox &tb);
 
-Prover<CheckpointedProofEngine> build_true_prover(const LibraryToolbox &tb) {
-    return tb.build_registered_prover(true_trp, {}, {});
-}
+extern const RegisteredProver true_trp;
+extern const RegisteredProver false_trp;
 
-Prover<CheckpointedProofEngine> build_false_prover(const LibraryToolbox &tb) {
-    return tb.build_registered_prover(false_trp, {}, {});
-}
+Prover<CheckpointedProofEngine> build_true_prover(const LibraryToolbox &tb);
+Prover<CheckpointedProofEngine> build_false_prover(const LibraryToolbox &tb);
 
 }

@@ -995,6 +995,9 @@ int read_gapt_main(int argc, char *argv[]) {
     std::cout << vars_functs_preds << "\n";
 
     fof_to_mm_ctx ctx(tb);
+    ctx.alloc_vars(std::get<0>(vars_functs_preds));
+    ctx.alloc_functs(std::get<1>(vars_functs_preds));
+    ctx.alloc_preds(std::get<2>(vars_functs_preds));
     /*auto pt = ctx.convert(proof->get_thesis().second);
     std::cout << tb.print_sentence(pt) << "\n";*/
 

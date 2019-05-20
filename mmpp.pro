@@ -161,7 +161,8 @@ SOURCES += \
     provers/gapt.cpp \
     provers/fof.cpp \
     mm/setmm_loader.cpp \
-    provers/fof_to_mm.cpp
+    provers/fof_to_mm.cpp \
+    provers/setmm.cpp
 
 HEADERS += \
     pch.h \

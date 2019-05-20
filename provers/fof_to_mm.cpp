@@ -7,7 +7,7 @@
 
 namespace gio::mmpp::provers::fof {
 
-fof_to_mm_ctx::fof_to_mm_ctx(const LibraryToolbox &tb) : tb(tb) {}
+fof_to_mm_ctx::fof_to_mm_ctx(const LibraryToolbox &tb) : tb(tb), tsa(tb) {}
 
 Prover<CheckpointedProofEngine> fof_to_mm_ctx::convert_prover(const std::shared_ptr<const gio::mmpp::provers::fof::FOF> &fof) {
     using namespace gio::mmpp::setmm;
