@@ -3,6 +3,8 @@
 
 #include <type_traits>
 
+#include <boost/range/adaptor/reversed.hpp>
+
 #include <giolib/main.h>
 #include <giolib/static_block.h>
 #include <giolib/utils.h>
@@ -974,6 +976,29 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
     }
 }
 
+class nd_proof_to_mm_ctx {
+public:
+    nd_proof_to_mm_ctx(const LibraryToolbox &tb, const gio::mmpp::provers::fof::fof_to_mm_ctx &ctx) : tb(tb), ctx(ctx) {}
+
+    Prover<CheckpointedProofEngine> convert_ndsequent_prover(const ndsequent &seq) const {
+        using namespace gio::mmpp::setmm;
+        auto prover = build_true_prover(this->tb);
+        for (const auto &ant : boost::adaptors::reverse(seq.first)) {
+            prover = build_and_prover(this->tb, this->ctx.convert_prover(ant), prover);
+        }
+        prover = build_implies_prover(this->tb, prover, this->ctx.convert_prover(seq.second));
+        return prover;
+    }
+
+    ParsingTree<SymTok, LabTok> convert_ndsequent(const ndsequent &seq) const {
+        return pt2_to_pt(prover_to_pt2(this->tb, this->convert_ndsequent_prover(seq)));
+    }
+
+private:
+    const LibraryToolbox &tb;
+    const gio::mmpp::provers::fof::fof_to_mm_ctx &ctx;
+};
+
 int read_gapt_main(int argc, char *argv[]) {
     using namespace gio;
     using namespace gio::std_printers;
@@ -995,10 +1020,11 @@ int read_gapt_main(int argc, char *argv[]) {
     std::cout << vars_functs_preds << "\n";
 
     fof_to_mm_ctx ctx(tb);
+    nd_proof_to_mm_ctx ctx2(tb, ctx);
     ctx.alloc_vars(std::get<0>(vars_functs_preds));
     ctx.alloc_functs(std::get<1>(vars_functs_preds));
     ctx.alloc_preds(std::get<2>(vars_functs_preds));
-    auto pt = ctx.convert(proof->get_thesis().second);
+    auto pt = ctx2.convert_ndsequent(proof->get_thesis());
     std::cout << tb.print_sentence(pt, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << "\n";
 
     return 0;

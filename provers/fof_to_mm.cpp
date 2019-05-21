@@ -1,6 +1,7 @@
 
 #include "fof_to_mm.h"
 
+#include <boost/range/adaptor/reversed.hpp>
 #include <boost/type_index.hpp>
 
 #include "setmm.h"
@@ -31,7 +32,7 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::convert_prover(const std::shared_
         const auto &pred = this->preds.at(fof_pred->get_name());
         auto prover = build_label_prover(this->tb, pred.first);
         size_t i = 0;
-        for (const auto &arg : fof_pred->get_args()) {
+        for (const auto &arg : boost::adaptors::reverse(fof_pred->get_args())) {
             prover = build_subst_prover(this->tb, build_label_prover(this->tb, pred.second.at(i)), this->convert_prover(arg, true), prover);
             i++;
         }
@@ -47,7 +48,7 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::convert_prover(const std::shared_
         const auto &funct = this->functs.at(fot_funct->get_name());
         auto prover = build_label_prover(this->tb, funct.first);
         size_t i = 0;
-        for (const auto &arg : fot_funct->get_args()) {
+        for (const auto &arg : boost::adaptors::reverse(fot_funct->get_args())) {
             prover = build_class_subst_prover(this->tb, build_label_prover(this->tb, funct.second.at(i)), this->convert_prover(arg, true), prover);
             i++;
         }
