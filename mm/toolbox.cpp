@@ -684,13 +684,13 @@ static std::vector<std::tuple<LabTok, std::vector<size_t>, std::unordered_map<Sy
     // Parse inputs
     std::vector< std::pair< SymTok, ParsingTree< SymTok, LabTok > > > pt_hyps;
     for (auto &hyp : hypotheses) {
-        auto pt = self->parse_sentence(hyp.begin()+1, hyp.end(), self->get_turnstile_alias());
+        auto pt = self->parse_sentence(hyp.begin()+1, hyp.end(), hyp.front() == self->get_turnstile() ? self->get_turnstile_alias() : hyp.front());
         if (pt.label == LabTok{}) {
             return {};
         }
         pt_hyps.push_back(std::make_pair(hyp[0], pt));
     }
-    auto pt_thesis = std::make_pair(thesis[0], self->parse_sentence(thesis.begin()+1, thesis.end(), self->get_turnstile_alias()));
+    auto pt_thesis = std::make_pair(thesis[0], self->parse_sentence(thesis.begin()+1, thesis.end(), thesis.front() == self->get_turnstile() ? self->get_turnstile_alias() : thesis.front()));
     if (pt_thesis.second.label == LabTok{}) {
         return {};
     }
@@ -1042,12 +1042,20 @@ LabTok LibraryToolbox::get_registered_prover_label(const RegisteredProver &prove
 
 const ParsingTree<SymTok, LabTok> &LibraryToolbox::get_parsed_sent(LabTok label) const
 {
-    return this->parsed_sents.at(label.val());
+    if (label.val() < this->parsed_sents.size()) {
+        return this->parsed_sents.at(label.val());
+    } else {
+        return this->temp_generator->get_parsed_sent(label);
+    }
 }
 
 const ParsingTree2<SymTok, LabTok> &LibraryToolbox::get_parsed_sent2(LabTok label) const
 {
-    return this->parsed_sents2.at(label.val());
+    if (label.val() < this->parsed_sents2.size()) {
+        return this->parsed_sents2.at(label.val());
+    } else {
+        return this->temp_generator->get_parsed_sent2(label);
+    }
 }
 
 const std::vector<std::pair<ParsingTreeMultiIterator< SymTok, LabTok >::Status, ParsingTreeNode<SymTok, LabTok> > > &LibraryToolbox::get_parsed_iter(LabTok label) const

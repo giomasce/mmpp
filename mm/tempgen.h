@@ -8,6 +8,7 @@
 #include <boost/interprocess/sync/null_mutex.hpp>
 
 #include "library.h"
+#include "parsing/parser.h"
 
 class TempGenerator {
 public:
@@ -35,6 +36,8 @@ public:
     SymTok get_var_sym_to_type_sym(SymTok sym);
     SymTok get_var_lab_to_type_sym(LabTok lab);
     const std::pair<SymTok, Sentence> &get_derivation_rule(LabTok lab);
+    const ParsingTree< SymTok, LabTok > &get_parsed_sent(LabTok label);
+    const ParsingTree2<SymTok, LabTok> &get_parsed_sent2(LabTok label);
 
 private:
     void create_temp_var(SymTok type_sym);
@@ -44,8 +47,10 @@ private:
 
     const Library &lib;
     std::map< SymTok, size_t > temp_idx;
-    std::unordered_map< LabTok, Sentence > temp_types;
-    std::unordered_map< LabTok, Assertion > temp_asses;
+    std::unordered_map<LabTok, Sentence> temp_types;
+    std::unordered_map<LabTok, Assertion> temp_asses;
+    std::unordered_map<LabTok, ParsingTree<SymTok, LabTok>> temp_pts;
+    std::unordered_map<LabTok, ParsingTree2<SymTok, LabTok>> temp_pt2s;
     StringCache< SymTok > temp_syms;
     StringCache< LabTok > temp_labs;
     std::size_t syms_base;

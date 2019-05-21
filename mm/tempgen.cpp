@@ -37,6 +37,8 @@ void TempGenerator::create_temp_var(SymTok type_sym)
     LabTok lab = this->temp_labs.create(lab_name);
     this->temp_types[lab] = { type_sym, sym };
     this->temp_asses[lab] = {};
+    this->temp_pts[lab] = { lab, type_sym, {} };
+    this->temp_pt2s[lab] = pt_to_pt2(this->temp_pts[lab]);
 
     // Add the variables to a few structures
     //this->derivations.at(type_sym).push_back(pair< LabTok, vector< SymTok > >(lab, { sym }));
@@ -205,4 +207,18 @@ const std::pair<SymTok, Sentence> &TempGenerator::get_derivation_rule(LabTok lab
     std::unique_lock< std::mutex > lock(this->global_mutex);
 
     return this->ders_by_label.at(lab);
+}
+
+const ParsingTree<SymTok, LabTok> &TempGenerator::get_parsed_sent(LabTok label)
+{
+    std::unique_lock< std::mutex > lock(this->global_mutex);
+
+    return this->temp_pts.at(label);
+}
+
+const ParsingTree2<SymTok, LabTok> &TempGenerator::get_parsed_sent2(LabTok label)
+{
+    std::unique_lock< std::mutex > lock(this->global_mutex);
+
+    return this->temp_pt2s.at(label);
 }

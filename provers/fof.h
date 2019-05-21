@@ -41,6 +41,8 @@ public:
     bool has_free_var(const std::string &name) const override;
     std::shared_ptr<const FOT> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const override;
     void collect_vars_functs(std::pair<std::set<std::string>, std::map<std::string, size_t>> &vars_functs) const override;
+    const std::string &get_name() const;
+    const std::vector<std::shared_ptr<const FOT>> &get_args() const;
     static bool compare(const Functor &x, const Functor &y);
 
 protected:
@@ -112,6 +114,8 @@ public:
     bool has_free_var(const std::string &name) const override;
     std::shared_ptr<const FOF> replace(const std::string &var_name, const std::shared_ptr<const FOT> &term) const override;
     void collect_vars_functs_preds(std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t>> &vars_functs_preds) const override;
+    const std::string &get_name() const;
+    const std::vector<std::shared_ptr<const FOT>> &get_args() const;
     static bool compare(const Predicate &x, const Predicate &y);
 
 protected:

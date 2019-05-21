@@ -72,6 +72,14 @@ void Functor::collect_vars_functs(std::pair<std::set<std::string>, std::map<std:
     }
 }
 
+const std::string &Functor::get_name() const {
+    return this->name;
+}
+
+const std::vector<std::shared_ptr<const FOT> > &Functor::get_args() const {
+    return this->args;
+}
+
 Functor::Functor(const std::string &name, const std::vector<std::shared_ptr<const FOT> > &args) : name(name), args(args) {}
 
 void Variable::print_to(std::ostream &s) const {
@@ -156,6 +164,14 @@ void Predicate::collect_vars_functs_preds(std::tuple<std::set<std::string>, std:
     if (res.first->second != this->args.size()) {
         throw std::runtime_error(gio_make_string("predicate " << this->name << " has different arities " << res.first->second << " and " << this->args.size()));
     }
+}
+
+const std::string &Predicate::get_name() const {
+    return this->name;
+}
+
+const std::vector<std::shared_ptr<const FOT> > &Predicate::get_args() const {
+    return this->args;
 }
 
 bool Predicate::compare(const Predicate &x, const Predicate &y) {
