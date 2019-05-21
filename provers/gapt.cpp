@@ -999,7 +999,7 @@ int read_gapt_main(int argc, char *argv[]) {
     ctx.alloc_functs(std::get<1>(vars_functs_preds));
     ctx.alloc_preds(std::get<2>(vars_functs_preds));
     auto pt = ctx.convert(proof->get_thesis().second);
-    std::cout << tb.print_sentence(pt) << "\n";
+    std::cout << tb.print_sentence(pt, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << "\n";
 
     return 0;
 }
