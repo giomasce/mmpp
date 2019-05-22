@@ -15,12 +15,10 @@ SymTok class_sym(const LibraryToolbox &tb);
 SymTok setvar_sym(const LibraryToolbox &tb);
 SymTok wff_sym(const LibraryToolbox &tb);
 
-extern const RegisteredProver true_trp;
-extern const RegisteredProver false_trp;
-
 Prover<CheckpointedProofEngine> build_var_adaptor_prover(const LibraryToolbox &tb, const Prover<CheckpointedProofEngine> &var_prover);
 Prover<CheckpointedProofEngine> build_true_prover(const LibraryToolbox &tb);
 Prover<CheckpointedProofEngine> build_false_prover(const LibraryToolbox &tb);
+Prover<CheckpointedProofEngine> build_not_prover(const LibraryToolbox &tb, const Prover<CheckpointedProofEngine> &arg_prover);
 Prover<CheckpointedProofEngine> build_and_prover(const LibraryToolbox &tb, const Prover<CheckpointedProofEngine> &left_prover, const Prover<CheckpointedProofEngine> &right_prover);
 Prover<CheckpointedProofEngine> build_or_prover(const LibraryToolbox &tb, const Prover<CheckpointedProofEngine> &left_prover, const Prover<CheckpointedProofEngine> &right_prover);
 Prover<CheckpointedProofEngine> build_implies_prover(const LibraryToolbox &tb, const Prover<CheckpointedProofEngine> &left_prover, const Prover<CheckpointedProofEngine> &right_prover);

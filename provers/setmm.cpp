@@ -22,6 +22,7 @@ SymTok wff_sym(const LibraryToolbox &tb) {
 const RegisteredProver var_adaptor_trp = LibraryToolbox::register_prover({}, "class x");
 const RegisteredProver true_trp = LibraryToolbox::register_prover({}, "wff T.");
 const RegisteredProver false_trp = LibraryToolbox::register_prover({}, "wff F.");
+const RegisteredProver not_trp = LibraryToolbox::register_prover({}, "wff -. ph");
 const RegisteredProver and_trp = LibraryToolbox::register_prover({}, "wff ( ph /\\ ps )");
 const RegisteredProver or_trp = LibraryToolbox::register_prover({}, "wff ( ph \\/ ps )");
 const RegisteredProver implies_trp = LibraryToolbox::register_prover({}, "wff ( ph -> ps )");
@@ -41,6 +42,10 @@ Prover<CheckpointedProofEngine> build_true_prover(const LibraryToolbox &tb) {
 
 Prover<CheckpointedProofEngine> build_false_prover(const LibraryToolbox &tb) {
     return tb.build_registered_prover(false_trp, {}, {});
+}
+
+Prover<CheckpointedProofEngine> build_not_prover(const LibraryToolbox &tb, const Prover<CheckpointedProofEngine> &arg_prover) {
+    return tb.build_registered_prover(not_trp, {{"ph", arg_prover}}, {});
 }
 
 Prover<CheckpointedProofEngine> build_and_prover(const LibraryToolbox &tb, const Prover<CheckpointedProofEngine> &left_prover, const Prover<CheckpointedProofEngine> &right_prover) {

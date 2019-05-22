@@ -16,6 +16,8 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::convert_prover(const std::shared_
         return build_true_prover(this->tb);
     } else if (const auto fof_false = fof->mapped_dynamic_cast<const False>()) {
         return build_false_prover(this->tb);
+    } else if (const auto fof_not = fof->mapped_dynamic_cast<const Not>()) {
+        return build_not_prover(this->tb, this->convert_prover(fof_not->get_arg()));
     } else if (const auto fof_and = fof->mapped_dynamic_cast<const And>()) {
         return build_and_prover(this->tb, this->convert_prover(fof_and->get_left()), this->convert_prover(fof_and->get_right()));
     } else if (const auto fof_or = fof->mapped_dynamic_cast<const Or>()) {

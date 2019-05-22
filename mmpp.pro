@@ -162,7 +162,9 @@ SOURCES += \
     provers/fof.cpp \
     mm/setmm_loader.cpp \
     provers/fof_to_mm.cpp \
-    provers/setmm.cpp
+    provers/setmm.cpp \
+    provers/ndproof.cpp \
+    provers/ndproof_to_mm.cpp
 
 HEADERS += \
     pch.h \
@@ -223,7 +225,9 @@ HEADERS += \
     provers/fof.h \
     mm/setmm_loader.h \
     provers/setmm.h \
-    provers/fof_to_mm.h
+    provers/fof_to_mm.h \
+    provers/ndproof.h \
+    provers/ndproof_to_mm.h
 
 DISTFILES += \
     README.md \
