@@ -248,6 +248,29 @@ int read_gapt_main(int argc, char *argv[]) {
     auto pt = ctx2.convert_ndsequent(proof->get_thesis());
     std::cout << tb.print_sentence(pt, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << "\n";
 
+    try {
+        auto prover = ctx2.convert_proof(proof);
+        CreativeProofEngineImpl<Sentence> engine(tb);
+        bool res = prover(engine);
+        if (!res) {
+            std::cout << "Proof failed...\n";
+        } else {
+            std::cout << "Proof proved: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << "\n";
+            std::cout << "Proof:";
+            const auto &labels = engine.get_proof_labels();
+            for (const auto &label : labels) {
+                if (label != LabTok{}) {
+                    std::cout << " " << tb.resolve_label(label);
+                } else {
+                    std::cout << " *";
+                }
+            }
+            std::cout << "\n";
+        }
+    } catch (...) {
+        std::cout << "This proof is not supported yet...\n";
+    }
+
     return 0;
 }
 gio_static_block {

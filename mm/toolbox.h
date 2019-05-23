@@ -28,10 +28,10 @@ struct SentenceTree {
     std::vector< SentenceTree > children;
 };
 
-template< typename Engine >
+template<typename Engine>
 using Prover = std::function< bool(Engine&) >;
-const Prover< ProofEngine > null_prover = [](ProofEngine&){ return false; };
-
+const Prover<ProofEngine> null_prover = [](ProofEngine&){ return false; };
+Prover<ProofEngine> make_throwing_prover(const std::string &msg);
 Prover<ProofEngine> trivial_prover(LabTok label);
 
 struct SentencePrinter {

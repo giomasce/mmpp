@@ -72,6 +72,7 @@ class LogicalAxiom : public NDProof, public gio::virtual_enable_create<LogicalAx
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    const formula &get_formula() const;
 
 protected:
     LogicalAxiom(const ndsequent &thesis, const formula &form);
@@ -146,6 +147,7 @@ class OrIntro1Rule : public NDProof, public gio::virtual_enable_create<OrIntro1R
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    const formula &get_disjunct() const;
 
 protected:
     OrIntro1Rule(const ndsequent &thesis, const formula &disjunct, const proof &subproof);
@@ -159,6 +161,7 @@ class OrIntro2Rule : public NDProof, public gio::virtual_enable_create<OrIntro2R
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    const formula &get_disjunct() const;
 
 protected:
     OrIntro2Rule(const ndsequent &thesis, const formula &disjunct, const proof &subproof);
@@ -316,6 +319,8 @@ class ExcludedMiddleRule : public NDProof, public gio::virtual_enable_create<Exc
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    size_t get_left_idx() const;
+    size_t get_right_idx() const;
 
 protected:
     ExcludedMiddleRule(const ndsequent &thesis, idx_t left_idx, idx_t right_idx, const proof &left_proof, const proof &right_proof);

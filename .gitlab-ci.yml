@@ -58,7 +58,7 @@ test:
   stage: test
   script:
     - eatmydata apt-get install -y --no-upgrade build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev binutils-dev wget
-    - wget -q -O resources/set.mm https://github.com/metamath/set.mm/raw/develop/set.mm
+    - wget -q -O resources/set.mm https://github.com/giomasce/set.mm/raw/develop/set.mm
     - time ./artifacts/mmpp test
 
 verify_all:
@@ -72,16 +72,18 @@ gapt:
   stage: test
   script:
     - eatmydata apt-get install -y --no-upgrade build-essential libz3-dev libmicrohttpd-dev qt5-default libboost-all-dev binutils-dev wget git scala prover9
-    - wget -q -O resources/set.mm https://github.com/metamath/set.mm/raw/develop/set.mm
+    - wget -q -O resources/set.mm https://github.com/giomasce/set.mm/raw/develop/set.mm
     - cd gapt
-    - "time ./run.sh ':- ?x (f(x) -> !y f(y))' > gapt1"
-    - "time ./run.sh '!x f(x) -> g :- ?x (f(x) -> g)' > gapt2"
-    - "time ./run.sh '(f -> g) | (f -> h) :- f -> (g | h)' > gapt3"
-    - "time ./run.sh '!X !Y !Z (mult(X, mult(Y, Z))=mult(mult(X, Y), Z)), !X (mult(X, e)=X) :- (!X (mult(X, X)=e))->(!X !Y (mult(X, Y)=mult(Y, X)))' > gapt4"
-    - "time ./run.sh ':- ((?x !y (f(x) <-> f(y))) <-> ((?x (g(x)) <-> (!y g(y))))) <-> ((?x !y (g(x) <-> g(y))) <-> ((?x (f(x)) <-> (!y f(y)))))' > gapt5"
+    - "time ./run.sh ':- f | -f' > gapt1"
+    - "time ./run.sh ':- ?x (f(x) -> !y f(y))' > gapt2"
+    - "time ./run.sh '!x f(x) -> g :- ?x (f(x) -> g)' > gapt3"
+    - "time ./run.sh '(f -> g) | (f -> h) :- f -> (g | h)' > gapt4"
+    - "time ./run.sh '!X !Y !Z (mult(X, mult(Y, Z))=mult(mult(X, Y), Z)), !X (mult(X, e)=X) :- (!X (mult(X, X)=e))->(!X !Y (mult(X, Y)=mult(Y, X)))' > gapt5"
+    - "time ./run.sh ':- ((?x !y (f(x) <-> f(y))) <-> ((?x (g(x)) <-> (!y g(y))))) <-> ((?x !y (g(x) <-> g(y))) <-> ((?x (f(x)) <-> (!y f(y)))))' > gapt6"
     - cd ..
     - "time ./artifacts/mmpp read_gapt < gapt/gapt1"
     - "time ./artifacts/mmpp read_gapt < gapt/gapt2"
     - "time ./artifacts/mmpp read_gapt < gapt/gapt3"
     - "time ./artifacts/mmpp read_gapt < gapt/gapt4"
     - "time ./artifacts/mmpp read_gapt < gapt/gapt5"
+    - "time ./artifacts/mmpp read_gapt < gapt/gapt6"

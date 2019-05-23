@@ -1208,6 +1208,12 @@ std::string ProofPrinter::to_string() const
     return buf.str();
 }
 
+Prover<ProofEngine> make_throwing_prover(const std::__cxx11::string &msg) {
+    return [msg](ProofEngine&) -> bool {
+        throw std::runtime_error(msg);
+    };
+}
+
 Prover<ProofEngine> trivial_prover(LabTok label) {
     return [label](ProofEngine &e) {
         e.process_label(label);

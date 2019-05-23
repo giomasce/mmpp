@@ -111,6 +111,10 @@ std::vector<std::shared_ptr<const NDProof> > LogicalAxiom::get_subproofs() const
     return {};
 }
 
+const formula &LogicalAxiom::get_formula() const {
+    return this->form;
+}
+
 LogicalAxiom::LogicalAxiom(const ndsequent &thesis, const formula &form)
     : NDProof(thesis), form(form) {}
 
@@ -243,6 +247,10 @@ std::vector<std::shared_ptr<const NDProof> > OrIntro1Rule::get_subproofs() const
     return {this->subproof};
 }
 
+const formula &OrIntro1Rule::get_disjunct() const {
+    return this->disjunct;
+}
+
 OrIntro1Rule::OrIntro1Rule(const ndsequent &thesis, const formula &disjunct, const proof &subproof)
     : NDProof(thesis), disjunct(disjunct), subproof(subproof) {}
 
@@ -259,6 +267,10 @@ bool OrIntro2Rule::check() const {
 
 std::vector<std::shared_ptr<const NDProof> > OrIntro2Rule::get_subproofs() const {
     return {this->subproof};
+}
+
+const formula &OrIntro2Rule::get_disjunct() const {
+    return this->disjunct;
 }
 
 OrIntro2Rule::OrIntro2Rule(const ndsequent &thesis, const formula &disjunct, const proof &subproof)
@@ -578,6 +590,22 @@ bool ExcludedMiddleRule::check() const {
 
 std::vector<std::shared_ptr<const NDProof> > ExcludedMiddleRule::get_subproofs() const {
     return {this->left_proof, this->right_proof};
+}
+
+size_t ExcludedMiddleRule::get_left_idx() const {
+    bool valid;
+    size_t idx;
+    std::tie(valid, idx) = decode_idx(this->left_idx, false);
+    assert(valid);
+    return idx;
+}
+
+size_t ExcludedMiddleRule::get_right_idx() const {
+    bool valid;
+    size_t idx;
+    std::tie(valid, idx) = decode_idx(this->right_idx, false);
+    assert(valid);
+    return idx;
 }
 
 ExcludedMiddleRule::ExcludedMiddleRule(const ndsequent &thesis, idx_t left_idx, idx_t right_idx, const proof &left_proof, const proof &right_proof)
