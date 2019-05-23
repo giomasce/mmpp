@@ -20,7 +20,8 @@ public:
 
 private:
     Prover<CheckpointedProofEngine> select_antecedent(const ndsequent &seq, const Prover<CheckpointedProofEngine> &pr, size_t idx) const;
-    Prover<CheckpointedProofEngine> merge_antecedents(const std::vector<std::vector<formula>> &ants, const Prover<CheckpointedProofEngine> &pr) const;
+    Prover<CheckpointedProofEngine> select_antecedents(const ndsequent &seq, const Prover<CheckpointedProofEngine> &pr, size_t idx1, size_t idx2) const;
+    Prover<CheckpointedProofEngine> merge_antecedents(const std::vector<formula> &ant1, const std::vector<formula> &ant2, const formula &suc, const Prover<CheckpointedProofEngine> &pr) const;
 
     const LibraryToolbox &tb;
     const gio::mmpp::provers::fof::fof_to_mm_ctx &ctx;

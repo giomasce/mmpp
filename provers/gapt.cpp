@@ -267,8 +267,9 @@ int read_gapt_main(int argc, char *argv[]) {
             }
             std::cout << "\n";
         }
-    } catch (...) {
+    } catch (const std::exception &e) {
         std::cout << "This proof is not supported yet...\n";
+        std::cout << e.what() << "\n";
     }
 
     return 0;

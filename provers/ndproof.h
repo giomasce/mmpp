@@ -19,6 +19,7 @@ typedef std::make_signed_t<size_t> idx_t;
 void print_sequent(std::ostream &os, const sequent &seq);
 void print_ndsequent(std::ostream &os, const ndsequent &seq);
 std::pair<bool, size_t> decode_idx(idx_t idx, bool is_suc);
+size_t safe_decode_idx(idx_t idx, bool is_suc);
 
 class NDProof;
 class LogicalAxiom;
@@ -85,6 +86,7 @@ class WeakeningRule : public NDProof, public gio::virtual_enable_create<Weakenin
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    const formula &get_new_conjunct() const;
 
 protected:
     WeakeningRule(const ndsequent &thesis, const formula &form, const proof &subproof);
@@ -98,6 +100,8 @@ class ContractionRule : public NDProof, public gio::virtual_enable_create<Contra
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    size_t get_contr_idx1() const;
+    size_t get_contr_idx2() const;
 
 protected:
     ContractionRule(const ndsequent &thesis, idx_t contr_idx1, idx_t contr_idx2, const proof &subproof);
@@ -123,6 +127,7 @@ class AndElim1Rule : public NDProof, public gio::virtual_enable_create<AndElim1R
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    const formula &get_conjunct() const;
 
 protected:
     AndElim1Rule(const ndsequent &thesis, const proof &subproof);
@@ -135,6 +140,7 @@ class AndElim2Rule : public NDProof, public gio::virtual_enable_create<AndElim2R
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    const formula &get_conjunct() const;
 
 protected:
     AndElim2Rule(const ndsequent &thesis, const proof &subproof);
@@ -200,6 +206,7 @@ class ImpIntroRule : public NDProof, public gio::virtual_enable_create<ImpIntroR
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    size_t get_ant_idx() const;
 
 protected:
     ImpIntroRule(const ndsequent &thesis, idx_t ant_idx, const proof &subproof);

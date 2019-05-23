@@ -71,6 +71,12 @@ std::pair<bool, size_t> decode_idx(idx_t idx, bool is_suc) {
     return std::make_pair(true, ret);
 }
 
+size_t safe_decode_idx(idx_t idx, bool is_suc) {
+    auto res = decode_idx(idx, is_suc);
+    gio::assert_or_throw<std::invalid_argument>(res.first, "invalid index");
+    return res.second;
+}
+
 void NDProof::print_to(std::ostream &s) const {
     s << "NDProof for ";
     print_ndsequent(s, this->thesis);
@@ -135,6 +141,10 @@ std::vector<std::shared_ptr<const NDProof> > WeakeningRule::get_subproofs() cons
     return {this->subproof};
 }
 
+const formula &WeakeningRule::get_new_conjunct() const {
+    return this->form;
+}
+
 WeakeningRule::WeakeningRule(const ndsequent &thesis, const formula &form, const proof &subproof)
     : NDProof(thesis), form(form), subproof(subproof) {}
 
@@ -151,6 +161,7 @@ bool ContractionRule::check() const {
     std::tie(valid, contr_idx2) = decode_idx(this->contr_idx2, false);
     if (!valid) return false;
     if (contr_idx2 >= sub_th.first.size()) return false;
+    if (contr_idx1 == contr_idx2) return false;
     if (th.first.size() < 1) return false;
     if (sub_th.first.size() < 2) return false;
     if (!gio::eq_cmp(fof_cmp())(*th.second, *sub_th.second)) return false;
@@ -164,6 +175,14 @@ bool ContractionRule::check() const {
 
 std::vector<std::shared_ptr<const NDProof> > ContractionRule::get_subproofs() const {
     return {this->subproof};
+}
+
+size_t ContractionRule::get_contr_idx1() const {
+    return safe_decode_idx(this->contr_idx1, false);
+}
+
+size_t ContractionRule::get_contr_idx2() const {
+    return safe_decode_idx(this->contr_idx2, false);
 }
 
 ContractionRule::ContractionRule(const ndsequent &thesis, idx_t contr_idx1, idx_t contr_idx2, const proof &subproof)
@@ -209,6 +228,11 @@ std::vector<std::shared_ptr<const NDProof> > AndElim1Rule::get_subproofs() const
     return {this->subproof};
 }
 
+const formula &AndElim1Rule::get_conjunct() const {
+    using namespace gio::mmpp::provers::fof;
+    return this->subproof->get_thesis().second->safe_mapped_dynamic_cast<const And>()->get_right();
+}
+
 AndElim1Rule::AndElim1Rule(const ndsequent &thesis, const proof &subproof)
     : NDProof(thesis), subproof(subproof) {}
 
@@ -227,6 +251,11 @@ bool AndElim2Rule::check() const {
 
 std::vector<std::shared_ptr<const NDProof> > AndElim2Rule::get_subproofs() const {
     return {this->subproof};
+}
+
+const formula &AndElim2Rule::get_conjunct() const {
+    using namespace gio::mmpp::provers::fof;
+    return this->subproof->get_thesis().second->safe_mapped_dynamic_cast<const And>()->get_left();
 }
 
 AndElim2Rule::AndElim2Rule(const ndsequent &thesis, const proof &subproof)
@@ -358,6 +387,10 @@ bool ImpIntroRule::check() const {
 
 std::vector<std::shared_ptr<const NDProof> > ImpIntroRule::get_subproofs() const {
     return {this->subproof};
+}
+
+size_t ImpIntroRule::get_ant_idx() const {
+    return safe_decode_idx(this->ant_idx, false);
 }
 
 ImpIntroRule::ImpIntroRule(const ndsequent &thesis, idx_t ant_idx, const proof &subproof)
@@ -593,19 +626,11 @@ std::vector<std::shared_ptr<const NDProof> > ExcludedMiddleRule::get_subproofs()
 }
 
 size_t ExcludedMiddleRule::get_left_idx() const {
-    bool valid;
-    size_t idx;
-    std::tie(valid, idx) = decode_idx(this->left_idx, false);
-    assert(valid);
-    return idx;
+    return safe_decode_idx(this->left_idx, false);
 }
 
 size_t ExcludedMiddleRule::get_right_idx() const {
-    bool valid;
-    size_t idx;
-    std::tie(valid, idx) = decode_idx(this->right_idx, false);
-    assert(valid);
-    return idx;
+    return safe_decode_idx(this->right_idx, false);
 }
 
 ExcludedMiddleRule::ExcludedMiddleRule(const ndsequent &thesis, idx_t left_idx, idx_t right_idx, const proof &left_proof, const proof &right_proof)
