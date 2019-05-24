@@ -58,6 +58,8 @@ public:
     Prover<CheckpointedProofEngine> convert_prover(const std::shared_ptr<const FOF> &fof) const;
     Prover<CheckpointedProofEngine> convert_prover(const std::shared_ptr<const FOT> &fot, bool make_class = false) const;
     ParsingTree<SymTok, LabTok> convert(const std::shared_ptr<const FOF> &fof) const;
+    Prover<CheckpointedProofEngine> not_free_prover(const std::shared_ptr<const FOF> &fof, const std::string &var_name) const;
+    Prover<CheckpointedProofEngine> replace_prover(const std::shared_ptr<const FOF> &fof, const std::string &var_name, const std::shared_ptr<const FOT> &term) const;
 
 private:
     const LibraryToolbox &tb;

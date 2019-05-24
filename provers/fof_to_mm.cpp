@@ -70,4 +70,43 @@ ParsingTree<SymTok, LabTok> fof_to_mm_ctx::convert(const std::shared_ptr<const F
     return pt2_to_pt(prover_to_pt2(this->tb, this->convert_prover(fof)));
 }
 
+const RegisteredProver nf_true_rp = LibraryToolbox::register_prover({}, "|- F/ x T.");
+const RegisteredProver nf_false_rp = LibraryToolbox::register_prover({}, "|- F/ x F.");
+const RegisteredProver nf_not_rp = LibraryToolbox::register_prover({"|- F/ x ph"}, "|- F/ x -. ph");
+const RegisteredProver nf_and_rp = LibraryToolbox::register_prover({"|- F/ x ph", "|- F/ x ps"}, "|- F/ x ( ph /\\ ps )");
+const RegisteredProver nf_or_rp = LibraryToolbox::register_prover({"|- F/ x ph", "|- F/ x ps"}, "|- F/ x ( ph \\/ ps )");
+const RegisteredProver nf_imp_rp = LibraryToolbox::register_prover({"|- F/ x ph", "|- F/ x ps"}, "|- F/ x ( ph -> ps )");
+const RegisteredProver nf_forall_rp = LibraryToolbox::register_prover({}, "|- F/ x A. x ph");
+const RegisteredProver nf_forall_dist_rp = LibraryToolbox::register_prover({"|- F/ x ph"}, "|- F/ x A. y ph");
+const RegisteredProver nf_exists_rp = LibraryToolbox::register_prover({}, "|- F/ x E. x ph");
+const RegisteredProver nf_exists_dist_rp = LibraryToolbox::register_prover({"|- F/ x ph"}, "|- F/ x E. y ph");
+const RegisteredProver nf_subst_rp = LibraryToolbox::register_prover({"|- F/ x ph", "|- F/_ x A"}, "|- F/ x [. A / y ]. ph");
+const RegisteredProver nf_subst_class_rp = LibraryToolbox::register_prover({"|- F/_ x B", "|- F/_ x A"}, "|- F/_ x [_ A / y ]_ B");
+const RegisteredProver nf_set_rp = LibraryToolbox::register_prover({}, "|- F/_ x y");
+
+Prover<CheckpointedProofEngine> fof_to_mm_ctx::not_free_prover(const std::shared_ptr<const FOF> &fof, const std::string &var_name) const {
+    using namespace gio::mmpp::setmm;
+    if (const auto fof_true = fof->mapped_dynamic_cast<const True>()) {
+        return tb.build_registered_prover(nf_true_rp, {{"x", this->convert_prover(Variable::create(var_name), false)}}, {});
+    } else if (const auto fof_false = fof->mapped_dynamic_cast<const False>()) {
+        return tb.build_registered_prover(nf_true_rp, {{"x", this->convert_prover(Variable::create(var_name), false)}}, {});
+    } else {
+        gio_should_not_arrive_here_ctx(boost::typeindex::type_id_runtime(*fof).pretty_name());
+    }
+}
+
+const RegisteredProver repl_true_rp = LibraryToolbox::register_prover({"|- A e. _V"}, "|- ( [. A / x ]. T. <-> T. )");
+const RegisteredProver repl_false_rp = LibraryToolbox::register_prover({"|- A e. _V"}, "|- ( [. A / x ]. F. <-> F. )");
+
+Prover<CheckpointedProofEngine> fof_to_mm_ctx::replace_prover(const std::shared_ptr<const FOF> &fof, const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
+    using namespace gio::mmpp::setmm;
+    if (const auto fof_true = fof->mapped_dynamic_cast<const True>()) {
+        return tb.build_registered_prover(repl_true_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(Variable::create(var_name), false)}}, {});
+    } else if (const auto fof_false = fof->mapped_dynamic_cast<const False>()) {
+        return tb.build_registered_prover(repl_false_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(Variable::create(var_name), false)}}, {});
+    } else {
+        gio_should_not_arrive_here_ctx(boost::typeindex::type_id_runtime(*fof).pretty_name());
+    }
+}
+
 }
