@@ -181,6 +181,8 @@ class OrElimRule : public NDProof, public gio::virtual_enable_create<OrElimRule>
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    size_t get_middle_idx() const;
+    size_t get_right_idx() const;
 
 protected:
     OrElimRule(const ndsequent &thesis, idx_t middle_idx, idx_t right_idx, const proof &left_proof, const proof &middle_proof, const proof &right_proof);
@@ -232,6 +234,7 @@ class BottomElimRule : public NDProof, public gio::virtual_enable_create<BottomE
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    const formula &get_succedent() const;
 
 protected:
     BottomElimRule(const ndsequent &thesis, const formula &form, const proof &subproof);

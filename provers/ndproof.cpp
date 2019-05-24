@@ -338,6 +338,14 @@ std::vector<std::shared_ptr<const NDProof> > OrElimRule::get_subproofs() const {
     return {this->left_proof, this->middle_proof, this->right_proof};
 }
 
+size_t OrElimRule::get_middle_idx() const {
+    return safe_decode_idx(this->middle_idx, false);
+}
+
+size_t OrElimRule::get_right_idx() const {
+    return safe_decode_idx(this->right_idx, false);
+}
+
 OrElimRule::OrElimRule(const ndsequent &thesis, idx_t middle_idx, idx_t right_idx, const proof &left_proof, const proof &middle_proof, const proof &right_proof)
     : NDProof(thesis), middle_idx(middle_idx), right_idx(right_idx), left_proof(left_proof), middle_proof(middle_proof), right_proof(right_proof) {}
 
@@ -433,6 +441,10 @@ bool BottomElimRule::check() const {
 
 std::vector<std::shared_ptr<const NDProof> > BottomElimRule::get_subproofs() const {
     return {this->subproof};
+}
+
+const formula &BottomElimRule::get_succedent() const {
+    return this->form;
 }
 
 BottomElimRule::BottomElimRule(const ndsequent &thesis, const formula &form, const proof &subproof)
