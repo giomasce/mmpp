@@ -250,12 +250,12 @@ int read_gapt_main(int argc, char *argv[]) {
 
     try {
         auto prover = ctx2.convert_proof(proof);
-        CreativeProofEngineImpl<Sentence> engine(tb);
+        CreativeProofEngineImpl<ParsingTree2<SymTok, LabTok>> engine(tb);
         bool res = prover(engine);
         if (!res) {
             std::cout << "Proof failed...\n";
         } else {
-            std::cout << "Proof proved: " << tb.print_sentence(engine.get_stack().back(), SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << "\n";
+            std::cout << "Proof proved: " << tb.print_sentence(engine.get_stack().back().second, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << "\n";
             std::cout << "Proof:";
             const auto &labels = engine.get_proof_labels();
             for (const auto &label : labels) {

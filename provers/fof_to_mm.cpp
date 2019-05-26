@@ -8,6 +8,28 @@
 
 namespace gio::mmpp::provers::fof {
 
+template<typename RealEngine, typename Engine>
+class prover_checker {
+public:
+    prover_checker(const Prover<Engine> &prover, const typename RealEngine::SentType &sent) : prover(prover), sent(sent) {}
+    bool operator()(Engine &engine) {
+        bool res = this->prover(engine);
+        //gio::assert_or_throw<std::runtime_error>(res, "prover failed");
+        if (res) {
+            auto rengine = dynamic_cast<RealEngine*>(&engine);
+            gio::assert_or_throw<std::runtime_error>(rengine, "cannot cast engine");
+            const auto &stack = rengine->get_stack();
+            gio::assert_or_throw<std::runtime_error>(stack.size() >= 1, "engine's stack is empty");
+            gio::assert_or_throw<std::runtime_error>(stack.back() == this->sent, "wrong sentence on the top of the stack");
+        }
+        return res;
+    }
+
+private:
+    Prover<Engine> prover;
+    typename RealEngine::SentType sent;
+};
+
 fof_to_mm_ctx::fof_to_mm_ctx(const LibraryToolbox &tb) : tb(tb), tsa(tb) {}
 
 Prover<CheckpointedProofEngine> fof_to_mm_ctx::convert_prover(const std::shared_ptr<const gio::mmpp::provers::fof::FOF> &fof) const {
@@ -70,6 +92,23 @@ ParsingTree<SymTok, LabTok> fof_to_mm_ctx::convert(const std::shared_ptr<const F
     return pt2_to_pt(prover_to_pt2(this->tb, this->convert_prover(fof)));
 }
 
+const RegisteredProver is_set_trp = LibraryToolbox::register_prover({}, "wff A e. _V");
+const RegisteredProver set_set_rp = LibraryToolbox::register_prover({}, "|- x e. _V");
+
+Prover<CheckpointedProofEngine> fof_to_mm_ctx::sethood_prover(const std::shared_ptr<const FOT> &fot) const {
+    Prover<CheckpointedProofEngine> prover;
+    if (const auto fot_var = fot->mapped_dynamic_cast<const Variable>()) {
+        prover = tb.build_registered_prover(set_set_rp, {{"x", this->convert_prover(fot_var, false)}}, {});
+    } else {
+        gio_should_not_arrive_here_ctx(boost::typeindex::type_id_runtime(*fot).pretty_name());
+    }
+    auto sent = prover_to_pt2(this->tb, this->tb.build_registered_prover(is_set_trp, {{"A", this->convert_prover(fot, true)}}, {}));
+    prover = prover_checker<InspectableProofEngine<ParsingTree2<SymTok, LabTok>>, CheckpointedProofEngine>(prover, std::make_pair(this->tb.get_turnstile_alias(), sent));
+    return prover;
+}
+
+const RegisteredProver is_nf_trp = LibraryToolbox::register_prover({}, "wff F/ x ph");
+const RegisteredProver is_nf_class_trp = LibraryToolbox::register_prover({}, "wff F/_ x A");
 const RegisteredProver nf_true_rp = LibraryToolbox::register_prover({}, "|- F/ x T.");
 const RegisteredProver nf_false_rp = LibraryToolbox::register_prover({}, "|- F/ x F.");
 const RegisteredProver nf_not_rp = LibraryToolbox::register_prover({"|- F/ x ph"}, "|- F/ x -. ph");
@@ -86,27 +125,40 @@ const RegisteredProver nf_set_rp = LibraryToolbox::register_prover({}, "|- F/_ x
 
 Prover<CheckpointedProofEngine> fof_to_mm_ctx::not_free_prover(const std::shared_ptr<const FOF> &fof, const std::string &var_name) const {
     using namespace gio::mmpp::setmm;
+    const auto var = Variable::create(var_name);
+    Prover<CheckpointedProofEngine> prover;
     if (const auto fof_true = fof->mapped_dynamic_cast<const True>()) {
-        return tb.build_registered_prover(nf_true_rp, {{"x", this->convert_prover(Variable::create(var_name), false)}}, {});
+        prover = tb.build_registered_prover(nf_true_rp, {{"x", this->convert_prover(var, false)}}, {});
     } else if (const auto fof_false = fof->mapped_dynamic_cast<const False>()) {
-        return tb.build_registered_prover(nf_true_rp, {{"x", this->convert_prover(Variable::create(var_name), false)}}, {});
+        prover = tb.build_registered_prover(nf_true_rp, {{"x", this->convert_prover(var, false)}}, {});
     } else {
         gio_should_not_arrive_here_ctx(boost::typeindex::type_id_runtime(*fof).pretty_name());
     }
+    auto sent = prover_to_pt2(this->tb, this->tb.build_registered_prover(is_set_trp, {{"x", this->convert_prover(var, false)}, {"ph", this->convert_prover(fof)}}, {}));
+    prover = prover_checker<InspectableProofEngine<ParsingTree2<SymTok, LabTok>>, CheckpointedProofEngine>(prover, std::make_pair(this->tb.get_turnstile_alias(), sent));
+    return prover;
 }
 
+const RegisteredProver is_repl_trp = LibraryToolbox::register_prover({}, "wff ( [. A / x ]. ph <-> ps )");
+const RegisteredProver is_repl_class_trp = LibraryToolbox::register_prover({}, "wff [_ A / x ]_ B = C");
 const RegisteredProver repl_true_rp = LibraryToolbox::register_prover({"|- A e. _V"}, "|- ( [. A / x ]. T. <-> T. )");
 const RegisteredProver repl_false_rp = LibraryToolbox::register_prover({"|- A e. _V"}, "|- ( [. A / x ]. F. <-> F. )");
 
 Prover<CheckpointedProofEngine> fof_to_mm_ctx::replace_prover(const std::shared_ptr<const FOF> &fof, const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
     using namespace gio::mmpp::setmm;
+    const auto var = Variable::create(var_name);
+    Prover<CheckpointedProofEngine> prover;
     if (const auto fof_true = fof->mapped_dynamic_cast<const True>()) {
-        return tb.build_registered_prover(repl_true_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(Variable::create(var_name), false)}}, {});
+        prover = tb.build_registered_prover(repl_true_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)}}, {});
     } else if (const auto fof_false = fof->mapped_dynamic_cast<const False>()) {
-        return tb.build_registered_prover(repl_false_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(Variable::create(var_name), false)}}, {});
+        prover = tb.build_registered_prover(repl_false_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)}}, {});
     } else {
         gio_should_not_arrive_here_ctx(boost::typeindex::type_id_runtime(*fof).pretty_name());
     }
+    auto sent = prover_to_pt2(this->tb, this->tb.build_registered_prover(is_repl_trp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)},
+                                                                                       {"ph", this->convert_prover(fof)}, {"ps", this->convert_prover(fof->replace(var_name, term))}}, {}));
+    prover = prover_checker<InspectableProofEngine<ParsingTree2<SymTok, LabTok>>, CheckpointedProofEngine>(prover, std::make_pair(this->tb.get_turnstile_alias(), sent));
+    return prover;
 }
 
 }
