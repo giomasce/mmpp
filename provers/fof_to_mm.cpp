@@ -115,7 +115,8 @@ const RegisteredProver nf_false_rp = LibraryToolbox::register_prover({}, "|- F/ 
 const RegisteredProver nf_not_rp = LibraryToolbox::register_prover({"|- F/ x ph"}, "|- F/ x -. ph");
 const RegisteredProver nf_and_rp = LibraryToolbox::register_prover({"|- F/ x ph", "|- F/ x ps"}, "|- F/ x ( ph /\\ ps )");
 const RegisteredProver nf_or_rp = LibraryToolbox::register_prover({"|- F/ x ph", "|- F/ x ps"}, "|- F/ x ( ph \\/ ps )");
-const RegisteredProver nf_imp_rp = LibraryToolbox::register_prover({"|- F/ x ph", "|- F/ x ps"}, "|- F/ x ( ph -> ps )");
+const RegisteredProver nf_implies_rp = LibraryToolbox::register_prover({"|- F/ x ph", "|- F/ x ps"}, "|- F/ x ( ph -> ps )");
+const RegisteredProver nf_equals_rp = LibraryToolbox::register_prover({"|- F/_ x A", "|- F/_ x B"}, "|- F/ x A = B");
 const RegisteredProver nf_forall_rp = LibraryToolbox::register_prover({}, "|- F/ x A. x ph");
 const RegisteredProver nf_forall_dist_rp = LibraryToolbox::register_prover({"|- F/ x ph"}, "|- F/ x A. y ph");
 const RegisteredProver nf_exists_rp = LibraryToolbox::register_prover({}, "|- F/ x E. x ph");
@@ -123,6 +124,23 @@ const RegisteredProver nf_exists_dist_rp = LibraryToolbox::register_prover({"|- 
 const RegisteredProver nf_subst_rp = LibraryToolbox::register_prover({"|- F/ x ph", "|- F/_ x A"}, "|- F/ x [. A / y ]. ph");
 const RegisteredProver nf_subst_class_rp = LibraryToolbox::register_prover({"|- F/_ x B", "|- F/_ x A"}, "|- F/_ x [_ A / y ]_ B");
 const RegisteredProver nf_set_rp = LibraryToolbox::register_prover({}, "|- F/_ x y");
+
+Prover<CheckpointedProofEngine> fof_to_mm_ctx::not_free_prover(const std::shared_ptr<const FOT> &fot, const std::string &var_name) const {
+    using namespace gio::mmpp::setmm;
+    const auto var = Variable::create(var_name);
+    Prover<CheckpointedProofEngine> prover;
+    if (const auto fot_var = fot->mapped_dynamic_cast<const Variable>()) {
+        if (eq_cmp(fot_cmp())(*var, *fot_var)) {
+            throw std::runtime_error("variable is free in itself");
+        }
+        prover = tb.build_registered_prover(nf_set_rp, {{"x", this->convert_prover(var, false)}, {"y", this->convert_prover(fot_var, false)}}, {});
+    } else {
+        gio_should_not_arrive_here_ctx(boost::typeindex::type_id_runtime(*fot).pretty_name());
+    }
+    auto sent = prover_to_pt2(this->tb, this->tb.build_registered_prover(is_nf_class_trp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(fot, true)}}, {}));
+    prover = prover_checker<InspectableProofEngine<ParsingTree2<SymTok, LabTok>>, CheckpointedProofEngine>(this->tb, prover, std::make_pair(this->tb.get_turnstile(), sent));
+    return prover;
+}
 
 Prover<CheckpointedProofEngine> fof_to_mm_ctx::not_free_prover(const std::shared_ptr<const FOF> &fof, const std::string &var_name) const {
     using namespace gio::mmpp::setmm;
@@ -132,6 +150,34 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::not_free_prover(const std::shared
         prover = tb.build_registered_prover(nf_true_rp, {{"x", this->convert_prover(var, false)}}, {});
     } else if (const auto fof_false = fof->mapped_dynamic_cast<const False>()) {
         prover = tb.build_registered_prover(nf_false_rp, {{"x", this->convert_prover(var, false)}}, {});
+    } else if (const auto fof_not = fof->mapped_dynamic_cast<const Not>()) {
+        prover = tb.build_registered_prover(nf_not_rp, {{"x", this->convert_prover(var, false)}, {"ph", this->convert_prover(fof_not->get_arg())}}, {this->not_free_prover(fof_not->get_arg(), var_name)});
+    } else if (const auto fof_and = fof->mapped_dynamic_cast<const And>()) {
+        prover = tb.build_registered_prover(nf_and_rp, {{"x", this->convert_prover(var, false)}, {"ph", this->convert_prover(fof_and->get_left())}, {"ps", this->convert_prover(fof_and->get_right())}},
+                                            {this->not_free_prover(fof_and->get_left(), var_name), this->not_free_prover(fof_and->get_right(), var_name)});
+    } else if (const auto fof_or = fof->mapped_dynamic_cast<const Or>()) {
+        prover = tb.build_registered_prover(nf_or_rp, {{"x", this->convert_prover(var, false)}, {"ph", this->convert_prover(fof_or->get_left())}, {"ps", this->convert_prover(fof_or->get_right())}},
+                                            {this->not_free_prover(fof_or->get_left(), var_name), this->not_free_prover(fof_or->get_right(), var_name)});
+    } else if (const auto fof_implies = fof->mapped_dynamic_cast<const Implies>()) {
+        prover = tb.build_registered_prover(nf_implies_rp, {{"x", this->convert_prover(var, false)}, {"ph", this->convert_prover(fof_implies->get_left())}, {"ps", this->convert_prover(fof_implies->get_right())}},
+                                            {this->not_free_prover(fof_implies->get_left(), var_name), this->not_free_prover(fof_implies->get_right(), var_name)});
+    } else if (const auto fof_exists = fof->mapped_dynamic_cast<const Exists>()) {
+        if (eq_cmp(fot_cmp())(*var, *fof_exists->get_var())) {
+            prover = tb.build_registered_prover(nf_exists_rp, {{"x", this->convert_prover(var, false)}, {"ph", this->convert_prover(fof_exists->get_arg())}}, {});
+        } else {
+            prover = tb.build_registered_prover(nf_exists_dist_rp, {{"x", this->convert_prover(var, false)}, {"y", this->convert_prover(fof_exists->get_var(), false)}, {"ph", this->convert_prover(fof_exists->get_arg())}},
+                                                {this->not_free_prover(fof_exists->get_arg(), var_name)});
+        }
+    } else if (const auto fof_forall = fof->mapped_dynamic_cast<const Forall>()) {
+        if (eq_cmp(fot_cmp())(*var, *fof_forall->get_var())) {
+            prover = tb.build_registered_prover(nf_exists_rp, {{"x", this->convert_prover(var, false)}, {"ph", this->convert_prover(fof_forall->get_arg())}}, {});
+        } else {
+            prover = tb.build_registered_prover(nf_exists_dist_rp, {{"x", this->convert_prover(var, false)}, {"y", this->convert_prover(fof_forall->get_var(), false)}, {"ph", this->convert_prover(fof_forall->get_arg())}},
+                                                {this->not_free_prover(fof_forall->get_arg(), var_name)});
+        }
+    } else if (const auto fof_equal = fof->mapped_dynamic_cast<const Equal>()) {
+        prover = tb.build_registered_prover(nf_equals_rp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(fof_equal->get_left())}, {"B", this->convert_prover(fof_equal->get_right())}},
+                                            {this->not_free_prover(fof_equal->get_left(), var_name), this->not_free_prover(fof_equal->get_right(), var_name)});
     } else {
         gio_should_not_arrive_here_ctx(boost::typeindex::type_id_runtime(*fof).pretty_name());
     }
