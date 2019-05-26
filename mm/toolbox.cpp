@@ -24,10 +24,10 @@ std::ostream &operator<<(std::ostream &os, const SentencePrinter &sp)
     if (sp.sent != nullptr) {
         sentp = sp.sent;
     } else if (sp.pt != nullptr) {
-        sent2 = sp.tb.reconstruct_sentence(*sp.pt);
+        sent2 = sp.tb.reconstruct_sentence(*sp.pt, sp.type_sym);
         sentp = &sent2;
     } else if (sp.pt2 != nullptr) {
-        sent2 = sp.tb.reconstruct_sentence(pt2_to_pt(*sp.pt2));
+        sent2 = sp.tb.reconstruct_sentence(pt2_to_pt(*sp.pt2), sp.type_sym);
         sentp = &sent2;
     } else {
         assert("Should never arrive here" == nullptr);
@@ -504,17 +504,27 @@ std::vector<SymTok> LibraryToolbox::read_sentence(const std::string &in) const
 
 SentencePrinter LibraryToolbox::print_sentence(const std::vector<SymTok> &sent, SentencePrinter::Style style) const
 {
-    return SentencePrinter({ &sent, {}, {}, *this, style });
+    return SentencePrinter({ &sent, {}, {}, {}, *this, style });
 }
 
 SentencePrinter LibraryToolbox::print_sentence(const ParsingTree<SymTok, LabTok> &pt, SentencePrinter::Style style) const
 {
-    return SentencePrinter({ {}, &pt, {}, *this, style });
+    return SentencePrinter({ {}, &pt, {}, {}, *this, style });
 }
 
 SentencePrinter LibraryToolbox::print_sentence(const ParsingTree2<SymTok, LabTok> &pt, SentencePrinter::Style style) const
 {
-    return SentencePrinter({ {}, {}, &pt, *this, style });
+    return SentencePrinter({ {}, {}, &pt, {}, *this, style });
+}
+
+SentencePrinter LibraryToolbox::print_sentence(const std::pair<SymTok, ParsingTree<SymTok, LabTok> > &pt, SentencePrinter::Style style) const
+{
+    return SentencePrinter({ {}, &pt.second, {}, pt.first, *this, style });
+}
+
+SentencePrinter LibraryToolbox::print_sentence(const std::pair<SymTok, ParsingTree2<SymTok, LabTok> > &pt, SentencePrinter::Style style) const
+{
+    return SentencePrinter({ {}, {}, &pt.second, pt.first, *this, style });
 }
 
 ProofPrinter LibraryToolbox::print_proof(const std::vector<LabTok> &proof, bool only_assertions) const

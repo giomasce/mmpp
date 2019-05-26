@@ -46,6 +46,7 @@ struct SentencePrinter {
     const Sentence *sent;
     const ParsingTree<SymTok, LabTok> *pt;
     const ParsingTree2<SymTok, LabTok> *pt2;
+    const SymTok type_sym;
     const LibraryToolbox &tb;
     const Style style;
 
@@ -260,6 +261,8 @@ public:
     SentencePrinter print_sentence(const std::vector< SymTok > &sent, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
     SentencePrinter print_sentence(const ParsingTree< SymTok, LabTok > &pt, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
     SentencePrinter print_sentence(const ParsingTree2< SymTok, LabTok > &pt, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
+    SentencePrinter print_sentence(const std::pair<SymTok, ParsingTree< SymTok, LabTok >> &pt, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
+    SentencePrinter print_sentence(const std::pair<SymTok, ParsingTree2< SymTok, LabTok >> &pt, SentencePrinter::Style style=SentencePrinter::STYLE_PLAIN) const;
     ProofPrinter print_proof(const std::vector< LabTok > &proof, bool only_assertions = false) const;
     ProofPrinter print_proof(const CompressedProof &proof, bool only_assertions = false) const;
     ProofPrinter print_proof(const UncompressedProof &proof, bool only_assertions = false) const;
