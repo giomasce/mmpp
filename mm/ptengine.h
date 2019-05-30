@@ -7,7 +7,6 @@
 #include "parsing/parser.h"
 #include "parsing/unif.h"
 #include "utils/vectormap.h"
-#include "toolbox.h"
 
 template<>
 struct ProofSentenceTraits< ParsingTree2< SymTok, LabTok > > final {
@@ -59,5 +58,7 @@ extern template struct ProofTree< ParsingTree2< SymTok, LabTok > >;
 extern template class ProofEngineBase< ParsingTree2< SymTok, LabTok > >;
 extern template class CreativeProofEngineImpl< ParsingTree2< SymTok, LabTok > >;
 extern template class ProofEngineImpl< ParsingTree2< SymTok, LabTok > >;
+
+#include "toolbox.h"
 
 ParsingTree2<SymTok, LabTok> prover_to_pt2(const LibraryToolbox &tb, const Prover<CheckpointedProofEngine> &type_prover);

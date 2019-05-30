@@ -784,6 +784,18 @@ void LibraryToolbox::dump_proof_exception(const ProofException<Sentence> &e, std
     }
 }
 
+void LibraryToolbox::dump_proof_exception(const ProofException<ParsingTree2<SymTok, LabTok> > &e, std::ostream &out) const
+{
+    out << "Applying " << this->resolve_label(e.get_error().label) << " the proof executor signalled an error..." << std::endl;
+    out << "The reason was " << e.get_reason() << std::endl;
+    out << "On stack there was: " << this->print_sentence(e.get_error().on_stack) << std::endl;
+    out << "Has to match with: " << this->print_sentence(e.get_error().to_subst) << std::endl;
+    out << "Substitution map:" << std::endl;
+    for (const auto &it : e.get_error().subst_map) {
+        out << this->resolve_symbol(this->get_var_lab_to_sym(it.first)) << ": " << this->print_sentence(it.second) << std::endl;
+    }
+}
+
 void LibraryToolbox::compute_everything()
 {
     //cout << "Computing everything" << endl;

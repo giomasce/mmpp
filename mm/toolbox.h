@@ -14,12 +14,16 @@
 
 class LibraryToolbox;
 
+template<typename Engine>
+using Prover = std::function< bool(Engine&) >;
+
 #include "library.h"
 #include "parsing/lr.h"
 #include "parsing/unif.h"
 #include "sentengine.h"
 #include "mmtemplates.h"
 #include "tempgen.h"
+#include "ptengine.h"
 
 class LibraryToolbox;
 
@@ -28,8 +32,6 @@ struct SentenceTree {
     std::vector< SentenceTree > children;
 };
 
-template<typename Engine>
-using Prover = std::function< bool(Engine&) >;
 const Prover<ProofEngine> null_prover = [](ProofEngine&){ return false; };
 Prover<ProofEngine> make_throwing_prover(const std::string &msg);
 Prover<ProofEngine> trivial_prover(LabTok label);
@@ -473,7 +475,8 @@ public:
 
     // Misc
 public:
-    void dump_proof_exception(const ProofException< Sentence > &e, std::ostream &out) const;
+    void dump_proof_exception(const ProofException<Sentence> &e, std::ostream &out) const;
+    void dump_proof_exception(const ProofException<ParsingTree2<SymTok, LabTok>> &e, std::ostream &out) const;
 
     // Library interface
 public:

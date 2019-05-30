@@ -190,6 +190,36 @@ const RegisteredProver is_repl_trp = LibraryToolbox::register_prover({}, "wff ( 
 const RegisteredProver is_repl_class_trp = LibraryToolbox::register_prover({}, "wff [_ A / x ]_ B = C");
 const RegisteredProver repl_true_rp = LibraryToolbox::register_prover({"|- A e. _V"}, "|- ( [. A / x ]. T. <-> T. )");
 const RegisteredProver repl_false_rp = LibraryToolbox::register_prover({"|- A e. _V"}, "|- ( [. A / x ]. F. <-> F. )");
+const RegisteredProver repl_not_rp = LibraryToolbox::register_prover({"|- A e. _V", "|- ( [. A / x ]. ph <-> ps )"}, "|- ( [. A / x ]. -. ph <-> -. ps )");
+const RegisteredProver repl_and_rp = LibraryToolbox::register_prover({"|- ( [. A / x ]. ph <-> ch )", "|- ( [. A / x ]. ps <-> et )"}, "|- ( [. A / x ]. ( ph /\\ ps ) <-> ( ch /\\ et ) )");
+const RegisteredProver repl_or_rp = LibraryToolbox::register_prover({"|- ( [. A / x ]. ph <-> ch )", "|- ( [. A / x ]. ps <-> et )"}, "|- ( [. A / x ]. ( ph \\/ ps ) <-> ( ch \\/ et ) )");
+const RegisteredProver repl_imp_rp = LibraryToolbox::register_prover({"|- A e. _V", "|- ( [. A / x ]. ph <-> ch )", "|- ( [. A / x ]. ps <-> et )"}, "|- ( [. A / x ]. ( ph -> ps ) <-> ( ch -> et ) )");
+const RegisteredProver repl_equals_rp = LibraryToolbox::register_prover({"|- A e. _V", "|- [_ A / x ]_ B = D", "|- [_ A / x ]_ C = E"}, "|- ( [. A / x ]. B = C <-> D = E )");
+const RegisteredProver repl_forall_rp = LibraryToolbox::register_prover({"|- A e. _V"}, "|- ( [. A / x ]. A. x ph <-> A. x ph )");
+const RegisteredProver repl_forall_dists_rp = LibraryToolbox::register_prover({"|- F/_ y A", "|- ( [. A / x ]. ph <-> ps )"}, "|- ( [. A / x ]. A. y ph <-> A. y ps )");
+const RegisteredProver repl_exists_rp = LibraryToolbox::register_prover({"|- A e. _V"}, "|- ( [. A / x ]. E. x ph <-> E. x ph )");
+const RegisteredProver repl_exists_dists_rp = LibraryToolbox::register_prover({"|- F/_ y A", "|- ( [. A / x ]. ph <-> ps )"}, "|- ( [. A / x ]. E. y ph <-> E. y ps )");
+const RegisteredProver repl_set_rp = LibraryToolbox::register_prover({"|- A e. _V"}, "|- [_ A / x ]_ x = A");
+const RegisteredProver repl_set_dists_rp = LibraryToolbox::register_prover({"|- A e. _V"}, "|- [_ A / x ]_ y = y");
+
+Prover<CheckpointedProofEngine> fof_to_mm_ctx::replace_prover(const std::shared_ptr<const FOT> &fot, const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
+    using namespace gio::mmpp::setmm;
+    const auto var = Variable::create(var_name);
+    Prover<CheckpointedProofEngine> prover;
+    if (const auto fot_var = fot->mapped_dynamic_cast<const Variable>()) {
+        if (eq_cmp(fot_cmp())(*var, *fot_var)) {
+            prover = tb.build_registered_prover(repl_set_rp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(term, true)}}, {this->sethood_prover(term)});
+        } else {
+            prover = tb.build_registered_prover(repl_set_dists_rp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(term, true)}, {"y", this->convert_prover(fot_var, false)}}, {this->sethood_prover(term)});
+        }
+    } else {
+        gio_should_not_arrive_here_ctx(boost::typeindex::type_id_runtime(*fot).pretty_name());
+    }
+    auto sent = prover_to_pt2(this->tb, this->tb.build_registered_prover(is_repl_class_trp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(term, true)},
+                                                                                             {"B", this->convert_prover(fot, true)}, {"C", this->convert_prover(fot->replace(var_name, term), true)}}, {}));
+    prover = prover_checker<InspectableProofEngine<ParsingTree2<SymTok, LabTok>>, CheckpointedProofEngine>(this->tb, prover, std::make_pair(this->tb.get_turnstile(), sent));
+    return prover;
+}
 
 Prover<CheckpointedProofEngine> fof_to_mm_ctx::replace_prover(const std::shared_ptr<const FOF> &fof, const std::string &var_name, const std::shared_ptr<const FOT> &term) const {
     using namespace gio::mmpp::setmm;
@@ -199,6 +229,50 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::replace_prover(const std::shared_
         prover = tb.build_registered_prover(repl_true_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)}}, {this->sethood_prover(term)});
     } else if (const auto fof_false = fof->mapped_dynamic_cast<const False>()) {
         prover = tb.build_registered_prover(repl_false_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)}}, {this->sethood_prover(term)});
+    } else if (const auto fof_not = fof->mapped_dynamic_cast<const Not>()) {
+        prover = tb.build_registered_prover(repl_not_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)},
+                                                          {"ph", this->convert_prover(fof_not->get_arg())}, {"ps", this->convert_prover(fof_not->get_arg()->replace(var_name, term))}},
+                                            {this->sethood_prover(term), this->replace_prover(fof_not->get_arg(), var_name, term)});
+    } else if (const auto fof_and = fof->mapped_dynamic_cast<const And>()) {
+        prover = tb.build_registered_prover(repl_and_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)},
+                                                          {"ph", this->convert_prover(fof_and->get_left())}, {"ch", this->convert_prover(fof_and->get_left()->replace(var_name, term))},
+                                                          {"ps", this->convert_prover(fof_and->get_right())}, {"et", this->convert_prover(fof_and->get_right()->replace(var_name, term))}},
+                                            {this->replace_prover(fof_and->get_left(), var_name, term), this->replace_prover(fof_and->get_right(), var_name, term)});
+    } else if (const auto fof_or = fof->mapped_dynamic_cast<const Or>()) {
+        prover = tb.build_registered_prover(repl_or_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)},
+                                                         {"ph", this->convert_prover(fof_or->get_left())}, {"ch", this->convert_prover(fof_or->get_left()->replace(var_name, term))},
+                                                         {"ps", this->convert_prover(fof_or->get_right())}, {"et", this->convert_prover(fof_or->get_right()->replace(var_name, term))}},
+                                            {this->replace_prover(fof_or->get_left(), var_name, term), this->replace_prover(fof_or->get_right(), var_name, term)});
+    } else if (const auto fof_implies = fof->mapped_dynamic_cast<const Implies>()) {
+        prover = tb.build_registered_prover(repl_imp_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)},
+                                                          {"ph", this->convert_prover(fof_implies->get_left())}, {"ch", this->convert_prover(fof_implies->get_left()->replace(var_name, term))},
+                                                          {"ps", this->convert_prover(fof_implies->get_right())}, {"et", this->convert_prover(fof_implies->get_right()->replace(var_name, term))}},
+                                            {this->sethood_prover(term), this->replace_prover(fof_implies->get_left(), var_name, term), this->replace_prover(fof_implies->get_right(), var_name, term)});
+    } else if (const auto fof_equals = fof->mapped_dynamic_cast<const Equal>()) {
+        prover = tb.build_registered_prover(repl_equals_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)},
+                                                             {"B", this->convert_prover(fof_equals->get_left(), true)}, {"D", this->convert_prover(fof_equals->get_left()->replace(var_name, term), true)},
+                                                             {"C", this->convert_prover(fof_equals->get_right(), true)}, {"E", this->convert_prover(fof_equals->get_right()->replace(var_name, term), true)}},
+                                            {this->sethood_prover(term), this->replace_prover(fof_equals->get_left(), var_name, term), this->replace_prover(fof_equals->get_right(), var_name, term)});
+    } else if (const auto fof_exists = fof->mapped_dynamic_cast<const Exists>()) {
+        if (eq_cmp(fot_cmp())(*var, *fof_exists->get_var())) {
+            prover = tb.build_registered_prover(repl_exists_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)},
+                                                                 {"ph", this->convert_prover(fof_exists->get_arg())}},
+                                                {this->sethood_prover(term)});
+        } else {
+            prover = tb.build_registered_prover(repl_exists_dists_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)}, {"y", this->convert_prover(fof_exists->get_var(), false)},
+                                                                       {"ph", this->convert_prover(fof_exists->get_arg())}, {"ps", this->convert_prover(fof_exists->get_arg()->replace(var_name, term))}},
+                                                      {this->not_free_prover(term, fof_exists->get_var()->get_name()), this->replace_prover(fof_exists->get_arg(), var_name, term)});
+        }
+    } else if (const auto fof_forall = fof->mapped_dynamic_cast<const Forall>()) {
+        if (eq_cmp(fot_cmp())(*var, *fof_forall->get_var())) {
+            prover = tb.build_registered_prover(repl_forall_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)},
+                                                                 {"ph", this->convert_prover(fof_forall->get_arg())}},
+                                                {this->sethood_prover(term)});
+        } else {
+            prover = tb.build_registered_prover(repl_forall_dists_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)}, {"y", this->convert_prover(fof_forall->get_var(), false)},
+                                                                       {"ph", this->convert_prover(fof_forall->get_arg())}, {"ps", this->convert_prover(fof_forall->get_arg()->replace(var_name, term))}},
+                                                      {this->not_free_prover(term, fof_forall->get_var()->get_name()), this->replace_prover(fof_forall->get_arg(), var_name, term)});
+        }
     } else {
         gio_should_not_arrive_here_ctx(boost::typeindex::type_id_runtime(*fof).pretty_name());
     }

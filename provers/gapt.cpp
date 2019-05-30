@@ -243,7 +243,7 @@ int read_gapt_main(int argc, char *argv[]) {
     fof_to_mm_ctx ctx(tb);
     nd_proof_to_mm_ctx ctx2(tb, ctx);
     ctx.alloc_vars(std::get<0>(vars_functs_preds));
-    ctx.alloc_vars(std::vector<std::string>{"x", "y"});
+    ctx.alloc_vars(std::vector<std::string>{"x", "y", "z"});
     ctx.alloc_functs(std::get<1>(vars_functs_preds));
     ctx.alloc_preds(std::get<2>(vars_functs_preds));
     auto pt = ctx2.convert_ndsequent(proof->get_thesis());
@@ -251,7 +251,7 @@ int read_gapt_main(int argc, char *argv[]) {
 
     try {
         auto prover = ctx2.convert_proof(proof);
-        //auto prover = ctx.replace_prover(True::create(), "x", Variable::create("y"));
+        //auto prover = ctx.replace_prover(Forall::create(Variable::create("z"), Equal::create(Variable::create("x"), Variable::create("y"))), "z", Variable::create("x"));
         //auto prover = ctx.not_free_prover(False::create(), "x");
         CreativeProofEngineImpl<ParsingTree2<SymTok, LabTok>> engine(tb);
         bool res = prover(engine);
@@ -273,6 +273,9 @@ int read_gapt_main(int argc, char *argv[]) {
     } catch (const std::exception &e) {
         std::cout << "This proof is not supported yet...\n";
         std::cout << e.what() << "\n";
+    } catch (const ProofException<ParsingTree2<SymTok, LabTok>> &e) {
+        std::cout << e.get_reason() << "\n";
+        tb.dump_proof_exception(e, std::cout);
     }
 
     return 0;
