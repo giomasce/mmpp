@@ -475,6 +475,19 @@ std::vector<std::shared_ptr<const NDProof> > ForallIntroRule::get_subproofs() co
     return {this->subproof};
 }
 
+const std::shared_ptr<const fof::Variable> &ForallIntroRule::get_var() const {
+    return this->var;
+}
+
+const std::shared_ptr<const fof::Variable> &ForallIntroRule::get_eigenvar() const {
+    return this->eigenvar;
+}
+
+const formula &ForallIntroRule::get_predicate() const {
+    using namespace gio::mmpp::provers::fof;
+    return this->get_thesis().second->safe_mapped_dynamic_cast<const Forall>()->get_arg();
+}
+
 ForallIntroRule::ForallIntroRule(const ndsequent &thesis, const std::shared_ptr<const fof::Variable> &var, const std::shared_ptr<const fof::Variable> &eigenvar, const proof &subproof)
     : NDProof(thesis), var(var), eigenvar(eigenvar), subproof(subproof) {}
 
@@ -494,6 +507,20 @@ bool ForallElimRule::check() const {
 
 std::vector<std::shared_ptr<const NDProof> > ForallElimRule::get_subproofs() const {
     return {this->subproof};
+}
+
+const term &ForallElimRule::get_subst_term() const {
+    return this->subst_term;
+}
+
+const std::shared_ptr<const fof::Variable> &ForallElimRule::get_var() const {
+    using namespace gio::mmpp::provers::fof;
+    return this->subproof->get_thesis().second->safe_mapped_dynamic_cast<const Forall>()->get_var();
+}
+
+const formula &ForallElimRule::get_predicate() const {
+    using namespace gio::mmpp::provers::fof;
+    return this->subproof->get_thesis().second->safe_mapped_dynamic_cast<const Forall>()->get_arg();
 }
 
 ForallElimRule::ForallElimRule(const ndsequent &thesis, const term &subst_term, const proof &subproof)
@@ -517,6 +544,18 @@ bool ExistsIntroRule::check() const {
 
 std::vector<std::shared_ptr<const NDProof> > ExistsIntroRule::get_subproofs() const {
     return {this->subproof};
+}
+
+const term &ExistsIntroRule::get_subst_term() const {
+    return this->subst_term;
+}
+
+const std::shared_ptr<const fof::Variable> &ExistsIntroRule::get_var() const {
+    return this->var;
+}
+
+const formula &ExistsIntroRule::get_predicate() const {
+    return this->form;
 }
 
 ExistsIntroRule::ExistsIntroRule(const ndsequent &thesis, const formula &form, const std::shared_ptr<const fof::Variable> &var, const term &subst_term, const proof &subproof)
@@ -556,6 +595,25 @@ bool ExistsElimRule::check() const {
 
 std::vector<std::shared_ptr<const NDProof> > ExistsElimRule::get_subproofs() const {
     return {this->left_proof, this->right_proof};
+}
+
+size_t ExistsElimRule::get_right_idx() const {
+    return safe_decode_idx(this->idx, false);
+
+}
+
+const std::shared_ptr<const fof::Variable> &ExistsElimRule::get_eigenvar() const {
+    return this->eigenvar;
+}
+
+const std::shared_ptr<const fof::Variable> &ExistsElimRule::get_var() const {
+    using namespace gio::mmpp::provers::fof;
+    return this->left_proof->get_thesis().second->safe_mapped_dynamic_cast<const Exists>()->get_var();
+}
+
+const formula &ExistsElimRule::get_predicate() const {
+    using namespace gio::mmpp::provers::fof;
+    return this->left_proof->get_thesis().second->safe_mapped_dynamic_cast<const Exists>()->get_arg();
 }
 
 ExistsElimRule::ExistsElimRule(const ndsequent &thesis, idx_t idx, const std::shared_ptr<const fof::Variable> &eigenvar, const proof &left_proof, const proof &right_proof)

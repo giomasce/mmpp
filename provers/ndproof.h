@@ -248,6 +248,9 @@ class ForallIntroRule : public NDProof, public gio::virtual_enable_create<Forall
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &get_var() const;
+    const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &get_eigenvar() const;
+    const formula &get_predicate() const;
 
 protected:
     ForallIntroRule(const ndsequent &thesis, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &var, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &eigenvar, const proof &subproof);
@@ -261,6 +264,9 @@ class ForallElimRule : public NDProof, public gio::virtual_enable_create<ForallE
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    const term &get_subst_term() const;
+    const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &get_var() const;
+    const formula &get_predicate() const;
 
 protected:
     ForallElimRule(const ndsequent &thesis, const term &subst_term, const proof &subproof);
@@ -274,6 +280,9 @@ class ExistsIntroRule : public NDProof, public gio::virtual_enable_create<Exists
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    const term &get_subst_term() const;
+    const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &get_var() const;
+    const formula &get_predicate() const;
 
 protected:
     ExistsIntroRule(const ndsequent &thesis, const formula &form, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &var, const term &subst_term, const proof &subproof);
@@ -289,6 +298,10 @@ class ExistsElimRule : public NDProof, public gio::virtual_enable_create<ExistsE
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    size_t get_right_idx() const;
+    const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &get_eigenvar() const;
+    const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &get_var() const;
+    const formula &get_predicate() const;
 
 protected:
     ExistsElimRule(const ndsequent &thesis, idx_t idx, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &eigenvar, const proof &left_proof, const proof &right_proof);

@@ -24,6 +24,29 @@ Prover<CheckpointedProofEngine> build_conjuction_prover(const LibraryToolbox &tb
     return build_conjuction_prover(tb, ctx, cont.begin(), cont.end());
 }
 
+const RegisteredProver not_free_true_rp = LibraryToolbox::register_prover({}, "|- F/ x T.");
+const RegisteredProver not_free_and_rp = LibraryToolbox::register_prover({"|- F/ x ph", "|- F/ x ps"}, "|- F/ x ( ph /\\ ps )");
+
+template<typename It>
+Prover<CheckpointedProofEngine> build_conjunction_not_free_prover(const LibraryToolbox &tb, const fof::fof_to_mm_ctx &ctx, const It &begin, const It &end, const std::string &var_name) {
+    using namespace gio::mmpp::provers::fof;
+    if (begin == end) {
+        return tb.build_registered_prover(not_free_true_rp, {{"x", ctx.convert_prover(Variable::create(var_name), false)}}, {});
+    } else {
+        auto begin2 = begin;
+        begin2++;
+        return tb.build_registered_prover(not_free_and_rp, {{"x", ctx.convert_prover(Variable::create(var_name), false)},
+                                                            {"ph", ctx.convert_prover(*begin)},
+                                                            {"ps", build_conjuction_prover(tb, ctx, begin2, end)}},
+                                          {ctx.not_free_prover(*begin, var_name), build_conjunction_not_free_prover(tb, ctx, begin2, end, var_name)});
+    }
+}
+
+template<typename Cont>
+Prover<CheckpointedProofEngine> build_conjunction_not_free_prover(const LibraryToolbox &tb, const fof::fof_to_mm_ctx &ctx, const Cont &cont, const std::string &var_name) {
+    return build_conjunction_not_free_prover(tb, ctx, cont.begin(), cont.end(), var_name);
+}
+
 Prover<CheckpointedProofEngine> nd_proof_to_mm_ctx::convert_ndsequent_ant_prover(const ndsequent &seq) const {
     return build_conjuction_prover(this->tb, this->ctx, seq.first);
 }
@@ -55,6 +78,10 @@ const RegisteredProver neg_elim_rule_rp = LibraryToolbox::register_prover({"|- (
 const RegisteredProver imp_intro_rule_rp = LibraryToolbox::register_prover({"|- ( ( ph /\\ ps ) -> ch )"}, "|- ( ps -> ( ph -> ch ) )");
 const RegisteredProver imp_elim_rule_rp = LibraryToolbox::register_prover({"|- ( ph -> ( ps -> ch ) )", "|- ( et -> ps )"}, "|- ( ( ph /\\ et ) -> ch )");
 const RegisteredProver bottom_elim_rule_rp = LibraryToolbox::register_prover({"|- ( ph -> F. )"}, "|- ( ph -> ps )");
+const RegisteredProver forall_intro_rp = LibraryToolbox::register_prover({"|- F/ y ph", "|- F/ y ch", "|- ( [. y / x ]. ch <-> ps )", "|- ( ph -> ps )"}, "|- ( ph -> A. x ch )");
+const RegisteredProver forall_elim_rp = LibraryToolbox::register_prover({"|- A e. _V", "|- ( ph -> A. x ch )", "|- ( [. A / x ]. ch <-> ps )"}, "|- ( ph -> ps )");
+const RegisteredProver exists_intro_rp = LibraryToolbox::register_prover({"|- ( [. A / x ]. ch <-> ps )", "|- ( ph -> ps )"}, "|- ( ph -> E. x ch )");
+const RegisteredProver exists_elim_rp = LibraryToolbox::register_prover({"|- ( ph -> E. x th )", "|- ( [. y / x ]. th <-> et )", "|- ( ( et /\\ ps ) -> ch )", "|- F/ y ch", "|- F/ y th", "|- F/ y ps"}, "|- ( ( ph /\\ ps ) -> ch )");
 const RegisteredProver excluded_middle_rule_rp = LibraryToolbox::register_prover({"|- ( ( ps /\\ ph ) -> ch )", "|- ( ( -. ps /\\ et ) -> ch )"}, "|- ( ( ph /\\ et ) -> ch )");
 
 Prover<CheckpointedProofEngine> nd_proof_to_mm_ctx::convert_proof(const proof &pr) const {
@@ -166,6 +193,58 @@ Prover<CheckpointedProofEngine> nd_proof_to_mm_ctx::convert_proof(const proof &p
         auto sub_prover = this->convert_proof(subproof);
         return tb.build_registered_prover(bottom_elim_rule_rp, {{"ph", build_conjuction_prover(this->tb, this->ctx, ber->get_thesis().first)},
                                                                 {"ps", this->ctx.convert_prover(ber->get_thesis().second)}}, {sub_prover});
+    } else if (const auto fir = pr->mapped_dynamic_cast<const ForallIntroRule>()) {
+        auto subproof = fir->get_subproofs().at(0);
+        auto sub_prover = this->convert_proof(subproof);
+        auto prover = this->tb.build_registered_prover(forall_intro_rp, {{"ph", build_conjuction_prover(this->tb, this->ctx, fir->get_thesis().first)},
+                                                                         {"ch", this->ctx.convert_prover(fir->get_predicate())},
+                                                                         {"ps", this->ctx.convert_prover(fir->get_predicate()->replace(fir->get_var()->get_name(), fir->get_eigenvar()))}},
+                                                       {build_conjunction_not_free_prover(this->tb, this->ctx, fir->get_thesis().first, fir->get_eigenvar()->get_name()),
+                                                        this->ctx.not_free_prover(fir->get_predicate(), fir->get_eigenvar()->get_name()),
+                                                        this->ctx.replace_prover(fir->get_predicate(), fir->get_var()->get_name(), fir->get_eigenvar()),
+                                                        sub_prover});
+        return prover;
+    } else if (const auto fer = pr->mapped_dynamic_cast<const ForallElimRule>()) {
+        auto subproof = fer->get_subproofs().at(0);
+        auto sub_prover = this->convert_proof(subproof);
+        auto prover = this->tb.build_registered_prover(forall_elim_rp, {{"A", this->ctx.convert_prover(fer->get_subst_term(), true)},
+                                                                        {"x", this->ctx.convert_prover(fer->get_var(), false)},
+                                                                        {"ph", build_conjuction_prover(this->tb, this->ctx, fer->get_thesis().first)},
+                                                                        {"ch", this->ctx.convert_prover(fer->get_predicate())},
+                                                                        {"ps", this->ctx.convert_prover(fer->get_predicate()->replace(fer->get_var()->get_name(), fer->get_subst_term()))}},
+                                                       {this->ctx.sethood_prover(fer->get_subst_term()), sub_prover, this->ctx.replace_prover(fer->get_predicate(), fer->get_var()->get_name(), fer->get_subst_term())});
+        return prover;
+    } else if (const auto eir = pr->mapped_dynamic_cast<const ExistsIntroRule>()) {
+        auto subproof = eir->get_subproofs().at(0);
+        auto sub_prover = this->convert_proof(subproof);
+        auto prover = this->tb.build_registered_prover(exists_intro_rp, {{"A", this->ctx.convert_prover(eir->get_subst_term(), true)},
+                                                                         {"x", this->ctx.convert_prover(eir->get_var(), false)},
+                                                                         {"ph", build_conjuction_prover(this->tb, this->ctx, eir->get_thesis().first)},
+                                                                         {"ch", this->ctx.convert_prover(eir->get_predicate())},
+                                                                         {"ps", this->ctx.convert_prover(eir->get_predicate()->replace(eir->get_var()->get_name(), eir->get_subst_term()))}},
+                                {this->ctx.replace_prover(eir->get_predicate(), eir->get_var()->get_name(), eir->get_subst_term()), sub_prover});
+        return prover;
+    } else if (const auto eer = pr->mapped_dynamic_cast<const ExistsElimRule>()) {
+        auto left_proof = eer->get_subproofs().at(0);
+        auto left_prover = this->convert_proof(left_proof);
+        auto right_proof = eer->get_subproofs().at(1);
+        auto right_prover = this->convert_proof(right_proof);
+        right_prover = this->select_antecedent(right_proof->get_thesis(), right_prover, eer->get_right_idx());
+        std::vector<formula> right_ants(gio::skipping_iterator(right_proof->get_thesis().first.begin(), right_proof->get_thesis().first.end(), {eer->get_right_idx()}),
+                                        gio::skipping_iterator(right_proof->get_thesis().first.end(), right_proof->get_thesis().first.end(), {}));
+        auto prover = this->tb.build_registered_prover(exists_elim_rp, {{"x", this->ctx.convert_prover(eer->get_var(), false)},
+                                                                        {"y", this->ctx.convert_prover(eer->get_eigenvar(), false)},
+                                                                        {"ph", build_conjuction_prover(this->tb, this->ctx, left_proof->get_thesis().first)},
+                                                                        {"ps", build_conjuction_prover(this->tb, this->ctx, right_ants)},
+                                                                        {"th", this->ctx.convert_prover(eer->get_predicate())},
+                                                                        {"et", this->ctx.convert_prover(eer->get_predicate()->replace(eer->get_var()->get_name(), eer->get_eigenvar()))},
+                                                                        {"ch", this->ctx.convert_prover(eer->get_thesis().second)}},
+                                                       {left_prover, this->ctx.replace_prover(eer->get_predicate(), eer->get_var()->get_name(), eer->get_eigenvar()), right_prover,
+                                                        this->ctx.not_free_prover(eer->get_thesis().second, eer->get_eigenvar()->get_name()),
+                                                        this->ctx.not_free_prover(eer->get_predicate(), eer->get_eigenvar()->get_name()),
+                                                        build_conjunction_not_free_prover(this->tb, this->ctx, right_ants, eer->get_eigenvar()->get_name())});
+        prover = this->merge_antecedents(left_proof->get_thesis().first, right_ants, eer->get_thesis().second, prover);
+        return prover;
     } else if (const auto emr = pr->mapped_dynamic_cast<const ExcludedMiddleRule>()) {
         auto left_proof = emr->get_subproofs().at(0);
         auto left_prover = this->convert_proof(left_proof);
