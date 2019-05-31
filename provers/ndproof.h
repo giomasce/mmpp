@@ -316,6 +316,7 @@ class EqualityIntroRule : public NDProof, public gio::virtual_enable_create<Equa
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    const term &get_term() const;
 
 protected:
     EqualityIntroRule(const ndsequent &thesis, const term &t);
@@ -328,11 +329,18 @@ class EqualityElimRule : public NDProof, public gio::virtual_enable_create<Equal
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    const formula &get_subst_formula() const;
+    const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &get_var() const;
+    bool is_reversed() const;
+    const term &get_left_term() const;
+    const term &get_right_term() const;
 
 protected:
     EqualityElimRule(const ndsequent &thesis, const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &var, const formula &form, const proof &left_proof, const proof &right_proof);
 
 private:
+    std::pair<bool, bool> check_reversed() const;
+
     std::shared_ptr<const gio::mmpp::provers::fof::Variable> var;
     formula form;
     proof left_proof, right_proof;

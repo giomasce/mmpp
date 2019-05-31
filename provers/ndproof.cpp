@@ -631,6 +631,10 @@ std::vector<std::shared_ptr<const NDProof> > EqualityIntroRule::get_subproofs() 
     return {};
 }
 
+const term &EqualityIntroRule::get_term() const {
+    return this->t;
+}
+
 EqualityIntroRule::EqualityIntroRule(const ndsequent &thesis, const term &t)
     : NDProof(thesis), t(t) {}
 
@@ -643,14 +647,8 @@ bool EqualityElimRule::check() const {
     const auto &right_th = this->right_proof->get_thesis();
     const auto eq = left_th.second->mapped_dynamic_cast<const Equal>();
     if (!eq) return false;
-    // The equality might be used in a sense or in the other, and we don't know it, so we have to check both possibilities
-    bool ok_direct = true;
-    bool ok_inverted = true;
-    if (!gio::eq_cmp(fof_cmp())(*right_th.second, *this->form->replace(this->var->get_name(), eq->get_left()))) ok_direct = false;
-    if (!gio::eq_cmp(fof_cmp())(*th.second, *this->form->replace(this->var->get_name(), eq->get_right()))) ok_direct = false;
-    if (!gio::eq_cmp(fof_cmp())(*right_th.second, *this->form->replace(this->var->get_name(), eq->get_right()))) ok_inverted = false;
-    if (!gio::eq_cmp(fof_cmp())(*th.second, *this->form->replace(this->var->get_name(), eq->get_left()))) ok_inverted = false;
-    if (!ok_direct && !ok_inverted) return false;
+    auto rev = this->check_reversed();
+    if (!rev.first) return false;
     if (!gio::is_union(left_th.first.begin(), left_th.first.end(), right_th.first.begin(), right_th.first.end(),
                        th.first.begin(), th.first.end(), gio::eq_cmp(gio::star_cmp(fof_cmp())))) return false;
     return true;
@@ -660,8 +658,56 @@ std::vector<std::shared_ptr<const NDProof> > EqualityElimRule::get_subproofs() c
     return {this->left_proof, this->right_proof};
 }
 
+const formula &EqualityElimRule::get_subst_formula() const {
+    return this->form;
+}
+
+const std::shared_ptr<const fof::Variable> &EqualityElimRule::get_var() const {
+    return this->var;
+}
+
+bool EqualityElimRule::is_reversed() const {
+    auto ret = this->check_reversed();
+    if (!ret.first) {
+        throw std::runtime_error("wrong use of equality elimination");
+    }
+    return ret.second;
+}
+
+const term &EqualityElimRule::get_left_term() const {
+    using namespace gio::mmpp::provers::fof;
+    const auto &left_th = this->left_proof->get_thesis();
+    const auto eq = left_th.second->safe_mapped_dynamic_cast<const Equal>();
+    return eq->get_left();
+}
+
+const term &EqualityElimRule::get_right_term() const {
+    using namespace gio::mmpp::provers::fof;
+    const auto &left_th = this->left_proof->get_thesis();
+    const auto eq = left_th.second->safe_mapped_dynamic_cast<const Equal>();
+    return eq->get_right();
+}
+
 EqualityElimRule::EqualityElimRule(const ndsequent &thesis, const std::shared_ptr<const fof::Variable> &var, const formula &form, const proof &left_proof, const proof &right_proof)
     : NDProof(thesis), var(var), form(form), left_proof(left_proof), right_proof(right_proof) {}
+
+std::pair<bool, bool> EqualityElimRule::check_reversed() const {
+    using namespace gio::mmpp::provers::fof;
+    const auto &th = this->get_thesis();
+    const auto &left_th = this->left_proof->get_thesis();
+    const auto &right_th = this->right_proof->get_thesis();
+    const auto eq = left_th.second->safe_mapped_dynamic_cast<const Equal>();
+    bool ok_direct = true;
+    bool ok_inverted = true;
+    if (!gio::eq_cmp(fof_cmp())(*right_th.second, *this->form->replace(this->var->get_name(), eq->get_left()))) ok_direct = false;
+    if (!gio::eq_cmp(fof_cmp())(*th.second, *this->form->replace(this->var->get_name(), eq->get_right()))) ok_direct = false;
+    if (!gio::eq_cmp(fof_cmp())(*right_th.second, *this->form->replace(this->var->get_name(), eq->get_right()))) ok_inverted = false;
+    if (!gio::eq_cmp(fof_cmp())(*th.second, *this->form->replace(this->var->get_name(), eq->get_left()))) ok_inverted = false;
+    if (!ok_direct && !ok_inverted) {
+        return std::make_pair(false, false);
+    }
+    return std::make_pair(true, !ok_direct);
+}
 
 bool ExcludedMiddleRule::check() const {
     using namespace gio::mmpp::provers::fof;

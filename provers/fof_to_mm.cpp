@@ -101,7 +101,7 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::sethood_prover(const std::shared_
     if (const auto fot_var = fot->mapped_dynamic_cast<const Variable>()) {
         prover = tb.build_registered_prover(set_set_rp, {{"x", this->convert_prover(fot_var, false)}}, {});
     } else {
-        gio_should_not_arrive_here_ctx(boost::typeindex::type_id_runtime(*fot).pretty_name());
+        throw std::runtime_error(gio_make_string("invalid type " << boost::typeindex::type_id_runtime(*fot).pretty_name()));
     }
     auto sent = prover_to_pt2(this->tb, this->tb.build_registered_prover(is_set_trp, {{"A", this->convert_prover(fot, true)}}, {}));
     prover = prover_checker<InspectableProofEngine<ParsingTree2<SymTok, LabTok>>, CheckpointedProofEngine>(this->tb, prover, std::make_pair(this->tb.get_turnstile(), sent));
@@ -135,7 +135,7 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::not_free_prover(const std::shared
         }
         prover = tb.build_registered_prover(nf_set_rp, {{"x", this->convert_prover(var, false)}, {"y", this->convert_prover(fot_var, false)}}, {});
     } else {
-        gio_should_not_arrive_here_ctx(boost::typeindex::type_id_runtime(*fot).pretty_name());
+        throw std::runtime_error(gio_make_string("invalid type " << boost::typeindex::type_id_runtime(*fot).pretty_name()));
     }
     auto sent = prover_to_pt2(this->tb, this->tb.build_registered_prover(is_nf_class_trp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(fot, true)}}, {}));
     prover = prover_checker<InspectableProofEngine<ParsingTree2<SymTok, LabTok>>, CheckpointedProofEngine>(this->tb, prover, std::make_pair(this->tb.get_turnstile(), sent));
@@ -179,7 +179,7 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::not_free_prover(const std::shared
         prover = tb.build_registered_prover(nf_equals_rp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(fof_equal->get_left())}, {"B", this->convert_prover(fof_equal->get_right())}},
                                             {this->not_free_prover(fof_equal->get_left(), var_name), this->not_free_prover(fof_equal->get_right(), var_name)});
     } else {
-        gio_should_not_arrive_here_ctx(boost::typeindex::type_id_runtime(*fof).pretty_name());
+        throw std::runtime_error(gio_make_string("invalid type " << boost::typeindex::type_id_runtime(*fof).pretty_name()));
     }
     auto sent = prover_to_pt2(this->tb, this->tb.build_registered_prover(is_nf_trp, {{"x", this->convert_prover(var, false)}, {"ph", this->convert_prover(fof)}}, {}));
     prover = prover_checker<InspectableProofEngine<ParsingTree2<SymTok, LabTok>>, CheckpointedProofEngine>(this->tb, prover, std::make_pair(this->tb.get_turnstile(), sent));
@@ -213,7 +213,7 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::replace_prover(const std::shared_
             prover = tb.build_registered_prover(repl_set_dists_rp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(term, true)}, {"y", this->convert_prover(fot_var, false)}}, {this->sethood_prover(term)});
         }
     } else {
-        gio_should_not_arrive_here_ctx(boost::typeindex::type_id_runtime(*fot).pretty_name());
+        throw std::runtime_error(gio_make_string("invalid type " << boost::typeindex::type_id_runtime(*fot).pretty_name()));
     }
     auto sent = prover_to_pt2(this->tb, this->tb.build_registered_prover(is_repl_class_trp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(term, true)},
                                                                                              {"B", this->convert_prover(fot, true)}, {"C", this->convert_prover(fot->replace(var_name, term), true)}}, {}));
@@ -274,7 +274,7 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::replace_prover(const std::shared_
                                                       {this->not_free_prover(term, fof_forall->get_var()->get_name()), this->replace_prover(fof_forall->get_arg(), var_name, term)});
         }
     } else {
-        gio_should_not_arrive_here_ctx(boost::typeindex::type_id_runtime(*fof).pretty_name());
+        throw std::runtime_error(gio_make_string("invalid type " << boost::typeindex::type_id_runtime(*fof).pretty_name()));
     }
     auto sent = prover_to_pt2(this->tb, this->tb.build_registered_prover(is_repl_trp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)},
                                                                                        {"ph", this->convert_prover(fof)}, {"ps", this->convert_prover(fof->replace(var_name, term))}}, {}));

@@ -82,6 +82,9 @@ const RegisteredProver forall_intro_rp = LibraryToolbox::register_prover({"|- F/
 const RegisteredProver forall_elim_rp = LibraryToolbox::register_prover({"|- A e. _V", "|- ( ph -> A. x ch )", "|- ( [. A / x ]. ch <-> ps )"}, "|- ( ph -> ps )");
 const RegisteredProver exists_intro_rp = LibraryToolbox::register_prover({"|- ( [. A / x ]. ch <-> ps )", "|- ( ph -> ps )"}, "|- ( ph -> E. x ch )");
 const RegisteredProver exists_elim_rp = LibraryToolbox::register_prover({"|- ( ph -> E. x th )", "|- ( [. y / x ]. th <-> et )", "|- ( ( et /\\ ps ) -> ch )", "|- F/ y ch", "|- F/ y th", "|- F/ y ps"}, "|- ( ( ph /\\ ps ) -> ch )");
+const RegisteredProver equality_intro_rule_rp = LibraryToolbox::register_prover({}, "|- A = A");
+const RegisteredProver equality_elim_rule_rp = LibraryToolbox::register_prover({"|- ( ph -> A = B )", "|- ( ps -> th )", "|- ( [. A / x ]. ch <-> th )", "|- ( [. B / x ]. ch <-> et )"}, "|- ( ( ph /\\ ps ) -> et )");
+const RegisteredProver equality_elim_rule2_rp = LibraryToolbox::register_prover({"|- ( ph -> A = B )", "|- ( ps -> et )", "|- ( [. A / x ]. ch <-> th )", "|- ( [. B / x ]. ch <-> et )"}, "|- ( ( ph /\\ ps ) -> th )");
 const RegisteredProver excluded_middle_rule_rp = LibraryToolbox::register_prover({"|- ( ( ps /\\ ph ) -> ch )", "|- ( ( -. ps /\\ et ) -> ch )"}, "|- ( ( ph /\\ et ) -> ch )");
 
 Prover<CheckpointedProofEngine> nd_proof_to_mm_ctx::convert_proof(const proof &pr) const {
@@ -245,6 +248,27 @@ Prover<CheckpointedProofEngine> nd_proof_to_mm_ctx::convert_proof(const proof &p
                                                         build_conjunction_not_free_prover(this->tb, this->ctx, right_ants, eer->get_eigenvar()->get_name())});
         prover = this->merge_antecedents(left_proof->get_thesis().first, right_ants, eer->get_thesis().second, prover);
         return prover;
+    } else if (const auto eir = pr->mapped_dynamic_cast<const EqualityIntroRule>()) {
+        auto prover = this->tb.build_registered_prover(equality_intro_rule_rp, {{"A", this->ctx.convert_prover(eir->get_term())}}, {});
+        return prover;
+    } else if (const auto eer = pr->mapped_dynamic_cast<const EqualityElimRule>()) {
+        auto left_proof = eer->get_subproofs().at(0);
+        auto left_prover = this->convert_proof(left_proof);
+        auto right_proof = eer->get_subproofs().at(1);
+        auto right_prover = this->convert_proof(right_proof);
+        auto reg_prover = eer->is_reversed() ? equality_elim_rule2_rp : equality_elim_rule_rp;
+        auto prover = this->tb.build_registered_prover(reg_prover, {{"ph", build_conjuction_prover(this->tb, this->ctx, left_proof->get_thesis().first)},
+                                                                    {"ps", build_conjuction_prover(this->tb, this->ctx, right_proof->get_thesis().first)},
+                                                                    {"x", this->ctx.convert_prover(eer->get_var(), false)},
+                                                                    {"A", this->ctx.convert_prover(eer->get_left_term(), true)},
+                                                                    {"B", this->ctx.convert_prover(eer->get_right_term(), true)},
+                                                                    {"ch", this->ctx.convert_prover(eer->get_subst_formula())},
+                                                                    {"th", this->ctx.convert_prover(eer->get_subst_formula()->replace(eer->get_var()->get_name(), eer->get_left_term()))},
+                                                                    {"et", this->ctx.convert_prover(eer->get_subst_formula()->replace(eer->get_var()->get_name(), eer->get_right_term()))},},
+                                                       {left_prover, right_prover, this->ctx.replace_prover(eer->get_subst_formula(), eer->get_var()->get_name(), eer->get_left_term()),
+                                                        this->ctx.replace_prover(eer->get_subst_formula(), eer->get_var()->get_name(), eer->get_right_term())});
+        prover = this->merge_antecedents(left_proof->get_thesis().first, right_proof->get_thesis().first, eer->get_thesis().second, prover);
+        return prover;
     } else if (const auto emr = pr->mapped_dynamic_cast<const ExcludedMiddleRule>()) {
         auto left_proof = emr->get_subproofs().at(0);
         auto left_prover = this->convert_proof(left_proof);
@@ -266,6 +290,9 @@ Prover<CheckpointedProofEngine> nd_proof_to_mm_ctx::convert_proof(const proof &p
         throw std::runtime_error(gio_make_string("invalid proof type " << boost::typeindex::type_id_runtime(*pr).pretty_name()));
     }
 }
+
+const RegisteredProver equality_elim_rule_rp2 = LibraryToolbox::register_prover({"|- ( ph -> A = B )", "|- ( ps -> th )", "|- ( [. A / x ]. ch <-> th )", "|- ( [. B / x ]. ch <-> et )"}, "|- ( ( ph /\\ ps ) -> et )");
+const RegisteredProver equality_elim_rule2_rp2 = LibraryToolbox::register_prover({"|- ( ph -> A = B )", "|- ( ps -> et )", "|- ( [. A / x ]. ch <-> th )", "|- ( [. B / x ]. ch <-> et )"}, "|- ( ( ph /\\ ps ) -> th )");
 
 const RegisteredProver select_ant_init_rp = LibraryToolbox::register_prover({}, "|- ( ph <-> ph )");
 const RegisteredProver select_ant_rp = LibraryToolbox::register_prover({"|- ( ph <-> ( ps /\\ ch ) )"}, "|- ( ( et /\\ ph ) <-> ( ps /\\ ( et /\\ ch ) ) )");
