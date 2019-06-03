@@ -56,6 +56,7 @@ public:
     virtual void print_to(std::ostream &s) const;
     virtual bool check() const = 0;
     virtual std::vector<std::shared_ptr<const NDProof>> get_subproofs() const = 0;
+    virtual std::vector<formula> get_subformulae() const;
     std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t>> collect_vars_functs_preds() const;
     void collect_vars_functs_preds(std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t>> &vars_functs_preds) const;
     const ndsequent &get_thesis() const;
@@ -329,6 +330,7 @@ class EqualityElimRule : public NDProof, public gio::virtual_enable_create<Equal
 public:
     bool check() const override;
     std::vector<std::shared_ptr<const NDProof>> get_subproofs() const override;
+    std::vector<formula> get_subformulae() const override;
     const formula &get_subst_formula() const;
     const std::shared_ptr<const gio::mmpp::provers::fof::Variable> &get_var() const;
     bool is_reversed() const;

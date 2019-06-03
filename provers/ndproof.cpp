@@ -82,6 +82,10 @@ void NDProof::print_to(std::ostream &s) const {
     print_ndsequent(s, this->thesis);
 }
 
+std::vector<formula> NDProof::get_subformulae() const {
+    return {};
+}
+
 std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t> > NDProof::collect_vars_functs_preds() const {
     std::tuple<std::set<std::string>, std::map<std::string, size_t>, std::map<std::string, size_t>> ret;
     this->collect_vars_functs_preds(ret);
@@ -95,6 +99,9 @@ void NDProof::collect_vars_functs_preds(std::tuple<std::set<std::string>, std::m
     this->thesis.second->collect_vars_functs_preds(vars_functs_preds);
     for (const auto &subproof : this->get_subproofs()) {
         subproof->collect_vars_functs_preds(vars_functs_preds);
+    }
+    for (const auto &subformula : this->get_subformulae()) {
+        subformula->collect_vars_functs_preds(vars_functs_preds);
     }
 }
 
@@ -656,6 +663,10 @@ bool EqualityElimRule::check() const {
 
 std::vector<std::shared_ptr<const NDProof> > EqualityElimRule::get_subproofs() const {
     return {this->left_proof, this->right_proof};
+}
+
+std::vector<formula> EqualityElimRule::get_subformulae() const {
+    return {this->form};
 }
 
 const formula &EqualityElimRule::get_subst_formula() const {

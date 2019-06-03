@@ -220,10 +220,26 @@ std::shared_ptr<const NDProof> parse_gapt_proof(std::istream &is) {
     }
 }
 
+const RegisteredProver nf_base_rp = LibraryToolbox::register_prover({}, "|- F/ x ph");
+const RegisteredProver nf_base_class_rp = LibraryToolbox::register_prover({}, "|- F/_ x A");
+
+std::function<Prover<CheckpointedProofEngine>(LabTok)> make_predicate_not_free_prover(const LibraryToolbox &tb, LabTok lab) {
+    return [&tb,lab](LabTok var_lab) {
+        return tb.build_registered_prover(nf_base_rp, {{"x", trivial_prover(var_lab)}, {"ph", trivial_prover(lab)}}, {});
+    };
+}
+
+std::function<Prover<CheckpointedProofEngine>(LabTok)> make_functor_not_free_prover(const LibraryToolbox &tb, LabTok lab) {
+    return [&tb,lab](LabTok var_lab) {
+        return tb.build_registered_prover(nf_base_class_rp, {{"x", trivial_prover(var_lab)}, {"A", trivial_prover(lab)}}, {});
+    };
+}
+
 int read_gapt_main(int argc, char *argv[]) {
     using namespace gio;
     using namespace gio::std_printers;
     using namespace gio::mmpp::provers::fof;
+    using namespace gio::mmpp::setmm;
 
     (void) argc;
     (void) argv;
@@ -231,6 +247,7 @@ int read_gapt_main(int argc, char *argv[]) {
     auto &data = get_set_mm();
     //auto &lib = data.lib;
     auto &tb = data.tb;
+    temp_stacked_allocator tsa(tb);
 
     auto proof = parse_gapt_proof(std::cin);
     std::cout << *proof << "\n";
@@ -240,12 +257,33 @@ int read_gapt_main(int argc, char *argv[]) {
     auto vars_functs_preds = proof->collect_vars_functs_preds();
     std::cout << vars_functs_preds << "\n";
 
+    CreativeProofEngineImpl<ParsingTree2<SymTok, LabTok>> engine(tb);
     fof_to_mm_ctx ctx(tb);
     nd_proof_to_mm_ctx ctx2(tb, ctx);
-    ctx.alloc_vars(std::get<0>(vars_functs_preds));
-    ctx.alloc_vars(std::vector<std::string>{"x", "y", "z"});
-    ctx.alloc_functs(std::get<1>(vars_functs_preds));
-    ctx.alloc_preds(std::get<2>(vars_functs_preds));
+    /*ctx.alloc_var("x");
+    ctx.alloc_var("y");
+    ctx.alloc_var("z");*/
+    for (const auto &var : std::get<0>(vars_functs_preds)) {
+        auto label = tsa.new_temp_var(setvar_sym(tb)).first;
+        ctx.alloc_var(var, label);
+        std::cout << "Mapping variable " << var << " to " << tb.resolve_label(label) << "\n";
+    }
+    for (const auto &funct : std::get<1>(vars_functs_preds)) {
+        std::vector<LabTok> vars;
+        for (size_t i = 0; i < funct.second; i++) {
+            vars.push_back(tsa.new_temp_var(setvar_sym(tb)).first);
+        }
+        auto label = tsa.new_temp_var(class_sym(tb)).first;
+        ctx.alloc_functor(funct.first, vars, trivial_prover(label), null_prover, make_functor_not_free_prover(tb, label));
+    }
+    for (const auto &pred : std::get<2>(vars_functs_preds)) {
+        std::vector<LabTok> vars;
+        for (size_t i = 0; i < pred.second; i++) {
+            vars.push_back(tsa.new_temp_var(setvar_sym(tb)).first);
+        }
+        auto label = tsa.new_temp_var(wff_sym(tb)).first;
+        ctx.alloc_predicate(pred.first, vars, trivial_prover(label), make_predicate_not_free_prover(tb, label));
+    }
     auto pt = ctx2.convert_ndsequent(proof->get_thesis());
     std::cout << tb.print_sentence(pt, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << "\n";
 
@@ -253,7 +291,6 @@ int read_gapt_main(int argc, char *argv[]) {
         auto prover = ctx2.convert_proof(proof);
         //auto prover = ctx.replace_prover(Forall::create(Variable::create("z"), Equal::create(Variable::create("x"), Variable::create("y"))), "z", Variable::create("x"));
         //auto prover = ctx.not_free_prover(False::create(), "x");
-        CreativeProofEngineImpl<ParsingTree2<SymTok, LabTok>> engine(tb);
         bool res = prover(engine);
         if (!res) {
             std::cout << "Proof failed...\n";

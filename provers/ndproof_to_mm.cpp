@@ -201,7 +201,9 @@ Prover<CheckpointedProofEngine> nd_proof_to_mm_ctx::convert_proof(const proof &p
         auto sub_prover = this->convert_proof(subproof);
         auto prover = this->tb.build_registered_prover(forall_intro_rp, {{"ph", build_conjuction_prover(this->tb, this->ctx, fir->get_thesis().first)},
                                                                          {"ch", this->ctx.convert_prover(fir->get_predicate())},
-                                                                         {"ps", this->ctx.convert_prover(fir->get_predicate()->replace(fir->get_var()->get_name(), fir->get_eigenvar()))}},
+                                                                         {"ps", this->ctx.convert_prover(fir->get_predicate()->replace(fir->get_var()->get_name(), fir->get_eigenvar()))},
+                                                                         {"x", this->ctx.convert_prover(fir->get_var(), false)},
+                                                                         {"y", this->ctx.convert_prover(fir->get_eigenvar(), false)}},
                                                        {build_conjunction_not_free_prover(this->tb, this->ctx, fir->get_thesis().first, fir->get_eigenvar()->get_name()),
                                                         this->ctx.not_free_prover(fir->get_predicate(), fir->get_eigenvar()->get_name()),
                                                         this->ctx.replace_prover(fir->get_predicate(), fir->get_var()->get_name(), fir->get_eigenvar()),
