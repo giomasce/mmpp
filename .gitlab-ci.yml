@@ -78,8 +78,9 @@ gapt:
     - "time ./run.sh ':- ?x (f(x) -> !y f(y))' > gapt2"
     - "time ./run.sh '!x f(x) -> g :- ?x (f(x) -> g)' > gapt3"
     - "time ./run.sh '(f -> g) | (f -> h) :- f -> (g | h)' > gapt4"
-    - "time ./run.sh '!X !Y !Z (mult(X, mult(Y, Z))=mult(mult(X, Y), Z)), !X (mult(X, e)=X) :- (!X (mult(X, X)=e))->(!X !Y (mult(X, Y)=mult(Y, X)))' > gapt5"
-    - "time ./run.sh ':- ((?x !y (f(x) <-> f(y))) <-> ((?x (g(x)) <-> (!y g(y))))) <-> ((?x !y (g(x) <-> g(y))) <-> ((?x (f(x)) <-> (!y f(y)))))' > gapt6"
+    - "time ./run.sh '!x !y ((f(x)=f(y))->(x=y)) :- !x !y ((f(f(x))=f(f(y)))->x=y)' > gapt5"
+    - "time ./run.sh '!X !Y !Z (mult(X, mult(Y, Z))=mult(mult(X, Y), Z)), !X (mult(X, e)=X) :- (!X (mult(X, X)=e))->(!X !Y (mult(X, Y)=mult(Y, X)))' > gapt6"
+    - "time ./run.sh ':- ((?x !y (f(x) <-> f(y))) <-> ((?x (g(x)) <-> (!y g(y))))) <-> ((?x !y (g(x) <-> g(y))) <-> ((?x (f(x)) <-> (!y f(y)))))' > gapt7"
     - cd ..
     - "time ./artifacts/mmpp read_gapt < gapt/gapt1"
     - "time ./artifacts/mmpp read_gapt < gapt/gapt2"
@@ -87,3 +88,4 @@ gapt:
     - "time ./artifacts/mmpp read_gapt < gapt/gapt4"
     - "time ./artifacts/mmpp read_gapt < gapt/gapt5"
     - "time ./artifacts/mmpp read_gapt < gapt/gapt6"
+    - "time ./artifacts/mmpp read_gapt < gapt/gapt7"

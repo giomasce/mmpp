@@ -75,6 +75,19 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::convert_prover(const std::shared_
     }
 }
 
+Prover<CheckpointedProofEngine> fof_to_mm_ctx::convert_functor_prover(const std::shared_ptr<const Functor> &func, size_t start_idx) const {
+    using namespace gio::mmpp::setmm;
+    const auto &data = this->functs.at(func->get_name());
+    if (start_idx == func->get_args().size()) {
+        return std::get<1>(data);
+    } else {
+        auto prover = this->convert_functor_prover(func, start_idx+1);
+        const auto &arg = func->get_args().at(start_idx);
+        prover = build_class_subst_prover(this->tb, build_label_prover(this->tb, std::get<0>(data).at(start_idx)), this->convert_prover(arg, true), prover);
+        return prover;
+    }
+}
+
 Prover<CheckpointedProofEngine> fof_to_mm_ctx::convert_prover(const std::shared_ptr<const gio::mmpp::provers::fof::FOF> &fof) const {
     using namespace gio::mmpp::setmm;
     if (const auto fof_true = fof->mapped_dynamic_cast<const True>()) {
@@ -111,19 +124,6 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::convert_predicate_prover(const st
         auto prover = this->convert_predicate_prover(pred, start_idx+1);
         const auto &arg = pred->get_args().at(start_idx);
         prover = build_subst_prover(this->tb, build_label_prover(this->tb, std::get<0>(data).at(start_idx)), this->convert_prover(arg, true), prover);
-        return prover;
-    }
-}
-
-Prover<CheckpointedProofEngine> fof_to_mm_ctx::convert_functor_prover(const std::shared_ptr<const Functor> &func, size_t start_idx) const {
-    using namespace gio::mmpp::setmm;
-    const auto &data = this->functs.at(func->get_name());
-    if (start_idx == func->get_args().size()) {
-        return std::get<1>(data);
-    } else {
-        auto prover = this->convert_functor_prover(func, start_idx+1);
-        const auto &arg = func->get_args().at(start_idx);
-        prover = build_class_subst_prover(this->tb, build_label_prover(this->tb, std::get<0>(data).at(start_idx)), this->convert_prover(arg, true), prover);
         return prover;
     }
 }
@@ -182,12 +182,30 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::not_free_prover(const std::shared
             throw std::runtime_error("variable is free in itself");
         }
         prover = tb.build_registered_prover(nf_set_rp, {{"x", this->convert_prover(var, false)}, {"y", this->convert_prover(fot_var, false)}}, {});
+    } else if (const auto fot_func = fot->mapped_dynamic_cast<const Functor>()) {
+        prover = this->not_free_functor_prover(fot_func, var_name);
     } else {
         throw std::runtime_error(gio_make_string("invalid type in not_free_prover: " << boost::typeindex::type_id_runtime(*fot).pretty_name()));
     }
     auto sent = prover_to_pt2(this->tb, this->tb.build_registered_prover(is_nf_class_trp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(fot, true)}}, {}));
     prover = prover_checker<InspectableProofEngine<ParsingTree2<SymTok, LabTok>>, CheckpointedProofEngine>(this->tb, prover, std::make_pair(this->tb.get_turnstile(), sent));
     return prover;
+}
+
+Prover<CheckpointedProofEngine> fof_to_mm_ctx::not_free_functor_prover(const std::shared_ptr<const Functor> &func, const std::string &var_name, size_t start_idx) const {
+    using namespace gio::mmpp::setmm;
+    const auto &data = this->functs.at(func->get_name());
+    const auto var = Variable::create(var_name);
+    if (start_idx == func->get_args().size()) {
+        return std::get<3>(data)(this->vars.at(var_name));
+    } else {
+        auto prover = this->not_free_functor_prover(func, var_name, start_idx+1);
+        const auto &arg = func->get_args().at(start_idx);
+        prover = this->tb.build_registered_prover(nf_subst_dists_class_rp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(arg, true)},
+                                                                            {"y", build_label_prover(this->tb, std::get<0>(data).at(start_idx))}, {"B", this->convert_functor_prover(func, start_idx+1)}},
+                                                  {prover, this->not_free_prover(arg, var_name)});
+        return prover;
+    }
 }
 
 Prover<CheckpointedProofEngine> fof_to_mm_ctx::internal_not_free_prover(const std::shared_ptr<const FOT> &fot, LabTok var_lab) const {
@@ -197,6 +215,8 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::internal_not_free_prover(const st
             throw std::runtime_error("variable is free in itself");
         }
         prover = tb.build_registered_prover(nf_set_rp, {{"x", trivial_prover(var_lab)}, {"y", this->convert_prover(fot_var, false)}}, {});
+    } else if (const auto fot_func = fot->mapped_dynamic_cast<const Functor>()) {
+        prover = this->internal_not_free_functor_prover(fot_func, var_lab);
     } else {
         throw std::runtime_error(gio_make_string("invalid type in internal_not_free_prover: " << boost::typeindex::type_id_runtime(*fot).pretty_name()));
     }
@@ -205,8 +225,19 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::internal_not_free_prover(const st
     return prover;
 }
 
-Prover<CheckpointedProofEngine> fof_to_mm_ctx::internal_not_free_functor_prover(const std::shared_ptr<const Functor> &funct, LabTok var_lab, size_t start_idx) const {
-
+Prover<CheckpointedProofEngine> fof_to_mm_ctx::internal_not_free_functor_prover(const std::shared_ptr<const Functor> &func, LabTok var_lab, size_t start_idx) const {
+    using namespace gio::mmpp::setmm;
+    const auto &data = this->functs.at(func->get_name());
+    if (start_idx == func->get_args().size()) {
+        return std::get<3>(data)(var_lab);
+    } else {
+        auto prover = this->internal_not_free_functor_prover(func, var_lab, start_idx+1);
+        const auto &arg = func->get_args().at(start_idx);
+        prover = this->tb.build_registered_prover(nf_subst_dists_class_rp, {{"x", trivial_prover(var_lab)}, {"A", this->convert_prover(arg, true)},
+                                                                            {"y", build_label_prover(this->tb, std::get<0>(data).at(start_idx))}, {"B", this->convert_functor_prover(func, start_idx+1)}},
+                                                  {prover, this->internal_not_free_prover(arg, var_lab)});
+        return prover;
+    }
 }
 
 Prover<CheckpointedProofEngine> fof_to_mm_ctx::not_free_prover(const std::shared_ptr<const FOF> &fof, const std::string &var_name) const {
@@ -243,7 +274,7 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::not_free_prover(const std::shared
                                                 {this->not_free_prover(fof_forall->get_arg(), var_name)});
         }
     } else if (const auto fof_equal = fof->mapped_dynamic_cast<const Equal>()) {
-        prover = tb.build_registered_prover(nf_equals_rp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(fof_equal->get_left())}, {"B", this->convert_prover(fof_equal->get_right())}},
+        prover = tb.build_registered_prover(nf_equals_rp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(fof_equal->get_left(), true)}, {"B", this->convert_prover(fof_equal->get_right(), true)}},
                                             {this->not_free_prover(fof_equal->get_left(), var_name), this->not_free_prover(fof_equal->get_right(), var_name)});
     } else if (const auto fof_pred = fof->mapped_dynamic_cast<const Predicate>()) {
         prover = this->not_free_predicate_prover(fof_pred, var_name);
@@ -266,22 +297,6 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::not_free_predicate_prover(const s
         const auto &arg = pred->get_args().at(start_idx);
         prover = this->tb.build_registered_prover(nf_subst_dists_rp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(arg, true)},
                                                                       {"y", build_label_prover(this->tb, std::get<0>(data).at(start_idx))}, {"ph", this->convert_predicate_prover(pred, start_idx+1)}},
-                                                  {prover, this->not_free_prover(arg, var_name)});
-        return prover;
-    }
-}
-
-Prover<CheckpointedProofEngine> fof_to_mm_ctx::not_free_functor_prover(const std::shared_ptr<const Functor> &func, const std::string &var_name, size_t start_idx) const {
-    using namespace gio::mmpp::setmm;
-    const auto &data = this->preds.at(func->get_name());
-    const auto var = Variable::create(var_name);
-    if (start_idx == func->get_args().size()) {
-        return std::get<2>(data)(this->vars.at(var_name));
-    } else {
-        auto prover = this->not_free_functor_prover(func, var_name, start_idx+1);
-        const auto &arg = func->get_args().at(start_idx);
-        prover = this->tb.build_registered_prover(nf_subst_dists_class_rp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(arg, true)},
-                                                                            {"y", build_label_prover(this->tb, std::get<0>(data).at(start_idx))}, {"B", this->convert_functor_prover(func, start_idx+1)}},
                                                   {prover, this->not_free_prover(arg, var_name)});
         return prover;
     }
@@ -313,6 +328,8 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::replace_prover(const std::shared_
         } else {
             prover = tb.build_registered_prover(repl_set_dists_rp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(term, true)}, {"y", this->convert_prover(fot_var, false)}}, {this->sethood_prover(term)});
         }
+    } else if (const auto fot_func = fot->mapped_dynamic_cast<const Functor>()) {
+        prover = this->replace_functor_prover(fot_func, var_name, term);
     } else {
         throw std::runtime_error(gio_make_string("invalid type in replace_prover: " << boost::typeindex::type_id_runtime(*fot).pretty_name()));
     }
@@ -320,6 +337,28 @@ Prover<CheckpointedProofEngine> fof_to_mm_ctx::replace_prover(const std::shared_
                                                                                              {"B", this->convert_prover(fot, true)}, {"C", this->convert_prover(fot->replace(var_name, term), true)}}, {}));
     prover = prover_checker<InspectableProofEngine<ParsingTree2<SymTok, LabTok>>, CheckpointedProofEngine>(this->tb, prover, std::make_pair(this->tb.get_turnstile(), sent));
     return prover;
+}
+
+const RegisteredProver repl_subst_dist_class_rp = LibraryToolbox::register_prover({"|- A e. _V", "|- F/_ y A", "|- [_ A / x ]_ B = C", "|- [_ A / x ]_ D = E"}, "|- [_ A / x ]_ [_ B / y ]_ D = [_ C / y ]_ E");
+const RegisteredProver repl_subst_final_class_rp = LibraryToolbox::register_prover({"|- A e. _V", "|- F/_ x B"}, "|- [_ A / x ]_ B = B");
+
+Prover<CheckpointedProofEngine> fof_to_mm_ctx::replace_functor_prover(const std::shared_ptr<const Functor> &func, const std::string &var_name, const std::shared_ptr<const FOT> &term, size_t start_idx) const {
+    using namespace gio::mmpp::setmm;
+    const auto &data = this->functs.at(func->get_name());
+    const auto var = Variable::create(var_name);
+    if (start_idx == func->get_args().size()) {
+        return this->tb.build_registered_prover(repl_subst_final_class_rp, {{"A", this->convert_prover(term, true)}, {"x", this->convert_prover(var, false)}, {"B", this->convert_functor_prover(func, start_idx)}},
+                                                {this->sethood_prover(term), this->not_free_functor_prover(func, var_name, start_idx)});
+    } else {
+        auto prover = this->replace_functor_prover(func, var_name, term, start_idx+1);
+        const auto &arg = func->get_args().at(start_idx);
+        prover = this->tb.build_registered_prover(repl_subst_dist_class_rp, {{"x", this->convert_prover(var, false)}, {"A", this->convert_prover(term, true)},
+                                                                             {"B", this->convert_prover(arg, true)}, {"C", this->convert_prover(arg->replace(var_name, term), true)},
+                                                                             {"y", build_label_prover(this->tb, std::get<0>(data).at(start_idx))}, {"D", this->convert_functor_prover(func, start_idx+1)},
+                                                                             {"E", this->convert_functor_prover(func->replace(var_name, term)->safe_mapped_dynamic_cast<const Functor>(), start_idx+1)}},
+                                                  {this->sethood_prover(term), this->internal_not_free_prover(term, std::get<0>(data).at(start_idx)), this->replace_prover(arg, var_name, term), prover});
+        return prover;
+    }
 }
 
 Prover<CheckpointedProofEngine> fof_to_mm_ctx::replace_prover(const std::shared_ptr<const FOF> &fof, const std::string &var_name, const std::shared_ptr<const FOT> &term) const {

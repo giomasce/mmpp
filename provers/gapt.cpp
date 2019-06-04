@@ -10,6 +10,7 @@
 #include <giolib/std_printers.h>
 
 #include "mm/setmm_loader.h"
+#include "mm/ptengine.h"
 #include "fof.h"
 #include "fof_to_mm.h"
 #include "ndproof_to_mm.h"
@@ -235,6 +236,8 @@ std::function<Prover<CheckpointedProofEngine>(LabTok)> make_functor_not_free_pro
     };
 }
 
+const RegisteredProver sethood_trp = LibraryToolbox::register_prover({}, "wff A e. _V");
+
 int read_gapt_main(int argc, char *argv[]) {
     using namespace gio;
     using namespace gio::std_printers;
@@ -274,7 +277,9 @@ int read_gapt_main(int argc, char *argv[]) {
             vars.push_back(tsa.new_temp_var(setvar_sym(tb)).first);
         }
         auto label = tsa.new_temp_var(class_sym(tb)).first;
-        ctx.alloc_functor(funct.first, vars, trivial_prover(label), null_prover, make_functor_not_free_prover(tb, label));
+        auto sethood_wff_prover = tb.build_registered_prover(sethood_trp, {{"A", trivial_prover(label)}}, {});
+        auto sethood_label = engine.create_new_hypothesis(std::make_pair(tb.get_turnstile(), prover_to_pt2(tb, sethood_wff_prover)));
+        ctx.alloc_functor(funct.first, vars, trivial_prover(label), trivial_prover(sethood_label), make_functor_not_free_prover(tb, label));
     }
     for (const auto &pred : std::get<2>(vars_functs_preds)) {
         std::vector<LabTok> vars;

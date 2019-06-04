@@ -25,13 +25,13 @@ public:
 
 private:
     Prover<CheckpointedProofEngine> convert_predicate_prover(const std::shared_ptr<const Predicate> &pred, size_t start_idx = 0) const;
-    Prover<CheckpointedProofEngine> not_free_predicate_prover(const std::shared_ptr<const Predicate> &pred, const std::string &var_name, size_t start_idx = 0) const;
     Prover<CheckpointedProofEngine> convert_functor_prover(const std::shared_ptr<const Functor> &func, size_t start_idx = 0) const;
+    Prover<CheckpointedProofEngine> not_free_predicate_prover(const std::shared_ptr<const Predicate> &pred, const std::string &var_name, size_t start_idx = 0) const;
     Prover<CheckpointedProofEngine> not_free_functor_prover(const std::shared_ptr<const Functor> &func, const std::string &var_name, size_t start_idx = 0) const;
-    //Prover<CheckpointedProofEngine> internal_not_free_prover(const std::shared_ptr<const FOT> &fot, const std::string &var_name, size_t start_idx = 0) const;
     Prover<CheckpointedProofEngine> replace_predicate_prover(const std::shared_ptr<const Predicate> &pred, const std::string &var_name, const std::shared_ptr<const FOT> &term, size_t start_idx = 0) const;
+    Prover<CheckpointedProofEngine> replace_functor_prover(const std::shared_ptr<const Functor> &func, const std::string &var_name, const std::shared_ptr<const FOT> &term, size_t start_idx = 0) const;
     Prover<CheckpointedProofEngine> internal_not_free_prover(const std::shared_ptr<const FOT> &fot, LabTok var_lab) const;
-    Prover<CheckpointedProofEngine> internal_not_free_functor_prover(const std::shared_ptr<const Functor> &funct, LabTok var_lab, size_t start_idx = 0) const;
+    Prover<CheckpointedProofEngine> internal_not_free_functor_prover(const std::shared_ptr<const Functor> &func, LabTok var_lab, size_t start_idx = 0) const;
 
     const LibraryToolbox &tb;
     temp_stacked_allocator tsa;

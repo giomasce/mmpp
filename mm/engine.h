@@ -175,7 +175,8 @@ protected:
             assert(this->dists_stack.at(stack_base + i).empty());
             const SymTok subst_type = TraitsType::floating_to_type(this->lib, hyp);
             const SymTok stack_subst_type = TraitsType::sentence_to_type(this->lib, stack_hyp_sent);
-            gio::assert_or_throw< ProofException< SentType_ > >(subst_type == stack_subst_type, "Floating hypothesis does not match stack");
+            ProofError<SentType_> err = { label, stack_hyp_sent, TraitsType::get_sentence(this->lib, hyp), subst_map };
+            gio::assert_or_throw< ProofException< SentType_ > >(subst_type == stack_subst_type, "Floating hypothesis does not match stack", err);
 #ifdef PROOF_VERBOSE_DEBUG
             if (stack_hyp_sent.size() == 1) {
                 cerr << "[" << this->debug_output << "] Matching an empty sentence" << endl;
