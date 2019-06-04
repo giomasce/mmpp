@@ -301,7 +301,7 @@ int read_gapt_main(int argc, char *argv[]) {
             std::cout << "Proof failed...\n";
         } else {
             std::cout << "Proof proved: " << tb.print_sentence(engine.get_stack().back().second, SentencePrinter::STYLE_ANSI_COLORS_SET_MM) << "\n";
-            std::cout << "Proof:";
+            /*std::cout << "Proof:";
             const auto &labels = engine.get_proof_labels();
             for (const auto &label : labels) {
                 if (label != LabTok{}) {
@@ -310,7 +310,7 @@ int read_gapt_main(int argc, char *argv[]) {
                     std::cout << " *";
                 }
             }
-            std::cout << "\n";
+            std::cout << "\n";*/
         }
     } catch (const std::exception &e) {
         std::cout << "This proof is not supported yet...\n";

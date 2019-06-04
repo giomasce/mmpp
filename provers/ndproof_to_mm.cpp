@@ -81,7 +81,8 @@ const RegisteredProver bottom_elim_rule_rp = LibraryToolbox::register_prover({"|
 const RegisteredProver forall_intro_rp = LibraryToolbox::register_prover({"|- F/ y ph", "|- F/ y ch", "|- ( [. y / x ]. ch <-> ps )", "|- ( ph -> ps )"}, "|- ( ph -> A. x ch )");
 const RegisteredProver forall_elim_rp = LibraryToolbox::register_prover({"|- A e. _V", "|- ( ph -> A. x ch )", "|- ( [. A / x ]. ch <-> ps )"}, "|- ( ph -> ps )");
 const RegisteredProver exists_intro_rp = LibraryToolbox::register_prover({"|- ( [. A / x ]. ch <-> ps )", "|- ( ph -> ps )"}, "|- ( ph -> E. x ch )");
-const RegisteredProver exists_elim_rp = LibraryToolbox::register_prover({"|- ( ph -> E. x th )", "|- ( [. y / x ]. th <-> et )", "|- ( ( et /\\ ps ) -> ch )", "|- F/ y ch", "|- F/ y th", "|- F/ y ps"}, "|- ( ( ph /\\ ps ) -> ch )");
+const RegisteredProver exists_elim_rp = LibraryToolbox::register_prover({"|- ( ph -> E. x th )", "|- ( ( th /\\ ps ) -> ch )", "|- F/ x ch", "|- F/ x ps"}, "|- ( ( ph /\\ ps ) -> ch )");
+const RegisteredProver exists_elim_dists_rp = LibraryToolbox::register_prover({"|- ( ph -> E. x th )", "|- ( [. y / x ]. th <-> et )", "|- ( ( et /\\ ps ) -> ch )", "|- F/ y ch", "|- F/ y th", "|- F/ y ps"}, "|- ( ( ph /\\ ps ) -> ch )");
 const RegisteredProver equality_intro_rule_rp = LibraryToolbox::register_prover({}, "|- ( T. -> A = A )");
 const RegisteredProver equality_elim_rule_rp = LibraryToolbox::register_prover({"|- ( ph -> A = B )", "|- ( ps -> th )", "|- ( [. A / x ]. ch <-> th )", "|- ( [. B / x ]. ch <-> et )"}, "|- ( ( ph /\\ ps ) -> et )");
 const RegisteredProver equality_elim_rule2_rp = LibraryToolbox::register_prover({"|- ( ph -> A = B )", "|- ( ps -> et )", "|- ( [. A / x ]. ch <-> th )", "|- ( [. B / x ]. ch <-> et )"}, "|- ( ( ph /\\ ps ) -> th )");
@@ -237,17 +238,29 @@ Prover<CheckpointedProofEngine> nd_proof_to_mm_ctx::convert_proof(const proof &p
         right_prover = this->select_antecedent(right_proof->get_thesis(), right_prover, eer->get_right_idx());
         std::vector<formula> right_ants(gio::skipping_iterator(right_proof->get_thesis().first.begin(), right_proof->get_thesis().first.end(), {eer->get_right_idx()}),
                                         gio::skipping_iterator(right_proof->get_thesis().first.end(), right_proof->get_thesis().first.end(), {}));
-        auto prover = this->tb.build_registered_prover(exists_elim_rp, {{"x", this->ctx.convert_prover(eer->get_var(), false)},
-                                                                        {"y", this->ctx.convert_prover(eer->get_eigenvar(), false)},
-                                                                        {"ph", build_conjuction_prover(this->tb, this->ctx, left_proof->get_thesis().first)},
-                                                                        {"ps", build_conjuction_prover(this->tb, this->ctx, right_ants)},
-                                                                        {"th", this->ctx.convert_prover(eer->get_predicate())},
-                                                                        {"et", this->ctx.convert_prover(eer->get_predicate()->replace(eer->get_var()->get_name(), eer->get_eigenvar()))},
-                                                                        {"ch", this->ctx.convert_prover(eer->get_thesis().second)}},
-                                                       {left_prover, this->ctx.replace_prover(eer->get_predicate(), eer->get_var()->get_name(), eer->get_eigenvar()), right_prover,
-                                                        this->ctx.not_free_prover(eer->get_thesis().second, eer->get_eigenvar()->get_name()),
-                                                        this->ctx.not_free_prover(eer->get_predicate(), eer->get_eigenvar()->get_name()),
-                                                        build_conjunction_not_free_prover(this->tb, this->ctx, right_ants, eer->get_eigenvar()->get_name())});
+        Prover<CheckpointedProofEngine> prover;
+        if (!gio::eq_cmp(gio::mmpp::provers::fof::fot_cmp())(*eer->get_var(), *eer->get_eigenvar())) {
+            prover = this->tb.build_registered_prover(exists_elim_dists_rp, {{"x", this->ctx.convert_prover(eer->get_var(), false)},
+                                                                             {"y", this->ctx.convert_prover(eer->get_eigenvar(), false)},
+                                                                             {"ph", build_conjuction_prover(this->tb, this->ctx, left_proof->get_thesis().first)},
+                                                                             {"ps", build_conjuction_prover(this->tb, this->ctx, right_ants)},
+                                                                             {"th", this->ctx.convert_prover(eer->get_predicate())},
+                                                                             {"et", this->ctx.convert_prover(eer->get_predicate()->replace(eer->get_var()->get_name(), eer->get_eigenvar()))},
+                                                                             {"ch", this->ctx.convert_prover(eer->get_thesis().second)}},
+                                                           {left_prover, this->ctx.replace_prover(eer->get_predicate(), eer->get_var()->get_name(), eer->get_eigenvar()), right_prover,
+                                                            this->ctx.not_free_prover(eer->get_thesis().second, eer->get_eigenvar()->get_name()),
+                                                            this->ctx.not_free_prover(eer->get_predicate(), eer->get_eigenvar()->get_name()),
+                                                            build_conjunction_not_free_prover(this->tb, this->ctx, right_ants, eer->get_eigenvar()->get_name())});
+        } else {
+            prover = this->tb.build_registered_prover(exists_elim_rp, {{"x", this->ctx.convert_prover(eer->get_var(), false)},
+                                                                       {"ph", build_conjuction_prover(this->tb, this->ctx, left_proof->get_thesis().first)},
+                                                                       {"ps", build_conjuction_prover(this->tb, this->ctx, right_ants)},
+                                                                       {"th", this->ctx.convert_prover(eer->get_predicate())},
+                                                                       {"ch", this->ctx.convert_prover(eer->get_thesis().second)}},
+                                                           {left_prover, right_prover,
+                                                            this->ctx.not_free_prover(eer->get_thesis().second, eer->get_var()->get_name()),
+                                                            build_conjunction_not_free_prover(this->tb, this->ctx, right_ants, eer->get_var()->get_name())});
+        }
         prover = this->merge_antecedents(left_proof->get_thesis().first, right_ants, eer->get_thesis().second, prover);
         return prover;
     } else if (const auto eir = pr->mapped_dynamic_cast<const EqualityIntroRule>()) {
